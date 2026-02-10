@@ -1,0 +1,49 @@
+# never send git metadata
+.git
+.gitignore
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# editors
+.vscode
+.idea
+
+# logs & caches
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+.pnp.cjs
+.pnp.data.json
+.next
+.cache
+tmp
+temp
+coverage
+
+# runtime/build output
+dist
+build
+.out
+
+# dependencies from host
+node_modules
+**/node_modules
+# Prisma generated client
+**/node_modules/.prisma
+**/prisma/client
+# prisma binaries/output if any local build produced them
+prisma/*query-engine*
+prisma/*migration-engine*
+prisma/*introspection-engine*
+
+# docker sockets or any sockets anywhere
+**/*.sock
+**/*.socket
+
+# local envs
+.e

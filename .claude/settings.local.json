@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"C:\\\\Users\\\\lhani\\\\OneDrive\\\\Desktop\\\\ivorzero\\\\ivorzero\\\\dashboard\\\\packages\"\" 2>/dev/null || echo \"No packages directory found \")",
+      "Bash(for file in apps/fe/src/components/ui/alert-dialog.tsx apps/fe/src/components/ui/avatar.tsx apps/fe/src/components/ui/badge.tsx apps/fe/src/components/ui/breadcrumb.tsx apps/fe/src/components/ui/button.tsx apps/fe/src/components/ui/button-group.tsx apps/fe/src/components/ui/calendar.tsx apps/fe/src/components/ui/card.tsx apps/fe/src/components/ui/checkbox.tsx apps/fe/src/components/ui/collapsible.tsx apps/fe/src/components/ui/command.tsx apps/fe/src/components/ui/date-input.tsx apps/fe/src/components/ui/date-range-filter.tsx apps/fe/src/components/ui/date-range-picker.tsx apps/fe/src/components/ui/dialog.tsx apps/fe/src/components/ui/dropdown-menu.tsx apps/fe/src/components/ui/form.tsx apps/fe/src/components/ui/ImageUpload.tsx apps/fe/src/components/ui/input.tsx apps/fe/src/components/ui/label.tsx apps/fe/src/components/ui/multi-select.tsx apps/fe/src/components/ui/popover.tsx apps/fe/src/components/ui/progress.tsx apps/fe/src/components/ui/radio-group.tsx apps/fe/src/components/ui/receipt-viewer.tsx apps/fe/src/components/ui/scroll-area.tsx apps/fe/src/components/ui/select.tsx apps/fe/src/components/ui/separator.tsx apps/fe/src/components/ui/sheet.tsx apps/fe/src/components/ui/sidebar.tsx apps/fe/src/components/ui/skeleton-loader.tsx apps/fe/src/components/ui/skeleton.tsx apps/fe/src/components/ui/sonner.tsx apps/fe/src/components/ui/spinner.tsx apps/fe/src/components/ui/switch.tsx apps/fe/src/components/ui/table.tsx apps/fe/src/components/ui/tabs.tsx apps/fe/src/components/ui/textarea.tsx apps/fe/src/components/ui/tooltip.tsx)",
+      "Bash(do cp \"$file\" packages/ui/src/components/)",
+      "Bash(done)",
+      "Bash(while read file)",
+      "Bash(do sed -i 's|@/components/ui/|@dashboard/ui/components/|g' \"$file\")",
+      "Bash(do sed -i 's|@/hooks/use-mobile|@dashboard/ui/hooks/use-mobile|g' \"$file\")",
+      "Bash(while read f)",
+      "Bash(do rm \"$f\")",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm build:fe:*)",
+      "Bash(pnpm test:fe:*)"
+    ]
+  }
+}

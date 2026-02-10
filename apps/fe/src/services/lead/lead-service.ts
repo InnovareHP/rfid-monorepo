@@ -1,0 +1,266 @@
+import { axiosClient } from "@/lib/axios-client";
+import type { LeadAnalyze, LeadHistoryItem } from "@/lib/types";
+
+export const getLeads = async (filters: any) => {
+  const response = await axiosClient.get("/api/boards", {
+    params: {
+      ...filters,
+      filter: JSON.stringify(filters.filter),
+      moduleType: "LEAD",
+    },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch leads");
+  }
+
+  return response.data;
+};
+
+export const getColumnOptions = async (moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/options`, {
+    params: {
+      moduleType: moduleType || "LEAD",
+    },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch leads meta");
+  }
+
+  return response.data;
+};
+
+export const getLeadAnalysis = async (leadId: string, moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/${leadId}/analyze`, {
+    params: {
+      moduleType: moduleType || "LEAD",
+    },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch lead analysis");
+  }
+
+  return response.data as LeadAnalyze;
+};
+
+export const getDropdownOptions = async (
+  fieldKey: string,
+  page?: number,
+  limit?: number
+) => {
+  const response = await axiosClient.get(
+    `/api/boards/field/${fieldKey}/options`,
+    {
+      params: {
+        page: page,
+        limit: limit,
+      },
+    }
+  );
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch dropdown options");
+  }
+
+  return response.data as any;
+};
+
+export const createDropdownOption = async (
+  fieldKey: string,
+  option: string
+) => {
+  const response = await axiosClient.post(
+    `/api/boards/field/${fieldKey}/options`,
+    {
+      option_name: option,
+    }
+  );
+
+  return response.data;
+};
+
+export const seenLeads = async (recordId: string) => {
+  const response = await axiosClient.post("/api/boards/notification-state", {
+    record_id: recordId,
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to seen leads");
+  }
+
+  return response.data;
+};
+
+export const getSpecificLead = async (leadId: string, moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/${leadId}`, {
+    params: {
+      moduleType: moduleType || "LEAD",
+    },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch specific lead");
+  }
+
+  return response.data;
+};
+
+export const updateLead = async (
+  recordId: string,
+  fieldId: string,
+  value: string,
+  moduleType?: string
+) => {
+  const response = await axiosClient.patch(`/api/boards/${recordId}`, {
+    value,
+    field_id: fieldId,
+    moduleType: moduleType || "LEAD",
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to update lead");
+  }
+
+  return response.data;
+};
+
+export const createLead = async (data: any, moduleType?: string) => {
+  const response = await axiosClient.post("/api/boards", {
+    lead_name: data[0].lead_name,
+    moduleType: moduleType || "LEAD",
+  });
+
+  return response.data;
+};
+
+export const createColumn = async (
+  isReferral: boolean,
+  column: string,
+  name: string,
+  moduleType?: string
+) => {
+  const response = await axiosClient.post("/api/boards/column", {
+    isReferral: isReferral,
+    column: column,
+    name: name,
+    moduleType: moduleType || "LEAD",
+  });
+
+  return response.data;
+};
+
+export const getLeadHistory = async (filters: any, moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/history`, {
+    params: { ...filters, moduleType: moduleType },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch lead history");
+  }
+
+  return response.data;
+};
+
+export const restoreLeadHistory = async (
+  lead_id: string | undefined,
+  history_id: string,
+  event_type: string,
+  moduleType?: string
+) => {
+  const response = await axiosClient.post(`/api/boards/restore-history`, {
+    lead_id: lead_id,
+    history_id: history_id,
+    event_type: event_type,
+    moduleType: moduleType || "LEAD",
+  });
+
+  return response.data;
+};
+
+export const deleteLead = async (columnIds: string[], moduleType?: string) => {
+  const response = await axiosClient.delete(`/api/boards`, {
+    data: {
+      column_ids: columnIds,
+      moduleType: moduleType || "LEAD",
+    },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to delete leads");
+  }
+
+  return response.data;
+};
+
+export const getLeadTimeline = async (
+  leadId: string,
+  limit: number,
+  page: number,
+  moduleType?: string
+) => {
+  const response = await axiosClient.get(
+    `/api/boards/timeline/${leadId}?take=${limit}&page=${page}&moduleType=${moduleType || "LEAD"}`
+  );
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch lead timeline");
+  }
+
+  return response.data;
+};
+
+export const createLeadTimeline = async (
+  leadId: string,
+  data: LeadHistoryItem,
+  moduleType?: string
+) => {
+  const response = await axiosClient.post(`/api/boards/timeline/${leadId}`, {
+    ...data,
+    moduleType: moduleType,
+  });
+
+  return response.data;
+};
+
+export const editLeadTimeline = async (
+  id: string,
+  moduleType: string = "LEAD"
+) => {
+  const response = await axiosClient.patch(`/api/boards/timeline/${id}`, {
+    moduleType: moduleType,
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to edit lead timeline");
+  }
+
+  return response.data;
+};
+
+export const deleteLeadTimeline = async (
+  id: string,
+  moduleType: string = "LEAD"
+) => {
+  const response = await axiosClient.delete(`/api/boards/timeline/${id}`, {
+    data: {
+      moduleType: moduleType,
+    },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to delete lead timeline");
+  }
+
+  return response.data;
+};
+
+export const importLeads = async (data: any, moduleType: string = "LEAD") => {
+  const response = await axiosClient.post("/api/boards/csv-import", {
+    excelData: data,
+    moduleType: moduleType,
+  });
+
+  return response.data;
+};
