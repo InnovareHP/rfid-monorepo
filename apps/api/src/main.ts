@@ -13,7 +13,11 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: appConfig.WEBSITE_URL,
+    origin: [
+      appConfig.WEBSITE_URL,
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ],
     methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Content-Length"],

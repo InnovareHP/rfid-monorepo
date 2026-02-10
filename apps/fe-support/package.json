@@ -1,0 +1,30 @@
+{
+  "name": "fe-support",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3001",
+    "start": "vite --host --port 3001",
+    "build": "vite build && tsc",
+    "serve": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dashboard/ui": "workspace:*",
+    "@tanstack/react-router": "^1.130.2",
+    "lucide-react": "^0.476.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "^1.131.27",
+    "@tailwindcss/vite": "^4.0.6",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "tw-animate-css": "^1.3.6",
+    "vite": "^6.3.5",
+    "tailwindcss": "^4.0.6"
+  }
+}

@@ -4,9 +4,11 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "dev:fe": "pnpm --filter fe dev",
+    "dev:fe-support": "pnpm --filter fe-support dev",
     "dev:api": "pnpm --filter api dev",
     "build": "pnpm -r run build",
     "build:fe": "pnpm --filter fe build",
+    "build:fe-support": "pnpm --filter fe-support build",
     "build:api": "pnpm --filter api build",
     "test": "pnpm -r run test",
     "test:fe": "pnpm --filter fe test",
