@@ -1,10 +1,8 @@
-import { SupportPortalPage } from "@/components/support-portal-page";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  component: HomePage,
+  beforeLoad: async () => {
+    throw redirect({ to: "/en/" } as any);
+  },
+  component: () => null,
 });
-
-function HomePage() {
-  return <SupportPortalPage />;
-}
