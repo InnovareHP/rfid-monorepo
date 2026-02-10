@@ -198,9 +198,9 @@ export type MileageLogRow = {
 };
 
 export type LeadAnalyze = {
-  leadId: string;
+  recordId: string;
   assignedTo: string;
-  leadName: string;
+  recordName: string;
   summary: {
     totalInteractions: number;
     facilitiesCovered: string[];

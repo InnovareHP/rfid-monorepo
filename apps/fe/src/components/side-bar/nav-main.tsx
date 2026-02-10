@@ -48,7 +48,7 @@ export const NavMain = React.memo(function NavMain({
                   isActive={item.url === pathname}
                   asChild
                 >
-                  <Link to={item.url || "#"}>
+                  <Link preload={false} to={item.url || "#"}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </Link>
@@ -81,7 +81,7 @@ export const NavMain = React.memo(function NavMain({
                           isActive={subItem.url === pathname}
                           asChild
                         >
-                          <Link to={subItem.url}>
+                          <Link preload={false} to={subItem.url}>
                             <span>{subItem.title}</span>
                           </Link>
                         </SidebarMenuSubButton>

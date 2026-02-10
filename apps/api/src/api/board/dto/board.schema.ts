@@ -4,6 +4,7 @@ import {
   CreateFieldOptionSchema,
   CreateHistorySchema,
   CreateLocationSchema,
+  CreateRecordCountyAssignmentSchema,
   CreateRecordSchema,
   CsvImportSchema,
   DeleteRecordsSchema,
@@ -28,3 +29,6 @@ export class CreateFieldOptionDto extends createZodDto(
 ) {}
 export class CreateHistoryDto extends createZodDto(CreateHistorySchema) {}
 export class DeleteRecordsDto extends createZodDto(DeleteRecordsSchema) {}
+export class CreateRecordCountyAssignmentDto extends createZodDto(
+  CreateRecordCountyAssignmentSchema
+) {}

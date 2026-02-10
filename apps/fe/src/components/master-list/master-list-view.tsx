@@ -1,14 +1,3 @@
-import { Badge } from "@dashboard/ui/components/badge";
-import { Button } from "@dashboard/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-  DialogTrigger,
-} from "@dashboard/ui/components/dialog";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
 import { FILETYPE } from "@/lib/enum";
 import { formatDateTime } from "@/lib/utils";
 import {
@@ -22,6 +11,21 @@ import {
   getSpecificReferral,
   seenReferrals,
 } from "@/services/referral/referral-service";
+import { Badge } from "@dashboard/ui/components/badge";
+import { Button } from "@dashboard/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+} from "@dashboard/ui/components/dialog";
+import { ScrollArea } from "@dashboard/ui/components/scroll-area";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@dashboard/ui/components/tabs";
 import {
   useInfiniteQuery,
   useQuery,
@@ -58,20 +62,25 @@ export function MasterListView({
   hasNotification = false,
   isReferral,
   initialTab = "details",
-  triggerLabel = "View Organization",
-  TriggerIcon = Building2,
+  open = false,
+  setOpen,
 }: {
   leadId: string;
   isReferral: boolean;
   hasNotification?: boolean;
   initialTab?: "details" | "history";
-  triggerLabel?: string;
-  TriggerIcon?: React.ComponentType<{ className?: string }>;
+  open?: boolean;
+  setOpen?: (open: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(initialTab);
   const hasSeenRef = React.useRef(false);
+  const prevLeadIdRef = React.useRef(leadId);
+
+  if (prevLeadIdRef.current !== leadId) {
+    hasSeenRef.current = false;
+    prevLeadIdRef.current = leadId;
+  }
 
   const [restoreModalOpen, setRestoreModalOpen] = React.useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] =
@@ -123,14 +132,9 @@ export function MasterListView({
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
-      setOpen(next);
+      setOpen?.(next);
 
-      if (
-        next &&
-        initialTab === "history" &&
-        hasNotification &&
-        !hasSeenRef.current
-      ) {
+      if (hasNotification) {
         isReferral
           ? seenReferrals(leadId).then(() => {
               hasSeenRef.current = true;
@@ -142,7 +146,7 @@ export function MasterListView({
       }
       if (next) setActiveTab(initialTab);
     },
-    [initialTab, hasNotification, leadId]
+    [initialTab, hasNotification, leadId, hasSeenRef]
   );
 
   const handleOpenRestoreModal = (historyItem: any) => {
@@ -184,17 +188,6 @@ export function MasterListView({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors"
-          >
-            <TriggerIcon className="h-4 w-4" />
-            {triggerLabel}
-          </Button>
-        </DialogTrigger>
-
         <DialogContent className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden">
           {/* Custom Header with Gradient */}
           <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -394,9 +387,9 @@ export function MasterListView({
                                             "create"
                                               ? "bg-green-50 text-green-700 border-green-300"
                                               : item.action.toLowerCase() ===
-                                                "delete"
-                                              ? "bg-red-50 text-red-700 border-red-300"
-                                              : "bg-blue-50 text-blue-700 border-blue-300"
+                                                  "delete"
+                                                ? "bg-red-50 text-red-700 border-red-300"
+                                                : "bg-blue-50 text-blue-700 border-blue-300"
                                           }`}
                                         >
                                           {item.action.charAt(0).toUpperCase() +
@@ -484,7 +477,7 @@ export function MasterListView({
           <DialogFooter className="px-6 py-4 bg-gradient-to-r from-gray-50 to-slate-50 border-t">
             <Button
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => setOpen?.(false)}
               className="font-semibold hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
             >
               Close

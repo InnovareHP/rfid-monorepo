@@ -2,6 +2,7 @@ import { FieldType } from "@prisma/client";
 import { z } from "zod";
 
 export const CreateRecordSchema = z.object({
+  data: z.array(z.record(z.string(), z.unknown())).optional(),
   record_name: z.string(),
   moduleType: z.string(),
 });
@@ -9,6 +10,7 @@ export const CreateRecordSchema = z.object({
 export const UpdateRecordValueSchema = z.object({
   value: z.string(),
   field_id: z.string(),
+  reason: z.string().optional(),
 });
 
 export const RestoreHistorySchema = z.object({
@@ -48,4 +50,9 @@ export const CreateHistorySchema = z.object({
 
 export const DeleteRecordsSchema = z.object({
   column_ids: z.array(z.string()),
+});
+
+export const CreateRecordCountyAssignmentSchema = z.object({
+  name: z.string(),
+  assigned_to: z.string(),
 });

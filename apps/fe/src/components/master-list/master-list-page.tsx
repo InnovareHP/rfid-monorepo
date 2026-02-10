@@ -1,5 +1,6 @@
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
+import { connectSocket } from "@/lib/socket-io/socket";
 import type { LeadRow, OptionsResponse } from "@/lib/types";
 import { exportToCSV } from "@/lib/utils";
 import { Route } from "@/routes/_team";
@@ -21,14 +22,18 @@ import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import AddRow from "../reusable-table/add-row";
+import { AnalyzeLeadDialog } from "./analyze-cell";
 import ColumnFilter from "./column-filter";
 import { MasterListFilters } from "./master-list-filter";
+import { MasterListView } from "./master-list-view";
 
 export default function MasterListPage() {
   const { activeOrganizationId } = Route.useRouteContext() as {
     activeOrganizationId: string;
   };
-
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [openAnalyzeDialog, setOpenAnalyzeDialog] = useState(false);
+  const [openMasterListView, setOpenMasterListView] = useState(false);
   const queryClient = useQueryClient();
   const memberData = queryClient.getQueryData([
     "member-data",
@@ -55,7 +60,7 @@ export default function MasterListPage() {
     queryFn: ({ pageParam = filterMeta.limit }) =>
       getLeads({
         ...filterMeta,
-        page: pageParam, // 👈 THIS is what fetchNextPage controls
+        page: pageParam,
       }),
 
     initialPageParam: 1,
@@ -71,16 +76,27 @@ export default function MasterListPage() {
 
   const columns = generateLeadColumns(
     data?.pages[0].columns ?? [],
-    memberData
+    memberData,
+    (recordId: string) => {
+      setSelectedRecordId(recordId);
+      setOpenAnalyzeDialog(true);
+    },
+    (recordId: string) => {
+      setSelectedRecordId(recordId);
+      setOpenMasterListView(true);
+    }
   ) as {
     id: string;
     name: string;
     type: string;
   }[];
 
+  const socket = useMemo(() => connectSocket(), []);
+
   const table = useReactTable({
     data: rows,
     columns,
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
   });
@@ -245,10 +261,36 @@ export default function MasterListPage() {
       });
   }, [table]);
 
+  console.log(
+    selectedRecordId
+      ? (data?.pages[0].data.find((r: LeadRow) => r.id === selectedRecordId)
+          ?.has_notification ?? false)
+      : false
+  );
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       <div className="space-y-6">
         {/* Header Section */}
+        <AnalyzeLeadDialog
+          recordId={selectedRecordId}
+          open={openAnalyzeDialog}
+          setOpen={setOpenAnalyzeDialog}
+        />
+
+        <MasterListView
+          open={openMasterListView}
+          setOpen={setOpenMasterListView}
+          leadId={selectedRecordId ?? ""}
+          isReferral={false}
+          hasNotification={
+            selectedRecordId
+              ? (data?.pages[0].data.find(
+                  (r: LeadRow) => r.id === selectedRecordId
+                )?.has_notification ?? false)
+              : false
+          }
+          initialTab="history"
+        />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">

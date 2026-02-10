@@ -17,6 +17,7 @@ import {
   CreateColumnDto,
   CreateFieldOptionDto,
   CreateHistoryDto,
+  CreateRecordCountyAssignmentDto,
   CreateRecordDto,
   CsvImportDto,
   DeleteRecordsDto,
@@ -77,6 +78,19 @@ export class BoardController {
         limit: Number(limit),
         moduleType: moduleType || "LEAD",
       });
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/county/configuration")
+  async getCountyConfiguration(
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.getCountyConfiguration(organizationId);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -167,6 +181,13 @@ export class BoardController {
   ) {
     const organizationId = session.session.activeOrganizationId;
     try {
+      if (dto.moduleType === "REFERRAL") {
+        return this.boardService.createReferral(
+          dto.data,
+          organizationId,
+          session.user.id
+        );
+      }
       return this.boardService.createRecord(
         dto.record_name,
         organizationId,
@@ -206,6 +227,24 @@ export class BoardController {
       return this.boardService.setRecordNotificationState(
         dto.record_id,
         session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/county/assignment")
+  async createRecordCountyAssignment(
+    @Body() dto: CreateRecordCountyAssignmentDto,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.createCountyAssignment(
+        dto.name,
+        organizationId,
+        dto.assigned_to
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -269,7 +308,7 @@ export class BoardController {
     @Param("recordId") recordId: string,
     @Body() dto: CreateHistoryDto,
     @Session()
-    session: AuthenticatedSession & { member: { id: string } }
+    session: MemberSession
   ) {
     try {
       return await this.boardService.createRecordHistory(
@@ -277,7 +316,7 @@ export class BoardController {
         dto.old_value,
         dto.new_value,
         dto.created_by,
-        session.member.id
+        session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -307,7 +346,8 @@ export class BoardController {
         dto.field_id,
         dto.value,
         organizationId,
-        session.session.userId
+        session.session.userId,
+        dto.reason
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -324,6 +364,15 @@ export class BoardController {
         dto.column_ids,
         session.session.activeOrganizationId
       );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/county/assignment/:countyId")
+  async deleteCountyAssignment(@Param("countyId") countyId: string) {
+    try {
+      return await this.boardService.deleteCountyAssignment(countyId);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
