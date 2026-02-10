@@ -1,5 +1,4 @@
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import { Button } from "@dashboard/ui/components/button";
 import type { ReferralRow } from "@/lib/types";
 import { exportToCSV } from "@/lib/utils";
 import { useTeamLayoutContext } from "@/routes/_team";
@@ -8,6 +7,7 @@ import {
   deleteReferral,
   getReferral,
 } from "@/services/referral/referral-service";
+import { Button } from "@dashboard/ui/components/button";
 import {
   useInfiniteQuery,
   useMutation,
@@ -33,8 +33,8 @@ export default function ReferralListPage() {
   };
   const queryClient = useQueryClient();
   const [filterMeta, setFilterMeta] = useState({
-    referralDateFrom: null,
-    referralDateTo: null,
+    dateFrom: null,
+    dateTo: null,
     filter: {},
     limit: 20,
   });

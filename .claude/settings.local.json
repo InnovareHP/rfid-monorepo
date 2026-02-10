@@ -12,7 +12,8 @@
       "Bash(do rm \"$f\")",
       "Bash(pnpm install:*)",
       "Bash(pnpm build:fe:*)",
-      "Bash(pnpm test:fe:*)"
+      "Bash(pnpm test:fe:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

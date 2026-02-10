@@ -30,7 +30,7 @@ export function FilterComponent({
 
   const handleChange = (value: string) => {
     setLocalValue(value);
-    updateFilter(col.name, value);
+    updateFilter(col.id, value);
   };
 
   const { data: options = [] } = useQuery({

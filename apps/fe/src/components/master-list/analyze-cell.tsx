@@ -1,6 +1,5 @@
 import { getLeadAnalysis } from "@/services/lead/lead-service";
 import { Badge } from "@dashboard/ui/components/badge";
-import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
   CardContent,
@@ -12,7 +11,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  DialogTrigger,
 } from "@dashboard/ui/components/dialog";
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Separator } from "@dashboard/ui/components/separator";
@@ -32,12 +30,11 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { useState } from "react";
 
 // --- Types (Ensure this matches the service layer) ---
 export type LeadAnalyze = {
-  leadId: string;
-  leadName: string;
+  recordId: string;
+  recordName: string;
   assignedTo: string;
   summary: {
     totalInteractions: number;
@@ -50,22 +47,24 @@ export type LeadAnalyze = {
 };
 
 interface AnalyzeLeadDialogProps {
-  leadId: string;
+  recordId: string | null;
   dateStart?: string;
   dateEnd?: string;
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }
 
 export function AnalyzeLeadDialog({
-  leadId,
+  recordId,
   dateStart,
   dateEnd,
+  open,
+  setOpen,
 }: AnalyzeLeadDialogProps) {
-  const [open, setOpen] = useState(false);
-
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["lead-analysis", leadId],
-    queryFn: () => getLeadAnalysis(leadId),
-    enabled: open,
+    queryKey: ["lead-analysis", recordId],
+    queryFn: () => getLeadAnalysis(recordId ?? ""),
+    enabled: open && !!recordId,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -126,16 +125,6 @@ export function AnalyzeLeadDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors"
-        >
-          <BarChart3 className="mr-2 h-4 w-4" />
-          Analyze
-        </Button>
-      </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* Custom Header with Gradient */}
         <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -151,7 +140,7 @@ export function AnalyzeLeadDialog({
                   </DialogTitle>
                   {data && (
                     <p className="text-sm text-gray-600 mt-0.5 font-medium">
-                      {data.leadName || data.leadId}
+                      {data.recordName || data.recordId}
                     </p>
                   )}
                 </div>

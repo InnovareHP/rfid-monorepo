@@ -1,13 +1,12 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
 import { ROLES } from "@/lib/constant";
+import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { User } from "better-auth";
 import type { Member } from "better-auth/plugins/organization";
-import { Bell, Clock } from "lucide-react";
+import { Bell, HistoryIcon, SearchIcon } from "lucide-react";
 import { CreateColumnModal } from "../reusable-table/create-column";
-import { AnalyzeLeadDialog } from "./analyze-cell";
-import { MasterListView } from "./master-list-view";
 
 type ColumnType = {
   id: string;
@@ -25,7 +24,9 @@ type LeadRow = {
 
 export function generateLeadColumns(
   columnsFromApi: ColumnType[],
-  memberData: Member
+  memberData: Member,
+  onOpenAnalyzeDialog: (recordId: string) => void,
+  onOpenMasterListView: (recordId: string) => void
 ): ColumnDef<LeadRow>[] {
   const filteredApiColumns = columnsFromApi.filter(
     (col) => col.name !== "History" && col.type !== "TIMELINE"
@@ -86,16 +87,20 @@ export function generateLeadColumns(
           />
         </div>
         <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          <AnalyzeLeadDialog leadId={row.original.id} />
+          <div className="flex opacity-0 group-hover:opacity-100">
+            <Button onClick={() => onOpenAnalyzeDialog(row.original.id)}>
+              <SearchIcon /> Analyze
+            </Button>
+          </div>
           {memberData.role === ROLES.OWNER && (
-            <MasterListView
-              leadId={row.original.id}
-              isReferral={false}
-              hasNotification={row.original.has_notification}
-              initialTab="history"
-              triggerLabel="History"
-              TriggerIcon={Clock}
-            />
+            <div className="flex opacity-0 group-hover:opacity-100">
+              <Button
+                variant="outline"
+                onClick={() => onOpenMasterListView(row.original.id)}
+              >
+                <HistoryIcon /> History
+              </Button>
+            </div>
           )}
         </div>
       </div>

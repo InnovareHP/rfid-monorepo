@@ -260,6 +260,7 @@ export function AppSidebar({
           <Link
             to="/$team"
             params={{ team: activeOrganizationId }}
+            preload={false}
             className="block w-full h-full flex items-center justify-center"
           >
             <img

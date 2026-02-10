@@ -1,15 +1,7 @@
-import { Button } from "@dashboard/ui/components/button";
-import { Card, CardContent } from "@dashboard/ui/components/card";
-import { Input } from "@dashboard/ui/components/input";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useRouter } from "@tanstack/react-router";
-import type { ErrorContext } from "better-auth/react";
-import { Loader2, Lock, Mail, TrendingUp, Users } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import z from "zod/v3";
+import { Button } from "@dashboard/ui/components/button";
+import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
   Form,
   FormControl,
@@ -18,12 +10,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@dashboard/ui/components/form";
+import { Input } from "@dashboard/ui/components/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useRouter } from "@tanstack/react-router";
+import type { ErrorContext } from "better-auth/react";
+import { Loader2, Lock, Mail, TrendingUp, Users } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import z from "zod/v3";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useRouter();
+  const queryClient = useQueryClient();
   const formSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
@@ -46,15 +48,28 @@ export function LoginForm({
         },
         {
           onError: (ctx: ErrorContext): void => {
-            if (ctx.error.status === 403) {
-              toast.error("Please verify your email address");
-            }
             toast.error(ctx.error.message);
+          },
+          onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["session"] });
+
+            const { data: freshSession } = await authClient.getSession();
+
+            console.log(freshSession);
+            if (freshSession?.session?.activeOrganizationId) {
+              await navigate.navigate({
+                to: "/$team",
+                params: {
+                  team: freshSession.session.activeOrganizationId,
+                },
+                replace: true,
+              });
+            } else {
+              await navigate.navigate({ to: "/onboarding", replace: true });
+            }
           },
         }
       );
-
-      navigate.invalidate();
     } catch (error) {
       return toast.error("Failed to login");
     }

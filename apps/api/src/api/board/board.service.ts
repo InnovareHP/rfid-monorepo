@@ -9,6 +9,7 @@ import {
 } from "src/lib/helper";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
 import { lookupByName } from "zipcodes-perogi";
+import { uuidv4 } from "zod";
 import { prisma } from "../../lib/prisma/prisma";
 import { BoardGateway } from "./board.gateway";
 
@@ -56,34 +57,76 @@ export class BoardService {
       organization_id: organizationId,
       is_deleted: false,
       module_type: moduleType,
+      AND: [],
     };
 
     if (boardDateFrom || boardDateTo) {
-      where.created_at = {
-        ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
-        ...(boardDateTo && { lte: new Date(boardDateTo) }),
-      };
+      where.AND = [
+        ...(where.AND as Prisma.BoardWhereInput[]),
+        {
+          created_at: {
+            ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
+            ...(boardDateTo && { lte: new Date(boardDateTo) }),
+          },
+        },
+      ];
     }
 
     if (search) {
-      where.record_name = { contains: search, mode: "insensitive" };
+      where.AND = [
+        ...(where.AND as Prisma.BoardWhereInput[]),
+        {
+          record_name: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ];
     }
 
     if (filter && Object.keys(filter).length > 0) {
-      const dynamicFilters = Object.entries(filter)
-        .filter(([_, val]) => val !== undefined && val !== "")
-        .map(([fieldId, val]) => ({
-          values: {
-            some: {
-              field_id: fieldId,
-              value: { contains: String(val), mode: "insensitive" as const },
+      const filterFieldIds = Object.keys(filter).filter(
+        (key) => filter[key] !== undefined && filter[key] !== ""
+      );
+
+      console.log(filterFieldIds);
+
+      const filterFields = await prisma.field.findMany({
+        where: { id: { in: filterFieldIds }, organization_id: organizationId },
+        select: { id: true, field_type: true, field_name: true },
+      });
+
+      const fieldTypeMap = new Map(
+        filterFields.map((f) => [f.id, f.field_type])
+      );
+      console.log(filterFields);
+
+      for (const [id, val] of Object.entries(filter)) {
+        if (val === undefined || val === "") continue;
+
+        const fieldType = fieldTypeMap.get(id);
+        const useExactMatch =
+          fieldType &&
+          (fieldType === "DROPDOWN" ||
+            fieldType === "STATUS" ||
+            fieldType === "CHECKBOX");
+
+        console.log(id, val, useExactMatch);
+        where.AND = [
+          ...(where.AND as Prisma.BoardWhereInput[]),
+          {
+            values: {
+              some: {
+                field_id: id,
+                value: useExactMatch
+                  ? { equals: String(val), mode: "insensitive" }
+                  : { contains: String(val), mode: "insensitive" },
+              },
             },
           },
-        }));
-
-      where.AND = dynamicFilters as Prisma.BoardWhereInput[];
+        ];
+      }
     }
-
     const [boards, count, fields] = await Promise.all([
       prisma.board.findMany({
         where,
@@ -439,6 +482,27 @@ export class BoardService {
     };
   }
 
+  async getCountyConfiguration(organizationId: string) {
+    const counties = await prisma.boardCounty.findMany({
+      where: { organization_id: organizationId },
+      select: {
+        id: true,
+        county_name: true,
+        boardCountyAssignedTo: {
+          select: {
+            assigned_to: true,
+          },
+        },
+      },
+    });
+
+    return counties.map((c) => ({
+      id: c.id,
+      name: c.county_name,
+      assigned_to: c.boardCountyAssignedTo.map((a) => a.assigned_to),
+    }));
+  }
+
   async getRecordFieldOptions(
     fieldId: string,
     organizationId: string,
@@ -511,55 +575,271 @@ export class BoardService {
     fieldId: string,
     value: string,
     organizationId: string,
-    memberId: string
+    memberId: string,
+    moduleType: string,
+    reason?: string
   ) {
     try {
-      if (fieldId === FieldType.ASSIGNED_TO) {
-        await this.updateAssignedTo(record_id, value, memberId);
-        await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+      const recordValue = await prisma.$transaction(async (tx) => {
+        if (fieldId === FieldType.ASSIGNED_TO) {
+          await this.updateAssignedTo(tx, record_id, value, memberId);
+          await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
-        this.boardGateway.emitRecordValueUpdated(
-          organizationId,
+          this.boardGateway.emitRecordValueUpdated(
+            organizationId,
+            record_id,
+            "Assigned To",
+            value
+          );
+
+          return {
+            message: "Assigned to updated successfully",
+          };
+        }
+
+        if (fieldId === "Record") {
+          await this.updateRecordName(tx, record_id, value, memberId);
+
+          await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+          this.boardGateway.emitRecordValueUpdated(
+            organizationId,
+            record_id,
+            "Record",
+            value
+          );
+
+          return {
+            message: "Record name updated successfully",
+          };
+        }
+
+        const field = await tx.field.findUnique({
+          where: { id: fieldId, organization_id: organizationId },
+          select: {
+            field_type: true,
+            id: true,
+            field_name: true,
+          },
+        });
+
+        if (!field) throw new NotFoundException("Field not found");
+
+        if (field.field_type === FieldType.LOCATION) {
+          const locationData = await this.createLocation(
+            value,
+            record_id,
+            organizationId
+          );
+          await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+          console.log(locationData);
+          this.boardGateway.emitRecordValueLocation(organizationId, record_id, {
+            ...locationData,
+          });
+          return {
+            message: "Location updated successfully",
+          };
+        }
+
+        if (field.field_type === FieldType.MULTISELECT) {
+          // Normalize value into an array of clean strings
+          const normalizedValue = Array.isArray(value)
+            ? value
+            : typeof value === "string"
+              ? value
+
+                  .split(",")
+                  .map((v) => v.trim())
+                  .filter(Boolean)
+              : [];
+
+          return await tx.fieldValue.upsert({
+            where: {
+              record_id_field_id: {
+                record_id: record_id,
+                field_id: field.id,
+              },
+            },
+            update: {
+              value: JSON.stringify(normalizedValue),
+            },
+            create: {
+              record_id: record_id,
+              field_id: field.id,
+              value: JSON.stringify(normalizedValue),
+            },
+          });
+        }
+
+        if (field.field_name === "County" && moduleType === "REFERRAL") {
+          const [assignedTo, facilityField] = await Promise.all([
+            tx.boardCounty.findFirstOrThrow({
+              where: {
+                county_name: value,
+                organization_id: organizationId,
+              },
+              include: {
+                boardCountyAssignedTo: {
+                  select: {
+                    assigned_to: true,
+                  },
+                  take: 1,
+                },
+              },
+            }),
+            tx.field.findFirstOrThrow({
+              where: {
+                field_name: "Facility",
+                organization_id: organizationId,
+              },
+              select: {
+                id: true,
+              },
+            }),
+          ]);
+
+          // Save County value
+          await tx.fieldValue.upsert({
+            where: {
+              record_id_field_id: {
+                record_id: record_id,
+                field_id: field.id,
+              },
+            },
+            update: { value },
+            create: {
+              record_id: record_id,
+              field_id: field.id,
+              value,
+            },
+          });
+
+          // Save Facility value
+          await tx.fieldValue.upsert({
+            where: {
+              record_id_field_id: {
+                record_id: record_id,
+                field_id: facilityField.id,
+              },
+            },
+            update: {
+              value: assignedTo.boardCountyAssignedTo[0].assigned_to,
+            },
+            create: {
+              record_id: record_id,
+              field_id: facilityField.id,
+              value: assignedTo.boardCountyAssignedTo[0].assigned_to,
+            },
+          });
+
+          return {
+            message: "County assigned successfully",
+          };
+        }
+
+        if (field.field_name === "Status") {
+          // Find the related "Reason" and "Action Date" fields
+          const statusFields = await prisma.field.findMany({
+            where: {
+              field_name: {
+                in: ["Reason", "Action Date (Accepted / Rejected)"],
+              },
+              organization_id: organizationId,
+            },
+            select: { id: true, field_name: true },
+          });
+
+          const reasonField = statusFields.find(
+            (f) => f.field_name === "Reason"
+          );
+          const actionDateField = statusFields.find(
+            (f) => f.field_name === "Action Date (Accepted / Rejected)"
+          );
+
+          await prisma.$transaction(async (tx) => {
+            await tx.fieldValue.upsert({
+              where: {
+                record_id_field_id: {
+                  record_id: record_id,
+                  field_id: field.id,
+                },
+              },
+              update: { value },
+              create: {
+                record_id: record_id,
+                field_id: field.id,
+                value,
+              },
+            });
+
+            if (reason && reasonField) {
+              await tx.fieldValue.upsert({
+                where: {
+                  record_id_field_id: {
+                    record_id: record_id,
+                    field_id: reasonField.id,
+                  },
+                },
+                update: { value: reason },
+                create: {
+                  record_id: record_id,
+                  field_id: reasonField.id,
+                  value: reason,
+                },
+              });
+            }
+
+            // 3️⃣ Update Action Date (set to current timestamp)
+            if (actionDateField) {
+              const now = new Date().toISOString();
+
+              await tx.fieldValue.upsert({
+                where: {
+                  record_id_field_id: {
+                    record_id: record_id,
+                    field_id: actionDateField.id,
+                  },
+                },
+                update: { value: now },
+                create: {
+                  record_id: record_id,
+                  field_id: actionDateField.id,
+                  value: now,
+                },
+              });
+            }
+          });
+
+          return {
+            message: "Status updated successfully",
+          };
+        }
+
+        const existingRecordValue = await prisma.fieldValue.findUnique({
+          where: {
+            record_id_field_id: { record_id: record_id, field_id: field.id },
+          },
+          select: { value: true },
+        });
+
+        const recordValue = await tx.fieldValue.upsert({
+          where: {
+            record_id_field_id: { record_id: record_id, field_id: field.id },
+          },
+          update: { value },
+          create: { record_id: record_id, field_id: field.id, value },
+        });
+
+        await this.createRecordHistory(
           record_id,
-          "Assigned To",
-          value
+          existingRecordValue?.value ?? "",
+          value,
+          memberId,
+          "update",
+          field.field_name
         );
 
-        return {
-          message: "Assigned to updated successfully",
-        };
-      }
-
-      if (fieldId === "Record") {
-        await this.updateRecordName(record_id, value, memberId);
-
-        await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
-
-        this.boardGateway.emitRecordValueUpdated(
-          organizationId,
-          record_id,
-          "Record",
-          value
-        );
-
-        return {
-          message: "Record name updated successfully",
-        };
-      }
-
-      const field = await prisma.field.findUnique({
-        where: { id: fieldId, organization_id: organizationId },
-        select: {
-          field_type: true,
-          id: true,
-          field_name: true,
-        },
-      });
-
-      if (!field) throw new NotFoundException("Field not found");
-
-      if (field.field_type === FieldType.LOCATION) {
-        await this.createLocation(value, record_id, organizationId);
         await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
         this.boardGateway.emitRecordValueUpdated(
@@ -569,42 +849,10 @@ export class BoardService {
           value
         );
         return {
-          message: "Location updated successfully",
+          message: "Record value updated successfully",
+          recordValue: recordValue,
         };
-      }
-
-      const existingRecordValue = await prisma.fieldValue.findUnique({
-        where: {
-          record_id_field_id: { record_id: record_id, field_id: field.id },
-        },
-        select: { value: true },
       });
-
-      const recordValue = await prisma.fieldValue.upsert({
-        where: {
-          record_id_field_id: { record_id: record_id, field_id: field.id },
-        },
-        update: { value },
-        create: { record_id: record_id, field_id: field.id, value },
-      });
-
-      await this.createRecordHistory(
-        record_id,
-        existingRecordValue?.value ?? "",
-        value,
-        memberId,
-        "update",
-        field.field_name
-      );
-
-      await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
-
-      this.boardGateway.emitRecordValueUpdated(
-        organizationId,
-        record_id,
-        field.field_name,
-        value
-      );
 
       return recordValue;
     } catch (error) {
@@ -647,6 +895,134 @@ export class BoardService {
     return record;
   }
 
+  async createReferral(
+    data: { referral_name: string; [key: string]: any }[],
+    organizationId: string,
+    memberId: string
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      const fields = await tx.field.findMany({
+        where: { organization_id: organizationId },
+        orderBy: { field_order: "asc" },
+      });
+
+      const createdReferrals: any = [];
+      const allReferralValues: any[] = [];
+      const allHistoryEntries: any[] = [];
+      const allNotificationStates: any[] = [];
+
+      for (const referralData of data) {
+        const referral = await tx.board.create({
+          data: {
+            record_name: referralData.referral_name ?? "",
+            module_type: "REFERRAL",
+            organization_id: organizationId,
+          },
+        });
+
+        createdReferrals.push(referral);
+
+        for (const field of fields) {
+          const customValue =
+            data[field.field_name] ?? data[field.field_name.toLowerCase()];
+          let value: string | null = null;
+
+          if (customValue !== undefined && customValue !== null) {
+            // Handle MULTISELECT type
+            if (field.field_type === FieldType.MULTISELECT) {
+              const normalizedValue = Array.isArray(customValue)
+                ? customValue
+                : typeof customValue === "string"
+                  ? customValue
+                      .split(",")
+                      .map((v) => v.trim())
+                      .filter(Boolean)
+                  : [];
+              value = JSON.stringify(normalizedValue);
+            } else {
+              value = String(customValue);
+            }
+          }
+
+          allReferralValues.push({
+            id: uuidv4(),
+            record_id: referral.id,
+            field_id: field.id,
+            value: value,
+          });
+        }
+
+        // Prepare history entry
+        allHistoryEntries.push({
+          id: uuidv4(),
+          created_at: new Date(),
+          record_id: referral.id,
+          old_value: null,
+          new_value: referralData.referral_name,
+          action: "create",
+          created_by: memberId,
+          column: "Referral Name",
+        });
+
+        allNotificationStates.push({
+          id: uuidv4(),
+          updated_at: new Date(),
+          record_id: referral.id,
+          last_seen: new Date(),
+        });
+      }
+
+      // Bulk insert all referral values
+      if (allReferralValues.length > 0) {
+        await tx.fieldValue.createMany({
+          data: allReferralValues,
+        });
+      }
+
+      // Bulk insert all history entries
+      if (allHistoryEntries.length > 0) {
+        await tx.history.createMany({
+          data: allHistoryEntries,
+        });
+      }
+
+      // Bulk insert all notification states
+      if (allNotificationStates.length > 0) {
+        await tx.boardNotificationState.createMany({
+          data: allNotificationStates,
+        });
+      }
+
+      return {
+        message: `${createdReferrals.length} referral(s) created successfully`,
+        count: createdReferrals.length,
+        referrals: createdReferrals,
+      };
+    });
+  }
+
+  async createCountyAssignment(
+    name: string,
+    organizationId: string,
+    assigned_to: string
+  ) {
+    await prisma.boardCounty.create({
+      data: {
+        county_name: name,
+        organization_id: organizationId,
+        boardCountyAssignedTo: {
+          create: {
+            assigned_to: assigned_to,
+          },
+        },
+      },
+    });
+
+    return {
+      message: "County assignment created successfully",
+    };
+  }
+
   async restoreRecord(
     record_id: string,
     history_id: string,
@@ -671,7 +1047,7 @@ export class BoardService {
       });
 
       if (record.is_deleted) {
-        throw new NotFoundException("Record not found");
+        throw new NotFoundException("Record is deleted");
       }
 
       const field = await prisma.field.findFirstOrThrow({
@@ -702,8 +1078,17 @@ export class BoardService {
           },
         });
       });
+
+      await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+      this.boardGateway.emitRecordValueUpdated(
+        organizationId,
+        history.record_id,
+        history.column ?? "",
+        history.old_value ?? ""
+      );
       return {
-        message: "Lead restored successfully",
+        message: "Record restored successfully",
       };
     }
 
@@ -724,14 +1109,19 @@ export class BoardService {
           },
         });
       });
+
+      await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+      this.boardGateway.emitRecordValueUpdated(
+        organizationId,
+        history.record_id,
+        history.column ?? "",
+        history.old_value ?? ""
+      );
       return {
         message: "Record deleted successfully",
       };
     }
-
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
-
-    this.boardGateway.emitRecordDeleted(organizationId, [history.record_id]);
   }
 
   async setRecordNotificationState(record_id: string, organizationId: string) {
@@ -837,11 +1227,11 @@ export class BoardService {
 
     const locationData = {
       address: location_name,
-      city: props.locality ?? null,
-      state: props.region_a ?? props.region ?? null,
+      city: props.locality ? props.locality : null,
+      state: props.region_a ? props.region_a : null,
       zip: lookupByName(props.locality, props.region_a)[0].zip,
-      county: props.county.replace(/ County/g, "") ?? null,
-      country: props.country ?? null,
+      county: props.county ? props.county.replace(/ County/g, "") : null,
+      country: props.country ? props.country : null,
     };
 
     const fields = await prisma.field.findMany({
@@ -889,11 +1279,23 @@ export class BoardService {
 
     await Promise.all(upserts);
 
-    return locationData;
+    return {
+      Address: locationData.address,
+      City: locationData.city,
+      State: locationData.state,
+      "Zip Code": locationData.zip,
+      County: locationData.county,
+      Country: locationData.country,
+    };
   }
 
-  async updateAssignedTo(record_id: string, value: string, memberId: string) {
-    const existingRecord = await prisma.board.findUnique({
+  async updateAssignedTo(
+    tx: Prisma.TransactionClient,
+    record_id: string,
+    value: string,
+    memberId: string
+  ) {
+    const existingRecord = await tx.board.findUnique({
       where: { id: record_id },
       select: {
         assigned_to: true,
@@ -905,12 +1307,12 @@ export class BoardService {
       },
     });
 
-    await prisma.board.update({
+    await tx.board.update({
       where: { id: record_id },
       data: { assigned_to: value },
     });
 
-    const newAssignedUser = await prisma.user_table.findUniqueOrThrow({
+    const newAssignedUser = await tx.user_table.findUniqueOrThrow({
       where: {
         id: value,
       },
@@ -929,13 +1331,18 @@ export class BoardService {
     );
   }
 
-  async updateRecordName(record_id: string, value: string, memberId: string) {
+  async updateRecordName(
+    tx: Prisma.TransactionClient,
+    record_id: string,
+    value: string,
+    memberId: string
+  ) {
     const existingRecord = await prisma.board.findUnique({
       where: { id: record_id },
       select: { record_name: true },
     });
 
-    await prisma.board.update({
+    await tx.board.update({
       where: { id: record_id },
       data: { record_name: value },
     });
@@ -1130,6 +1537,27 @@ export class BoardService {
     if (!timeline) throw new NotFoundException("Timeline not found");
 
     return await prisma.history.delete({ where: { id: timelineId } });
+  }
+
+  async deleteCountyAssignment(countyId: string) {
+    const county = await prisma.boardCounty.findUnique({
+      where: { id: countyId },
+      include: {
+        boardCountyAssignedTo: true,
+      },
+    });
+
+    if (!county) throw new NotFoundException("County not found");
+
+    await prisma.$transaction(async (tx) => {
+      await tx.boardCountyAssignedTo.deleteMany({
+        where: { board_county_id: countyId },
+      });
+      await tx.boardCounty.delete({ where: { id: countyId } });
+    });
+    return {
+      message: "County assignment deleted successfully",
+    };
   }
 
   async deleteRecordFieldOption(optionId: string) {

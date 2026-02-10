@@ -1,31 +1,28 @@
-import { INestApplicationContext } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+// apps/api/src/lib/socket/socket-io.adapter.ts
 import { IoAdapter } from "@nestjs/platform-socket.io";
+import { createAdapter } from "@socket.io/redis-streams-adapter";
+import { Redis } from "ioredis";
 import { ServerOptions } from "socket.io";
 
 export class SocketIoAdapter extends IoAdapter {
-  constructor(private app: INestApplicationContext) {
-    super(app);
+  private adapterConstructor: ReturnType<typeof createAdapter>;
+
+  async connectToRedis(): Promise<void> {
+    const redisClient = new Redis(
+      process.env.REDIS_URL || "redis://localhost:6379"
+    );
+
+    if (redisClient.status === "wait") {
+      await redisClient.connect();
+    }
+
+    this.adapterConstructor = createAdapter(redisClient, {
+      streamName: "socket.io-stream",
+    });
   }
-
   createIOServer(port: number, options?: ServerOptions): any {
-    const configService = this.app.get(ConfigService);
-
-    // Ensure this matches your REST CORS configuration exactly
-    const corsOptions: Partial<ServerOptions> = {
-      ...options,
-      cors: {
-        origin:
-          configService.get<string>("WEBSITE_URL") || "http://localhost:3000",
-        methods: ["GET", "POST"],
-        credentials: true,
-      },
-      // Helps with debugging connection issues in development
-      serveClient: false,
-      // Ensure we support the transports defined on the client
-      transports: ["websocket", "polling"],
-    };
-
-    return super.createIOServer(port, corsOptions);
+    const server = super.createIOServer(port, options);
+    server.adapter(this.adapterConstructor);
+    return server;
   }
 }

@@ -64,4 +64,16 @@ export class BoardGateway implements OnGatewayConnection {
       .to(`org:${orgId}`)
       .emit("board:update", { recordId, fieldName, value });
   }
+
+  emitRecordValueLocation(
+    orgId: string,
+    recordId: string,
+    data: {
+      [key: string]: any;
+    }
+  ) {
+    this.server
+      .to(`org:${orgId}`)
+      .emit("board:update-location", { recordId, data });
+  }
 }

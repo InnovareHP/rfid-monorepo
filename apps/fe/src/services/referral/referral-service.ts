@@ -7,9 +7,10 @@ import type {
 } from "@/lib/types";
 
 export const getReferral = async (filterMeta: any) => {
-  const response = await axiosClient.get("/api/referral", {
+  const response = await axiosClient.get("/api/boards", {
     params: {
       ...filterMeta,
+      moduleType: "REFERRAL",
     },
   });
 
@@ -21,7 +22,7 @@ export const getReferral = async (filterMeta: any) => {
 };
 
 export const getSpecificReferral = async (referralId: string) => {
-  const response = await axiosClient.get(`/api/referral/${referralId}`);
+  const response = await axiosClient.get(`/api/boards/${referralId}`);
 
   if (response.status !== 200) {
     throw new Error("Failed to fetch specific referral");
@@ -36,7 +37,7 @@ export const getReferralHistory = async (
   skip: number
 ) => {
   const response = await axiosClient.get(
-    `/api/referral/timeline/${referralId}?take=${take}&skip=${skip}`
+    `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}`
   );
 
   if (response.status !== 200) {
@@ -47,7 +48,7 @@ export const getReferralHistory = async (
 };
 
 export const getReferralColumnOptions = async () => {
-  const response = await axiosClient.get("/api/referral/columns");
+  const response = await axiosClient.get("/api/boards/columns");
 
   if (response.status !== 200) {
     throw new Error("Failed to fetch referrals columns");
@@ -62,7 +63,7 @@ export const getReferralDropdownOptions = async (
   limit?: number
 ) => {
   const response = await axiosClient.get(
-    `/api/referral/field/${fieldKey}/options?page=${page}&limit=${limit}`
+    `/api/boards/field/${fieldKey}/options?page=${page}&limit=${limit}`
   );
 
   if (response.status !== 200) {
@@ -77,7 +78,7 @@ export const createReferralDropdownOption = async (
   option: string
 ) => {
   const response = await axiosClient.post(
-    `/api/referral/field/${fieldKey}/options`,
+    `/api/boards/field/${fieldKey}/options`,
     {
       option_name: option,
     }
@@ -92,7 +93,7 @@ export const updateReferral = async (
   value: string,
   reason: string | undefined
 ) => {
-  const response = await axiosClient.patch(`/api/referral/${referralId}`, {
+  const response = await axiosClient.patch(`/api/boards/${referralId}`, {
     value,
     fieldId,
     reason,
@@ -106,7 +107,7 @@ export const updateReferral = async (
 };
 
 export const createReferral = async (data: any) => {
-  const response = await axiosClient.post("/api/referral", {
+  const response = await axiosClient.post("/api/boards", {
     data,
   });
 
@@ -117,7 +118,7 @@ export const createReferralColumn = async (
   referral_type: string,
   column_name: string
 ) => {
-  const response = await axiosClient.post("/api/referral/column", {
+  const response = await axiosClient.post("/api/boards/column", {
     referral_type,
     column_name,
   });
@@ -126,7 +127,7 @@ export const createReferralColumn = async (
 };
 
 export const deleteReferralColumn = async (columnIds: string[]) => {
-  const response = await axiosClient.delete(`/api/referral`, {
+  const response = await axiosClient.delete(`/api/boards`, {
     data: {
       column_ids: columnIds,
     },
@@ -141,7 +142,7 @@ export const getReferralTimeline = async (
   skip: number
 ) => {
   const response = await axiosClient.get(
-    `/api/referral/timeline/${referralId}?take=${take}&skip=${skip}`
+    `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}`
   );
 
   if (response.status !== 200) {
@@ -156,7 +157,7 @@ export const createReferralTimeline = async (
   data: ReferralHistoryItem
 ) => {
   const response = await axiosClient.post(
-    `/api/referral/timeline/${referralId}`,
+    `/api/boards/timeline/${referralId}`,
     {
       ...data,
     }
@@ -166,7 +167,7 @@ export const createReferralTimeline = async (
 };
 
 export const editReferralTimeline = async (id: string) => {
-  const response = await axiosClient.patch(`/api/referral/timeline/${id}`);
+  const response = await axiosClient.patch(`/api/boards/timeline/${id}`);
 
   if (response.status !== 200) {
     throw new Error("Failed to edit referral timeline");
@@ -176,7 +177,7 @@ export const editReferralTimeline = async (id: string) => {
 };
 
 export const deleteReferralTimeline = async (id: string) => {
-  const response = await axiosClient.delete(`/api/referral/timeline/${id}`);
+  const response = await axiosClient.delete(`/api/boards/timeline/${id}`);
 
   if (response.status !== 200) {
     throw new Error("Failed to delete referral timeline");
@@ -186,7 +187,7 @@ export const deleteReferralTimeline = async (id: string) => {
 };
 
 export const getCounties = async () => {
-  const response = await axiosClient.get("/api/referral/county/configuration");
+  const response = await axiosClient.get("/api/boards/county/configuration");
 
   if (response.status !== 200) {
     throw new Error("Failed to fetch referral counties");
@@ -196,7 +197,7 @@ export const getCounties = async () => {
 };
 
 export const createCounty = async (data: CountyRow) => {
-  const response = await axiosClient.post("/api/referral/county/assignment", {
+  const response = await axiosClient.post("/api/boards/county/assignment", {
     ...data,
   });
 
@@ -205,7 +206,7 @@ export const createCounty = async (data: CountyRow) => {
 
 export const deleteCounty = async (id: string) => {
   const response = await axiosClient.delete(
-    `/api/referral/county/assignment/${id}`
+    `/api/boards/county/assignment/${id}`
   );
 
   if (response.status !== 200) {
@@ -216,7 +217,7 @@ export const deleteCounty = async (id: string) => {
 };
 
 export const deleteReferral = async (columnIds: string[]) => {
-  const response = await axiosClient.delete("/api/referral", {
+  const response = await axiosClient.delete("/api/boards", {
     data: {
       column_ids: columnIds,
     },
@@ -226,7 +227,7 @@ export const deleteReferral = async (columnIds: string[]) => {
 };
 
 export const seenReferrals = async (referralId: string) => {
-  const response = await axiosClient.post("/api/referral/notification-state", {
+  const response = await axiosClient.post("/api/boards/notification-state", {
     referral_id: referralId,
   });
 
@@ -239,7 +240,7 @@ export const seenReferrals = async (referralId: string) => {
 
 export const deleteReferralDropdownOption = async (optionId: string) => {
   const response = await axiosClient.delete(
-    `/api/referral/field/options/${optionId}`
+    `/api/boards/field/options/${optionId}`
   );
 
   if (response.status !== 200) {
