@@ -1,0 +1,36 @@
+model subscription_table {
+  id                                  String     @id @default(uuid())
+  subscription_plan                   String
+  subscription_reference_id           String
+  subscription_stripe_customer_id     String @unique
+  subscription_stripe_subscription_id String?
+  subscription_status                 String?
+  subscription_period_start           DateTime?
+  subscription_period_end             DateTime?
+  subscription_cancel_at_period_end   Boolean?
+  subscription_seats                  Int?
+  subscription_trial_start	          DateTime?
+  subscription_trial_end              DateTime?
+  subscription_cancel_at              DateTime?
+
+  
+  @@map("subscription")
+  @@schema("stripe_schema")
+}
+
+model plan_table {
+  plan_id             String    @id @default(uuid()) @map("plan_id")
+  plan_name           String
+  plan_price_id       String?
+  plan_created_at     DateTime  @default(now()) @db.Timestamptz(3)
+  plan_updated_at     DateTime? @db.Timestamptz(3)
+  plan_photo          String?
+  plan_description    String?
+  plan_role_available String?
+  plan_is_active      Boolean
+  plan_type           String?
+  plan_limit          Json?
+
+  @@map("plan_table")
+  @@schema("stripe_schema")
+}

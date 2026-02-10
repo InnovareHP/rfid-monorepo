@@ -1,0 +1,131 @@
+model Field {
+  id              String            @id @default(uuid())
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+  field_name      String
+  field_order     Int
+  field_type      FieldType
+
+  organization_id String
+  organization    organization_table @relation(fields: [organization_id], references: [id])
+
+  options         FieldOption[]
+  values          FieldValue[]
+
+  @@schema("board_schema")
+  @@index([field_name])
+}
+
+model Board {
+  id              String            @id @default(uuid())
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+  record_name     String
+  assigned_to     String?
+  is_deleted      Boolean           @default(false)
+  module_type     String            @default("LEAD")
+  
+  organization_id String
+  organization    organization_table @relation(fields: [organization_id], references: [id])
+  assigned_user   user_table?        @relation(fields: [assigned_to], references: [id])
+
+  values          FieldValue[]
+  history         History[]
+  notifications   BoardNotificationState[]
+
+  @@schema("board_schema")
+  @@index([organization_id, record_name])
+}
+
+model FieldValue {
+  id         String       @id @default(uuid())
+  record_id  String
+  field_id   String
+  value      String?      // Stored as string, casted based on field_type
+  
+  field      Field  @relation(fields: [field_id], references: [id])
+  record     Board @relation(fields: [record_id], references: [id])
+
+  @@unique([record_id, field_id])
+  @@schema("board_schema")
+}
+
+model FieldOption {
+  id             String      @id @default(uuid())
+  option_name    String
+  is_deleted     Boolean     @default(false)
+  field_id       String
+  field          Field @relation(fields: [field_id], references: [id])
+
+  @@schema("board_schema")
+}
+
+model History {
+  id         String       @id @default(uuid())
+  record_id  String
+  old_value  String?
+  new_value  String?
+  column     String?
+  action     String
+  created_at DateTime     @default(now())
+  created_by String?
+  
+  record     Board @relation(fields: [record_id], references: [id])
+  user user_table? @relation(fields: [created_by], references: [id])
+
+  @@schema("board_schema")
+}
+
+model BoardNotificationState {
+  id         String   @id @default(uuid())
+  record_id    String   @unique
+  last_seen  DateTime
+  updated_at DateTime @updatedAt
+
+
+  record Board       @relation(fields: [record_id], references: [id])
+
+  @@schema("board_schema")
+}
+
+model boardCounty {
+  id String @id @default(uuid())
+  created_at DateTime @default(now())
+  county_name String
+  organization_id String
+  boardCountyAssignedTo boardCountyAssignedTo[]
+
+
+  organization_table organization_table @relation(fields: [organization_id], references: [id])
+  @@schema("board_schema")
+  @@index([organization_id])
+}
+
+model boardCountyAssignedTo {
+  id String @id @default(uuid())
+  created_at DateTime @default(now())
+  assigned_to String
+
+  board_county_id String
+  board_county boardCounty @relation(fields: [board_county_id], references: [id])
+  @@schema("board_schema")
+  @@index([board_county_id])
+}
+
+
+enum BoardFieldType {
+  TEXT
+  NUMBER
+  STATUS
+  EMAIL
+  PHONE
+  DATE
+  CHECKBOX
+  DROPDOWN
+  LOCATION
+  TIMELINE
+  MULTISELECT
+  ASSIGNED_TO
+
+  @@schema("lead_schema")
+}

@@ -1,0 +1,118 @@
+model LeadField {
+  id          String      @id @default(uuid())
+  created_at  DateTime    @default(now())
+  field_name  String
+  field_order Int
+  field_type  FieldType
+  updated_at  DateTime    @updatedAt
+  LeadValue   LeadValue[]
+  LeadFieldOption LeadFieldOption[]
+
+
+  organization_id String @default("hv06QUFUohvO7FoNFd4t8gzdMCJp0PSn")
+  organization_table organization_table @relation(fields: [organization_id], references: [id])
+
+  @@schema("lead_schema")
+  @@index([field_name])
+}
+
+model Lead {
+  id          String        @id @default(uuid())
+  created_at  DateTime      @default(now())
+  lead_name   String
+  assignedTo  String?
+  is_deleted Boolean @default(false)
+  updated_at  DateTime      @updatedAt
+  LeadHistory LeadHistory[]
+  LeadValue   LeadValue[]
+
+  organization_id String @default("hv06QUFUohvO7FoNFd4t8gzdMCJp0PSn")
+  user user_table? @relation(fields: [assignedTo], references: [id])
+  organization_table organization_table @relation(fields: [organization_id], references: [id])
+  LeadNotificationState LeadNotificationState[]
+
+  @@schema("lead_schema")
+  @@index([organization_id])
+  }
+
+model LeadValue {
+  id       String    @id @default(uuid())
+  lead_id  String
+  field_id String
+  value    String?
+  Field    LeadField @relation(fields: [field_id], references: [id])
+  Lead     Lead      @relation(fields: [lead_id], references: [id])
+
+  @@unique([lead_id, field_id])
+  @@schema("lead_schema")
+}
+
+model LeadHistory {
+  id         String        @id @default(uuid())
+  lead_id    String
+  old_value  String?
+  new_value  String?
+  column     String?
+  action     String
+  created_by String?        @default("F2WHKStyLXuqv7RnMllLv5YqUU573qAE")
+  created_at DateTime      @default(now())
+  lead       Lead          @relation(fields: [lead_id], references: [id])
+  user user_table? @relation(fields: [created_by], references: [id])
+  @@schema("lead_schema")
+}
+
+
+model LeadFieldOption {
+  id String @id @default(uuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  option_name String
+  is_deleted Boolean @default(false)
+  lead_field_id String
+  lead_field LeadField @relation(fields: [lead_field_id], references: [id])
+  @@schema("lead_schema")
+}
+
+view LeadFlatView {
+  lead_id     String  @id
+  organization_id String?
+  assignedTo String?
+  lead_name   String?
+  created_at DateTime?
+  has_notification Boolean?
+  lead_data   Json?
+
+
+  @@map("lead_flat_view")
+  @@schema("lead_schema")
+
+}
+
+model LeadNotificationState {
+  id         String   @id @default(uuid())
+  lead_id    String   @unique
+  last_seen  DateTime
+  updated_at DateTime @updatedAt
+
+
+  lead Lead       @relation(fields: [lead_id], references: [id])
+
+  @@schema("lead_schema")
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  STATUS
+  EMAIL
+  PHONE
+  DATE
+  CHECKBOX
+  DROPDOWN
+  LOCATION
+  TIMELINE
+  MULTISELECT
+  ASSIGNED_TO
+
+  @@schema("lead_schema")
+}

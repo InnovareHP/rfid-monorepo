@@ -1,0 +1,11 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["views" , "prismaSchemaFolder","multiSchema"]
+
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+  schemas  = ["auth_schema", "lead_schema", "public_schema", "stripe_schema", "referral_schema", "liason_schema", "board_schema"]
+}

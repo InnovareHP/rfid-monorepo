@@ -1,0 +1,77 @@
+model marketing {
+    id String @id @default(uuid())
+    facility String
+    touchpoints TouchpointType[]
+    talkedTo String
+    reasonForVisit String?
+    notes String?
+    memberId String
+    createdAt DateTime @default(now())
+    updatedAt DateTime? @updatedAt
+
+    member member_table @relation(fields: [memberId], references: [id])
+
+    @@schema("liason_schema")
+    @@index([memberId])
+}
+
+model expense {
+    id String @id @default(uuid())
+    amount Float
+    description String
+    notes String
+    memberId String
+    
+    createdAt DateTime @default(now())
+    updatedAt DateTime? @updatedAt
+
+    imageUrl String
+    member member_table @relation(fields: [memberId], references: [id])
+
+    @@schema("liason_schema")
+    @@index([memberId])
+}
+
+model mileage {
+    id String @id @default(uuid())
+
+    destination String
+    countiesMarketed String
+    beginningMileage Float
+    endingMileage Float
+    totalMiles Float
+
+    rateType MileageRateType
+    ratePerMile Float
+    reimbursementAmount Float
+
+    memberId String
+
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime? @updatedAt
+
+    member member_table @relation(fields: [memberId], references: [id])
+
+    @@schema("liason_schema")
+    @@index([memberId])
+}
+
+enum TouchpointType {
+    IN_PERSON_MEETING
+    LINKED_IN
+    FACEBOOK
+    TEXT
+    EMAIL
+    PHONE
+    OTHER
+
+    @@schema("liason_schema")
+}
+
+enum MileageRateType {
+    FEDERAL
+    STATE
+
+    @@schema("liason_schema")
+}
