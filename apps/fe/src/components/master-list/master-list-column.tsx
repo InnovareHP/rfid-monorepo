@@ -1,5 +1,5 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
-import { ROLES } from "@/lib/constant";
+import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";

@@ -11,15 +11,22 @@ model user_table {
   user_stripe_customer_id String?
   twoFactorEnabled        Boolean?
   user_is_onboarded       Boolean                @default(false)
+  user_role               String                 @default("user")
+  user_ban_reason         String?
+  user_is_banned             Boolean                @default(false)
   invitation_tables       invitation_table[]
   member_tables           member_table[]
   user_account_tables     user_account_table[]
   user_onboarding_table   user_onboarding_table?
-  Lead                  Lead[]
-  ReferralHistory     ReferralHistory[]
-  LeadHistory         LeadHistory[]
   Board               Board[]
   History             History[]
+
+  SupportTicket SupportTicket[] @relation("SupportTicketCreateBy")
+  SupportTicketAssignedTo SupportTicket[] @relation("SupportTicketAssignedTo")
+  SupportLiveChat SupportLiveChat[] @relation("SupportLiveChatSender")
+  SupportTicketMessage SupportTicketMessage[] @relation("SupportTicketMessageSender")
+  SupportLiveChatMessage SupportLiveChatMessage[] @relation("SupportLiveChatMessageSender")
+  SupportLiveChatAttachment SupportLiveChatAttachment[] @relation("SupportLiveChatAttachmentSender")
 
   @@map("user_table")
   @@schema("auth_schema")
@@ -80,13 +87,13 @@ model organization_table {
 
   invitation_tables       invitation_table[]
   member_tables           member_table[]
-  Referral              Referral[]
-  referralCounty        referralCounty[]
-  LeadField           LeadField[]
-  Lead                Lead[]
+  // Referral              Referral[]
+  // referralCounty        referralCounty[]
+  // LeadField           LeadField[]
+  // Lead                Lead[]
   Board               Board[]
   Field               Field[]
-  ReferralField       ReferralField[]
+  // ReferralField       ReferralField[]
   boardCounty         boardCounty[]
 
   @@map("organization_table")

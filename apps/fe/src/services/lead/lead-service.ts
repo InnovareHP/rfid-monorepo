@@ -1,5 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
-import type { LeadAnalyze, LeadHistoryItem } from "@/lib/types";
+import type { LeadAnalyze, LeadHistoryItem } from "@dashboard/shared";
 
 export const getLeads = async (filters: any) => {
   const response = await axiosClient.get("/api/boards", {

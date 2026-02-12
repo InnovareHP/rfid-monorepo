@@ -1,12 +1,12 @@
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import type { ReferralRow } from "@/lib/types";
-import { exportToCSV } from "@/lib/utils";
+import { exportToCSV } from "@/lib/fe-helpers";
 import { useTeamLayoutContext } from "@/routes/_team";
 import {
   createReferral,
   deleteReferral,
   getReferral,
 } from "@/services/referral/referral-service";
+import type { ReferralRow } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   useInfiniteQuery,

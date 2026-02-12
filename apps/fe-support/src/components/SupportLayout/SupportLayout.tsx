@@ -1,4 +1,14 @@
-import { Link, useParams } from "@tanstack/react-router";
+import {
+  ACCOUNT_LABEL,
+  CONTACT_US_LABEL,
+  DEFAULT_LANGUAGE_LABEL,
+  FOOTER_COPYRIGHT,
+  FOOTER_LINKS,
+  LANGUAGE_OPTIONS,
+  LOGO_ALT_TEXT,
+  SIGN_OUT_LABEL,
+  USER_MENU_LABEL,
+} from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   DropdownMenu,
@@ -6,18 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
-import { ChevronDown, User, Menu, Mail } from "lucide-react";
-import {
-  FOOTER_LINKS,
-  FOOTER_COPYRIGHT,
-  LOGO_ALT_TEXT,
-  DEFAULT_LANGUAGE_LABEL,
-  LANGUAGE_OPTIONS,
-  CONTACT_US_LABEL,
-  USER_MENU_LABEL,
-  ACCOUNT_LABEL,
-  SIGN_OUT_LABEL,
-} from "@/lib/constants";
+import { Link, useParams } from "@tanstack/react-router";
+import { ChevronDown, Mail, Menu, User } from "lucide-react";
 
 type SupportLayoutProps = {
   children: React.ReactNode;
@@ -58,7 +58,9 @@ export function SupportLayout({ children }: SupportLayoutProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {LANGUAGE_OPTIONS.map((opt) => (
-                  <DropdownMenuItem key={opt.label}>{opt.label}</DropdownMenuItem>
+                  <DropdownMenuItem key={opt.label}>
+                    {opt.label}
+                  </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -110,7 +112,10 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                 {CONTACT_US_LABEL}
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to={accountPath} className="flex items-center cursor-pointer">
+                <Link
+                  to={accountPath}
+                  className="flex items-center cursor-pointer"
+                >
                   <User className="size-4 mr-2" />
                   {ACCOUNT_LABEL}
                 </Link>
@@ -121,9 +126,7 @@ export function SupportLayout({ children }: SupportLayoutProps) {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col min-h-0">
-        {children}
-      </div>
+      <div className="flex-1 flex flex-col min-h-0">{children}</div>
 
       <footer className="border-t bg-background py-4 px-4 sm:py-5 sm:px-6 shrink-0">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 max-w-[1920px] mx-auto text-xs sm:text-sm text-muted-foreground text-center sm:text-left">

@@ -1,13 +1,19 @@
 import {
-  Play,
-  MessageCircle,
-  Settings,
-  Mic2,
   Brain,
   CreditCard,
-  Puzzle,
+  MessageCircle,
+  Mic2,
   Package,
+  Play,
+  Puzzle,
+  Settings,
 } from "lucide-react";
+
+export const ROLES = {
+  OWNER: "owner",
+  LIASON: "liason",
+  ADMISSION_MANAGER: "admission_manager",
+};
 
 export const KNOWLEDGE_BASE_ICON_MAP = {
   play: Play,
@@ -82,8 +88,7 @@ export const KNOWLEDGE_BASE_ITEMS = [
     iconBg: "bg-blue-500",
     titleColor: "text-blue-600",
     title: "Product updates",
-    description:
-      "Stay up to date on new features, improvements, and changes.",
+    description: "Stay up to date on new features, improvements, and changes.",
   },
 ];
 
@@ -122,8 +127,6 @@ export const FOOTER_LINKS = [
 export const AI_WELCOME_MESSAGE =
   "Hello! I'm your AI assistant. I know a lot about Innovare HP RFID and I can do much more than chatbots you've seen before. How can I help? Tell me as much as you can about your question.";
 
-export const LOGIN_URL = import.meta.env.VITE_LOGIN_URL ?? "/login";
-
 // Support portal page – copy & section titles
 export const SEARCH_PLACEHOLDER = "Search for articles";
 export const KNOWLEDGE_BASE_SECTION_TITLE = "Browse our knowledge base";
@@ -142,3 +145,10 @@ export const CONTACT_US_LABEL = "Contact Us";
 export const USER_MENU_LABEL = "User name";
 export const ACCOUNT_LABEL = "Account";
 export const SIGN_OUT_LABEL = "Sign out";
+
+export const TICKET_CATEGORIES = [
+  "GENERAL",
+  "TECHNICAL",
+  "ACCOUNT",
+  "OTHER",
+] as const;

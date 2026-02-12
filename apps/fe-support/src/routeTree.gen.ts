@@ -25,9 +25,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportIdRoute = SupportIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => SupportRoute,
+  id: '/support/$id',
+  path: '/support/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LangLangIndexRoute = LangLangIndexRouteImport.update({
   id: '/$lang/',
@@ -77,6 +77,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LangRoute: typeof LangRouteWithChildren
+  SupportIdRoute: typeof SupportIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -97,10 +98,10 @@ declare module '@tanstack/react-router' {
     }
     '/support/$id': {
       id: '/support/$id'
-      path: '/$id'
+      path: '/support/$id'
       fullPath: '/support/$id'
       preLoaderRoute: typeof SupportIdRouteImport
-      parentRoute: typeof SupportRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_lang/$lang/': {
       id: '/_lang/$lang/'
@@ -134,6 +135,7 @@ const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LangRoute: LangRouteWithChildren,
+  SupportIdRoute: SupportIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

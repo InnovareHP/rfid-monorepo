@@ -3,7 +3,12 @@ import { useState } from "react";
 
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@dashboard/ui/components/card";
 import {
   Popover,
   PopoverContent,
@@ -22,11 +27,11 @@ import {
   UserRound,
 } from "lucide-react";
 
-import type { AnalyticsResponse } from "@/lib/types";
 import {
   getAnalytics,
   getAnalyticsSummary,
 } from "@/services/analytics/analytics-service";
+import type { AnalyticsResponse } from "@dashboard/shared";
 
 import { useQuery } from "@tanstack/react-query";
 import * as Recharts from "recharts";

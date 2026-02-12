@@ -1,5 +1,4 @@
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
@@ -11,6 +10,7 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";

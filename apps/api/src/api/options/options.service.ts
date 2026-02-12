@@ -4,7 +4,7 @@ import { prisma } from "../../lib/prisma/prisma";
 @Injectable()
 export class OptionsService {
   async getCounties(organizationId: string) {
-    return await prisma.referralCounty
+    return await prisma.boardCounty
       .findMany({
         where: { organization_id: organizationId },
         select: {
@@ -22,20 +22,21 @@ export class OptionsService {
   }
 
   async getFieldOptions(organizationId: string, assignedTo: string) {
-    const leads = await prisma.leadFlatView.findMany({
+    const leads = await prisma.board.findMany({
       where: {
         organization_id: organizationId,
-        assignedTo: assignedTo ? assignedTo : undefined,
+        module_type: "LEAD",
+        assigned_to: assignedTo ? assignedTo : undefined,
       },
       select: {
-        lead_id: true,
-        lead_name: true,
+        id: true,
+        record_name: true,
       },
     });
 
     return leads.map((l) => ({
-      id: l.lead_id,
-      value: l.lead_name,
+      id: l.id,
+      value: l.record_name,
     }));
   }
 

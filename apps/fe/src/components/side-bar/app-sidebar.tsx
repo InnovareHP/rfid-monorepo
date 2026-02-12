@@ -1,8 +1,8 @@
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
-import { ROLES } from "@/lib/constant";
 import { createLead } from "@/services/lead/lead-service";
+import { ROLES } from "@dashboard/shared";
 import {
   Sidebar,
   SidebarContent,

@@ -1,14 +1,6 @@
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
-import { Input } from "@dashboard/ui/components/input";
-import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Loader2, Lock, Mail, User, Zap } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import z from "zod/v3";
 import {
   Form,
   FormControl,
@@ -17,6 +9,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@dashboard/ui/components/form";
+import { Input } from "@dashboard/ui/components/input";
+import { cn } from "@dashboard/ui/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "@tanstack/react-router";
+import { CheckCircle2, Loader2, Lock, Mail, User, Zap } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import z from "zod/v3";
 
 export function RegisterForm({
   className,
@@ -68,10 +68,7 @@ export function RegisterForm({
   };
 
   return (
-    <div
-      className={cn("gap-0 p-4", className)}
-      {...props}
-    >
+    <div className={cn("gap-0 p-4", className)} {...props}>
       <div className="flex items-stretch w-full overflow-hidden rounded-2xl shadow-xl">
         {/* Left Side - Image background + text */}
         <div className="hidden lg:block relative lg:w-3/5 min-h-[28rem]">

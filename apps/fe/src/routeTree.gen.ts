@@ -45,7 +45,6 @@ import { Route as TeamTeamLogExpenseIndexRouteImport } from './routes/_team/$tea
 import { Route as TeamTeamImportReferralListIndexRouteImport } from './routes/_team/$team/import/referral-list/index'
 import { Route as TeamTeamImportMasterListIndexRouteImport } from './routes/_team/$team/import/master-list/index'
 import { Route as TeamTeamReferralListOptionOptionIndexRouteImport } from './routes/_team/$team/referral-list/option/$option/index'
-import { Route as TeamTeamMasterListLeadsLeadIndexRouteImport } from './routes/_team/$team/master-list/leads/$lead/index'
 import { Route as TeamTeamMasterListLeadsLeadTimelineRouteImport } from './routes/_team/$team/master-list/leads/$lead/timeline'
 import { Route as TeamTeamMasterListLeadsOptionOptionIndexRouteImport } from './routes/_team/$team/master-list/leads/option/$option/index'
 
@@ -239,12 +238,6 @@ const TeamTeamReferralListOptionOptionIndexRoute =
     path: '/$team/referral-list/option/$option/',
     getParentRoute: () => TeamRoute,
   } as any)
-const TeamTeamMasterListLeadsLeadIndexRoute =
-  TeamTeamMasterListLeadsLeadIndexRouteImport.update({
-    id: '/$team/master-list/leads/$lead/',
-    path: '/$team/master-list/leads/$lead/',
-    getParentRoute: () => TeamRoute,
-  } as any)
 const TeamTeamMasterListLeadsLeadTimelineRoute =
   TeamTeamMasterListLeadsLeadTimelineRouteImport.update({
     id: '/$team/master-list/leads/$lead/timeline',
@@ -293,7 +286,6 @@ export interface FileRoutesByFullPath {
   '/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
-  '/$team/master-list/leads/$lead/': typeof TeamTeamMasterListLeadsLeadIndexRoute
   '/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
@@ -332,7 +324,6 @@ export interface FileRoutesByTo {
   '/$team/report/marketing': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage': typeof TeamTeamReportMileageIndexRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
-  '/$team/master-list/leads/$lead': typeof TeamTeamMasterListLeadsLeadIndexRoute
   '/$team/referral-list/option/$option': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
@@ -374,7 +365,6 @@ export interface FileRoutesById {
   '/_team/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/_team/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
   '/_team/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
-  '/_team/$team/master-list/leads/$lead/': typeof TeamTeamMasterListLeadsLeadIndexRoute
   '/_team/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/_team/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
@@ -415,7 +405,6 @@ export interface FileRouteTypes {
     | '/$team/report/marketing/'
     | '/$team/report/mileage/'
     | '/$team/master-list/leads/$lead/timeline'
-    | '/$team/master-list/leads/$lead/'
     | '/$team/referral-list/option/$option/'
     | '/$team/master-list/leads/option/$option/'
   fileRoutesByTo: FileRoutesByTo
@@ -454,7 +443,6 @@ export interface FileRouteTypes {
     | '/$team/report/marketing'
     | '/$team/report/mileage'
     | '/$team/master-list/leads/$lead/timeline'
-    | '/$team/master-list/leads/$lead'
     | '/$team/referral-list/option/$option'
     | '/$team/master-list/leads/option/$option'
   id:
@@ -495,7 +483,6 @@ export interface FileRouteTypes {
     | '/_team/$team/report/marketing/'
     | '/_team/$team/report/mileage/'
     | '/_team/$team/master-list/leads/$lead/timeline'
-    | '/_team/$team/master-list/leads/$lead/'
     | '/_team/$team/referral-list/option/$option/'
     | '/_team/$team/master-list/leads/option/$option/'
   fileRoutesById: FileRoutesById
@@ -763,13 +750,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamReferralListOptionOptionIndexRouteImport
       parentRoute: typeof TeamRoute
     }
-    '/_team/$team/master-list/leads/$lead/': {
-      id: '/_team/$team/master-list/leads/$lead/'
-      path: '/$team/master-list/leads/$lead'
-      fullPath: '/$team/master-list/leads/$lead/'
-      preLoaderRoute: typeof TeamTeamMasterListLeadsLeadIndexRouteImport
-      parentRoute: typeof TeamRoute
-    }
     '/_team/$team/master-list/leads/$lead/timeline': {
       id: '/_team/$team/master-list/leads/$lead/timeline'
       path: '/$team/master-list/leads/$lead/timeline'
@@ -842,7 +822,6 @@ interface TeamRouteChildren {
   TeamTeamReportMarketingIndexRoute: typeof TeamTeamReportMarketingIndexRoute
   TeamTeamReportMileageIndexRoute: typeof TeamTeamReportMileageIndexRoute
   TeamTeamMasterListLeadsLeadTimelineRoute: typeof TeamTeamMasterListLeadsLeadTimelineRoute
-  TeamTeamMasterListLeadsLeadIndexRoute: typeof TeamTeamMasterListLeadsLeadIndexRoute
   TeamTeamReferralListOptionOptionIndexRoute: typeof TeamTeamReferralListOptionOptionIndexRoute
   TeamTeamMasterListLeadsOptionOptionIndexRoute: typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
@@ -872,7 +851,6 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamReportMileageIndexRoute: TeamTeamReportMileageIndexRoute,
   TeamTeamMasterListLeadsLeadTimelineRoute:
     TeamTeamMasterListLeadsLeadTimelineRoute,
-  TeamTeamMasterListLeadsLeadIndexRoute: TeamTeamMasterListLeadsLeadIndexRoute,
   TeamTeamReferralListOptionOptionIndexRoute:
     TeamTeamReferralListOptionOptionIndexRoute,
   TeamTeamMasterListLeadsOptionOptionIndexRoute:

@@ -1,8 +1,16 @@
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useRouter, useSearch } from "@tanstack/react-router";
 import {
@@ -17,14 +25,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@dashboard/ui/components/form";
 
 const formSchema = z
   .object({

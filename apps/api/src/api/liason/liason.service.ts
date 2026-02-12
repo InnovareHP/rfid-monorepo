@@ -108,9 +108,10 @@ export class LiasonService {
     memberId: string,
     userId: string
   ) {
-    const findLeadNameViaName = await prisma.leadFlatView.findFirst({
+    const findLeadNameViaName = await prisma.board.findFirst({
       where: {
-        lead_name: createMarketingDto.facility,
+        record_name: createMarketingDto.facility,
+        module_type: "LEAD",
       },
     });
 
@@ -130,9 +131,10 @@ export class LiasonService {
         },
       });
 
-      tx.leadHistory.create({
+      tx.history.create({
         data: {
-          lead_id: findLeadNameViaName.lead_id,
+          record_id: findLeadNameViaName.id,
+          column: "marketing",
           new_value:
             "Created a milestone for the organization" +
             createMarketingDto.facility +

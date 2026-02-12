@@ -1,3 +1,9 @@
+import {
+  getReferralHistory,
+  getSpecificReferral,
+} from "@/services/referral/referral-service";
+import { formatDateTime } from "@dashboard/shared";
+import { FILETYPE } from "@/lib/fe-helpers";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -9,13 +15,12 @@ import {
   DialogTrigger,
 } from "@dashboard/ui/components/dialog";
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
-import { FILETYPE } from "@/lib/enum";
-import { formatDateTime } from "@/lib/utils";
 import {
-  getReferralHistory,
-  getSpecificReferral,
-} from "@/services/referral/referral-service";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@dashboard/ui/components/tabs";
 import {
   useInfiniteQuery,
   useQuery,

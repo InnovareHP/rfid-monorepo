@@ -1,3 +1,10 @@
+import {
+  createMileageLog,
+  deleteMileageLog,
+  getMileageLogs,
+} from "@/services/mileage/mileage-service";
+import type { MileageLogRow } from "@dashboard/shared";
+import { formatCapitalize } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -26,13 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
-import type { MileageLogRow } from "@/lib/types";
-import { formatCapitalize } from "@/lib/utils";
-import {
-  createMileageLog,
-  deleteMileageLog,
-  getMileageLogs,
-} from "@/services/mileage/mileage-service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";

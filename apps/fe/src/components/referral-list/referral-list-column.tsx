@@ -1,9 +1,9 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
+import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Bell, Clock } from "lucide-react";
+import { Bell } from "lucide-react";
 import { MasterListView } from "../master-list/master-list-view";
 import { CreateColumnModal } from "../reusable-table/create-column";
-import { Checkbox } from "@dashboard/ui/components/checkbox";
 
 type ColumnType = {
   id: string;
@@ -81,8 +81,6 @@ export function generateReferralColumns(
             isReferral={true}
             hasNotification={row.original.has_notification}
             initialTab="history"
-            triggerLabel="History"
-            TriggerIcon={Clock}
           />
         </div>
       </div>

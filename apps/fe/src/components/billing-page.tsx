@@ -1,10 +1,14 @@
+import { authClient } from "@/lib/auth-client";
+import { formatCapitalize, ROLES, type Subscription } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/ui/components/card";
-import { authClient } from "@/lib/auth-client";
-import { ROLES } from "@/lib/constant";
-import type { Subscription } from "@/lib/types";
-import { cn, formatCapitalize } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@dashboard/ui/components/card";
+import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";

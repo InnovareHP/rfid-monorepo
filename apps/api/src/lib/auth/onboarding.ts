@@ -1,4 +1,4 @@
-import { FieldType, Prisma, ReferralFieldType } from "@prisma/client";
+import { BoardFieldType, Prisma } from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
 
 export const OnboardingSeeding = async (organization_id: string) => {
@@ -7,11 +7,15 @@ export const OnboardingSeeding = async (organization_id: string) => {
   //
   // ✅ Seed referral records
   //
-  await prisma.referral.createMany({
+  await prisma.board.createMany({
     data: [
-      { referral_name: "John Doe", organization_id },
-      { referral_name: "Jane Smith", organization_id },
-      { referral_name: "Alice Johnson", organization_id },
+      { record_name: "John Doe", module_type: "REFERRAL", organization_id },
+      { record_name: "Jane Smith", module_type: "REFERRAL", organization_id },
+      {
+        record_name: "Alice Johnson",
+        module_type: "REFERRAL",
+        organization_id,
+      },
     ],
     skipDuplicates: true,
   });
@@ -20,29 +24,29 @@ export const OnboardingSeeding = async (organization_id: string) => {
   // ✅ Create referral fields
   //
   const referralFieldData = [
-    ["Referral Date", ReferralFieldType.DATE],
-    ["County", ReferralFieldType.DROPDOWN],
-    ["Facility", ReferralFieldType.TEXT],
-    ["Contact", ReferralFieldType.TEXT],
-    ["Number", ReferralFieldType.NUMBER],
-    ["Patient Name", ReferralFieldType.TEXT],
-    ["Date of Birth", ReferralFieldType.DATE],
-    ["Payor", ReferralFieldType.DROPDOWN],
-    ["Remote or Onsite", ReferralFieldType.DROPDOWN],
-    ["Assessed", ReferralFieldType.CHECKBOX],
-    ["Reason", ReferralFieldType.TEXT],
-    ["Status", ReferralFieldType.STATUS],
-    ["Admission Type", ReferralFieldType.DROPDOWN],
-    ["CPAP", ReferralFieldType.TEXT],
-    ["Location", ReferralFieldType.LOCATION],
-    ["Assessor", ReferralFieldType.TEXT],
-    ["Wrap Up", ReferralFieldType.TEXT],
-    ["Diagnosis / Behavior", ReferralFieldType.TEXT],
-    ["Action Date (Accepted / Rejected)", ReferralFieldType.DATE],
-    ["Length of Assessment", ReferralFieldType.TEXT],
-    ["Transport Name", ReferralFieldType.TEXT],
-    ["Additional Notes", ReferralFieldType.TEXT],
-    ["Referred Out To", ReferralFieldType.TEXT],
+    ["Referral Date", BoardFieldType.DATE],
+    ["County", BoardFieldType.DROPDOWN],
+    ["Facility", BoardFieldType.TEXT],
+    ["Contact", BoardFieldType.TEXT],
+    ["Number", BoardFieldType.NUMBER],
+    ["Patient Name", BoardFieldType.TEXT],
+    ["Date of Birth", BoardFieldType.DATE],
+    ["Payor", BoardFieldType.DROPDOWN],
+    ["Remote or Onsite", BoardFieldType.DROPDOWN],
+    ["Assessed", BoardFieldType.CHECKBOX],
+    ["Reason", BoardFieldType.TEXT],
+    ["Status", BoardFieldType.STATUS],
+    ["Admission Type", BoardFieldType.DROPDOWN],
+    ["CPAP", BoardFieldType.TEXT],
+    ["Location", BoardFieldType.LOCATION],
+    ["Assessor", BoardFieldType.TEXT],
+    ["Wrap Up", BoardFieldType.TEXT],
+    ["Diagnosis / Behavior", BoardFieldType.TEXT],
+    ["Action Date (Accepted / Rejected)", BoardFieldType.DATE],
+    ["Length of Assessment", BoardFieldType.TEXT],
+    ["Transport Name", BoardFieldType.TEXT],
+    ["Additional Notes", BoardFieldType.TEXT],
+    ["Referred Out To", BoardFieldType.TEXT],
   ].map(([name, type], index) => ({
     field_name: name,
     field_type: type,
@@ -50,12 +54,12 @@ export const OnboardingSeeding = async (organization_id: string) => {
     organization_id,
   }));
 
-  await prisma.referralField.createMany({
+  await prisma.field.createMany({
     data: referralFieldData as any,
     skipDuplicates: true,
   });
 
-  const referralFields = await prisma.referralField.findMany({
+  const referralFields = await prisma.field.findMany({
     where: { organization_id },
   });
 
@@ -69,32 +73,29 @@ export const OnboardingSeeding = async (organization_id: string) => {
   };
 
   const referralFieldOptions = referralFields
-    .filter((f) => f.field_type === ReferralFieldType.DROPDOWN)
+    .filter((f) => f.field_type === BoardFieldType.DROPDOWN)
     .flatMap(
       (field) =>
         dropdownMap[field.field_name]?.map((option) => ({
-          referral_field_id: field.id,
+          field_id: field.id,
           option_name: option,
         })) ?? []
     );
 
   if (referralFieldOptions.length > 0) {
-    await prisma.referralFieldOption.createMany({
+    await prisma.fieldOption.createMany({
       data: referralFieldOptions,
       skipDuplicates: true,
     });
   }
 
-  //
-  // ✅ Generate referral values ONLY for correct org
-  //
-  const referrals = await prisma.referral.findMany({
-    where: { organization_id },
+  const referrals = await prisma.board.findMany({
+    where: { organization_id, module_type: "REFERRAL" },
   });
 
-  const allReferralOptions = await prisma.referralFieldOption.findMany();
+  const allReferralOptions = await prisma.fieldOption.findMany();
 
-  const referralValues: Prisma.ReferralValueCreateManyInput[] = [];
+  const referralValues: Prisma.FieldValueCreateManyInput[] = [];
 
   for (const referral of referrals) {
     for (const field of referralFields) {
@@ -121,20 +122,20 @@ export const OnboardingSeeding = async (organization_id: string) => {
           break;
         case "DROPDOWN":
           value =
-            allReferralOptions.find((o) => o.referral_field_id === field.id)
+            allReferralOptions.find((o) => o.field_id === field.id)
               ?.option_name ?? null;
           break;
       }
 
       referralValues.push({
-        referral_id: referral.id,
+        record_id: referral.id,
         field_id: field.id,
         value,
       });
     }
   }
 
-  await prisma.referralValue.createMany({
+  await prisma.fieldValue.createMany({
     data: referralValues,
     skipDuplicates: true,
   });
@@ -146,23 +147,23 @@ export const OnboardingSeeding = async (organization_id: string) => {
   //
 
   const leadFields = [
-    ["History", FieldType.TIMELINE],
-    ["Number of Beds", FieldType.TEXT],
-    ["Type of Facility", FieldType.DROPDOWN],
-    ["Account Manager", FieldType.ASSIGNED_TO],
-    ["Address", FieldType.LOCATION],
-    ["County", FieldType.DROPDOWN],
-    ["City", FieldType.TEXT],
-    ["State", FieldType.TEXT],
-    ["Zip Code", FieldType.TEXT],
-    ["Phone", FieldType.TEXT],
-    ["Fax", FieldType.TEXT],
-    ["Medical Director", FieldType.TEXT],
-    ["Director of Nursing", FieldType.TEXT],
-    ["Admissions/Marketing", FieldType.TEXT],
-    ["Company Name", FieldType.TEXT],
-    ["Psychiatric Services", FieldType.TEXT],
-    ["Notes", FieldType.TEXT],
+    ["History", BoardFieldType.TIMELINE],
+    ["Number of Beds", BoardFieldType.TEXT],
+    ["Type of Facility", BoardFieldType.DROPDOWN],
+    ["Account Manager", BoardFieldType.ASSIGNED_TO],
+    ["Address", BoardFieldType.LOCATION],
+    ["County", BoardFieldType.DROPDOWN],
+    ["City", BoardFieldType.TEXT],
+    ["State", BoardFieldType.TEXT],
+    ["Zip Code", BoardFieldType.TEXT],
+    ["Phone", BoardFieldType.TEXT],
+    ["Fax", BoardFieldType.TEXT],
+    ["Medical Director", BoardFieldType.TEXT],
+    ["Director of Nursing", BoardFieldType.TEXT],
+    ["Admissions/Marketing", BoardFieldType.TEXT],
+    ["Company Name", BoardFieldType.TEXT],
+    ["Psychiatric Services", BoardFieldType.TEXT],
+    ["Notes", BoardFieldType.TEXT],
   ].map(([name, type], index) => ({
     field_name: name,
     field_type: type,
@@ -170,7 +171,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
     organization_id,
   }));
 
-  await prisma.leadField.createMany({
+  await prisma.field.createMany({
     data: leadFields as any,
     skipDuplicates: true,
   });
@@ -178,29 +179,29 @@ export const OnboardingSeeding = async (organization_id: string) => {
   //
   // Seed Leads
   //
-  await prisma.lead.createMany({
+  await prisma.board.createMany({
     data: [
-      { lead_name: "John Doe 1", organization_id },
-      { lead_name: "Jane Smith 2", organization_id },
-      { lead_name: "Alice Johnson 3", organization_id },
+      { record_name: "John Doe 1", module_type: "LEAD", organization_id },
+      { record_name: "Jane Smith 2", module_type: "LEAD", organization_id },
+      { record_name: "Alice Johnson 3", module_type: "LEAD", organization_id },
     ],
     skipDuplicates: true,
   });
 
   // ❗ FIX: Fetch only leads for this organization
-  const leads = await prisma.lead.findMany({
-    where: { organization_id },
+  const leads = await prisma.board.findMany({
+    where: { organization_id, module_type: "LEAD" },
   });
 
   // ❗ FIX: Fetch only lead fields for this org
-  const dbLeadFields = await prisma.leadField.findMany({
+  const dbLeadFields = await prisma.field.findMany({
     where: { organization_id },
   });
 
   //
   // Generate Lead Values (correct org only)
   //
-  const leadValues: Prisma.LeadValueCreateManyInput[] = [];
+  const leadValues: Prisma.FieldValueCreateManyInput[] = [];
 
   for (const lead of leads) {
     for (const field of dbLeadFields) {
@@ -212,7 +213,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
           break;
         case "EMAIL":
           value =
-            lead.lead_name.toLowerCase().replace(" ", ".") + "@example.com";
+            lead.record_name.toLowerCase().replace(" ", ".") + "@example.com";
           break;
         case "PHONE":
           value = "09171234567";
@@ -229,14 +230,14 @@ export const OnboardingSeeding = async (organization_id: string) => {
       }
 
       leadValues.push({
-        lead_id: lead.id,
+        record_id: lead.id,
         field_id: field.id,
         value: field.field_name === "County" ? "" : value,
       });
     }
   }
 
-  await prisma.leadValue.createMany({
+  await prisma.fieldValue.createMany({
     data: leadValues,
     skipDuplicates: true,
   });

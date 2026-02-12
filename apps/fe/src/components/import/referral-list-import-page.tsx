@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@dashboard/ui/lib/utils";
 import { AlertCircle, CheckCircle2, FileText, Upload, X } from "lucide-react";
 import { useState } from "react";
 

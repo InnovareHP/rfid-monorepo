@@ -1,4 +1,10 @@
 import { ReusableTable } from "@/components/reusable-table/generic-table";
+import {
+  createReferralDropdownOption,
+  deleteReferralDropdownOption,
+  getReferralDropdownOptions,
+} from "@/services/referral/referral-service";
+import type { LeadOptions } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -18,12 +24,6 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import type { LeadOptions } from "@/lib/types";
-import {
-  createReferralDropdownOption,
-  deleteReferralDropdownOption,
-  getReferralDropdownOptions,
-} from "@/services/referral/referral-service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";

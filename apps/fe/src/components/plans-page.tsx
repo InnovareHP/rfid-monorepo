@@ -1,8 +1,8 @@
+import { authClient } from "@/lib/auth-client";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent, CardHeader } from "@dashboard/ui/components/card";
-import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { cn } from "@dashboard/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRouteContext } from "@tanstack/react-router";
 import { CheckCircle2, LogOut, Sparkles } from "lucide-react";

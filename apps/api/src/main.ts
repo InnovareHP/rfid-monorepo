@@ -46,10 +46,7 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
 
   await app.listen(appConfig.PORT);
-
-  const socketIoAdapter = new SocketIoAdapter(app);
-  await socketIoAdapter.connectToRedis();
-  app.useWebSocketAdapter(socketIoAdapter);
+  app.useWebSocketAdapter(new SocketIoAdapter(app));
 }
 
 bootstrap();

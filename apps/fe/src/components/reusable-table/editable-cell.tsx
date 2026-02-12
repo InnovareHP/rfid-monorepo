@@ -1,5 +1,3 @@
-import type { LeadRow, OptionsResponse } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import {
   createDropdownOption,
   getDropdownOptions,
@@ -10,6 +8,7 @@ import {
   getReferralDropdownOptions,
   updateReferral,
 } from "@/services/referral/referral-service";
+import type { LeadRow, OptionsResponse } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
@@ -26,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
+import { cn } from "@dashboard/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { format, isValid, parseISO } from "date-fns";

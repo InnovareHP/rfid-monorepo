@@ -1,6 +1,6 @@
-import type { LiaisonAnalyticsCardData } from "@/lib/types";
-import { mapAIAnalysisToInsights } from "@/lib/utils";
 import { getMarketingList } from "@/services/analytics/analytics-service";
+import type { LiaisonAnalyticsCardData } from "@dashboard/shared";
+import { mapAIAnalysisToInsights } from "@dashboard/shared";
 import { useQuery } from "@tanstack/react-query";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";

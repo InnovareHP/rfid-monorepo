@@ -1,4 +1,5 @@
 import { Button } from "@dashboard/ui/components/button";
+import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 import {
   Table,
   TableBody,
@@ -7,9 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@dashboard/ui/components/table";
-import { cn } from "@/lib/utils";
+import { cn } from "@dashboard/ui/lib/utils";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 
 interface Column<T> {
   key: keyof T | string;
@@ -50,7 +50,7 @@ export function ReusableTable<T>({
     const pages: (number | string)[] = [1];
 
     if (currentPage > 3) {
-      pages.push('...');
+      pages.push("...");
     }
 
     const start = Math.max(2, currentPage - 1);
@@ -61,7 +61,7 @@ export function ReusableTable<T>({
     }
 
     if (currentPage < totalPages - 2) {
-      pages.push('...');
+      pages.push("...");
     }
 
     if (totalPages > 1) {
@@ -99,7 +99,9 @@ export function ReusableTable<T>({
                 >
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    <p className="text-sm font-medium text-blue-700">Loading data...</p>
+                    <p className="text-sm font-medium text-blue-700">
+                      Loading data...
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -126,8 +128,12 @@ export function ReusableTable<T>({
                       </svg>
                     </div>
                     <div className="space-y-1">
-                      <p className="font-semibold text-gray-900">{emptyMessage}</p>
-                      <p className="text-sm text-gray-500">No data available at the moment</p>
+                      <p className="font-semibold text-gray-900">
+                        {emptyMessage}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        No data available at the moment
+                      </p>
                     </div>
                   </div>
                 </TableCell>
@@ -152,7 +158,9 @@ export function ReusableTable<T>({
                       {col.render
                         ? col.render(row)
                         : String(
-                            (row as Record<string, unknown>)[col.key as string] ?? ""
+                            (row as Record<string, unknown>)[
+                              col.key as string
+                            ] ?? ""
                           )}
                     </TableCell>
                   ))}
@@ -172,7 +180,10 @@ export function ReusableTable<T>({
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, totalCount ?? data.length)}
             </span>
-            <span className="text-gray-600"> of {totalCount ?? data.length} entries</span>
+            <span className="text-gray-600">
+              {" "}
+              of {totalCount ?? data.length} entries
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -187,7 +198,7 @@ export function ReusableTable<T>({
             </Button>
             <div className="flex gap-1">
               {getPageNumbers().map((page, idx) => {
-                if (page === '...') {
+                if (page === "...") {
                   return (
                     <div
                       key={`ellipsis-${idx}`}

@@ -1,3 +1,65 @@
+import { Priority, TicketCategory, TicketStatus } from "./nums.js";
+
+export const eventTypes = {
+  subscriptionCreated: "subscription.created",
+  subscriptionUpdated: "subscription.updated",
+  subscriptionDeleted: "subscription.deleted",
+  subscriptionExpired: "subscription.expired",
+  subscriptionCanceled: "subscription.canceled",
+  subscriptionPaused: "subscription.paused",
+  subscriptionUnpaused: "subscription.unpaused",
+} as const;
+
+export type LiaisonAnalytics = {
+  memberId: string;
+  memberName: string;
+  totalLeads: number;
+  newLeads: number;
+  totalInteractions: number;
+  engagementLevel: "High" | "Medium" | "Low";
+  facilitiesCovered: string[];
+  touchpointsUsed: { type: string; count: number }[];
+  peopleContacted: string[];
+};
+
+export type ParsedLocation = {
+  city: string | null;
+  state: string | null;
+  county: string | null;
+  country: string | null;
+  zip?: string | null;
+  address: string;
+};
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  image: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Ticket = {
+  id: string;
+  title: string;
+  description: string;
+  category: TicketCategory;
+  status: TicketStatus;
+  priority: Priority;
+  assignedTo: string;
+  assignedToUser: User;
+  createBy: string;
+  createByUser: User;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type MemberSession = {
+  memberRole: string;
+  activeOrganizationId: string;
+};
+
 export type LeadRow = {
   id: string;
   lead_name: string;
@@ -231,4 +293,19 @@ export type MarketLogRow = {
   talkedTo: string;
   reasonForVisit: string;
   notes: string;
+};
+
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  showAssistanceForm?: boolean;
+  formSubmitted?: boolean;
+};
+
+export type SupportTicket = {
+  title: string;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  imageUrl: string[];
 };

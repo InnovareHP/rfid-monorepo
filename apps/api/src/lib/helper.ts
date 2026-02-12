@@ -1,4 +1,5 @@
-import { FieldType, LeadField, LeadFieldOption } from "@prisma/client";
+import { normalizeFieldName } from "@dashboard/shared";
+import { BoardFieldType, Field, FieldOption } from "@prisma/client";
 import { render } from "@react-email/render";
 import Stripe from "stripe";
 import { prisma } from "./prisma/prisma";
@@ -194,35 +195,14 @@ export const generateTemplate = (template: React.ReactNode) => {
   return render(template);
 };
 
-export const formatElapsedTime = (elapsedMs: number) => {
-  const minutes = Math.floor(elapsedMs / (1000 * 60));
-  const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
-  const days = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
-
-  if (days >= 1) {
-    return `${days} day${days > 1 ? "s" : ""} ago`;
-  } else if (hours >= 1) {
-    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  } else {
-    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  }
-};
-
-function normalizeFieldName(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
-}
-
-export function findLeadFieldFromCSV(
+export const findLeadFieldFromCSV = (
   csvHeader: string,
-  fields: LeadField & { LeadFieldOption: LeadFieldOption[] }[]
-): (LeadField & { LeadFieldOption: LeadFieldOption[] }) | null {
+  fields: Field & { FieldOption: FieldOption[] }[]
+): (Field & { FieldOption: FieldOption[] }) | null => {
   const header = normalizeFieldName(csvHeader);
 
   const foundField = fields.find(
-    (field: LeadField & { LeadFieldOption: LeadFieldOption[] }) =>
+    (field: Field & { FieldOption: FieldOption[] }) =>
       normalizeFieldName(field.field_name) === header
   );
 
@@ -230,23 +210,11 @@ export function findLeadFieldFromCSV(
     return null;
   }
 
-  return foundField as unknown as LeadField & {
-    LeadFieldOption: LeadFieldOption[];
+  return foundField as unknown as Field & {
+    FieldOption: FieldOption[];
   };
-}
+};
 
-export function isSelectType(type: FieldType): boolean {
+export const isSelectType = (type: BoardFieldType): boolean => {
   return type === "DROPDOWN" || type === "STATUS" || type === "MULTISELECT";
-}
-
-export function normalizeOptionValue(value: string) {
-  return value
-    .replace(/\r?\n|\r/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/(.+?)\1+/g, "$1") // collapse repeated sequences
-    .trim();
-}
-
-export function normalizeKey(value: string) {
-  return value.toLowerCase().trim();
-}
+};
