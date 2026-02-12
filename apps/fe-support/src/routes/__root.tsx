@@ -8,20 +8,23 @@ function App() {
       <main>
         <Outlet />
       </main>
-      <Toaster />s
+      <Toaster />
     </>
   );
 }
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const session = await authClient.getSession();
-
-    console.log(session);
-    return {
-      session: session.data?.session,
-      user: session.data?.user,
-    };
+    try {
+      const session = await authClient.getSession();
+      return {
+        session: session.data?.session ?? null,
+        user: session.data?.user ?? null,
+      };
+    } catch {
+      // API unreachable (e.g. not running); app still loads without session
+      return { session: null, user: null };
+    }
   },
   component: App,
 });
