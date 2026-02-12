@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@dashboard/ui/lib/utils";
 import { AlertTriangle, X } from "lucide-react";
 
 interface ConfirmationDialogProps {

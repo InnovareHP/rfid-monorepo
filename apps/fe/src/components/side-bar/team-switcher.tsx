@@ -1,3 +1,5 @@
+import { authClient } from "@/lib/auth-client";
+import type { Organization } from "@dashboard/shared";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +14,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
-import { authClient } from "@/lib/auth-client";
-import type { Organization } from "@/lib/types";
 import { useRouter } from "@tanstack/react-router";
 import { ChevronsUpDown, User } from "lucide-react";
 import { useEffect, useState } from "react";

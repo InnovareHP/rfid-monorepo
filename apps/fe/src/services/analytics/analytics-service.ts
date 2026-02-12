@@ -1,5 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
-import type { AnalyticsResponse } from "@/lib/types";
+import type { AnalyticsResponse } from "@dashboard/shared";
 
 export const getAnalytics = async (
   start: string | null,

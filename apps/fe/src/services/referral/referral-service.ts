@@ -4,7 +4,7 @@ import type {
   ReferralHistoryItem,
   ReferralHistoryResponse,
   ReferralResponse,
-} from "@/lib/types";
+} from "@dashboard/shared";
 
 export const getReferral = async (filterMeta: any) => {
   const response = await axiosClient.get("/api/boards", {

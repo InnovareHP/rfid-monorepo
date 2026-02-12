@@ -22,7 +22,6 @@ export const Route = createRootRoute({
       queryFn: () => authClient.getSession().then((r) => r.data),
     });
 
-  
     return {
       user: data?.user ?? null,
       session: data?.session ?? null,

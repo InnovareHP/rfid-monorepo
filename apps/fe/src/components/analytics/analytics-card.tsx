@@ -1,6 +1,11 @@
+import type { LiaisonAnalyticsCardData } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/ui/components/card";
-import type { LiaisonAnalyticsCardData } from "@/lib/types";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@dashboard/ui/components/card";
 import {
   Activity,
   Award,
@@ -83,7 +88,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
           </div>
 
           <div
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${config.bgGradient} border-2 ${config.ringColor.replace('ring-', 'border-')}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${config.bgGradient} border-2 ${config.ringColor.replace("ring-", "border-")}`}
           >
             <EngagementIcon className={`h-3.5 w-3.5 ${config.color}`} />
             <span className={`text-xs font-semibold ${config.color}`}>
@@ -94,7 +99,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
 
         {/* Interaction Stats - Large & Bold */}
         <div
-          className={`relative rounded-xl bg-gradient-to-br ${config.bgGradient} p-5 border-2 ${config.ringColor.replace('ring-', 'border-')}`}
+          className={`relative rounded-xl bg-gradient-to-br ${config.bgGradient} p-5 border-2 ${config.ringColor.replace("ring-", "border-")}`}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -236,9 +241,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
       </CardContent>
 
       {/* Hover effect overlay */}
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-100/0 group-hover:from-blue-50/30 group-hover:to-blue-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-      />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-100/0 group-hover:from-blue-50/30 group-hover:to-blue-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </Card>
   );
 }

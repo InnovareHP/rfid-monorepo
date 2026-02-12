@@ -1,4 +1,11 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@dashboard/ui/components/avatar";
+import { authClient } from "@/lib/auth-client";
+import { useTeamLayoutContext } from "@/routes/_team";
+import { uploadImage } from "@/services/image/image-service";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@dashboard/ui/components/avatar";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -11,23 +18,20 @@ import {
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { Separator } from "@dashboard/ui/components/separator";
-import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
-import { useTeamLayoutContext } from "@/routes/_team";
-import { uploadImage } from "@/services/image/image-service";
+import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "@tanstack/react-router";
 import {
   AlertCircle,
+  Calendar,
   Camera,
   CheckCircle,
-  Calendar,
+  Loader2,
   LogOut,
   Mail,
   Shield,
   Upload,
   User,
-  Loader2,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -288,7 +292,9 @@ export function ProfilePage({
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Mail className="h-4 w-4 text-blue-600" />
-                    <p className="text-sm font-medium text-blue-900">Email Address</p>
+                    <p className="text-sm font-medium text-blue-900">
+                      Email Address
+                    </p>
                   </div>
                   <p className="font-semibold text-gray-900">{user?.email}</p>
                 </div>
@@ -316,11 +322,14 @@ export function ProfilePage({
                       </p>
                     </div>
                     <p className="font-semibold text-gray-900">
-                      {new Date(memberData.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                      {new Date(memberData.createdAt).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }
+                      )}
                     </p>
                   </div>
                 )}

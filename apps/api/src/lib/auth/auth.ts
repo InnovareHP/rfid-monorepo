@@ -1,7 +1,12 @@
 import { stripe } from "@better-auth/stripe";
 import { betterAuth, User } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { haveIBeenPwned, openAPI, organization } from "better-auth/plugins";
+import {
+  admin,
+  haveIBeenPwned,
+  openAPI,
+  organization,
+} from "better-auth/plugins";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import Stripe from "stripe";
 import { appConfig } from "../../config/app-config";
@@ -139,7 +144,6 @@ export const auth = betterAuth({
       cancelAtPeriodEnd: "subscription_cancel_at_period_end",
     },
   },
-
   socialProviders: {
     google: {
       clientId: appConfig.GOOGLE_CLIENT_ID,
@@ -213,6 +217,18 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    admin({
+      schema: {
+        user: {
+          fields: {
+            role: "user_role",
+            banReason: "user_ban_reason",
+            banExpires: "user_ban_expires",
+            isBanned: "user_is_banned",
+          },
+        },
+      },
+    }),
     organization({
       organizationHooks: {
         beforeCreateOrganization: async ({ organization, user }) => {

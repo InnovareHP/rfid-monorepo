@@ -1,4 +1,4 @@
-import { FieldType } from "@prisma/client";
+import { BoardFieldType } from "@prisma/client";
 import { z } from "zod";
 
 export const CreateRecordSchema = z.object({
@@ -30,7 +30,7 @@ export const CsvImportSchema = z.object({
 
 export const CreateColumnSchema = z.object({
   column_name: z.string(),
-  field_type: z.enum(FieldType),
+  field_type: z.enum(BoardFieldType),
 });
 
 export const CreateLocationSchema = z.object({

@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/side-bar/app-sidebar";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { authClient } from "@/lib/auth-client";
-import type { Subscription } from "@/lib/types";
+import type { Subscription } from "@dashboard/shared";
 import { Separator } from "@dashboard/ui/components/separator";
 import {
   SidebarInset,

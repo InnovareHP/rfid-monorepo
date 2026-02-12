@@ -15,10 +15,22 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@dashboard/ui/components/avatar";
+import { authClient } from "@/lib/auth-client";
+import { deleteImage, uploadImage } from "@/services/image/image-service";
+import { formatCapitalize, ROLES } from "@dashboard/shared";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@dashboard/ui/components/avatar";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@dashboard/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +48,7 @@ import {
 } from "@dashboard/ui/components/dropdown-menu";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
+import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 import {
   Select,
   SelectContent,
@@ -43,12 +56,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@dashboard/ui/components/tabs";
 import { Textarea } from "@dashboard/ui/components/textarea";
-import { authClient } from "@/lib/auth-client";
-import { ROLES } from "@/lib/constant";
-import { formatCapitalize } from "@/lib/utils";
-import { deleteImage, uploadImage } from "@/services/image/image-service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Invitation } from "better-auth/plugins";
@@ -59,7 +73,6 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ReusableTable } from "./reusable-table/generic-table";
-import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 
 const formSchema = z.object({
   email: z.email(),

@@ -1,3 +1,9 @@
+import {
+  createCounty,
+  deleteCounty,
+  getCounties,
+} from "@/services/referral/referral-service";
+import type { CountyRow } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
@@ -9,12 +15,6 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import type { CountyRow } from "@/lib/types";
-import {
-  createCounty,
-  deleteCounty,
-  getCounties,
-} from "@/services/referral/referral-service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";

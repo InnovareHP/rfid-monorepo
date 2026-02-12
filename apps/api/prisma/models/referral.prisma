@@ -1,145 +1,145 @@
-model ReferralField {
-  id          String      @id @default(uuid())
-  created_at  DateTime    @default(now())
-  field_name  String
-  field_type  ReferralFieldType
-  field_order Int
-  updated_at  DateTime    @updatedAt
-  ReferralValue   ReferralValue[]
-  ReferralFieldOption ReferralFieldOption[]
+// model ReferralField {
+//   id          String      @id @default(uuid())
+//   created_at  DateTime    @default(now())
+//   field_name  String
+//   field_type  ReferralFieldType
+//   field_order Int
+//   updated_at  DateTime    @updatedAt
+//   ReferralValue   ReferralValue[]
+//   ReferralFieldOption ReferralFieldOption[]
 
-  organization_id String @default("hv06QUFUohvO7FoNFd4t8gzdMCJp0PSn")
-  organization_table organization_table @relation(fields: [organization_id], references: [id])
+//   organization_id String @default("hv06QUFUohvO7FoNFd4t8gzdMCJp0PSn")
+//   organization_table organization_table @relation(fields: [organization_id], references: [id])
 
-  @@schema("referral_schema")
+//   @@schema("referral_schema")
 
-  @@index([field_name])
-}
+//   @@index([field_name])
+// }
 
-model Referral {
-  id          String        @id @default(uuid())
-  created_at  DateTime      @default(now())
-  referral_name   String
-  created_by  String?
-  is_deleted Boolean @default(false)
-  updated_at  DateTime      @updatedAt
+// model Referral {
+//   id          String        @id @default(uuid())
+//   created_at  DateTime      @default(now())
+//   referral_name   String
+//   created_by  String?
+//   is_deleted Boolean @default(false)
+//   updated_at  DateTime      @updatedAt
 
-  organization_id String @default("hv06QUFUohvO7FoNFd4t8gzdMCJp0PSn")
-  organization_table organization_table @relation(fields: [organization_id], references: [id])
-
-
-  ReferralHistory ReferralHistory[]
-  ReferralValue   ReferralValue[]
-  ReferralNotificationState ReferralNotificationState[]
-
-  @@schema("referral_schema")
-  @@index([organization_id])
-}
-
-model ReferralValue {
-  id       String    @id @default(uuid())
-  referral_id  String
-  field_id String
-  value    String?
-  Field    ReferralField @relation(fields: [field_id], references: [id])
-  Referral     Referral      @relation(fields: [referral_id], references: [id])
-
-  @@unique([referral_id, field_id])
-  @@schema("referral_schema")
-  @@index([referral_id, field_id])
-}
-
-model ReferralHistory {
-  id         String        @id @default(uuid())
-  referral_id    String
-  old_value  String?
-  new_value  String?
-  column     String?
-  action     String
-  created_by String?        @default("F2WHKStyLXuqv7RnMllLv5YqUU573qAE")
-  created_at DateTime      @default(now())
-  referral       Referral          @relation(fields: [referral_id], references: [id])
-  user user_table? @relation(fields: [created_by], references: [id])
-  @@schema("referral_schema")
-  @@index([referral_id])
-}
-
-model referralCounty {
-    id String @id @default(uuid())
-    created_at DateTime @default(now())
-    county_name String
-    organization_id String
-    referralCountyAssignedTo referralCountyAssignedTo[]
+//   organization_id String @default("hv06QUFUohvO7FoNFd4t8gzdMCJp0PSn")
+//   organization_table organization_table @relation(fields: [organization_id], references: [id])
 
 
-    organization_table organization_table @relation(fields: [organization_id], references: [id])
-    @@schema("referral_schema")
-    @@index([organization_id])
-}
+//   ReferralHistory ReferralHistory[]
+//   ReferralValue   ReferralValue[]
+//   ReferralNotificationState ReferralNotificationState[]
 
-model referralCountyAssignedTo {
-    id String @id @default(uuid())
-    created_at DateTime @default(now())
-    assigned_to String
+//   @@schema("referral_schema")
+//   @@index([organization_id])
+// }
 
-    referral_county_id String
-    referral_county referralCounty @relation(fields: [referral_county_id], references: [id])
-    @@schema("referral_schema")
-    @@index([referral_county_id])
-}
+// model ReferralValue {
+//   id       String    @id @default(uuid())
+//   referral_id  String
+//   field_id String
+//   value    String?
+//   Field    ReferralField @relation(fields: [field_id], references: [id])
+//   Referral     Referral      @relation(fields: [referral_id], references: [id])
 
-model ReferralFieldOption {
-  id String @id @default(uuid())
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  option_name String
-  is_deleted Boolean @default(false)
-  referral_field_id String
-  referral_field ReferralField @relation(fields: [referral_field_id], references: [id])
+//   @@unique([referral_id, field_id])
+//   @@schema("referral_schema")
+//   @@index([referral_id, field_id])
+// }
 
-  @@schema("referral_schema")
-  @@index([referral_field_id])
-}
+// model ReferralHistory {
+//   id         String        @id @default(uuid())
+//   referral_id    String
+//   old_value  String?
+//   new_value  String?
+//   column     String?
+//   action     String
+//   created_by String?        @default("F2WHKStyLXuqv7RnMllLv5YqUU573qAE")
+//   created_at DateTime      @default(now())
+//   referral       Referral          @relation(fields: [referral_id], references: [id])
+//   user user_table? @relation(fields: [created_by], references: [id])
+//   @@schema("referral_schema")
+//   @@index([referral_id])
+// }
 
-view ReferralFlatView {
-  referral_id     String  @id
-  organization_id String?
-  referral_name   String?
-  created_at DateTime?
-  has_notification Boolean?
-  referral_data   Json?
-
-  @@map("referral_flat_view")
-  @@schema("referral_schema")
-
-}
-
-model ReferralNotificationState {
-  id         String   @id @default(uuid())
-  referral_id    String   @unique
-  last_seen  DateTime
-  updated_at DateTime @updatedAt
+// model referralCounty {
+//     id String @id @default(uuid())
+//     created_at DateTime @default(now())
+//     county_name String
+//     organization_id String
+//     referralCountyAssignedTo referralCountyAssignedTo[]
 
 
-  referral Referral       @relation(fields: [referral_id], references: [id])
+//     organization_table organization_table @relation(fields: [organization_id], references: [id])
+//     @@schema("referral_schema")
+//     @@index([organization_id])
+// }
 
-  @@schema("referral_schema")
-}
+// model referralCountyAssignedTo {
+//     id String @id @default(uuid())
+//     created_at DateTime @default(now())
+//     assigned_to String
+
+//     referral_county_id String
+//     referral_county referralCounty @relation(fields: [referral_county_id], references: [id])
+//     @@schema("referral_schema")
+//     @@index([referral_county_id])
+// }
+
+// model ReferralFieldOption {
+//   id String @id @default(uuid())
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+//   option_name String
+//   is_deleted Boolean @default(false)
+//   referral_field_id String
+//   referral_field ReferralField @relation(fields: [referral_field_id], references: [id])
+
+//   @@schema("referral_schema")
+//   @@index([referral_field_id])
+// }
+
+// view ReferralFlatView {
+//   referral_id     String  @id
+//   organization_id String?
+//   referral_name   String?
+//   created_at DateTime?
+//   has_notification Boolean?
+//   referral_data   Json?
+
+//   @@map("referral_flat_view")
+//   @@schema("referral_schema")
+
+// }
+
+// model ReferralNotificationState {
+//   id         String   @id @default(uuid())
+//   referral_id    String   @unique
+//   last_seen  DateTime
+//   updated_at DateTime @updatedAt
 
 
-enum ReferralFieldType {
-  TEXT
-  NUMBER
-  STATUS
-  EMAIL
-  PHONE
-  DATE
-  CHECKBOX
-  DROPDOWN
-  LOCATION
-  TIMELINE
-  MULTISELECT
-  ASSIGNED_TO
+//   referral Referral       @relation(fields: [referral_id], references: [id])
 
-  @@schema("referral_schema")
-}
+//   @@schema("referral_schema")
+// }
+
+
+// enum ReferralFieldType {
+//   TEXT
+//   NUMBER
+//   STATUS
+//   EMAIL
+//   PHONE
+//   DATE
+//   CHECKBOX
+//   DROPDOWN
+//   LOCATION
+//   TIMELINE
+//   MULTISELECT
+//   ASSIGNED_TO
+
+//   @@schema("referral_schema")
+// }

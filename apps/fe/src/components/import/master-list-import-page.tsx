@@ -2,6 +2,8 @@ import { AlertCircle, CheckCircle2, FileText, Upload, X } from "lucide-react";
 import Papa from "papaparse";
 import { useMemo, useRef, useState } from "react";
 
+import { importLeads } from "@/services/lead/lead-service";
+import { isValidHeader, normalizeHeader } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -10,8 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { cn, isValidHeader, normalizeHeader } from "@/lib/utils";
-import { importLeads } from "@/services/lead/lead-service";
+import { cn } from "@dashboard/ui/lib/utils";
 import { toast } from "sonner";
 
 export default function MasterListImportPage() {

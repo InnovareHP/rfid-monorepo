@@ -1,3 +1,4 @@
+import { formatCapitalize, formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -6,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { formatCapitalize, formatDateTime } from "@/lib/utils";
 import { AlertTriangle, ArrowRight, Loader2, RotateCcw, X } from "lucide-react";
 
 interface RestoreHistoryModalProps {
@@ -22,7 +22,11 @@ interface RestoreHistoryModalProps {
     created_at: string;
     created_by: string;
   } | null;
-  onConfirm: (leadId: string, historyId: string, eventType: string) => Promise<void>;
+  onConfirm: (
+    leadId: string,
+    historyId: string,
+    eventType: string
+  ) => Promise<void>;
   isRestoring: boolean;
 }
 
@@ -80,7 +84,8 @@ export function RestoreHistoryModal({
             <div className="flex items-center gap-2 text-sm">
               <AlertTriangle className="w-4 h-4 text-orange-500" />
               <span>
-                Are you sure you want to restore this {formatCapitalize(historyItem.action)} action?
+                Are you sure you want to restore this{" "}
+                {formatCapitalize(historyItem.action)} action?
               </span>
             </div>
 
@@ -134,7 +139,10 @@ export function RestoreHistoryModal({
                   </span>
                 </div>
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                  Restoring will change it back to: <span className="font-semibold">{historyItem.old_value || "(empty)"}</span>
+                  Restoring will change it back to:{" "}
+                  <span className="font-semibold">
+                    {historyItem.old_value || "(empty)"}
+                  </span>
                 </p>
               </div>
             )}
@@ -145,7 +153,8 @@ export function RestoreHistoryModal({
                   This will restore a deleted record
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400">
-                  The {historyItem.entityType} that was deleted will be restored with its previous data.
+                  The {historyItem.entityType} that was deleted will be restored
+                  with its previous data.
                 </p>
               </div>
             )}

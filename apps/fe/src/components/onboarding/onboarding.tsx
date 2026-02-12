@@ -1,6 +1,6 @@
 import { authClient, useSession } from "@/lib/auth-client";
 import { pageVariants } from "@/lib/framer";
-import { toSlug } from "@/lib/utils";
+import { toSlug } from "@dashboard/shared";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {

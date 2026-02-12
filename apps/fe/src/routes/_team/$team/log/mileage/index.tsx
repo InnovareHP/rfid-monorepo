@@ -1,6 +1,6 @@
 import MileageLogPage from "@/components/mileage-log/mileage-log-page";
-import { ROLES } from "@/lib/constant";
 import { AuthorizedRole } from "@/lib/helper/helper";
+import { ROLES } from "@dashboard/shared";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_team/$team/log/mileage/")({

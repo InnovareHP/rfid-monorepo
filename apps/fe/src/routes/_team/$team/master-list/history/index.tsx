@@ -1,6 +1,6 @@
 import HistoryReportPage from "@/components/history-report/history-report-page";
-import { ROLES } from "@/lib/constant";
 import { AuthorizedRole } from "@/lib/helper/helper";
+import { ROLES } from "@dashboard/shared";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_team/$team/master-list/history/")({

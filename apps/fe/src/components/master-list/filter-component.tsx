@@ -1,5 +1,5 @@
-import type { OptionsResponse } from "@/lib/types";
 import { getDropdownOptions } from "@/services/lead/lead-service";
+import type { OptionsResponse } from "@dashboard/shared";
 import { Input } from "@dashboard/ui/components/input";
 import {
   Select,

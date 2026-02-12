@@ -1,15 +1,12 @@
+import { normalizeKey, normalizeOptionValue } from "@dashboard/shared";
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { Field, FieldOption, FieldType, Prisma } from "@prisma/client";
+import { BoardFieldType, Field, FieldOption, Prisma } from "@prisma/client";
 import { appConfig } from "src/config/app-config";
-import { CACHE_PREFIX } from "src/lib/constant";
-import {
-  isSelectType,
-  normalizeKey,
-  normalizeOptionValue,
-} from "src/lib/helper";
+import { isSelectType } from "src/lib/helper";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
 import { lookupByName } from "zipcodes-perogi";
 import { uuidv4 } from "zod";
+import { CACHE_PREFIX } from "../../lib/constant";
 import { prisma } from "../../lib/prisma/prisma";
 import { BoardGateway } from "./board.gateway";
 
@@ -509,7 +506,7 @@ export class BoardService {
     page: number | null,
     limit: number | null
   ) {
-    if (fieldId === FieldType.ASSIGNED_TO) {
+    if (fieldId === BoardFieldType.ASSIGNED_TO) {
       const assignedTo = await prisma.member_table.findMany({
         where: {
           organizationId: organizationId,
@@ -581,7 +578,7 @@ export class BoardService {
   ) {
     try {
       const recordValue = await prisma.$transaction(async (tx) => {
-        if (fieldId === FieldType.ASSIGNED_TO) {
+        if (fieldId === BoardFieldType.ASSIGNED_TO) {
           await this.updateAssignedTo(tx, record_id, value, memberId);
           await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
@@ -625,7 +622,7 @@ export class BoardService {
 
         if (!field) throw new NotFoundException("Field not found");
 
-        if (field.field_type === FieldType.LOCATION) {
+        if (field.field_type === BoardFieldType.LOCATION) {
           const locationData = await this.createLocation(
             value,
             record_id,
@@ -642,7 +639,7 @@ export class BoardService {
           };
         }
 
-        if (field.field_type === FieldType.MULTISELECT) {
+        if (field.field_type === BoardFieldType.MULTISELECT) {
           // Normalize value into an array of clean strings
           const normalizedValue = Array.isArray(value)
             ? value
@@ -929,7 +926,7 @@ export class BoardService {
 
           if (customValue !== undefined && customValue !== null) {
             // Handle MULTISELECT type
-            if (field.field_type === FieldType.MULTISELECT) {
+            if (field.field_type === BoardFieldType.MULTISELECT) {
               const normalizedValue = Array.isArray(customValue)
                 ? customValue
                 : typeof customValue === "string"
@@ -1141,7 +1138,7 @@ export class BoardService {
 
   async createColumn(
     column_name: string,
-    field_type: FieldType,
+    field_type: BoardFieldType,
     organizationId: string
   ) {
     const lastColumn = await prisma.field.findFirst({
@@ -1416,7 +1413,7 @@ export class BoardService {
 
         if (isSelectType(field.field_type)) {
           const values =
-            field.field_type === FieldType.MULTISELECT
+            field.field_type === BoardFieldType.MULTISELECT
               ? value.split(",").map(normalizeOptionValue)
               : [normalizeOptionValue(value)];
 
@@ -1464,19 +1461,19 @@ export class BoardService {
       if (optionsToCreate.size > 0) {
         const optionRows: {
           option_name: string;
-          lead_field_id: string;
+          field_id: string;
         }[] = [];
 
         for (const [fieldId, options] of optionsToCreate.entries()) {
           for (const opt of options) {
             optionRows.push({
               option_name: opt,
-              lead_field_id: fieldId,
+              field_id: fieldId,
             });
           }
         }
 
-        await tx.leadFieldOption.createMany({
+        await tx.fieldOption.createMany({
           data: optionRows,
           skipDuplicates: true,
         });

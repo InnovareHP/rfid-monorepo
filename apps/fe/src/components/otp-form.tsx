@@ -1,12 +1,5 @@
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
-import { Input } from "@dashboard/ui/components/input";
-import { cn } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, Mail, Shield } from "lucide-react";
-import { useForm } from "react-hook-form";
-import z from "zod/v3";
 import {
   Form,
   FormControl,
@@ -15,6 +8,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@dashboard/ui/components/form";
+import { Input } from "@dashboard/ui/components/input";
+import { cn } from "@dashboard/ui/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft, Loader2, Mail, Shield } from "lucide-react";
+import { useForm } from "react-hook-form";
+import z from "zod/v3";
 
 export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
   const formSchema = z.object({

@@ -4,7 +4,7 @@ model Field {
   updated_at      DateTime          @updatedAt
   field_name      String
   field_order     Int
-  field_type      FieldType
+  field_type      BoardFieldType
 
   organization_id String
   organization    organization_table @relation(fields: [organization_id], references: [id])
@@ -127,5 +127,5 @@ enum BoardFieldType {
   MULTISELECT
   ASSIGNED_TO
 
-  @@schema("lead_schema")
+  @@schema("board_schema")
 }

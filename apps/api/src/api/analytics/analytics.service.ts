@@ -1,9 +1,9 @@
+import { LiaisonAnalytics } from "@dashboard/shared";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { gemini } from "src/lib/gemini/gemini";
 import { analyticsPrompt } from "src/lib/gemini/prompt";
 import { redis } from "src/lib/redis/redis";
-import { LiaisonAnalytics } from "src/lib/types";
 import { prisma } from "../../lib/prisma/prisma";
 
 @Injectable()
@@ -14,16 +14,17 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.ReferralValueWhereInput = {
-      Field: { field_name: "Facility" },
-      Referral: {
+    const whereClause: Prisma.FieldValueWhereInput = {
+      field: { field_name: "Facility" },
+      record: {
         organization_id: organizationId,
+        module_type: "REFERRAL",
         ...(startDate &&
           endDate && { created_at: { gte: startDate, lte: endDate } }),
       },
     };
 
-    return await prisma.referralValue.groupBy({
+    return await prisma.fieldValue.groupBy({
       by: ["value"],
       where: whereClause,
       _count: { value: true },
@@ -37,15 +38,16 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.ReferralValueWhereInput = {
-      Field: { field_name: "Contact" },
-      Referral: {
+    const whereClause: Prisma.FieldValueWhereInput = {
+      field: { field_name: "Contact" },
+      record: {
+        module_type: "REFERRAL",
         organization_id: organizationId,
         ...(startDate &&
           endDate && { created_at: { gte: startDate, lte: endDate } }),
       },
     };
-    return await prisma.referralValue.groupBy({
+    return await prisma.fieldValue.groupBy({
       by: ["value"],
       where: whereClause,
       _count: { value: true },
@@ -55,15 +57,16 @@ export class AnalyticsService {
   }
 
   async getTopCounties(organizationId: string, startDate: Date, endDate: Date) {
-    const whereClause: Prisma.ReferralValueWhereInput = {
-      Field: { field_name: "County" },
-      Referral: {
+    const whereClause: Prisma.FieldValueWhereInput = {
+      field: { field_name: "County" },
+      record: {
+        module_type: "REFERRAL",
         organization_id: organizationId,
         ...(startDate &&
           endDate && { created_at: { gte: startDate, lte: endDate } }),
       },
     };
-    return await prisma.referralValue.groupBy({
+    return await prisma.fieldValue.groupBy({
       by: ["value"],
       where: whereClause,
       _count: { value: true },
@@ -77,15 +80,16 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.ReferralValueWhereInput = {
-      Field: { field_name: "Referral Source Type" },
-      Referral: {
+    const whereClause: Prisma.FieldValueWhereInput = {
+      field: { field_name: "Referral Source Type" },
+      record: {
+        module_type: "REFERRAL",
         organization_id: organizationId,
         ...(startDate &&
           endDate && { created_at: { gte: startDate, lte: endDate } }),
       },
     };
-    return await prisma.referralValue.groupBy({
+    return await prisma.fieldValue.groupBy({
       by: ["value"],
       where: whereClause,
       _count: { value: true },
@@ -98,17 +102,20 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.ReferralValueWhereInput = {
-      Field: { field_name: "Status" },
+    const whereClause: Prisma.FieldValueWhereInput = {
+      field: { field_name: "Status" },
       value: "Admitted",
-      Referral: {
+      record: {
+        module_type: "REFERRAL",
         organization_id: organizationId,
         ...(startDate &&
           endDate && { created_at: { gte: startDate, lte: endDate } }),
       },
     };
-    const totalReferrals = await prisma.referral.count();
-    const admitted = await prisma.referralValue.count({
+    const totalReferrals = await prisma.board.count({
+      where: whereClause.record,
+    });
+    const admitted = await prisma.fieldValue.count({
       where: whereClause,
     });
 
@@ -127,18 +134,19 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.ReferralWhereInput = {
+    const whereClause: Prisma.BoardWhereInput = {
       organization_id: organizationId,
+      module_type: "REFERRAL",
       ...(startDate &&
         endDate && { created_at: { gte: startDate, lte: endDate } }),
     };
-    const referrals = await prisma.referral.findMany({
+    const referrals = await prisma.board.findMany({
       where: whereClause,
       select: {
         id: true,
         created_at: true,
-        ReferralValue: {
-          where: { Field: { field_name: "Admission Date" } },
+        values: {
+          where: { field: { field_name: "Admission Date" } },
           select: { value: true },
         },
       },
@@ -146,7 +154,7 @@ export class AnalyticsService {
 
     const differences = referrals
       .map((r) => {
-        const admissionDateStr = r.ReferralValue[0]?.value;
+        const admissionDateStr = r.values[0]?.value;
         if (!admissionDateStr) return null;
         const admissionDate = new Date(admissionDateStr);
         return (
@@ -164,15 +172,16 @@ export class AnalyticsService {
 
   // 7️⃣ Payer Source Mix
   async getPayerMix(organizationId: string, startDate: Date, endDate: Date) {
-    const whereClause: Prisma.ReferralValueWhereInput = {
-      Field: { field_name: "Payor" },
-      Referral: {
+    const whereClause: Prisma.FieldValueWhereInput = {
+      field: { field_name: "Payor" },
+      record: {
+        module_type: "REFERRAL",
         organization_id: organizationId,
         ...(startDate &&
           endDate && { created_at: { gte: startDate, lte: endDate } }),
       },
     };
-    return await prisma.referralValue.groupBy({
+    return await prisma.fieldValue.groupBy({
       by: ["value"],
       where: whereClause,
       _count: { value: true },
@@ -195,7 +204,7 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.ReferralWhereInput = {
+    const whereClause: Prisma.BoardWhereInput = {
       organization_id: organizationId,
       ...(startDate &&
         endDate && { created_at: { gte: startDate, lte: endDate } }),
@@ -204,7 +213,7 @@ export class AnalyticsService {
     // Placeholder: show referrals by month as a trend.
     const results = await prisma.$queryRaw<{ month: string; total: number }[]>`
       SELECT TO_CHAR(r.created_at, 'YYYY-MM') AS month, COUNT(*)::int AS total
-      FROM referral_schema."Referral" r
+      FROM board_schema."Board" r
       WHERE r.organization_id = ${organizationId}
       ${startDate && endDate ? Prisma.sql`AND r.created_at >= ${startDate} AND r.created_at <= ${endDate}` : Prisma.empty}
       GROUP BY month
@@ -219,9 +228,10 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.ReferralValueWhereInput = {
-      Field: { field_name: "Referral Source Type" },
-      Referral: {
+    const whereClause: Prisma.FieldValueWhereInput = {
+      field: { field_name: "Referral Source Type" },
+      record: {
+        module_type: "REFERRAL",
         organization_id: organizationId,
         ...(startDate &&
           endDate && { created_at: { gte: startDate, lte: endDate } }),
@@ -231,12 +241,12 @@ export class AnalyticsService {
       { facility: string; recent_referrals: number }[]
     >`
       SELECT v.value AS facility, COUNT(*)::int AS recent_referrals
-      FROM referral_schema."ReferralValue" v
-      JOIN referral_schema."Referral" r ON v.referral_id = r.id
-      JOIN referral_schema."ReferralField" f ON v.field_id = f.id
+      FROM board_schema."FieldValue" v
+      JOIN board_schema."Board" r ON v.record_id = r.id
+      JOIN board_schema."Field" f ON v.field_id = f.id
       WHERE f.field_name = 'Facility'
         AND r.organization_id = ${organizationId}
-        AND r.created_at > NOW() - INTERVAL '90 days'
+        AND r.created_at >= ${startDate} AND r.created_at <= ${endDate}
       GROUP BY facility
       HAVING COUNT(*) < 5
       ORDER BY recent_referrals ASC;

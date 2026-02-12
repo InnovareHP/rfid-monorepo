@@ -1,10 +1,9 @@
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import { connectSocket } from "@/lib/socket-io/socket";
-import type { LeadRow, OptionsResponse } from "@/lib/types";
-import { exportToCSV } from "@/lib/utils";
 import { Route } from "@/routes/_team";
 import { createLead, deleteLead, getLeads } from "@/services/lead/lead-service";
+import type { LeadRow, OptionsResponse } from "@dashboard/shared";
+import { exportToCSV } from "@/lib/fe-helpers";
 import { Button } from "@dashboard/ui/components/button";
 import {
   useInfiniteQuery,
@@ -90,8 +89,6 @@ export default function MasterListPage() {
     name: string;
     type: string;
   }[];
-
-  const socket = useMemo(() => connectSocket(), []);
 
   const table = useReactTable({
     data: rows,

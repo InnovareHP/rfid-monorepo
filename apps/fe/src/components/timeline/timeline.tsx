@@ -1,3 +1,11 @@
+import {
+  createLeadTimeline,
+  deleteLeadTimeline,
+  editLeadTimeline,
+  getLeadTimeline,
+} from "@/services/lead/lead-service";
+import type { LeadHistoryItem } from "@dashboard/shared";
+import { formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -7,14 +15,6 @@ import {
   DialogTrigger,
 } from "@dashboard/ui/components/dialog";
 import { Textarea } from "@dashboard/ui/components/textarea";
-import type { LeadHistoryItem } from "@/lib/types";
-import { formatDateTime } from "@/lib/utils";
-import {
-  createLeadTimeline,
-  deleteLeadTimeline,
-  editLeadTimeline,
-  getLeadTimeline,
-} from "@/services/lead/lead-service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";

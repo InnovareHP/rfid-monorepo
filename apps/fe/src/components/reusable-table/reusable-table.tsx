@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
@@ -25,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@dashboard/ui/components/table";
+import { cn } from "@dashboard/ui/lib/utils";
 import {
   type ColumnDef,
   flexRender,

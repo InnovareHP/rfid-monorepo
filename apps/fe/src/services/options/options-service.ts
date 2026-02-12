@@ -1,5 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
-import type { OptionsResponse } from "@/lib/types";
+import type { OptionsResponse } from "@dashboard/shared";
 
 export const getOptionsCounties = async () => {
   const response = await axiosClient.get(`/api/options/counties`);

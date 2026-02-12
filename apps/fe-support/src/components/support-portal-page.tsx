@@ -1,5 +1,3 @@
-import { useState, useEffect, useRef } from "react";
-import { Link } from "@tanstack/react-router";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -14,27 +12,29 @@ import {
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
 import { Input } from "@dashboard/ui/components/input";
+import { Link } from "@tanstack/react-router";
 import {
+  Activity,
+  Brain,
   ChevronDown,
   ChevronUp,
+  CreditCard,
+  Mail,
+  Maximize2,
+  Menu,
+  MessageCircle,
+  Mic2,
+  Minimize2,
+  Package,
+  Play,
+  Puzzle,
+  RefreshCw,
   Search,
   Send,
-  RefreshCw,
-  Maximize2,
-  Minimize2,
-  Play,
-  MessageCircle,
   Settings,
-  Mic2,
-  Brain,
-  CreditCard,
-  Puzzle,
-  Package,
   User,
-  Menu,
-  Activity,
-  Mail,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const AI_WELCOME_MESSAGE =
   "Hello! I'm your AI assistant. I know a lot about Innovare HP RFID and I can do much more than chatbots you've seen before. How can I help? Tell me as much as you can about your question.";
@@ -137,8 +137,7 @@ const KNOWLEDGE_BASE_ITEMS = [
     iconBg: "bg-blue-500",
     titleColor: "text-blue-600",
     title: "Product updates",
-    description:
-      "Stay up to date on new features, improvements, and changes.",
+    description: "Stay up to date on new features, improvements, and changes.",
   },
 ];
 
@@ -186,7 +185,9 @@ export function SupportPortalPage() {
   const overlayChatScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const scrollToBottom = (el: HTMLDivElement | null): ReturnType<typeof setTimeout> | undefined => {
+    const scrollToBottom = (
+      el: HTMLDivElement | null
+    ): ReturnType<typeof setTimeout> | undefined => {
       if (!el) return undefined;
       return setTimeout(() => {
         el.scrollTop = el.scrollHeight;
@@ -238,8 +239,10 @@ export function SupportPortalPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30 overflow-x-hidden">
-      {/* Header */}
-      <header className="text-white shrink-0" style={{ backgroundColor: "#004aad" }}>
+      <header
+        className="text-white shrink-0"
+        style={{ backgroundColor: "#004aad" }}
+      >
         <div className="flex items-center justify-between h-14 px-3 sm:px-4 max-w-[1600px] mx-auto gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
@@ -337,7 +340,6 @@ export function SupportPortalPage() {
         </div>
       </header>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 sm:p-6 pb-24 lg:pb-6 max-w-[1600px] w-full mx-auto lg:items-stretch">
         {/* Left column */}
         <div className="flex-1 min-w-0 space-y-6 sm:space-y-8 order-1">
@@ -413,9 +415,15 @@ export function SupportPortalPage() {
         >
           <Card className="border rounded-xl overflow-hidden flex flex-col min-h-[400px] lg:min-h-0 lg:flex-1">
             <div className="flex items-center justify-between px-4 py-3 border-b shrink-0 bg-background">
-              <span className="font-semibold text-[15px] text-foreground">AI Assistant</span>
+              <span className="font-semibold text-[15px] text-foreground">
+                AI Assistant
+              </span>
               <div className="flex items-center gap-0.5">
-                <Button variant="ghost" size="icon" className="cursor-pointer size-8 shrink-0 text-muted-foreground hover:text-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="cursor-pointer size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                >
                   <RefreshCw className="size-4" />
                 </Button>
                 <Button
@@ -479,7 +487,9 @@ export function SupportPortalPage() {
                           className="text-sm leading-relaxed text-foreground"
                         />
                       ) : (
-                        <p className="text-sm leading-relaxed text-foreground">{msg.content}</p>
+                        <p className="text-sm leading-relaxed text-foreground">
+                          {msg.content}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -520,18 +530,21 @@ export function SupportPortalPage() {
         </aside>
       </div>
 
-      {/* Mobile: fixed bottom bar to open chat */}
       <button
         type="button"
         onClick={openChatOverlay}
         className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex items-center justify-between gap-3 px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.08)] rounded-t-xl active:bg-muted/50 transition-colors"
         aria-label="Open AI Assistant chat"
       >
-        <span className="font-semibold text-[15px] text-foreground">Innovare HP RFID AI Assistant</span>
-        <ChevronUp className="size-5 text-muted-foreground shrink-0" aria-hidden />
+        <span className="font-semibold text-[15px] text-foreground">
+          Innovare HP RFID AI Assistant
+        </span>
+        <ChevronUp
+          className="size-5 text-muted-foreground shrink-0"
+          aria-hidden
+        />
       </button>
 
-      {/* Enlarged chat overlay */}
       {isChatEnlarged && (
         <div
           className={`fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isOverlayClosing ? "opacity-0" : "opacity-100"}`}
@@ -550,9 +563,15 @@ export function SupportPortalPage() {
           >
             <Card className="border rounded-xl overflow-hidden flex flex-col flex-1 min-h-0">
               <div className="flex items-center justify-between px-4 py-3 border-b shrink-0 bg-background">
-                <span className="font-semibold text-[15px] text-foreground">AI Assistant</span>
+                <span className="font-semibold text-[15px] text-foreground">
+                  AI Assistant
+                </span>
                 <div className="flex items-center gap-0.5">
-                  <Button variant="ghost" size="icon" className="cursor-pointer size-8 shrink-0 text-muted-foreground hover:text-foreground">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="cursor-pointer size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                  >
                     <RefreshCw className="size-4" />
                   </Button>
                   <Button
@@ -652,7 +671,6 @@ export function SupportPortalPage() {
         </div>
       )}
 
-      {/* Footer */}
       <footer className="border-t bg-background py-4 px-4 sm:py-5 sm:px-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 max-w-[1600px] mx-auto text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
           <span>© Copyright Support</span>

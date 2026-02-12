@@ -1,18 +1,9 @@
-import type { LeadOptions } from "@/lib/types";
 import {
   createDropdownOption,
   getDropdownOptions,
 } from "@/services/lead/lead-service";
 import { deleteDropdownOption } from "@/services/options/options-service";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
-import { Plus, Trash } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import { ReusableTable } from "../reusable-table/generic-table";
+import type { LeadOptions } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -32,6 +23,15 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
+import { Plus, Trash } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { ReusableTable } from "../reusable-table/generic-table";
 
 const addOptionSchema = z.object({
   optionName: z
