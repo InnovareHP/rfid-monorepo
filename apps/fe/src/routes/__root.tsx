@@ -20,11 +20,9 @@ export const Route = createRootRoute({
     const data = await queryClient.fetchQuery({
       queryKey: ["session"],
       queryFn: () => authClient.getSession().then((r) => r.data),
-
-      revalidateIfStale: true,
     });
 
-    console.log("Fresh or Revalidated data:", data);
+  
     return {
       user: data?.user ?? null,
       session: data?.session ?? null,
