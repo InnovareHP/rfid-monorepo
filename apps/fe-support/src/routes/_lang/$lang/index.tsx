@@ -1,4 +1,4 @@
-import { SupportPortalPage } from "@/components/support-portal-page";
+import { SupportPortalPage } from "@/components/SupportPortalPage/SupportPortalPage";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_lang/$lang/")({

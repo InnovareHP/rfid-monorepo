@@ -1,10 +1,14 @@
-import { SupportPortalPage } from "@/components/support-portal-page";
-import { createFileRoute } from "@tanstack/react-router";
+import { SupportLayout } from "@/components/SupportLayout/SupportLayout";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_lang")({
-  component: RouteComponent,
+  component: LangLayoutComponent,
 });
 
-function RouteComponent() {
-  return <SupportPortalPage />;
+function LangLayoutComponent() {
+  return (
+    <SupportLayout>
+      <Outlet />
+    </SupportLayout>
+  );
 }
