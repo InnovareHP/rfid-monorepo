@@ -1,4 +1,3 @@
-import { authClient } from "@/lib/auth-client";
 import { Toaster } from "@dashboard/ui/components/sonner";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
 
@@ -14,17 +13,7 @@ function App() {
 }
 
 export const Route = createRootRoute({
-  beforeLoad: async () => {
-    try {
-      const session = await authClient.getSession();
-      return {
-        session: session.data?.session ?? null,
-        user: session.data?.user ?? null,
-      };
-    } catch {
-      // API unreachable (e.g. not running); app still loads without session
-      return { session: null, user: null };
-    }
-  },
+  // Session is not needed for initial render; components that need it (e.g. SupportChat) use useSession().
+  // Avoiding async beforeLoad here prevents blocking the first paint on a slow/unreachable API.
   component: App,
 });

@@ -480,6 +480,9 @@ importers:
       '@dashboard/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.71.1(react@19.2.4))
       '@tanstack/react-router':
         specifier: ^1.130.2
         version: 1.159.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -492,6 +495,12 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
+      react-hook-form:
+        specifier: ^7.71.1
+        version: 7.71.1(react@19.2.4)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.0.6
@@ -7261,6 +7270,7 @@ packages:
   stripe@19.3.1:
     resolution: {integrity: sha512-5NXhLxTZ+4uO1wnsmNysILVuyeZ1Xia7niz/8ykBkGJkCcrY2WyQZwcfYuWZmZEJtWr2+0j49JXwNC6y9CHL7Q==}
     engines: {node: '>=16'}
+    deprecated: This version has a major bug where the Files API times out. See issue 2538
     peerDependencies:
       '@types/node': '>=16'
     peerDependenciesMeta:
