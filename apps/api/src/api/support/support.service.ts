@@ -54,8 +54,11 @@ export class SupportService {
         description: data.description,
         category: data.category,
         priority: data.priority,
-        assignedTo: data.assignedTo,
+        assignedTo: userId,
         createBy: userId,
+        SupportTicketAttachment: {
+          create: data.imageUrl.map((image) => ({ imageUrl: image })),
+        },
       },
     });
   }

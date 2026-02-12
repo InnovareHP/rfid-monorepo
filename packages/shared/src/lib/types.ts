@@ -294,3 +294,18 @@ export type MarketLogRow = {
   reasonForVisit: string;
   notes: string;
 };
+
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  showAssistanceForm?: boolean;
+  formSubmitted?: boolean;
+};
+
+export type SupportTicket = {
+  title: string;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  imageUrl: string[];
+};
