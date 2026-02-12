@@ -1,14 +1,17 @@
 import { Toaster } from "@dashboard/ui/components/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <main>
         <Outlet />
       </main>
       <Toaster />
-    </>
+    </QueryClientProvider>
   );
 }
 
