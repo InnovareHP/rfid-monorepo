@@ -25,17 +25,10 @@ COPY apps/fe/ ./apps/fe/
 RUN pnpm --filter @dashboard/shared build \
     && cd apps/fe && npx vite build
 
-FROM node:22-slim AS production
-RUN npm i -g serve@latest
-
+FROM base AS production
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 --ingroup nodejs nodejs
-
-COPY --from=build --chown=nodejs:nodejs /app/apps/fe/dist ./dist
-
-USER nodejs
+COPY --from=build /app/ ./
 
 EXPOSE 3000
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["pnpm", "--filter", "fe", "start"]
