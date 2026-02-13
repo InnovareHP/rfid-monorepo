@@ -1,72 +1,57 @@
-########################
-# Base
-########################
+# 1. Base Layer
 FROM node:22-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-########################
-# Dependencies (dev deps for build)
-########################
+# 2. Dependency Layer (Heavy dependencies installed once)
 FROM base AS deps
-
-# Build tools
+# Install build tools only once
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ openssl \
+    python3 make g++ openssl libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy monorepo root + package.json of subprojects
+# Copy workspace configs
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/api/package.json ./apps/api/
+# Selective copy for package.json files to cache 'pnpm install'
 COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
 
-# Install ALL dependencies including devDependencies (needed for tsc + prisma CLI)
-RUN pnpm install --frozen-lockfile --prod=false
+RUN pnpm install --frozen-lockfile
 
-########################
-# Build Stage
-########################
-FROM base AS build
+# 3. Build Layer
+FROM deps AS build
+# Copy source code (Now that dependencies are cached)
+COPY packages/shared/ ./packages/shared/
+COPY apps/api/ ./apps/api/
 
-# Copy deps from previous stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Build shared first, then API
+RUN pnpm --filter @dashboard/shared build \
+    && pnpm --filter api prisma:generate \
+    && pnpm --filter api build \
+    # Remove devDependencies to save space before final copy
+    && pnpm prune --prod --no-optional
 
-# Build shared package, generate Prisma client, then build API
-RUN pnpm --filter shared build \
- && pnpm --filter api prisma:generate \
- && pnpm --filter api build
-
-########################
-# Production
-########################
+# 4. Production Runner (Minimalist)
 FROM node:22-slim AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Runtime deps
+# Only install runtime essentials
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy only files needed for prod install
-COPY package.json pnpm-lock.yaml ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/shared/package.json ./packages/shared/
-
-# Install only prod dependencies
-RUN corepack enable \
- && corepack prepare pnpm@latest --activate \
- && pnpm install --prod --frozen-lockfile
-
-# Copy built artifacts and Prisma client
-COPY --from=build /app/apps/api/dist ./apps/api/dist
+# Copy built files and production node_modules from build stage
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
-COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
+# Root package.json/workspace files required for pnpm start
+COPY pnpm-workspace.yaml package.json ./
 
 EXPOSE 8080
-
-# Start API directly with Node (no pnpm needed in prod)
+# Use pnpm filter to run exactly the API start command
 CMD ["node", "apps/api/dist/main.js"]
