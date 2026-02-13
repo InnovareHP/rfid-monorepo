@@ -23,9 +23,6 @@ node_modules
 **/dist
 **/build
 
-# Unused apps
-apps/fe-support
-
 # Tests & coverage
 coverage
 **/*.spec.ts
