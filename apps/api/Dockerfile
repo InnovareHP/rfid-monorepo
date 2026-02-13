@@ -11,10 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
+COPY apps/api/tsconfig.json ./apps/api/tsconfig.json 
+COPY apps/api/tsconfig.build.json ./apps/api/tsconfig.build.json 
 COPY packages/shared/package.json ./packages/shared/
 
-RUN pnpm install --frozen-lockfile
 
+RUN pnpm install --frozen-lockfile
 
 
 FROM base AS build
