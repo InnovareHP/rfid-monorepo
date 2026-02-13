@@ -1,54 +1,65 @@
-# 1. Base Layer
 FROM node:22-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-# CI=true solves the "No TTY" error for pnpm
-ENV CI=true 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-# 2. Dependency Layer
 FROM base AS deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ openssl libssl-dev \
+    python3 make g++ openssl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+# Optimize: Copy all package.json files in one layer
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/tsconfig.json apps/api/tsconfig.build.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
-COPY apps/api/package.json ./apps/api/
 
 RUN pnpm install --frozen-lockfile
 
-# 3. Build Layer
-FROM deps AS build
+FROM base AS build
+# Optimize: Remove openssl install - already in deps stage, not needed here
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
-RUN pnpm --filter @dashboard/shared build \
+RUN pnpm --filter shared build \
     && pnpm --filter api prisma:generate \
     && pnpm --filter api build
 
-# 4. Production Runner
 FROM node:22-slim AS production
-WORKDIR /app
-ENV NODE_ENV=production
-ENV CI=true
-
+# Optimize: Combine apt-get commands and cleanup
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy built files
-COPY --from=build /app/packages/shared/dist ./packages/shared/dist
-COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=build /app/apps/api/dist ./apps/api/dist
-COPY --from=build /app/apps/api/package.json ./apps/api/package.json
-COPY --from=build /app/apps/api/prisma ./apps/api/prisma
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
 
-# Re-install ONLY production dependencies
-# This is much cleaner than 'prune' in a monorepo
-RUN corepack enable && corepack prepare pnpm@latest --activate \
-    && pnpm install --prod --frozen-lockfile
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Optimize: Copy all config files in one layer
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json apps/api/tsconfig.json apps/api/tsconfig.build.json ./apps/api/
+
+# Optimize: Copy only production dependencies
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+
+# Prisma schema + generate
+COPY --from=build /app/apps/api/prisma ./apps/api/prisma
+RUN cd apps/api && npx prisma generate --schema=./prisma
+
+# Built artifacts - only what's needed for production
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+
+# Optimize: Add healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
 EXPOSE 8080
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["pnpm", "start:prod"]
