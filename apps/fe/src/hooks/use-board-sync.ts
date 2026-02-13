@@ -127,5 +127,5 @@ export function useBoardSync() {
       );
       socket.off("board:update-location", handleUpdateLocation);
     };
-  }, [queryClient]);
+  }, [queryClient, socket]);
 }
