@@ -59,4 +59,4 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 
 EXPOSE 8080
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["pnpm", "start"]
