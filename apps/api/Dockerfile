@@ -30,8 +30,9 @@ COPY apps/api/ ./apps/api/
 RUN pnpm --filter @dashboard/shared build \
     && pnpm --filter api prisma:generate \
     && pnpm --filter api build \
-    # Remove devDependencies to save space before final copy
-    && pnpm prune --prod --no-optional
+    # The --force flag ensures it doesn't wait for TTY 
+    # even if the CI env variable isn't picked up
+    && pnpm prune --prod --no-optional --force
 
 # 4. Production Runner (Minimalist)
 FROM node:22-slim AS production
