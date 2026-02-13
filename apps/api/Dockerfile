@@ -2,19 +2,18 @@
 FROM node:22-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+# CI=true solves the "No TTY" error for pnpm
+ENV CI=true 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-# 2. Dependency Layer (Heavy dependencies installed once)
+# 2. Dependency Layer
 FROM base AS deps
-# Install build tools only once
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ openssl libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy workspace configs
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-# Selective copy for package.json files to cache 'pnpm install'
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
@@ -22,37 +21,34 @@ RUN pnpm install --frozen-lockfile
 
 # 3. Build Layer
 FROM deps AS build
-# Copy source code (Now that dependencies are cached)
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
-# Build shared first, then API
 RUN pnpm --filter @dashboard/shared build \
     && pnpm --filter api prisma:generate \
-    && pnpm --filter api build \
-    # The --force flag ensures it doesn't wait for TTY 
-    # even if the CI env variable isn't picked up
-    && pnpm prune --prod --no-optional --force
+    && pnpm --filter api build
 
-# 4. Production Runner (Minimalist)
+# 4. Production Runner
 FROM node:22-slim AS production
 WORKDIR /app
 ENV NODE_ENV=production
+ENV CI=true
 
-# Only install runtime essentials
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy built files and production node_modules from build stage
-COPY --from=build /app/node_modules ./node_modules
+# Copy built files
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
-# Root package.json/workspace files required for pnpm start
-COPY pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+
+# Re-install ONLY production dependencies
+# This is much cleaner than 'prune' in a monorepo
+RUN corepack enable && corepack prepare pnpm@latest --activate \
+    && pnpm install --prod --frozen-lockfile
 
 EXPOSE 8080
-# Use pnpm filter to run exactly the API start command
 CMD ["node", "apps/api/dist/main.js"]
