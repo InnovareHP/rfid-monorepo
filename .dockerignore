@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode
+.idea
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Dependencies (rebuilt inside container)
+node_modules
+.pnpm-store
+
+# Build output (rebuilt inside container)
+**/dist
+**/build
+
+# Frontend (not needed for API image)
+apps/fe
+apps/fe-support
+
+# Tests & coverage
+coverage
+**/*.spec.ts
+**/*.test.ts
+
+# Local envs
+.env
+.env.*
+!.env.example
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+docker-compose*.yml
