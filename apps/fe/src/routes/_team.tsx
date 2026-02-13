@@ -42,7 +42,6 @@ export const useTeamLayoutContext = (): TeamLayoutContextValue => {
 };
 
 export const Route = createFileRoute("/_team")({
-  // ✅ Only auth / org guard here
   beforeLoad: async (context) => {
     const params = context.params as { team: string };
     const { user, session } = context.context as {

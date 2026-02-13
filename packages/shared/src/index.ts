@@ -3,7 +3,8 @@
  * It exports all the modules from the library.
  */
 
-export * from "./lib/constant.js";
-export * from "./lib/helper.js";
-export * from "./lib/nums.js";
-export * from "./lib/types.js";
+export * from "./lib/constant";
+export * from "./lib/helper";
+export * from "./lib/nums";
+export * from "./lib/types";
+

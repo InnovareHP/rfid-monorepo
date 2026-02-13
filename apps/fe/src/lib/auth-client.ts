@@ -1,5 +1,8 @@
 import { stripeClient } from "@better-auth/stripe/client";
-import { organizationClient } from "better-auth/client/plugins";
+import {
+  oneTimeTokenClient,
+  organizationClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { ac, admission_manager, liason, owner } from "./permissions";
 
@@ -8,6 +11,7 @@ export const authClient = createAuthClient({
     stripeClient({
       subscription: true,
     }),
+    oneTimeTokenClient(),
     organizationClient({
       ac,
       roles: {
@@ -30,6 +34,7 @@ export const {
   signUp,
   signOut,
   useSession,
+  getSession,
   refreshToken,
   useActiveMember,
   useActiveOrganization,

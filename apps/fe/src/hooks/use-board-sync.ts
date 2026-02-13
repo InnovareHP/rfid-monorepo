@@ -1,12 +1,22 @@
 import { connectSocket } from "@/lib/socket-io/socket";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Socket } from "socket.io-client";
 
 export function useBoardSync() {
   const queryClient = useQueryClient();
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const socket = connectSocket();
+    const connect = async () => {
+      const socket = await connectSocket();
+      setSocket(socket);
+    };
+    connect();
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
 
     const handleUpdate = ({ recordId, fieldName, value }: any) => {
       queryClient.setQueriesData(

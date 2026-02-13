@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import {
   admin,
   haveIBeenPwned,
+  oneTimeToken,
   openAPI,
   organization,
 } from "better-auth/plugins";
@@ -217,6 +218,7 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    oneTimeToken(),
     admin({
       schema: {
         user: {

@@ -1,4 +1,5 @@
 import { io, Socket } from "socket.io-client";
+import { authClient } from "../auth-client";
 
 // Define your events for better Type Safety later
 // interface ServerToClientEvents {}
@@ -6,22 +7,26 @@ import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
-export function connectSocket(): Socket {
-  // If socket exists and is trying to connect or is already connected, reuse it
-  if (socket) {
-    return socket;
+export async function connectSocket(): Promise<Socket> {
+  if (socket) return socket;
+
+  const { data, error } = await authClient.oneTimeToken.generate();
+
+  if (error) {
+    throw new Error(error.message);
   }
 
   socket = io(import.meta.env.VITE_API_URL, {
     withCredentials: true,
-    transports: ["websocket"], // Prioritize websocket for performance
-    autoConnect: true,
-    reconnectionAttempts: 5,
+    transports: ["websocket"],
+    auth: {
+      token: data?.token,
+    },
+    upgrade: true,
   });
 
-  // Basic Error Handling
   socket.on("connect_error", (err) => {
-    console.error(`Socket connection error: ${err.message}`);
+    console.error("Socket error:", err.message);
   });
 
   return socket;

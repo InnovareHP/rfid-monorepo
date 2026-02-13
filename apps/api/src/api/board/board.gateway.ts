@@ -14,16 +14,21 @@ export class BoardGateway implements OnGatewayConnection {
   @WebSocketServer() server: Server;
 
   async handleConnection(client: Socket) {
-    const cookie = client.handshake.headers.cookie;
+    const token = client.handshake.auth.token;
+
     console.log(`[Socket] New connection attempt: ${client.id}`);
 
-    if (!cookie) {
-      console.error(`[Socket] Connection rejected: No cookies found`);
+    if (!token) {
+      console.error(`[Socket] Connection rejected: No token found`);
       client.disconnect();
       return;
     }
 
-    const session = await auth.api.getSession({ headers: { cookie } });
+    const session = await auth.api.verifyOneTimeToken({
+      body: {
+        token: token as string,
+      },
+    });
     const orgId = session?.session?.activeOrganizationId;
 
     if (!orgId) {
