@@ -73,6 +73,9 @@ importers:
       cloudinary:
         specifier: ^2.7.0
         version: 2.9.0
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
       graphql:
         specifier: ^16.12.0
         version: 16.12.0
