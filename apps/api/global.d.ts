@@ -1,3 +1,4 @@
+import { User } from "@dashboard/shared";
 import type { UserSession } from "@thallesp/nestjs-better-auth";
 
 declare global {
@@ -7,6 +8,7 @@ declare global {
    */
   type AuthenticatedSession = UserSession & {
     session: { activeOrganizationId: string };
+    user: User & { role: string };
   };
 
   /**

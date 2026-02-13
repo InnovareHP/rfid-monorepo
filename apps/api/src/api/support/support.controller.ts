@@ -7,8 +7,10 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
+import { Priority, TicketCategory, TicketStatus } from "@prisma/client";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
   CreateLiveChatAttachmentDto,
@@ -27,9 +29,23 @@ export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
   @Get("/tickets")
-  async getTickets(@Session() session: AuthenticatedSession) {
+  async getTickets(
+    @Session() session: AuthenticatedSession,
+    @Query("page") page: number = 1,
+    @Query("take") take: number = 10,
+    @Query("priority") priority: Priority = Priority.MEDIUM,
+    @Query("status") status?: TicketStatus,
+    @Query("category") category?: TicketCategory
+  ) {
     try {
-      return await this.supportService.getTickets(session.user.id);
+      return await this.supportService.getTickets(
+        session.user,
+        Number(take),
+        Number(page),
+        priority,
+        status,
+        category
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

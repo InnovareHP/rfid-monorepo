@@ -154,6 +154,7 @@ export const auth = betterAuth({
   trustedOrigins: [
     "https://dashboard-fe-prod.up.railway.app",
     appConfig.WEBSITE_URL,
+    appConfig.SUPPORT_URL,
     "https://dashboard-be-prod.up.railway.app",
   ],
   emailVerification: {

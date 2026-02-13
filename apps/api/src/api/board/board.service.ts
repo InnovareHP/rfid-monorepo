@@ -86,8 +86,6 @@ export class BoardService {
         (key) => filter[key] !== undefined && filter[key] !== ""
       );
 
-      console.log(filterFieldIds);
-
       const filterFields = await prisma.field.findMany({
         where: { id: { in: filterFieldIds }, organization_id: organizationId },
         select: { id: true, field_type: true, field_name: true },
@@ -96,7 +94,6 @@ export class BoardService {
       const fieldTypeMap = new Map(
         filterFields.map((f) => [f.id, f.field_type])
       );
-      console.log(filterFields);
 
       for (const [id, val] of Object.entries(filter)) {
         if (val === undefined || val === "") continue;
@@ -108,7 +105,6 @@ export class BoardService {
             fieldType === "STATUS" ||
             fieldType === "CHECKBOX");
 
-        console.log(id, val, useExactMatch);
         where.AND = [
           ...(where.AND as Prisma.BoardWhereInput[]),
           {
@@ -630,7 +626,6 @@ export class BoardService {
           );
           await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
-          console.log(locationData);
           this.boardGateway.emitRecordValueLocation(organizationId, record_id, {
             ...locationData,
           });

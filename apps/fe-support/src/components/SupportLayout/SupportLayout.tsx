@@ -1,13 +1,11 @@
+import { authClient, useSession } from "@/lib/auth-client";
+import { DASHBOARD_URL } from "@/lib/contant";
 import {
-  ACCOUNT_LABEL,
-  CONTACT_US_LABEL,
   DEFAULT_LANGUAGE_LABEL,
   FOOTER_COPYRIGHT,
   FOOTER_LINKS,
   LANGUAGE_OPTIONS,
   LOGO_ALT_TEXT,
-  SIGN_OUT_LABEL,
-  USER_MENU_LABEL,
 } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -18,8 +16,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
-import { Link, useParams } from "@tanstack/react-router";
-import { ChevronDown, ClipboardList, LogOut, Mail, Menu, User } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useParams, useRouter } from "@tanstack/react-router";
+import {
+  ChevronDown,
+  ClipboardList,
+  LogIn,
+  LogOut,
+  Mail,
+  Menu,
+  User,
+} from "lucide-react";
 
 type SupportLayoutProps = {
   children: React.ReactNode;
@@ -27,14 +34,27 @@ type SupportLayoutProps = {
 
 export function SupportLayout({ children }: SupportLayoutProps) {
   const params = useParams({ strict: false });
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const lang = (params as { lang?: string }).lang ?? "en";
   const accountPath = `/${lang}/account`;
   const requestPath = `/${lang}/request`;
 
+  const { data: session } = useSession();
+  const user = session?.user;
   const dropdownContentClass =
     "w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg";
   const dropdownSideOffset = 4;
 
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut();
+      queryClient.clear();
+      router.invalidate();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
   return (
     <div className="min-h-screen flex flex-col bg-muted/30 overflow-x-hidden">
       <header className="shrink-0 bg-[#004aad] text-white">
@@ -82,46 +102,62 @@ export function SupportLayout({ children }: SupportLayoutProps) {
               size="sm"
               className="cursor-pointer text-white hover:bg-white/10 hover:text-white"
             >
-              {CONTACT_US_LABEL}
+              Contact Us
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="cursor-pointer text-white hover:bg-white/10 hover:text-white gap-1"
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="cursor-pointer text-white hover:bg-white/10 hover:text-white gap-1"
+                  >
+                    <img
+                      src={user.image ?? ""}
+                      alt={user.name ?? ""}
+                      className="size-6 rounded-full object-cover"
+                    />
+                    {user.name}
+                    <ChevronDown className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className={dropdownContentClass}
+                  sideOffset={dropdownSideOffset}
                 >
-                  <User className="size-4" />
-                  {USER_MENU_LABEL}
-                  <ChevronDown className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className={dropdownContentClass}
-                sideOffset={dropdownSideOffset}
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                      <Link to={requestPath} className="cursor-pointer">
+                        <ClipboardList className="size-4" />
+                        My requests
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={accountPath} className="cursor-pointer">
+                        <User className="size-4" />
+                        Account
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <LogOut className="size-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                asChild
+                className="cursor-pointer text-white hover:bg-white/10 hover:text-white"
               >
-                <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link to={requestPath} className="cursor-pointer">
-                      <ClipboardList className="size-4" />
-                      My requests
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to={accountPath} className="cursor-pointer">
-                      <User className="size-4" />
-                      {ACCOUNT_LABEL}
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <LogOut className="size-4" />
-                  {SIGN_OUT_LABEL}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <a href={`${DASHBOARD_URL}/login`}>
+                  <LogIn className="size-4" />
+                  Login
+                </a>
+              </Button>
+            )}
           </nav>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -148,19 +184,25 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Mail className="size-4" />
-                  {CONTACT_US_LABEL}
+                  Contact Us
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to={accountPath} className="cursor-pointer">
                     <User className="size-4" />
-                    {ACCOUNT_LABEL}
+                    Account
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
-                <LogOut className="size-4" />
-                {SIGN_OUT_LABEL}
+                <Button
+                  size="icon"
+                  onClick={handleLogout}
+                  className="w-full cursor-pointer text-white hover:bg-white/10 hover:text-white gap-1"
+                >
+                  <LogOut className="size-4" />
+                  Sign out
+                </Button>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

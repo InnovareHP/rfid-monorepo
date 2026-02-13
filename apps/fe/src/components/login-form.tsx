@@ -55,7 +55,6 @@ export function LoginForm({
 
             const { data: freshSession } = await authClient.getSession();
 
-            console.log(freshSession);
             if (freshSession?.session?.activeOrganizationId) {
               await navigate.navigate({
                 to: "/$team",

@@ -1,7 +1,7 @@
-import { RequestsPage } from "@/components/RequestsPage";
+import { RequestsPage } from "@/components/RequestsPage/RequestsPage";
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_lang/$lang/request")({
+export const Route = createFileRoute("/_lang/$lang/request/")({
   component: RouteComponent,
 });
 

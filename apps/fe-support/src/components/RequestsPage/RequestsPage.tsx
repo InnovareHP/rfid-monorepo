@@ -1,5 +1,27 @@
+import { getSupportTickets } from "@/services/support/support-service";
+import {
+  formatCapitalize,
+  formatDateTime,
+  getStatusLabel,
+  Priority,
+  priorityConfig,
+  statusConfig,
+  TicketStatus,
+  type TicketRow,
+} from "@dashboard/shared";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@dashboard/ui/components/avatar";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@dashboard/ui/components/dropdown-menu";
 import { Input } from "@dashboard/ui/components/input";
 import {
   Select,
@@ -9,112 +31,241 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@dashboard/ui/components/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@dashboard/ui/components/tabs";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { ChevronDown, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { getSupportTickets, type SupportTicketListItem } from "@/services/support/support-service";
-import { formatRelativeTime } from "./formatRelativeTime";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  Calendar,
+  Eye,
+  MoreHorizontal,
+  Search,
+  Ticket,
+  User,
+} from "lucide-react";
+import { useState } from "react";
+import { ReusableTable } from "../ReusableTable/ReusableTable";
 
-const PAGE_TITLE = "My requests";
-const SEARCH_PLACEHOLDER = "Search requests";
-const FILTER_ANY = "Any";
-const TAB_MY_REQUESTS = "My requests";
-const TAB_CCED = "Requests I'm CC'd on";
-const EMPTY_MESSAGE = "No requests found";
-
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: "OPEN",
-  IN_PROGRESS: "IN PROGRESS",
-  RESOLVED: "SOLVED",
-  CLOSED: "CLOSED",
-};
-
-function getStatusLabel(status: string): string {
-  return STATUS_LABELS[status] ?? status;
+function StatusBadge({ status }: { status: string }) {
+  const config = statusConfig[status] ?? statusConfig.OPEN;
+  return (
+    <Badge variant="outline" className={config.className}>
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${config.dot}`} />
+      {getStatusLabel(status)}
+    </Badge>
+  );
 }
 
-function getStatusBadgeVariant(
-  status: string
-): "default" | "secondary" | "destructive" | "outline" {
-  if (status === "OPEN" || status === "IN_PROGRESS") return "default";
-  return "secondary";
+function PriorityBadge({ priority }: { priority: string }) {
+  const config = priorityConfig[priority] ?? priorityConfig.LOW;
+  return (
+    <Badge variant="outline" className={config.className}>
+      {formatCapitalize(priority.toLowerCase())}
+    </Badge>
+  );
 }
 
 export function RequestsPage() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>(FILTER_ANY);
-  const [lastActivitySort, setLastActivitySort] = useState<"asc" | "desc">("desc");
-
-  const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ["support", "tickets"],
-    queryFn: getSupportTickets,
+  const navigate = useNavigate();
+  const [filterMeta, setFilterMeta] = useState<{
+    page: number;
+    take: number;
+    search: string;
+    status: string;
+    category: string | null;
+    priority: string;
+  }>({
+    page: 1,
+    take: 10,
+    search: "",
+    status: "ALL",
+    category: null,
+    priority: Priority.MEDIUM,
   });
 
-  const filtered = useMemo(() => {
-    let list = tickets;
+  const { data: { tickets = [], total = 0 } = {}, isLoading } = useQuery({
+    queryKey: ["support", filterMeta],
+    queryFn: () => getSupportTickets(filterMeta),
+  });
 
-    const searchLower = search.trim().toLowerCase();
-    if (searchLower) {
-      list = list.filter(
-        (t) =>
-          t.subject?.toLowerCase().includes(searchLower) ||
-          t.title?.toLowerCase().includes(searchLower) ||
-          t.description?.toLowerCase().includes(searchLower)
-      );
-    }
+  const handleView = (row: TicketRow) => {
+    navigate({ to: "/support/$id", params: { id: row.id } });
+  };
 
-    if (statusFilter !== FILTER_ANY) {
-      list = list.filter((t) => t.status === statusFilter);
-    }
+  const columns = [
+    {
+      key: "ticketNumber",
+      header: "Ticket",
+      render: (row: TicketRow) => (
+        <Link
+          to={`/$lang/request/${row.ticketNumber}` as any}
+          className="flex items-center gap-2"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <Ticket className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="font-medium text-foreground underline cursor-pointer">
+              #{row.ticketNumber}
+            </p>
+          </div>
+        </Link>
+      ),
+    },
+    {
+      key: "subject",
+      header: "Subject",
+      render: (row: TicketRow) => (
+        <span className="text-sm text-foreground">{row.subject}</span>
+      ),
+    },
+    {
+      key: "category",
+      header: "Category",
+      render: (row: TicketRow) => (
+        <Badge variant="secondary" className="font-normal">
+          {formatCapitalize(row.category.toLowerCase())}
+        </Badge>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row: TicketRow) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      render: (row: TicketRow) => <PriorityBadge priority={row.priority} />,
+    },
 
-    list = [...list].sort((a, b) => {
-      const aTime = new Date(a.updatedAt).getTime();
-      const bTime = new Date(b.updatedAt).getTime();
-      return lastActivitySort === "desc" ? bTime - aTime : aTime - bTime;
-    });
-
-    return list;
-  }, [tickets, search, statusFilter, lastActivitySort]);
-
-  const statusOptions = useMemo(() => {
-    const set = new Set(tickets.map((t) => t.status));
-    return Array.from(set).sort();
-  }, [tickets]);
+    {
+      key: "createdBy",
+      header: "Created By",
+      render: (row: TicketRow) => (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-7 w-7">
+            <AvatarImage src={row.createByUser?.user_image} />
+            <AvatarFallback className="text-xs">
+              <User className="h-3.5 w-3.5" />
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-sm truncate max-w-[120px]">
+            {row.createByUser?.user_name ?? "Unassigned"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Created",
+      render: (row: TicketRow) => (
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Calendar className="h-3.5 w-3.5" />
+          <span className="text-sm">{formatDateTime(row.createdAt)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      className: "w-[50px]",
+      render: (row: TicketRow) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+              <span className="sr-only">Actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleView(row)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View details
+            </DropdownMenuItem>
+            {/* <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Update status
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {Object.values(TicketStatus).map((s) => (
+                  <DropdownMenuItem
+                    key={s}
+                    disabled={row.status === s}
+                    onClick={() => handleStatusChange(row, s)}
+                  >
+                    <span
+                      className={`mr-2 inline-block h-2 w-2 rounded-full ${statusConfig[s]?.dot ?? "bg-gray-400"}`}
+                    />
+                    {getStatusLabel(s)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => handleDelete(row)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem> */}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <div className="flex flex-1 flex-col bg-background">
       <div className="mx-auto w-full max-w-[1920px] flex-1 space-y-6 px-4 py-6 sm:px-6">
-        <h1 className="text-2.5xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {PAGE_TITLE}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            My Requests
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Track and manage your support tickets
+          </p>
+        </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
             <Input
               type="search"
-              placeholder={SEARCH_PLACEHOLDER}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by ticket number or title..."
+              value={filterMeta.search}
+              onChange={(e) =>
+                setFilterMeta({
+                  ...filterMeta,
+                  search: e.target.value,
+                  page: 1,
+                })
+              }
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder={FILTER_ANY} />
+          <Select
+            value={filterMeta.status}
+            onValueChange={(value) =>
+              setFilterMeta({ ...filterMeta, status: value, page: 1 })
+            }
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={FILTER_ANY}>{FILTER_ANY}</SelectItem>
-              {statusOptions.map((s) => (
+              <SelectItem value="ALL">All statuses</SelectItem>
+              {Object.values(TicketStatus).map((s) => (
                 <SelectItem key={s} value={s}>
                   {getStatusLabel(s)}
                 </SelectItem>
@@ -124,117 +275,48 @@ export function RequestsPage() {
         </div>
 
         <Tabs defaultValue="my-requests" className="w-full">
-          <TabsList className="bg-transparent p-0 h-auto gap-0 border-0 rounded-none">
+          <TabsList className="bg-transparent p-0 h-auto gap-1 border-0 rounded-none">
             <TabsTrigger
               value="my-requests"
-              className="rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 data-[state=active]:bg-emerald-100 data-[state=active]:text-emerald-700 data-[state=inactive]:bg-transparent data-[state=inactive]:text-foreground"
+              className="rounded-full px-4 py-1.5 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
             >
-              {TAB_MY_REQUESTS}
+              My requests
+              {total > 0 && (
+                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-xs">
+                  {total}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger
               value="cced"
-              className="rounded-full px-4 py-2 data-[state=active]:bg-emerald-100 data-[state=active]:text-emerald-700 data-[state=inactive]:bg-transparent data-[state=inactive]:text-foreground"
+              className="rounded-full px-4 py-1.5 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
             >
-              {TAB_CCED}
+              CC'd on
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="my-requests" className="mt-4">
-            <div className="rounded-lg border border-border bg-card">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12 text-muted-foreground">
-                  Loading…
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="flex items-center justify-center py-12 text-muted-foreground">
-                  {EMPTY_MESSAGE}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-b border-border hover:bg-transparent">
-                      <TableHead className="font-medium">Subject</TableHead>
-                      <TableHead className="font-medium w-24">Id</TableHead>
-                      <TableHead className="font-medium w-28">Created</TableHead>
-                      <TableHead className="font-medium w-32">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="-ml-2 h-auto gap-1 px-2 py-1 font-medium hover:bg-transparent hover:text-foreground"
-                          onClick={() =>
-                            setLastActivitySort((s) => (s === "desc" ? "asc" : "desc"))
-                          }
-                        >
-                          Last activity
-                          <ChevronDown
-                            className={`size-4 transition-transform ${lastActivitySort === "asc" ? "rotate-180" : ""}`}
-                          />
-                        </Button>
-                      </TableHead>
-                      <TableHead className="font-medium w-28">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((ticket) => (
-                      <RequestRow key={ticket.id} ticket={ticket} />
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+            <ReusableTable
+              data={tickets}
+              columns={columns}
+              isLoading={isLoading}
+              emptyMessage="No requests found"
+              totalCount={total}
+              currentPage={filterMeta.page}
+              itemsPerPage={filterMeta.take}
+              onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
+            />
           </TabsContent>
 
           <TabsContent value="cced" className="mt-4">
-            <div className="rounded-lg border border-border bg-card">
-              <div className="flex items-center justify-center py-12 text-muted-foreground">
-                {EMPTY_MESSAGE}
-              </div>
-            </div>
+            <ReusableTable
+              data={[]}
+              columns={columns}
+              emptyMessage="No CC'd requests"
+            />
           </TabsContent>
         </Tabs>
       </div>
     </div>
-  );
-}
-
-function RequestRow({ ticket }: { ticket: SupportTicketListItem }) {
-  const displayId = `#${ticket.id.slice(-6).toUpperCase()}`;
-  const statusVariant = getStatusBadgeVariant(ticket.status);
-  const isOpen = ticket.status === "OPEN" || ticket.status === "IN_PROGRESS";
-
-  return (
-    <TableRow className="border-b border-border">
-      <TableCell>
-        <Link
-          to="/support/$id"
-          params={{ id: ticket.id }}
-          className="text-primary underline underline-offset-2 hover:no-underline"
-        >
-          {ticket.subject || ticket.title}
-        </Link>
-      </TableCell>
-      <TableCell className="text-muted-foreground font-mono text-sm">
-        {displayId}
-      </TableCell>
-      <TableCell className="text-muted-foreground text-sm">
-        {formatRelativeTime(ticket.createdAt)}
-      </TableCell>
-      <TableCell className="text-muted-foreground text-sm">
-        {formatRelativeTime(ticket.updatedAt)}
-      </TableCell>
-      <TableCell>
-        <Badge
-          variant={statusVariant}
-          className={
-            isOpen
-              ? "border-emerald-200 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-              : ""
-          }
-        >
-          {getStatusLabel(ticket.status)}
-        </Badge>
-      </TableCell>
-    </TableRow>
   );
 }

@@ -38,6 +38,16 @@ export type User = {
   image: string;
   createdAt: Date;
   updatedAt: Date;
+  role: string;
+};
+
+type UserTable = {
+  id: string;
+  user_name: string;
+  user_email: string;
+  user_image: string;
+  user_created_at: Date;
+  user_updated_at: Date;
 };
 
 export type Ticket = {
@@ -308,4 +318,21 @@ export type SupportTicket = {
   description: string;
   category: TicketCategory;
   imageUrl: string[];
+};
+
+export type TicketRow = {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  status: TicketStatus;
+  priority: Priority;
+  assignedTo: string;
+  assignedToUser: UserTable;
+  createBy: string;
+  createByUser: UserTable;
+  createdAt: string;
+  updatedAt: string;
 };

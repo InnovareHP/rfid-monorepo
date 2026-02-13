@@ -1,28 +1,77 @@
+import { ROLES, User } from "@dashboard/shared";
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { Priority, TicketCategory, TicketStatus } from "@prisma/client";
+import { Priority, Prisma, TicketCategory, TicketStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma/prisma";
 import { CreateTicketDto } from "./dto/support.schema";
 
 @Injectable()
 export class SupportService {
-  async getTickets(userId: string) {
-    return prisma.supportTicket.findMany({
-      where: { createBy: userId },
-      include: {
-        assignedToUser: {
-          select: { id: true, user_name: true, user_image: true },
-        },
+  async getTickets(
+    user: User & { role: string },
+    take: number,
+    page: number = 1,
+    priority?: Priority,
+    status?: TicketStatus | "ALL",
+    category?: TicketCategory
+  ) {
+    const offset = (page - 1) * take;
+    const where: Prisma.SupportTicketWhereInput = {};
+
+    if (user.role === ROLES.OWNER) {
+      where.createBy = undefined;
+    } else {
+      where.createBy = user.id;
+    }
+
+    if (priority) {
+      where.priority = priority;
+    }
+
+    if (status) {
+      if (status === "ALL") {
+        where.status = undefined;
+      } else {
+        where.status = status;
+      }
+    }
+
+    if (category) {
+      where.category = category;
+    }
+
+    const tickets = await prisma.supportTicket.findMany({
+      where,
+      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+      take,
+      select: {
+        id: true,
+        ticketNumber: true,
+        title: true,
+        subject: true,
+        category: true,
+        status: true,
+        priority: true,
+        createBy: true,
+        createdAt: true,
+        updatedAt: true,
+        ...(user.role === ROLES.OWNER && {
+          assignedToUser: {
+            select: { id: true, user_name: true, user_image: true },
+          },
+        }),
         createByUser: {
           select: { id: true, user_name: true, user_image: true },
         },
       },
-      orderBy: { createdAt: "desc" },
+      skip: offset,
     });
+    const total = await prisma.supportTicket.count({ where: where });
+    return { tickets, total: total };
   }
 
   async getTicketById(ticketId: string, userId: string) {
     const ticket = await prisma.supportTicket.findFirst({
-      where: { id: ticketId, createBy: userId },
+      where: { ticketNumber: ticketId, createBy: userId },
       include: {
         assignedToUser: {
           select: { id: true, user_name: true, user_image: true },

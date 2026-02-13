@@ -1,9 +1,9 @@
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
+import { exportToCSV } from "@/lib/fe-helpers";
 import { Route } from "@/routes/_team";
 import { createLead, deleteLead, getLeads } from "@/services/lead/lead-service";
 import type { LeadRow, OptionsResponse } from "@dashboard/shared";
-import { exportToCSV } from "@/lib/fe-helpers";
 import { Button } from "@dashboard/ui/components/button";
 import {
   useInfiniteQuery,
@@ -258,12 +258,6 @@ export default function MasterListPage() {
       });
   }, [table]);
 
-  console.log(
-    selectedRecordId
-      ? (data?.pages[0].data.find((r: LeadRow) => r.id === selectedRecordId)
-          ?.has_notification ?? false)
-      : false
-  );
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       <div className="space-y-6">

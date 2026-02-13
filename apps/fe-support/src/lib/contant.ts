@@ -19,3 +19,5 @@ export const KNOWLEDGE_BASE_ICON_MAP = {
   puzzle: Puzzle,
   package: Package,
 } as const;
+
+export const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL;

@@ -130,3 +130,36 @@ export const TICKET_CATEGORIES = [
   "ACCOUNT",
   "OTHER",
 ] as const;
+
+export const STATUS_LABELS: Record<string, string> = {
+  OPEN: "OPEN",
+  IN_PROGRESS: "IN PROGRESS",
+  RESOLVED: "SOLVED",
+  CLOSED: "CLOSED",
+};
+
+export const statusConfig: Record<string, { className: string; dot: string }> =
+  {
+    OPEN: {
+      className: "bg-blue-50 text-blue-700 border-blue-200",
+      dot: "bg-blue-500",
+    },
+    IN_PROGRESS: {
+      className: "bg-amber-50 text-amber-700 border-amber-200",
+      dot: "bg-amber-500",
+    },
+    RESOLVED: {
+      className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      dot: "bg-emerald-500",
+    },
+    CLOSED: {
+      className: "bg-gray-50 text-gray-600 border-gray-200",
+      dot: "bg-gray-400",
+    },
+  };
+
+export const priorityConfig: Record<string, { className: string }> = {
+  HIGH: { className: "bg-red-50 text-red-700 border-red-200" },
+  MEDIUM: { className: "bg-amber-50 text-amber-700 border-amber-200" },
+  LOW: { className: "bg-slate-50 text-slate-600 border-slate-200" },
+};

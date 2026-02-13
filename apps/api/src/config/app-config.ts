@@ -14,6 +14,7 @@ export const appConfigSchema = z.object({
 
   DEBUG: z.coerce.boolean().default(false),
   WEBSITE_URL: z.url(),
+  SUPPORT_URL: z.url(),
   API_URL: z.url(),
 
   GOOGLE_CLIENT_ID: z.string().min(1),
