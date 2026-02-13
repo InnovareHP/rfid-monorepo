@@ -23,8 +23,7 @@ node_modules
 **/dist
 **/build
 
-# Frontend (not needed for API image)
-apps/fe
+# Unused apps
 apps/fe-support
 
 # Tests & coverage
