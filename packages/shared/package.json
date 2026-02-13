@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "pnpm exectsc"
+    "build": "pnpm exec tsc"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
