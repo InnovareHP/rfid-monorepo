@@ -61,6 +61,18 @@ services:
     depends_on:
       - api
 
+  fe-support:
+    build:
+      context: .
+      dockerfile: apps/fe-support/Dockerfile
+      args:
+        VITE_API_URL: http://api:8080
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+
 volumes:
   pgdata:
   redisdata:

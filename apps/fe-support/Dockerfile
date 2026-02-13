@@ -33,7 +33,7 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 --ingroup nodejs nodejs
 
-COPY --from=build --chown=nodejs:nodejs /app/apps/fe/dist ./dist
+COPY --from=build --chown=nodejs:nodejs /app/apps/fe-support/dist ./dist
 
 USER nodejs
 
