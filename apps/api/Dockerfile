@@ -39,32 +39,31 @@ RUN pnpm --filter shared build \
 ########################
 # Production
 ########################
+# Production
 FROM node:22-slim AS production
-
 WORKDIR /app
 ENV NODE_ENV=production
 
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
  && rm -rf /var/lib/apt/lists/*
 
-
-# Copy only needed files
+# Copy package.json only for prod deps
 COPY package.json pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install prod deps only
+# Install only prod dependencies
 RUN corepack enable \
  && corepack prepare pnpm@latest --activate \
  && pnpm install --prod --frozen-lockfile
 
-
-# Copy built code
+# Copy build artifacts
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 
-
 EXPOSE 8080
 
-CMD ["pnpm", "start:prod"]
+# Use Node directly instead of pnpm in prod
+CMD ["node", "apps/api/dist/main.js"]
+
