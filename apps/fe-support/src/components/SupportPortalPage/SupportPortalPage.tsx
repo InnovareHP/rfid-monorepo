@@ -1,5 +1,4 @@
 import {
-  KNOWLEDGE_BASE_ICON_MAP,
   KNOWLEDGE_BASE_ITEMS,
   KNOWLEDGE_BASE_SECTION_TITLE,
   RESOURCE_LINKS,
@@ -15,6 +14,7 @@ import {
 import { Input } from "@dashboard/ui/components/input";
 import { Search } from "lucide-react";
 import { lazy, Suspense } from "react";
+import { KNOWLEDGE_BASE_ICON_MAP } from "../../lib/contant";
 
 const SupportChat = lazy(() =>
   import("../SupportChat/SupportChat").then((m) => ({ default: m.SupportChat }))
