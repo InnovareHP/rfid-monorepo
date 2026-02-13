@@ -23,7 +23,7 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
 # Install ALL dependencies including devDependencies (needed for tsc + prisma CLI)
-RUN pnpm install --frozen-lockfile --include-dev
+RUN pnpm install --frozen-lockfile --prod=false
 
 ########################
 # Build Stage
