@@ -53,7 +53,6 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 # Built artifacts
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
-COPY --from=build /app/apps/api/node_modules/.prisma ./apps/api/node_modules/.prisma
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 
 EXPOSE 8080
