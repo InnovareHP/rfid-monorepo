@@ -6,7 +6,7 @@
     "dev:fe": "pnpm --filter fe dev",
     "dev:fe-support": "pnpm --filter fe-support dev",
     "dev:api": "pnpm --filter api dev",
-    "start:prod": "pnpm --filter api start",
+    "start:prod": "pnpm --filter api start:prod",
     "build": "pnpm --filter @dashboard/shared build && pnpm -r --filter=!@dashboard/shared run build",
     "build:shared": "pnpm --filter @dashboard/shared build",
     "build:fe": "pnpm --filter fe build",

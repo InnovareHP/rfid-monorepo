@@ -47,6 +47,8 @@ ENV NODE_ENV=production
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
+COPY apps/api/tsconfig.json ./apps/api/tsconfig.json 
+COPY apps/api/tsconfig.build.json ./apps/api/tsconfig.build.json 
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
