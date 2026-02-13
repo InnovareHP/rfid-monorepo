@@ -17,7 +17,10 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port: 3001,
-
+      allowedHosts: [
+        "support-frontend-production.up.railway.app",
+        "dash.innovarehp.com",
+      ],
       proxy: {
         "/api": {
           target: env.VITE_API_URL,
