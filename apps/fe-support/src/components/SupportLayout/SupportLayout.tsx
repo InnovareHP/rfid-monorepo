@@ -13,11 +13,13 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
 import { Link, useParams } from "@tanstack/react-router";
-import { ChevronDown, Mail, Menu, User } from "lucide-react";
+import { ChevronDown, ClipboardList, LogOut, Mail, Menu, User } from "lucide-react";
 
 type SupportLayoutProps = {
   children: React.ReactNode;
@@ -27,6 +29,11 @@ export function SupportLayout({ children }: SupportLayoutProps) {
   const params = useParams({ strict: false });
   const lang = (params as { lang?: string }).lang ?? "en";
   const accountPath = `/${lang}/account`;
+  const requestPath = `/${lang}/request`;
+
+  const dropdownContentClass =
+    "w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg";
+  const dropdownSideOffset = 4;
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30 overflow-x-hidden">
@@ -56,7 +63,11 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                   <ChevronDown className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+              <DropdownMenuContent
+                align="start"
+                className={dropdownContentClass}
+                sideOffset={dropdownSideOffset}
+              >
                 {LANGUAGE_OPTIONS.map((opt) => (
                   <DropdownMenuItem key={opt.label}>
                     {opt.label}
@@ -85,13 +96,30 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                   <ChevronDown className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link to={accountPath} className="cursor-pointer">
-                    {ACCOUNT_LABEL}
-                  </Link>
+              <DropdownMenuContent
+                align="end"
+                className={dropdownContentClass}
+                sideOffset={dropdownSideOffset}
+              >
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link to={requestPath} className="cursor-pointer">
+                      <ClipboardList className="size-4" />
+                      My requests
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to={accountPath} className="cursor-pointer">
+                      <User className="size-4" />
+                      {ACCOUNT_LABEL}
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <LogOut className="size-4" />
+                  {SIGN_OUT_LABEL}
                 </DropdownMenuItem>
-                <DropdownMenuItem>{SIGN_OUT_LABEL}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </nav>
@@ -106,21 +134,34 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                 <Menu className="size-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent
+              align="end"
+              className={dropdownContentClass}
+              sideOffset={dropdownSideOffset}
+            >
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild>
+                  <Link to={requestPath} className="cursor-pointer">
+                    <ClipboardList className="size-4" />
+                    My requests
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Mail className="size-4" />
+                  {CONTACT_US_LABEL}
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={accountPath} className="cursor-pointer">
+                    <User className="size-4" />
+                    {ACCOUNT_LABEL}
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
               <DropdownMenuItem>
-                <Mail className="size-4 mr-2" />
-                {CONTACT_US_LABEL}
+                <LogOut className="size-4" />
+                {SIGN_OUT_LABEL}
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  to={accountPath}
-                  className="flex items-center cursor-pointer"
-                >
-                  <User className="size-4 mr-2" />
-                  {ACCOUNT_LABEL}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>{SIGN_OUT_LABEL}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
