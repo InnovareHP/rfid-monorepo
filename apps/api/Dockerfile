@@ -57,4 +57,4 @@ COPY --from=build /app/apps/api/node_modules/.prisma ./apps/api/node_modules/.pr
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 
 EXPOSE 8080
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["pnpm", "--filter", "api", "start"]
