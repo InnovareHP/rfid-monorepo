@@ -46,7 +46,6 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
-# Production node_modules (root + api)
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 
@@ -56,4 +55,4 @@ COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 
 EXPOSE 8080
-CMD ["pnpm", "start:prod"]
+CMD ["node", "apps/api/dist/main.js"]
