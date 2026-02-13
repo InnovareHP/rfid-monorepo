@@ -34,5 +34,8 @@
       "protobufjs",
       "@nestjs/core"
     ]
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }
