@@ -2,10 +2,9 @@ FROM node:22-slim AS base
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-# ── Install dependencies ────────────────────────────────────────────
+
 FROM base AS deps
 
-# Native build tools for bcrypt, sharp, prisma engines
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ openssl \
     && rm -rf /var/lib/apt/lists/*
@@ -17,6 +16,7 @@ COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile
 
 
+
 FROM base AS build
 
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
@@ -26,12 +26,11 @@ COPY --from=deps /app/ ./
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
-# Build shared package first (NestJS needs CJS output), then generate Prisma, then build API
-RUN pnpm --filter @dashboard/shared build \
+RUN pnpm --filter shared build \
     && pnpm --filter api prisma:generate \
     && pnpm --filter api build
 
-# ── Production ───────────────────────────────────────────────────────
+# Production
 FROM node:22-slim AS production
 
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
