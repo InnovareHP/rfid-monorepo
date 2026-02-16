@@ -1,3 +1,4 @@
+import { FILETYPE } from "@/lib/fe-helpers";
 import {
   getLeadTimeline,
   getSpecificLead,
@@ -10,7 +11,6 @@ import {
   seenReferrals,
 } from "@/services/referral/referral-service";
 import { formatDateTime } from "@dashboard/shared";
-import { FILETYPE } from "@/lib/fe-helpers";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -91,7 +91,9 @@ export function MasterListView({
     queryKey: [isReferral ? "referral" : "lead", leadId],
     enabled: open,
     queryFn: () =>
-      isReferral ? getSpecificReferral(leadId) : getSpecificLead(leadId),
+      isReferral
+        ? getSpecificReferral(leadId, "REFERRAL")
+        : getSpecificLead(leadId, "LEAD"),
   });
 
   const {
@@ -270,7 +272,12 @@ export function MasterListView({
                 <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {entries
-                      .filter(([key]) => key !== "History")
+                      .filter(
+                        ([key]) =>
+                          !["History", "Timeline", "id"].some((substr) =>
+                            key.includes(substr)
+                          )
+                      )
                       .map(([key, rawValue]) => {
                         const value = serializeValue(rawValue);
                         const type = fieldTypes[key] ?? "TEXT";

@@ -87,7 +87,11 @@ export class BoardService {
       );
 
       const filterFields = await prisma.field.findMany({
-        where: { id: { in: filterFieldIds }, organization_id: organizationId },
+        where: {
+          id: { in: filterFieldIds },
+          organization_id: organizationId,
+          module_type: moduleType,
+        },
         select: { id: true, field_type: true, field_name: true },
       });
 
@@ -144,7 +148,7 @@ export class BoardService {
       }),
       prisma.board.count({ where }),
       prisma.field.findMany({
-        where: { organization_id: organizationId },
+        where: { organization_id: organizationId, module_type: moduleType },
         orderBy: { field_order: "asc" },
       }),
     ]);
@@ -415,7 +419,7 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
-    const record = await prisma.board.findFirstOrThrow({
+    const record = await prisma.board.findUniqueOrThrow({
       where: {
         id: recordId,
         organization_id: organizationId,
@@ -423,7 +427,6 @@ export class BoardService {
       },
       select: {
         id: true,
-        created_at: true,
         record_name: true,
         assigned_user: {
           select: {
@@ -445,33 +448,36 @@ export class BoardService {
 
     const fields = await prisma.field.findMany({
       orderBy: { field_order: "asc" },
-      where: { organization_id: organizationId },
+      where: {
+        organization_id: organizationId,
+        module_type: moduleType,
+      },
     });
 
-    const formatted = record.values.map((v) => {
-      const dynamicData = record.values.reduce(
-        (acc, curr) => {
-          acc[curr.field.field_name] = curr.value;
-          return acc;
-        },
-        {} as Record<string, string | null>
-      );
+    // ✅ Build dynamic fields ONCE
+    const dynamicData = record.values.reduce(
+      (acc, curr) => {
+        acc[curr.field.field_name] = curr.value;
+        return acc;
+      },
+      {} as Record<string, string | null>
+    );
 
-      return {
-        id: record.id,
-        record_name: record.record_name,
-        assigned_to: record.assigned_user?.user_name,
-        created_at: record.created_at,
-        ...dynamicData,
-      };
-    });
+    // ✅ Single formatted record
+    const formatted = {
+      id: record.id,
+      record_name: record.record_name,
+      assigned_to: record.assigned_user?.user_name ?? null,
+      ...dynamicData,
+    };
+
     return {
       columns: fields.map((f) => ({
         id: f.id,
         name: f.field_name,
         type: f.field_type,
       })),
-      data: formatted,
+      data: formatted, // 👈 object, not array
     };
   }
 
@@ -1134,10 +1140,11 @@ export class BoardService {
   async createColumn(
     column_name: string,
     field_type: BoardFieldType,
+    module_type: string,
     organizationId: string
   ) {
     const lastColumn = await prisma.field.findFirst({
-      where: { organization_id: organizationId },
+      where: { organization_id: organizationId, module_type: module_type },
       orderBy: { field_order: "desc" },
     });
 
@@ -1149,6 +1156,7 @@ export class BoardService {
         field_type: field_type,
         field_order: newOrder,
         organization_id: organizationId,
+        module_type: module_type,
       },
     });
 

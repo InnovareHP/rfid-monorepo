@@ -32,7 +32,26 @@ import {
 export class BoardController {
   constructor(private readonly boardService: BoardService) {}
 
-  @Get()
+  @Get("/:recordId")
+  async getRecordById(
+    @Param("recordId") recordId: string,
+    @Session()
+    session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.getRecordById(
+        recordId,
+        organizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/")
   async getAllRecords(
     @Session()
     session: AuthenticatedSession,
@@ -91,25 +110,6 @@ export class BoardController {
     const organizationId = session.session.activeOrganizationId;
     try {
       return await this.boardService.getCountyConfiguration(organizationId);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/:recordId")
-  async getRecordById(
-    @Param("recordId") recordId: string,
-    @Session()
-    session: AuthenticatedSession,
-    @Query("moduleType") moduleType?: string
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-    try {
-      return await this.boardService.getRecordById(
-        recordId,
-        organizationId,
-        moduleType || "LEAD"
-      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -281,6 +281,7 @@ export class BoardController {
       return await this.boardService.createColumn(
         dto.column_name,
         dto.field_type,
+        dto.module_type,
         organizationId
       );
     } catch (error) {

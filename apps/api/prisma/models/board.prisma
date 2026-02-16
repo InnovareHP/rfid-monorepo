@@ -5,6 +5,7 @@ model Field {
   field_name      String
   field_order     Int
   field_type      BoardFieldType
+  module_type     String            @default("LEAD")
 
   organization_id String
   organization    organization_table @relation(fields: [organization_id], references: [id])

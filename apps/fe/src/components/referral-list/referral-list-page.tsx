@@ -2,11 +2,10 @@ import ReusableTable from "@/components/reusable-table/reusable-table";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { useTeamLayoutContext } from "@/routes/_team";
 import {
-  createReferral,
   deleteReferral,
   getReferral,
 } from "@/services/referral/referral-service";
-import type { ReferralRow } from "@dashboard/shared";
+import type { LeadRow, ReferralRow } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   useInfiniteQuery,
@@ -22,15 +21,17 @@ import {
 import { Download, Plus } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 import ColumnFilter from "../master-list/column-filter";
 import { MasterListFilters } from "../master-list/master-list-filter";
+import { MasterListView } from "../master-list/master-list-view";
 import { generateReferralColumns } from "./referral-list-column";
 
 export default function ReferralListPage() {
   const { activeOrganizationId } = useTeamLayoutContext() as {
     activeOrganizationId: string;
   };
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [openMasterListView, setOpenMasterListView] = useState(false);
   const queryClient = useQueryClient();
   const [filterMeta, setFilterMeta] = useState({
     dateFrom: null,
@@ -57,7 +58,13 @@ export default function ReferralListPage() {
 
   const rows = data?.pages.flatMap((p) => p.data) ?? [];
 
-  const columns = generateReferralColumns(data?.pages[0].columns ?? []) as {
+  const columns = generateReferralColumns(
+    data?.pages[0].columns ?? [],
+    (recordId: string) => {
+      setSelectedRecordId(recordId);
+      setOpenMasterListView(true);
+    }
+  ) as {
     id: string;
     name: string;
     type: string;
@@ -70,34 +77,34 @@ export default function ReferralListPage() {
     manualPagination: true,
   });
 
-  const addReferralMutation = useMutation({
-    mutationFn: createReferral,
-    onMutate: async (newReferral) => {
-      await queryClient.cancelQueries({ queryKey: ["referrals", filterMeta] });
-      const previousData = queryClient.getQueryData(["referrals", filterMeta]);
-      queryClient.setQueryData(["referrals", filterMeta], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: [
-            {
-              ...old.pages[0],
-              data: [newReferral[0], ...old.pages[0].data],
-            },
-            ...old.pages.slice(1),
-          ],
-        };
-      });
-      return { previousData };
-    },
-    onError: (_err, _newLead, context: any) => {
-      queryClient.setQueryData(["referrals", filterMeta], context.previousData);
-      toast.error("Failed to add lead.");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["referrals", filterMeta] });
-    },
-  });
+  // const addReferralMutation = useMutation({
+  //   mutationFn: createReferral,
+  //   onMutate: async (newReferral) => {
+  //     await queryClient.cancelQueries({ queryKey: ["referrals", filterMeta] });
+  //     const previousData = queryClient.getQueryData(["referrals", filterMeta]);
+  //     queryClient.setQueryData(["referrals", filterMeta], (old: any) => {
+  //       if (!old) return old;
+  //       return {
+  //         ...old,
+  //         pages: [
+  //           {
+  //             ...old.pages[0],
+  //             data: [newReferral[0], ...old.pages[0].data],
+  //           },
+  //           ...old.pages.slice(1),
+  //         ],
+  //       };
+  //     });
+  //     return { previousData };
+  //   },
+  //   onError: (_err, _newLead, context: any) => {
+  //     queryClient.setQueryData(["referrals", filterMeta], context.previousData);
+  //     toast.error("Failed to add lead.");
+  //   },
+  //   onSettled: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["referrals", filterMeta] });
+  //   },
+  // });
 
   const deleteReferralMutation = useMutation({
     mutationFn: deleteReferral,
@@ -126,26 +133,6 @@ export default function ReferralListPage() {
       queryClient.invalidateQueries({ queryKey: ["referrals", filterMeta] });
     },
   });
-
-  // --- Handlers ---
-  const handleAddNewReferral = () => {
-    const newReferral = [
-      {
-        id: uuidv4(),
-        lead_name: "",
-        status: "",
-        activities_time: 0,
-        create_contact: "",
-        company: "",
-        title: "",
-        email: "",
-        phone: "",
-        last_interaction: "",
-        active_sequences: 0,
-      },
-    ];
-    addReferralMutation.mutate(newReferral);
-  };
 
   const handleDeleteReferrals = (columnIds: string[]) => {
     deleteReferralMutation.mutate(columnIds);
@@ -235,6 +222,20 @@ export default function ReferralListPage() {
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
+      <MasterListView
+        open={openMasterListView}
+        setOpen={setOpenMasterListView}
+        leadId={selectedRecordId ?? ""}
+        isReferral={true}
+        hasNotification={
+          selectedRecordId
+            ? (data?.pages[0].data.find(
+                (r: LeadRow) => r.id === selectedRecordId
+              )?.has_notification ?? false)
+            : false
+        }
+        initialTab="history"
+      />
       <div className="space-y-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -297,7 +298,7 @@ export default function ReferralListPage() {
           }}
           hasMore={hasNextPage}
           setActivePage={() => {}}
-          onAdd={handleAddNewReferral}
+          onAdd={() => {}}
           onDelete={handleDeleteReferrals}
           isReferral={true}
         />

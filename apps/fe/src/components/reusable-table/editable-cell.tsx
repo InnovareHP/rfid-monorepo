@@ -206,10 +206,7 @@ export function EditableCell({
     isLoading: isLoadingOptions,
   } = useQuery({
     queryKey,
-    queryFn: () =>
-      isReferral
-        ? getReferralDropdownOptions(fieldKey)
-        : getDropdownOptions(fieldKey),
+    queryFn: () => getDropdownOptions(fieldKey),
     enabled: false,
     staleTime: 1000 * 60 * 5, // cache for 5 minutes
     gcTime: 1000 * 60 * 5,
@@ -458,9 +455,9 @@ export function EditableCell({
     const [searchQuery, setSearchQuery] = useState("");
     const hasCurrentVal =
       !!val &&
-      options &&
-      options.length > 0 &&
-      !options.some((opt: OptionsResponse) => opt.value === val);
+      (!options ||
+        options.length === 0 ||
+        !options.some((opt: OptionsResponse) => opt.value === val));
 
     const filteredOptions =
       !!options &&

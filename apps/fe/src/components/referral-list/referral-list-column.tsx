@@ -1,8 +1,8 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
+import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Bell } from "lucide-react";
-import { MasterListView } from "../master-list/master-list-view";
+import { Bell, HistoryIcon } from "lucide-react";
 import { CreateColumnModal } from "../reusable-table/create-column";
 
 type ColumnType = {
@@ -18,22 +18,26 @@ type ReferralRow = {
 };
 
 export function generateReferralColumns(
-  columnsFromApi: ColumnType[]
+  columnsFromApi: ColumnType[],
+  onOpenMasterListView: (id: string) => void
 ): ColumnDef<ReferralRow>[] {
   const dynamicColumns: ColumnDef<ReferralRow>[] = columnsFromApi.map(
     (col) => ({
+      id: col.id,
       header: col.name,
-      accessorKey: col.name, // column name from API
-      cell: ({ row }) => (
-        <EditableCell
-          isReferral={true}
-          id={row.original.id}
-          fieldKey={col.id}
-          fieldName={col.name}
-          value={row.original[col.name] ?? ""}
-          type={col.type}
-        />
-      ),
+      accessorKey: col.name,
+      cell: ({ row }) => {
+        return (
+          <EditableCell
+            isReferral={true}
+            id={row.original.id}
+            fieldKey={col.id}
+            fieldName={col.name}
+            value={row.original[col.name] ?? ""}
+            type={col.type}
+          />
+        );
+      },
     })
   );
 
@@ -53,7 +57,7 @@ export function generateReferralColumns(
 
   const referralNameColumn: ColumnDef<ReferralRow> = {
     header: "Referral Name",
-    accessorKey: "referral_name",
+    accessorKey: "record_name",
     cell: ({ row }) => (
       <div className="group flex items-center gap-2 w-full min-w-0">
         {row.original.has_notification && (
@@ -68,20 +72,21 @@ export function generateReferralColumns(
 
         <div className="min-w-0 flex-1">
           <EditableCell
+            isReferral={true}
             id={row.original.id}
             fieldName="Referral Name"
             fieldKey="Referral Name"
-            value={row.original.referral_name}
+            value={row.original.record_name}
             type="TEXT"
           />
         </div>
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          <MasterListView
-            leadId={row.original.id}
-            isReferral={true}
-            hasNotification={row.original.has_notification}
-            initialTab="history"
-          />
+        <div className="flex opacity-0 group-hover:opacity-100">
+          <Button
+            variant="outline"
+            onClick={() => onOpenMasterListView(row.original.id)}
+          >
+            <HistoryIcon /> History
+          </Button>
         </div>
       </div>
     ),

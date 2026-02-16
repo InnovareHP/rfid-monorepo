@@ -13,37 +13,44 @@ import { auth } from "src/lib/auth/auth";
 export class BoardGateway implements OnGatewayConnection {
   @WebSocketServer() server: Server;
 
-  async handleConnection(client: Socket) {
-    const token = client.handshake.auth.token;
+  afterInit(server: Server) {
+    server.use(async (socket, next) => {
+      try {
+        const token = socket.handshake.auth.token;
 
-    console.log(`[Socket] New connection attempt: ${client.id}`);
+        if (!token) return next(new Error("unauthorized"));
 
-    if (!token) {
-      console.error(`[Socket] Connection rejected: No token found`);
-      client.disconnect();
-      return;
-    }
+        const session = await auth.api.verifyOneTimeToken({
+          body: { token },
+        });
 
-    const session = await auth.api.verifyOneTimeToken({
-      body: {
-        token: token as string,
-      },
+        const orgId = session?.session?.activeOrganizationId;
+
+        if (!orgId) return next(new Error("unauthorized"));
+
+        // Attach for later use
+        socket.data.orgId = orgId;
+
+        next();
+      } catch {
+        next(new Error("unauthorized"));
+      }
     });
-    const orgId = session?.session?.activeOrganizationId;
+  }
+
+  async handleConnection(client: Socket) {
+    const orgId = client.data.orgId;
 
     if (!orgId) {
-      console.error(
-        `[Socket] Connection rejected: No active organization for session`
-      );
-      client.disconnect();
+      client.disconnect(true);
       return;
     }
 
-    console.log(`[Socket] Client ${client.id} joined room: org:${orgId}`);
     await client.join(`org:${orgId}`);
 
-    // TEST EMIT: Send a message ONLY to this client to prove it works
-    client.emit("debug:joined", { room: `org:${orgId}` });
+    client.emit("debug:joined", {
+      room: `org:${orgId}`,
+    });
   }
   emitRecordCreated(orgId: string, record: any) {
     this.server.to(`org:${orgId}`).emit("board:record-created", { record });

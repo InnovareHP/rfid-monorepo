@@ -2,6 +2,7 @@ import { authClient, useSession } from "@/lib/auth-client";
 import { pageVariants } from "@/lib/framer";
 import { toSlug } from "@dashboard/shared";
 import { useNavigate } from "@tanstack/react-router";
+import type { ErrorContext } from "better-auth/client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Book,
@@ -195,16 +196,29 @@ const OnBoardingPage = () => {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const { data: createRes } = await authClient.organization.create({
-        name: data.organizationName.trim(),
-        slug: toSlug(data.organizationName.trim()),
-        metadata: {
-          user_id: session?.user?.id,
+      const { data: createRes } = await authClient.organization.create(
+        {
+          name: data.organizationName.trim(),
+          slug: toSlug(data.organizationName.trim()),
+          metadata: {
+            user_id: session?.user?.id,
+          },
+          logo: undefined,
+          userId: session?.user?.id,
+          keepCurrentActiveOrganization: false,
         },
-        logo: undefined,
-        userId: session?.user?.id,
-        keepCurrentActiveOrganization: false,
-      });
+        {
+          onSuccess: () => {
+            navigate({ to: `/${createRes?.id}` });
+          },
+          onError: (ctx: ErrorContext) => {
+            form.setError("root", {
+              message:
+                ctx.error.message ?? "Something went wrong during onboarding.",
+            });
+          },
+        }
+      );
 
       navigate({ to: `/${createRes?.id}` });
     } catch (err: any) {

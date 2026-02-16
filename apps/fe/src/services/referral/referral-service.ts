@@ -3,7 +3,6 @@ import type {
   CountyRow,
   ReferralHistoryItem,
   ReferralHistoryResponse,
-  ReferralResponse,
 } from "@dashboard/shared";
 
 export const getReferral = async (filterMeta: any) => {
@@ -21,14 +20,19 @@ export const getReferral = async (filterMeta: any) => {
   return response.data;
 };
 
-export const getSpecificReferral = async (referralId: string) => {
-  const response = await axiosClient.get(`/api/boards/${referralId}`);
+export const getSpecificReferral = async (
+  referralId: string,
+  moduleType?: string
+) => {
+  const response = await axiosClient.get(
+    `/api/boards/${referralId}?moduleType=${moduleType || "REFERRAL"}`
+  );
 
   if (response.status !== 200) {
     throw new Error("Failed to fetch specific referral");
   }
 
-  return response.data as ReferralResponse;
+  return response.data;
 };
 
 export const getReferralHistory = async (
@@ -63,9 +67,14 @@ export const getReferralDropdownOptions = async (
   limit?: number
 ) => {
   const response = await axiosClient.get(
-    `/api/boards/field/${fieldKey}/options?page=${page}&limit=${limit}`
+    `/api/boards/field/${fieldKey}/options`,
+    {
+      params: {
+        page: page,
+        limit: limit,
+      },
+    }
   );
-
   if (response.status !== 200) {
     throw new Error("Failed to fetch referrals dropdown options");
   }

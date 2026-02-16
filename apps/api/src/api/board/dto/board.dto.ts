@@ -31,6 +31,7 @@ export const CsvImportSchema = z.object({
 export const CreateColumnSchema = z.object({
   column_name: z.string(),
   field_type: z.enum(BoardFieldType),
+  module_type: z.string(),
 });
 
 export const CreateLocationSchema = z.object({

@@ -52,6 +52,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
     field_type: type,
     field_order: index + 1,
     organization_id,
+    module_type: "REFERRAL",
   }));
 
   await prisma.field.createMany({
@@ -60,7 +61,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
   });
 
   const referralFields = await prisma.field.findMany({
-    where: { organization_id },
+    where: { organization_id, module_type: "REFERRAL" },
   });
 
   //
@@ -103,19 +104,19 @@ export const OnboardingSeeding = async (organization_id: string) => {
 
       switch (field.field_type) {
         case "TEXT":
-          value = "Test Text";
+          value = "";
           break;
         case "DATE":
           value = new Date().toISOString().split("T")[0];
           break;
         case "NUMBER":
-          value = "12345";
+          value = "";
           break;
         case "CHECKBOX":
           value = "true";
           break;
         case "STATUS":
-          value = "New";
+          value = "";
           break;
         case "LOCATION":
           value = "123 Main St";
@@ -147,28 +148,28 @@ export const OnboardingSeeding = async (organization_id: string) => {
   //
 
   const leadFields = [
-    ["History", BoardFieldType.TIMELINE],
-    ["Number of Beds", BoardFieldType.TEXT],
-    ["Type of Facility", BoardFieldType.DROPDOWN],
-    ["Account Manager", BoardFieldType.ASSIGNED_TO],
-    ["Address", BoardFieldType.LOCATION],
-    ["County", BoardFieldType.DROPDOWN],
-    ["City", BoardFieldType.TEXT],
-    ["State", BoardFieldType.TEXT],
-    ["Zip Code", BoardFieldType.TEXT],
-    ["Phone", BoardFieldType.TEXT],
-    ["Fax", BoardFieldType.TEXT],
-    ["Medical Director", BoardFieldType.TEXT],
-    ["Director of Nursing", BoardFieldType.TEXT],
-    ["Admissions/Marketing", BoardFieldType.TEXT],
-    ["Company Name", BoardFieldType.TEXT],
-    ["Psychiatric Services", BoardFieldType.TEXT],
-    ["Notes", BoardFieldType.TEXT],
-  ].map(([name, type], index) => ({
+    ["Number of Beds", BoardFieldType.TEXT, 2],
+    ["Type of Facility", BoardFieldType.DROPDOWN, 3],
+    ["Address", BoardFieldType.LOCATION, 5],
+    ["County", BoardFieldType.DROPDOWN, 6],
+    ["City", BoardFieldType.TEXT, 7],
+    ["State", BoardFieldType.TEXT, 8],
+    ["Zip Code", BoardFieldType.TEXT, 9],
+    ["Phone", BoardFieldType.TEXT, 10],
+    ["Fax", BoardFieldType.TEXT, 11],
+    ["Medical Director", BoardFieldType.TEXT, 12],
+    ["Director of Nursing", BoardFieldType.TEXT, 13],
+    ["Admissions/Marketing", BoardFieldType.TEXT, 14],
+    ["Company Name", BoardFieldType.TEXT, 15],
+    ["Psychiatric Services", BoardFieldType.TEXT, 16],
+    ["Notes", BoardFieldType.TEXT, 17],
+    ["History", BoardFieldType.TIMELINE, 1],
+  ].map(([name, type, order]) => ({
     field_name: name,
     field_type: type,
-    field_order: index + 1,
+    field_order: order,
     organization_id,
+    module_type: "LEAD",
   }));
 
   await prisma.field.createMany({
@@ -195,7 +196,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
 
   // ❗ FIX: Fetch only lead fields for this org
   const dbLeadFields = await prisma.field.findMany({
-    where: { organization_id },
+    where: { organization_id, module_type: "LEAD" },
   });
 
   //
