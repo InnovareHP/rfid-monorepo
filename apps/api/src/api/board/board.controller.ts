@@ -115,6 +115,21 @@ export class BoardController {
     }
   }
 
+  @Get("/:recordId/suggestions")
+  async getFollowUpSuggestions(
+    @Param("recordId") recordId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getFollowUpSuggestions(
+        recordId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/:recordId/analyze")
   async getRecordAnalyze(
     @Param("recordId") recordId: string,

@@ -31,6 +31,27 @@ export const getColumnOptions = async (moduleType?: string) => {
   return response.data;
 };
 
+export const getFollowUpSuggestions = async (recordId: string) => {
+  const response = await axiosClient.get(
+    `/api/boards/${recordId}/suggestions`
+  );
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch follow-up suggestions");
+  }
+
+  return response.data as {
+    suggestions: {
+      priority: "high" | "medium" | "low";
+      action: string;
+      reasoning: string;
+      timing: string;
+    }[];
+    riskFactors: string[];
+    summary: string;
+  };
+};
+
 export const getLeadAnalysis = async (leadId: string, moduleType?: string) => {
   const response = await axiosClient.get(`/api/boards/${leadId}/analyze`, {
     params: {

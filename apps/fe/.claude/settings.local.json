@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm --version:*)"
+      "Bash(pnpm --version:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

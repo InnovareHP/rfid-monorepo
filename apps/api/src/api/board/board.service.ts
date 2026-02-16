@@ -1,7 +1,9 @@
 import { normalizeKey, normalizeOptionValue } from "@dashboard/shared";
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { BoardFieldType, Field, FieldOption, Prisma } from "@prisma/client";
 import { appConfig } from "src/config/app-config";
+import { gemini } from "src/lib/gemini/gemini";
+import { followUpPrompt } from "src/lib/gemini/prompt";
 import { isSelectType } from "src/lib/helper";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
 import { lookupByName } from "zipcodes-perogi";
@@ -412,6 +414,162 @@ export class BoardService {
         narrative,
       },
     };
+  }
+
+  async getFollowUpSuggestions(recordId: string, organizationId: string) {
+    const cacheKey = `followup:${recordId}`;
+    const cached = await getData(cacheKey);
+    if (cached) return cached;
+
+    const record = await prisma.board.findFirstOrThrow({
+      where: { id: recordId, organization_id: organizationId },
+      select: {
+        id: true,
+        record_name: true,
+        created_at: true,
+        updated_at: true,
+        assigned_user: {
+          select: { id: true, user_name: true },
+        },
+        values: {
+          select: {
+            value: true,
+            field: { select: { field_name: true } },
+          },
+        },
+      },
+    });
+
+    const fieldValues = record.values.reduce(
+      (acc, v) => {
+        acc[v.field.field_name] = v.value;
+        return acc;
+      },
+      {} as Record<string, string | null>
+    );
+
+    const recentHistory = await prisma.history.findMany({
+      where: { record_id: recordId },
+      orderBy: { created_at: "desc" },
+      take: 20,
+      select: {
+        action: true,
+        column: true,
+        old_value: true,
+        new_value: true,
+        created_at: true,
+        user: { select: { user_name: true } },
+      },
+    });
+
+    const totalHistoryEvents = await prisma.history.count({
+      where: { record_id: recordId },
+    });
+
+    // Fetch marketing engagement if lead has an assigned user
+    let engagementSummary: {
+      totalInteractions: number;
+      touchpointsUsed: { type: string; count: number }[];
+      peopleContacted: string[];
+      engagementLevel: string;
+    } | null = null;
+
+    if (record.assigned_user) {
+      const where: Prisma.marketingWhereInput = {
+        member: { user_table: { id: record.assigned_user.id } },
+      } as Prisma.marketingWhereInput;
+
+      if (record.record_name) {
+        where.facility = { contains: record.record_name, mode: "insensitive" };
+      }
+
+      const marketingLogs = await prisma.marketing.findMany({
+        where,
+        select: { facility: true, touchpoints: true, talkedTo: true },
+      });
+
+      const touchpointCount: Record<string, number> = {};
+      marketingLogs.forEach((log) => {
+        if (Array.isArray(log.touchpoints)) {
+          log.touchpoints.forEach((tp) => {
+            touchpointCount[tp] = (touchpointCount[tp] || 0) + 1;
+          });
+        }
+      });
+
+      const totalInteractions = marketingLogs.length;
+      engagementSummary = {
+        totalInteractions,
+        touchpointsUsed: Object.entries(touchpointCount).map(
+          ([type, count]) => ({ type, count })
+        ),
+        peopleContacted: [
+          ...new Set(
+            marketingLogs
+              .map((m) => m.talkedTo)
+              .filter((p): p is string => Boolean(p))
+          ),
+        ],
+        engagementLevel:
+          totalInteractions >= 6
+            ? "High"
+            : totalInteractions >= 3
+              ? "Medium"
+              : "Low",
+      };
+    }
+
+    const now = new Date();
+    const daysSinceCreation = Math.floor(
+      (now.getTime() - record.created_at.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const lastUpdate =
+      recentHistory.length > 0
+        ? recentHistory[0].created_at
+        : record.updated_at;
+    const daysSinceLastUpdate = Math.floor(
+      (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    const context = {
+      recordName: record.record_name,
+      fieldValues,
+      recentHistory: recentHistory.map((h) => ({
+        action: h.action,
+        column: h.column,
+        old_value: h.old_value,
+        new_value: h.new_value,
+        created_at: h.created_at,
+        created_by: h.user?.user_name ?? null,
+      })),
+      engagementSummary,
+      metadata: {
+        daysSinceCreation,
+        daysSinceLastUpdate,
+        currentStatus: fieldValues["Status"] ?? null,
+        totalHistoryEvents,
+      },
+    };
+
+    try {
+      const prompt = followUpPrompt(context);
+      const result = await gemini.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [prompt],
+        config: { responseMimeType: "application/json" },
+      });
+
+      const raw = result.text ?? "";
+      const parsed = JSON.parse(raw);
+
+      await cacheData(cacheKey, parsed, 60 * 10);
+
+      return parsed;
+    } catch (error) {
+      throw new BadRequestException(
+        "Failed to generate follow-up suggestions: " + error.message
+      );
+    }
   }
 
   async getRecordById(

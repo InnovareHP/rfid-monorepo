@@ -71,7 +71,6 @@ export class AnalyticsService {
       where: whereClause,
       _count: { value: true },
       orderBy: { _count: { value: "desc" } },
-      take: 10,
     });
   }
 

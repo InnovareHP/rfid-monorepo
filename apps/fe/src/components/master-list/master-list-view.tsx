@@ -38,12 +38,14 @@ import {
   Clock,
   FileText,
   RotateCcw,
+  Lightbulb,
 } from "lucide-react";
 import * as React from "react";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { RestoreHistoryModal } from "../history-report/restore-history-modal";
 import { EditableCell } from "../reusable-table/editable-cell";
+import { FollowUpSuggestions } from "./follow-up-suggestions";
 
 function serializeValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
@@ -68,7 +70,7 @@ export function MasterListView({
   leadId: string;
   isReferral: boolean;
   hasNotification?: boolean;
-  initialTab?: "details" | "history";
+  initialTab?: "details" | "history" | "suggestions";
   open?: boolean;
   setOpen?: (open: boolean) => void;
 }) {
@@ -245,7 +247,7 @@ export function MasterListView({
           ) : (
             <Tabs
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as "details" | "history")}
+              onValueChange={(v) => setActiveTab(v as "details" | "history" | "suggestions")}
               className="w-full"
             >
               <div className="px-6 border-b bg-gradient-to-r from-gray-50 to-slate-50">
@@ -264,6 +266,14 @@ export function MasterListView({
                   >
                     <Clock className="h-4 w-4 mr-2" />
                     History
+                  </TabsTrigger>
+
+                  <TabsTrigger
+                    value="suggestions"
+                    className="data-[state=active]:border-b-3 data-[state=active]:border-purple-500 data-[state=active]:text-purple-600 data-[state=active]:font-bold rounded-none transition-all"
+                  >
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    Suggestions
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -477,6 +487,13 @@ export function MasterListView({
                     </Button>
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="suggestions" className="mt-0">
+                <FollowUpSuggestions
+                  recordId={leadId}
+                  enabled={activeTab === "suggestions"}
+                />
               </TabsContent>
             </Tabs>
           )}

@@ -22,6 +22,7 @@ import {
   CalendarIcon,
   Clock,
   CreditCard,
+  Globe,
   MapPin,
   TrendingUp,
   UserRound,
@@ -36,6 +37,7 @@ import type { AnalyticsResponse } from "@dashboard/shared";
 import { useQuery } from "@tanstack/react-query";
 import * as Recharts from "recharts";
 import AiSumary from "./ai-sumary";
+import CountyHeatMap from "./county-heat-map";
 
 function DateRangeFilter({
   onChange,
@@ -454,6 +456,30 @@ export default function ReferralAnalyticsDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* COUNTY HEAT MAP */}
+        <Card className="border shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-green-100/50 border-b">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-600">
+                <Globe className="h-5 w-5 text-white" />
+              </div>
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Referral Density by County
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 px-0 pb-0">
+            <CountyHeatMap
+              counties={
+                analytics?.counties.map((c) => ({
+                  value: c.value ?? "",
+                  _count: { value: c._count.value },
+                })) ?? []
+              }
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

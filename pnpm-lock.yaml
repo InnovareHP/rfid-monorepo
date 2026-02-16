@@ -331,7 +331,7 @@ importers:
         specifier: ^0.476.0
         version: 0.476.0(react@19.2.4)
       mapbox-gl:
-        specifier: ^3.17.0
+        specifier: ^3.18.1
         version: 3.18.1
       next-themes:
         specifier: ^0.4.6
