@@ -84,10 +84,17 @@ export class SupportService {
             senderUser: {
               select: { id: true, user_name: true, user_image: true },
             },
+            SupportTicketAttachment: { orderBy: { createdAt: "desc" } },
           },
           orderBy: { createdAt: "asc" },
         },
-        SupportTicketAttachment: { orderBy: { createdAt: "desc" } },
+        SupportHistory: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+          },
+          take: 1,
+        },
       },
     });
 
@@ -105,8 +112,20 @@ export class SupportService {
         priority: data.priority,
         assignedTo: userId,
         createBy: userId,
-        SupportTicketAttachment: {
-          create: data.imageUrl.map((image) => ({ imageUrl: image })),
+        SupportTicketMessage: {
+          create: {
+            message: data.description,
+            sender: userId,
+            SupportTicketAttachment: {
+              create: data.imageUrl.map((image) => ({ imageUrl: image })),
+            },
+          },
+        },
+        SupportHistory: {
+          create: {
+            message: data.description,
+            sender: userId,
+          },
         },
       },
     });
@@ -132,7 +151,15 @@ export class SupportService {
 
     return prisma.supportTicket.update({
       where: { id: ticketId },
-      data,
+      data: {
+        ...data,
+        SupportHistory: {
+          create: {
+            message: data.description || "",
+            sender: userId,
+          },
+        },
+      },
     });
   }
 
@@ -146,20 +173,32 @@ export class SupportService {
   }
 
   async createTicketMessage(ticketId: string, userId: string, message: string) {
-    return prisma.supportTicketMessage.create({
-      data: {
-        message,
-        sender: userId,
-        supportTicketId: ticketId,
-      },
-    });
+    return Promise.all([
+      prisma.supportTicketMessage.create({
+        data: {
+          message,
+          sender: userId,
+          supportTicketId: ticketId,
+        },
+      }),
+      prisma.supportHistory.create({
+        data: {
+          message,
+          sender: userId,
+          supportTicketId: ticketId,
+        },
+      }),
+    ]);
   }
 
-  async createTicketAttachment(ticketId: string, imageUrl: string) {
+  async createTicketAttachment(
+    supportTicketMessageId: string,
+    imageUrl: string
+  ) {
     return prisma.supportTicketAttachment.create({
       data: {
         imageUrl,
-        supportTicketId: ticketId,
+        supportTicketMessageId: supportTicketMessageId,
       },
     });
   }

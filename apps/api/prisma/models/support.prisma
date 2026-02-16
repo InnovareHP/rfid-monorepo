@@ -16,7 +16,7 @@ model SupportTicket {
   createByUser user_table @relation("SupportTicketCreateBy", fields: [createBy], references: [id])
 
   SupportTicketMessage SupportTicketMessage[] @relation("SupportTicketMessage")
-  SupportTicketAttachment SupportTicketAttachment[] @relation("SupportTicketAttachment")
+  SupportHistory SupportHistory[] @relation("SupportTicketHistory")
 
   @@schema("support_schema")
 }
@@ -27,6 +27,9 @@ model SupportHistory {
   message String
   sender String
   senderUser user_table @relation("SupportHistorySender", fields: [sender], references: [id])
+
+  supportTicketId String
+  supportTicket SupportTicket @relation("SupportTicketHistory", fields: [supportTicketId], references: [id])
 
   @@schema("support_schema")
 }
@@ -41,6 +44,7 @@ model SupportTicketMessage {
   senderUser user_table @relation("SupportTicketMessageSender", fields: [sender], references: [id])
   supportTicketId String
   supportTicket SupportTicket @relation("SupportTicketMessage", fields: [supportTicketId], references: [id])
+  SupportTicketAttachment SupportTicketAttachment[] @relation("SupportTicketAttachment")
 
   @@schema("support_schema")
 }
@@ -50,8 +54,8 @@ model SupportTicketAttachment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   imageUrl String
-  supportTicketId String
-  supportTicket SupportTicket @relation("SupportTicketAttachment", fields: [supportTicketId], references: [id])
+  supportTicketMessageId String
+  supportTicketMessage SupportTicketMessage @relation("SupportTicketAttachment", fields: [supportTicketMessageId], references: [id])
 
   @@schema("support_schema")
 }

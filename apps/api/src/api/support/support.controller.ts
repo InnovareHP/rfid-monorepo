@@ -125,14 +125,14 @@ export class SupportController {
 
   // ── Ticket Attachments ───────────────────────────────
 
-  @Post("/tickets/:ticketId/attachments")
+  @Post("/tickets/:ticketId/messages/:messageId/attachments")
   async createTicketAttachment(
-    @Param("ticketId") ticketId: string,
+    @Param("messageId") messageId: string,
     @Body() dto: CreateTicketAttachmentDto
   ) {
     try {
       return await this.supportService.createTicketAttachment(
-        ticketId,
+        messageId,
         dto.imageUrl
       );
     } catch (error) {

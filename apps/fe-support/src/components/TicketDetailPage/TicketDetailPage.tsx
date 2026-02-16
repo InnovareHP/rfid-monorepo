@@ -46,6 +46,7 @@ type TicketMessage = {
     user_name: string;
     user_image: string;
   };
+  SupportTicketAttachment: TicketAttachment[];
 };
 
 type TicketAttachment = {
@@ -77,7 +78,9 @@ type TicketDetail = {
     user_image: string;
   };
   SupportTicketMessage: TicketMessage[];
-  SupportTicketAttachment: TicketAttachment[];
+  SupportHistory: {
+    createdAt: string;
+  }[];
 };
 
 export function TicketDetailPage({ ticketId }: { ticketId: string }) {
@@ -97,13 +100,14 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
     mutationFn: async () => {
       if (!ticket) return;
 
+      const message = await createTicketMessage(
+        ticket.id,
+        replyText.trim() || " "
+      );
+
       for (const file of attachments) {
         const { url } = await uploadImage(file);
-        await createTicketAttachment(ticket.id, url);
-      }
-
-      if (replyText.trim()) {
-        await createTicketMessage(ticket.id, replyText.trim());
+        await createTicketAttachment(ticket.id, message.id, url);
       }
     },
     onSuccess: () => {
@@ -202,35 +206,10 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
                   image={msg.senderUser.user_image}
                   date={msg.createdAt}
                   message={msg.message}
+                  attachments={msg.SupportTicketAttachment}
                 />
               ))}
             </div>
-
-            {/* Attachments */}
-            {ticket.SupportTicketAttachment.length > 0 && (
-              <div className="mt-4">
-                <p className="mb-2 text-sm font-medium text-muted-foreground">
-                  Attachments
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {ticket.SupportTicketAttachment.map((att) => (
-                    <a
-                      key={att.id}
-                      href={att.imageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative h-20 w-20 overflow-hidden rounded-lg border border-border"
-                    >
-                      <img
-                        src={att.imageUrl}
-                        alt="Attachment"
-                        className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
-                      />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Reply section */}
             <div className="mt-6">
@@ -324,7 +303,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
                 <MetaRow label="Created" value={formatDate(ticket.createdAt)} />
                 <MetaRow
                   label="Last activity"
-                  value={formatDate(ticket.updatedAt)}
+                  value={formatDate(ticket.SupportHistory[0].createdAt)}
                 />
                 <MetaRow
                   label="Ticket Number"
@@ -353,11 +332,13 @@ function MessageItem({
   image,
   date,
   message,
+  attachments = [],
 }: {
   name: string;
   image: string;
   date: string;
   message: string;
+  attachments?: TicketAttachment[];
 }) {
   return (
     <div className="border-b border-border last:border-b-0 px-5 py-5">
@@ -380,6 +361,25 @@ function MessageItem({
           <div className="mt-2 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
             {message}
           </div>
+          {attachments.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {attachments.map((att) => (
+                <a
+                  key={att.id}
+                  href={att.imageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative h-20 w-20 overflow-hidden rounded-lg border border-border"
+                >
+                  <img
+                    src={att.imageUrl}
+                    alt="Attachment"
+                    className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
+                  />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

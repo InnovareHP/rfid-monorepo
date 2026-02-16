@@ -92,7 +92,10 @@ export function RequestsPage() {
   });
 
   const handleView = (row: TicketRow) => {
-    navigate({ to: "/support/$id", params: { id: row.id } });
+    navigate({
+      to: "/$lang/request/$ticketNumber",
+      params: { ticketNumber: row.ticketNumber, lang: "en" },
+    });
   };
 
   const columns = [

@@ -58,10 +58,11 @@ export const createTicketMessage = async (
 
 export const createTicketAttachment = async (
   ticketId: string,
+  messageId: string,
   imageUrl: string
 ) => {
   const response = await axiosClient.post(
-    `/api/support/tickets/${ticketId}/attachments`,
+    `/api/support/tickets/${ticketId}/messages/${messageId}/attachments`,
     { imageUrl }
   );
   return response.data;
