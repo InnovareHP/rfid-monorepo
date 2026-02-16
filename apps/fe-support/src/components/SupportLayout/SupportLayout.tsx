@@ -209,7 +209,7 @@ export function SupportLayout({ children }: SupportLayoutProps) {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col min-h-0">{children}</div>
+      <div className="flex-1 flex flex-col min-h-0 w-full">{children}</div>
 
       <footer className="border-t bg-background py-4 px-4 sm:py-5 sm:px-6 shrink-0">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 max-w-[1920px] mx-auto text-xs sm:text-sm text-muted-foreground text-center sm:text-left">

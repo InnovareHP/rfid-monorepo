@@ -33,7 +33,7 @@ export const InputBlock = ({
       <Button
         type="button"
         size="icon"
-        className="cursor-pointer shrink-0 rounded-full size-10 bg-primary text-primary-foreground hover:bg-primary/90"
+        className="cursor-pointer shrink-0 rounded-full size-10 min-w-11 min-h-11 bg-primary text-primary-foreground hover:bg-primary/90 touch-manipulation"
         onClick={handleSendMessage}
       >
         <Send className="size-4" />

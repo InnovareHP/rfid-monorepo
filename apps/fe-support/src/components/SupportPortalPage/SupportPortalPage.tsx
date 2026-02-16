@@ -20,9 +20,11 @@ const SupportChat = lazy(() =>
   import("../SupportChat/SupportChat").then((m) => ({ default: m.SupportChat }))
 );
 
+const CHAT_COLUMN_WIDTH = "500px";
+
 export function SupportPortalPage() {
   return (
-    <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 sm:p-6 pb-24 lg:pb-6 max-w-[1920px] w-full mx-auto lg:items-stretch">
+    <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 sm:p-6 pb-24 lg:pb-6 max-w-[1920px] w-full mx-auto lg:items-stretch min-h-0">
       {/* Left column */}
       <div className="flex-1 min-w-0 space-y-6 sm:space-y-8 order-1">
         <div className="relative flex items-center">
@@ -94,14 +96,19 @@ export function SupportPortalPage() {
         </section>
       </div>
 
-      {/* Right column - AI Assistant (desktop sidebar + mobile bar + overlay) */}
-      <Suspense
-        fallback={
-          <div className="hidden lg:block w-full max-w-[380px] shrink-0 min-h-[400px] rounded-xl border border-border bg-muted/30 animate-pulse" />
-        }
+      {/* Right column: on lg takes fixed width (prevents layout shift); on mobile takes no space but SupportChat still renders for the fixed bottom bar */}
+      <div
+        className="shrink-0 order-2 w-0 min-w-0 overflow-visible lg:w-full"
+        style={{ maxWidth: CHAT_COLUMN_WIDTH }}
       >
-        <SupportChat />
-      </Suspense>
+        <Suspense
+          fallback={
+            <div className="hidden lg:block w-full min-h-[400px] rounded-xl border border-border bg-muted/30 animate-pulse" />
+          }
+        >
+          <SupportChat />
+        </Suspense>
+      </div>
     </div>
   );
 }

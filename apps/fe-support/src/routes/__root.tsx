@@ -7,7 +7,7 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <main>
+      <main className="w-full min-h-screen flex flex-col">
         <Outlet />
       </main>
       <Toaster />
