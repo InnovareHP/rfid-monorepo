@@ -211,7 +211,7 @@ export function SupportChat() {
         type="button"
         variant="ghost"
         onClick={openChatOverlay}
-        className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex items-center justify-between gap-3 px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] h-auto bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.08)] rounded-t-xl hover:bg-muted/50 active:bg-muted/50 transition-colors"
+        className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex items-center justify-between gap-3 px-4 py-3.5 min-h-14 pb-[max(0.875rem,env(safe-area-inset-bottom))] h-auto bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.08)] rounded-t-xl hover:bg-muted/50 active:bg-muted/50 transition-colors touch-manipulation"
         aria-label="Open AI Assistant chat"
       >
         <span className="font-semibold text-[15px] text-foreground">
@@ -232,7 +232,7 @@ export function SupportChat() {
           aria-label="AI Assistant (enlarged)"
         >
           <div
-            className={`w-full md:max-w-2xl h-[90vh] md:h-[85vh] flex flex-col bg-background rounded-t-2xl md:rounded-xl overflow-hidden shadow-xl transition-transform duration-300 ease-out ${
+            className={`w-full md:max-w-2xl h-[90dvh] md:h-[85vh] flex flex-col bg-background rounded-t-2xl md:rounded-xl overflow-hidden shadow-xl transition-transform duration-300 ease-out ${
               isOverlayClosing || isOverlayOpening
                 ? "translate-y-full md:translate-y-0 md:scale-95"
                 : "translate-y-0 md:scale-100"
