@@ -15,13 +15,14 @@
     "@hookform/resolvers": "^5.2.2",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-router": "^1.130.2",
+    "@tanstack/react-table": "^8.21.3",
     "axios": "^1.13.5",
     "better-auth": "^1.4.18",
     "lucide-react": "^0.476.0",
-    "@tanstack/react-table": "^8.21.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.71.1",
+    "sonner": "^2.0.7",
     "zod": "^4.3.6"
   },
   "devDependencies": {
