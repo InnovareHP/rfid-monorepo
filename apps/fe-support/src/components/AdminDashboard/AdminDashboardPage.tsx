@@ -8,13 +8,13 @@ import {
 } from "@dashboard/ui/components/card";
 import { Link } from "@tanstack/react-router";
 import { HelpCircle, Shield } from "lucide-react";
-
-const PAGE_TITLE = "Admin Dashboard";
-const PAGE_DESCRIPTION = "Platform administration and support tools";
-const CARD_TITLE = "Welcome to the Admin Dashboard";
-const CARD_DESCRIPTION =
-  "Use this dashboard to manage platform settings, view support tickets, and access admin tools.";
-const SUPPORT_PORTAL_LINK_LABEL = "Go to Support Portal";
+import {
+  ADMIN_CARD_DESCRIPTION,
+  ADMIN_CARD_TITLE,
+  ADMIN_PAGE_DESCRIPTION,
+  ADMIN_PAGE_TITLE,
+  SUPPORT_PORTAL_LINK_LABEL,
+} from "./constants";
 
 export function AdminDashboardPage() {
   return (
@@ -27,9 +27,9 @@ export function AdminDashboardPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                {PAGE_TITLE}
+                {ADMIN_PAGE_TITLE}
               </h1>
-              <p className="text-sm text-gray-600 mt-0.5">{PAGE_DESCRIPTION}</p>
+              <p className="text-sm text-gray-600 mt-0.5">{ADMIN_PAGE_DESCRIPTION}</p>
             </div>
           </div>
         </div>
@@ -38,9 +38,9 @@ export function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Shield className="h-5 w-5 text-blue-600" />
-              {CARD_TITLE}
+              {ADMIN_CARD_TITLE}
             </CardTitle>
-            <CardDescription>{CARD_DESCRIPTION}</CardDescription>
+            <CardDescription>{ADMIN_CARD_DESCRIPTION}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-700 leading-relaxed">
