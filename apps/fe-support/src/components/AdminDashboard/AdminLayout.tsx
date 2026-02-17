@@ -11,7 +11,6 @@ import {
   SidebarTrigger,
 } from "@dashboard/ui/components/sidebar";
 import type { ReactNode } from "react";
-import { ADMIN_BREADCRUMB_LABEL } from "./constants";
 import { AdminSidebar } from "./AdminSidebar";
 
 type AdminLayoutProps = {
@@ -22,7 +21,7 @@ type AdminLayoutProps = {
 
 export function AdminLayout({
   children,
-  breadcrumbLabel = ADMIN_BREADCRUMB_LABEL,
+  breadcrumbLabel = "Admin",
 }: AdminLayoutProps) {
   return (
     <SidebarProvider>

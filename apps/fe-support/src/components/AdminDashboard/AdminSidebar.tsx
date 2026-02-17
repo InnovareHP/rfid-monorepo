@@ -26,22 +26,26 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { ChevronsUpDown, HelpCircle, LogOut, Shield } from "lucide-react";
 import * as React from "react";
-import {
-  type AdminNavId,
-  ADMIN_NAV_ITEMS,
-  LOGO_ALT,
-  LOGO_RFID_PATH,
-  LOGO_TARSIER_PATH,
-  LOG_OUT_LABEL,
-  SIDEBAR_GROUP_LABEL,
-  USER_FALLBACK_INITIAL,
-  USER_FALLBACK_NAME,
-} from "./constants";
 
-const ADMIN_NAV_ICONS: Record<AdminNavId, React.ComponentType<{ className?: string }>> = {
-  admin: Shield,
-  support: HelpCircle,
-};
+const LOGO_RFID = "/images/rfid.png";
+const LOGO_TARSIER = "/images/tarsier.png";
+
+const navItems: Array<{
+  id: "admin" | "support";
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: "/admin" | "/$lang";
+  params?: { lang: string };
+}> = [
+  { id: "admin", title: "Admin Dashboard", icon: Shield, path: "/admin" },
+  {
+    id: "support",
+    title: "Support Portal",
+    icon: HelpCircle,
+    path: "/$lang",
+    params: { lang: "en" },
+  },
+];
 
 export function AdminSidebar() {
   const { pathname } = useLocation();
@@ -63,28 +67,16 @@ export function AdminSidebar() {
 
   React.useEffect(() => {
     const rfidImage = new Image();
-    rfidImage.src = LOGO_RFID_PATH;
+    rfidImage.src = LOGO_RFID;
     const tarsierImage = new Image();
-    tarsierImage.src = LOGO_TARSIER_PATH;
+    tarsierImage.src = LOGO_TARSIER;
     return () => {
       rfidImage.src = "";
       tarsierImage.src = "";
     };
   }, []);
 
-  const logoSrc = React.useMemo(
-    () => (state === "collapsed" ? LOGO_TARSIER_PATH : LOGO_RFID_PATH),
-    [state]
-  );
-
-  const navItems = React.useMemo(
-    () =>
-      ADMIN_NAV_ITEMS.map((item) => ({
-        ...item,
-        icon: ADMIN_NAV_ICONS[item.id],
-      })),
-    []
-  );
+  const logoSrc = state === "collapsed" ? LOGO_TARSIER : LOGO_RFID;
 
   const logoClassName = cn(
     "cursor-pointer transition-all duration-300 object-contain object-center",
@@ -101,7 +93,7 @@ export function AdminSidebar() {
           >
             <img
               src={logoSrc}
-              alt={LOGO_ALT}
+              alt="Admin Dashboard"
               className={logoClassName}
               loading="eager"
               decoding="async"
@@ -111,7 +103,7 @@ export function AdminSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{SIDEBAR_GROUP_LABEL}</SidebarGroupLabel>
+          <SidebarGroupLabel>Admin</SidebarGroupLabel>
           <SidebarMenu>
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -152,12 +144,12 @@ export function AdminSidebar() {
                       alt={user?.name ?? undefined}
                     />
                     <AvatarFallback className="rounded-lg">
-                      {user?.name?.charAt(0) ?? USER_FALLBACK_INITIAL}
+                      {user?.name?.charAt(0) ?? "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">
-                      {user?.name ?? USER_FALLBACK_NAME}
+                      {user?.name ?? "User"}
                     </span>
                     <span className="truncate text-xs">
                       {user?.email ?? undefined}
@@ -180,12 +172,12 @@ export function AdminSidebar() {
                         alt={user?.name ?? undefined}
                       />
                       <AvatarFallback className="rounded-lg">
-{user?.name?.charAt(0) ?? USER_FALLBACK_INITIAL}
+{user?.name?.charAt(0) ?? "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">
-                      {user?.name ?? USER_FALLBACK_NAME}
+                      {user?.name ?? "User"}
                     </span>
                       <span className="truncate text-xs">
                         {user?.email ?? undefined}
@@ -196,7 +188,7 @@ export function AdminSidebar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut />
-                  {LOG_OUT_LABEL}
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

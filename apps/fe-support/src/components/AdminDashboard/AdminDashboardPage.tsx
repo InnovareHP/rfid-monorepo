@@ -8,13 +8,6 @@ import {
 } from "@dashboard/ui/components/card";
 import { Link } from "@tanstack/react-router";
 import { HelpCircle, Shield } from "lucide-react";
-import {
-  ADMIN_CARD_DESCRIPTION,
-  ADMIN_CARD_TITLE,
-  ADMIN_PAGE_DESCRIPTION,
-  ADMIN_PAGE_TITLE,
-  SUPPORT_PORTAL_LINK_LABEL,
-} from "./constants";
 
 export function AdminDashboardPage() {
   return (
@@ -27,9 +20,11 @@ export function AdminDashboardPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                {ADMIN_PAGE_TITLE}
+                Admin Dashboard
               </h1>
-              <p className="text-sm text-gray-600 mt-0.5">{ADMIN_PAGE_DESCRIPTION}</p>
+              <p className="text-sm text-gray-600 mt-0.5">
+                Platform administration and support tools
+              </p>
             </div>
           </div>
         </div>
@@ -38,9 +33,12 @@ export function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Shield className="h-5 w-5 text-blue-600" />
-              {ADMIN_CARD_TITLE}
+              Welcome to the Admin Dashboard
             </CardTitle>
-            <CardDescription>{ADMIN_CARD_DESCRIPTION}</CardDescription>
+            <CardDescription>
+              Use this dashboard to manage platform settings, view support
+              tickets, and access admin tools.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-700 leading-relaxed">
@@ -60,7 +58,7 @@ export function AdminDashboardPage() {
                 className="cursor-pointer inline-flex items-center gap-2"
               >
                 <HelpCircle className="h-4 w-4" />
-                {SUPPORT_PORTAL_LINK_LABEL}
+                Go to Support Portal
               </Link>
             </Button>
           </CardContent>
