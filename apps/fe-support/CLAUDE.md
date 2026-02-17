@@ -34,16 +34,24 @@ pnpm build:shared
 
 ### Routing
 
-File-based routing in `src/routes/`:
+File-based routing in `src/routes/` (TanStack Router):
 
 - `/` — redirects to `/en/` (default language)
 - `/_lang/$lang/` — support portal home (knowledge base + AI chat)
 - `/_lang/$lang/account` — user account page
+- `/_lang/$lang/dashboard` — support dashboard (sidebar layout)
 - `/_lang/$lang/request` — "My Requests" ticket list
+- `/admin` — admin dashboard (pathless layout `_admin`, sidebar layout)
 - `/support/$id` — individual support detail (standalone, no layout)
 - `/_support/support/ticket` — stub route (in progress)
 
-The `_lang` layout wraps pages in `SupportLayout` (header with nav + language selector + footer). The root route provides `QueryClientProvider` and `Toaster`.
+**Conventions:**
+- **Pathless layout:** `_name.tsx` (e.g. `_lang`, `_admin`) — layout does not add a URL segment; children define the path.
+- **Dynamic segment:** `$param` in file/folder name (e.g. `$lang`, `$ticketNumber`).
+- **Segment + page:** use a single file for one route (e.g. `_lang/$lang/dashboard.tsx`, `_admin/admin.tsx`) instead of a folder with `index.tsx` when there is only one page for that segment.
+- **Nested routes:** use a folder with `index.tsx` when the segment has sub-routes (e.g. `request/index.tsx`, `request/$ticketNumber/index.tsx`).
+
+The `_lang` layout wraps pages in `SupportLayout`. The `_admin` layout wraps pages in `AdminLayout` (sidebar). The root route provides `QueryClientProvider` and `Toaster`.
 
 ### Key Components
 
@@ -52,7 +60,8 @@ The `_lang` layout wraps pages in `SupportLayout` (header with nav + language se
 - **SupportChat** (`src/components/SupportChat/`) — AI assistant chat widget with inline/enlarged overlay modes; includes `AssistanceForm` for ticket creation and `ImageDropper` for attachments
 - **RequestsPage** (`src/components/RequestsPage/`) — paginated ticket list with search/status filters, uses `ReusableTable`
 - **ReusableTable** (`src/components/ReusableTable/`) — generic table with pagination, loading, and empty states
-- **Dashboard** (`src/components/Dashboard/`) — sidebar-based admin layout (uses `SidebarProvider` from `@dashboard/ui`)
+- **Dashboard** (`src/components/Dashboard/`) — sidebar-based support dashboard layout (uses `SidebarProvider` from `@dashboard/ui`)
+- **AdminDashboard** (`src/components/AdminDashboard/`) — admin layout, sidebar, and dashboard page for `/admin`
 
 ### Services
 

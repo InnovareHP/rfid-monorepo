@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LangRouteImport } from './routes/_lang'
+import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SupportIdRouteImport } from './routes/support.$id'
+import { Route as AdminAdminRouteImport } from './routes/_admin/admin'
 import { Route as LangLangIndexRouteImport } from './routes/_lang/$lang/index'
 import { Route as SupportSupportTicketRouteImport } from './routes/_support/support/ticket'
 import { Route as LangLangDashboardRouteImport } from './routes/_lang/$lang/dashboard'
@@ -23,6 +25,10 @@ const LangRoute = LangRouteImport.update({
   id: '/_lang',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -32,6 +38,11 @@ const SupportIdRoute = SupportIdRouteImport.update({
   id: '/support/$id',
   path: '/support/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAdminRoute = AdminAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AdminRoute,
 } as any)
 const LangLangIndexRoute = LangLangIndexRouteImport.update({
   id: '/$lang/',
@@ -67,6 +78,7 @@ const LangLangRequestTicketNumberIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminAdminRoute
   '/support/$id': typeof SupportIdRoute
   '/$lang/account': typeof LangLangAccountRoute
   '/$lang/dashboard': typeof LangLangDashboardRoute
@@ -77,6 +89,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminAdminRoute
   '/support/$id': typeof SupportIdRoute
   '/$lang/account': typeof LangLangAccountRoute
   '/$lang/dashboard': typeof LangLangDashboardRoute
@@ -88,7 +101,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_admin': typeof AdminRouteWithChildren
   '/_lang': typeof LangRouteWithChildren
+  '/_admin/admin': typeof AdminAdminRoute
   '/support/$id': typeof SupportIdRoute
   '/_lang/$lang/account': typeof LangLangAccountRoute
   '/_lang/$lang/dashboard': typeof LangLangDashboardRoute
@@ -101,6 +116,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/support/$id'
     | '/$lang/account'
     | '/$lang/dashboard'
@@ -111,6 +127,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/support/$id'
     | '/$lang/account'
     | '/$lang/dashboard'
@@ -121,7 +138,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_admin'
     | '/_lang'
+    | '/_admin/admin'
     | '/support/$id'
     | '/_lang/$lang/account'
     | '/_lang/$lang/dashboard'
@@ -133,6 +152,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   LangRoute: typeof LangRouteWithChildren
   SupportIdRoute: typeof SupportIdRoute
   SupportSupportTicketRoute: typeof SupportSupportTicketRoute
@@ -145,6 +165,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof LangRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -160,6 +187,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/support/$id'
       preLoaderRoute: typeof SupportIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_admin/admin': {
+      id: '/_admin/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminAdminRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_lang/$lang/': {
       id: '/_lang/$lang/'
@@ -206,6 +240,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminAdminRoute: typeof AdminAdminRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminRoute: AdminAdminRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface LangRouteChildren {
   LangLangAccountRoute: typeof LangLangAccountRoute
   LangLangDashboardRoute: typeof LangLangDashboardRoute
@@ -226,6 +270,7 @@ const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   LangRoute: LangRouteWithChildren,
   SupportIdRoute: SupportIdRoute,
   SupportSupportTicketRoute: SupportSupportTicketRoute,
