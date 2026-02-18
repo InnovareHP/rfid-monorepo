@@ -17,6 +17,7 @@ pnpm --filter fe-support test       # Vitest run
 ```
 
 Before running the dev server, ensure shared packages are built if backend is involved:
+
 ```bash
 pnpm build:shared
 ```
@@ -46,6 +47,7 @@ File-based routing in `src/routes/` (TanStack Router):
 - `/_support/support/ticket` — stub route (in progress)
 
 **Conventions:**
+
 - **Pathless layout:** `_name.tsx` (e.g. `_lang`, `_admin`) — layout does not add a URL segment; children define the path.
 - **Dynamic segment:** `$param` in file/folder name (e.g. `$lang`, `$ticketNumber`).
 - **Segment + page:** use a single file for one route (e.g. `_lang/$lang/dashboard.tsx`, `_admin/admin.tsx`) instead of a folder with `index.tsx` when there is only one page for that segment.
@@ -87,3 +89,5 @@ The `_lang` layout wraps pages in `SupportLayout`. The `_admin` layout wraps pag
 - Auth is lazy: root route does NOT block on session; components call `useSession()` individually
 - `SupportChat` is lazy-loaded via `React.lazy()` to avoid blocking initial paint
 - Toast notifications via `sonner` (Toaster in root layout)
+- Use the packages shared for every functions, types, constant that are reusable and generic
+- Create a file for every component being use not always cluttering in one file.

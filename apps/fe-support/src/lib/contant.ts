@@ -21,3 +21,8 @@ export const KNOWLEDGE_BASE_ICON_MAP = {
 } as const;
 
 export const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL;
+
+export const ROLES = {
+  SUPPORT: "support",
+  USER: "user",
+} as const;

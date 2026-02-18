@@ -1,3 +1,4 @@
+import { ROLES } from "@dashboard/shared";
 import {
   BadRequestException,
   Body,
@@ -11,7 +12,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { Priority, TicketCategory, TicketStatus } from "@prisma/client";
-import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { AuthGuard, Roles, Session } from "@thallesp/nestjs-better-auth";
 import {
   CreateLiveChatAttachmentDto,
   CreateLiveChatDto,
@@ -29,6 +30,7 @@ export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
   @Get("/tickets")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async getTickets(
     @Session() session: AuthenticatedSession,
     @Query("page") page: number = 1,
@@ -52,6 +54,7 @@ export class SupportController {
   }
 
   @Get("/tickets/:ticketId")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async getTicketById(
     @Param("ticketId") ticketId: string,
     @Session() session: AuthenticatedSession
@@ -64,6 +67,7 @@ export class SupportController {
   }
 
   @Post("/tickets")
+  @Roles([ROLES.USER])
   async createTicket(
     @Body() dto: CreateTicketDto,
     @Session() session: AuthenticatedSession
@@ -76,6 +80,7 @@ export class SupportController {
   }
 
   @Patch("/tickets/:ticketId")
+  @Roles([ROLES.SUPPORT])
   async updateTicket(
     @Param("ticketId") ticketId: string,
     @Body() dto: UpdateTicketDto,
@@ -93,6 +98,7 @@ export class SupportController {
   }
 
   @Delete("/tickets/:ticketId")
+  @Roles([ROLES.SUPPORT])
   async deleteTicket(
     @Param("ticketId") ticketId: string,
     @Session() session: AuthenticatedSession
@@ -104,9 +110,8 @@ export class SupportController {
     }
   }
 
-  // ── Ticket Messages ──────────────────────────────────
-
   @Post("/tickets/:ticketId/messages")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async createTicketMessage(
     @Param("ticketId") ticketId: string,
     @Body() dto: CreateTicketMessageDto,
@@ -123,9 +128,8 @@ export class SupportController {
     }
   }
 
-  // ── Ticket Attachments ───────────────────────────────
-
   @Post("/tickets/:ticketId/messages/:messageId/attachments")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async createTicketAttachment(
     @Param("messageId") messageId: string,
     @Body() dto: CreateTicketAttachmentDto
@@ -140,9 +144,8 @@ export class SupportController {
     }
   }
 
-  // ── Live Chat ────────────────────────────────────────
-
   @Get("/live-chats")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async getLiveChats(@Session() session: AuthenticatedSession) {
     try {
       return await this.supportService.getLiveChats(session.user.id);
@@ -152,6 +155,7 @@ export class SupportController {
   }
 
   @Get("/live-chats/:chatId")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async getLiveChatById(
     @Param("chatId") chatId: string,
     @Session() session: AuthenticatedSession
@@ -164,6 +168,7 @@ export class SupportController {
   }
 
   @Post("/live-chats")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async createLiveChat(
     @Body() dto: CreateLiveChatDto,
     @Session() session: AuthenticatedSession
@@ -178,9 +183,8 @@ export class SupportController {
     }
   }
 
-  // ── Live Chat Messages ───────────────────────────────
-
   @Post("/live-chats/:chatId/messages")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async createLiveChatMessage(
     @Param("chatId") chatId: string,
     @Body() dto: CreateLiveChatMessageDto,
@@ -197,9 +201,8 @@ export class SupportController {
     }
   }
 
-  // ── Live Chat Attachments ────────────────────────────
-
   @Post("/live-chats/:chatId/attachments")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
   async createLiveChatAttachment(
     @Param("chatId") chatId: string,
     @Body() dto: CreateLiveChatAttachmentDto,

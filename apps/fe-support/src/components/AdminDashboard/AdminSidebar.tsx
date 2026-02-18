@@ -1,4 +1,9 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@dashboard/ui/components/avatar";
+import { authClient, useSession } from "@/lib/auth-client";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@dashboard/ui/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,29 +26,34 @@ import {
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
 import { cn } from "@dashboard/ui/lib/utils";
-import { authClient, useSession } from "@/lib/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
-import { ChevronsUpDown, HelpCircle, LogOut, Shield } from "lucide-react";
+import {
+  ChevronsUpDown,
+  HelpCircle,
+  LogOut,
+  Shield,
+  Ticket,
+} from "lucide-react";
 import * as React from "react";
 
 const LOGO_RFID = "/images/rfid.png";
 const LOGO_TARSIER = "/images/tarsier.png";
 
 const navItems: Array<{
-  id: "admin" | "support";
+  id: string;
   title: string;
   icon: React.ComponentType<{ className?: string }>;
-  path: "/admin" | "/$lang";
+  path: string;
   params?: { lang: string };
 }> = [
-  { id: "admin", title: "Admin Dashboard", icon: Shield, path: "/admin" },
+  { id: "dashboard", title: "Support Dashboard", icon: Shield, path: "/support" },
+  { id: "tickets", title: "Tickets", icon: Ticket, path: "/support/tickets" },
   {
-    id: "support",
+    id: "portal",
     title: "Support Portal",
     icon: HelpCircle,
-    path: "/$lang",
-    params: { lang: "en" },
+    path: "/support/ticket",
   },
 ];
 
@@ -88,7 +98,7 @@ export function AdminSidebar() {
       <SidebarHeader>
         <div className="mb-2 w-full overflow-hidden flex items-center justify-center">
           <Link
-            to="/admin"
+            to="/support"
             className="cursor-pointer flex w-full h-full items-center justify-center"
           >
             <img
@@ -107,13 +117,18 @@ export function AdminSidebar() {
           <SidebarMenu>
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isAdminRoute = item.path === "/admin";
-              const isActive = isAdminRoute
-                ? pathname === "/admin" || pathname.startsWith("/admin/")
-                : pathname === "/en" || pathname.startsWith("/en/");
+              const isActive =
+                item.path === "/support"
+                  ? pathname === "/support"
+                  : pathname === item.path ||
+                    pathname.startsWith(item.path + "/");
               return (
                 <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton tooltip={item.title} isActive={isActive} asChild>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={isActive}
+                    asChild
+                  >
                     <Link
                       to={item.path}
                       params={item.params ?? undefined}
@@ -172,13 +187,13 @@ export function AdminSidebar() {
                         alt={user?.name ?? undefined}
                       />
                       <AvatarFallback className="rounded-lg">
-{user?.name?.charAt(0) ?? "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">
-                      {user?.name ?? "User"}
-                    </span>
+                        {user?.name?.charAt(0) ?? "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-medium">
+                        {user?.name ?? "User"}
+                      </span>
                       <span className="truncate text-xs">
                         {user?.email ?? undefined}
                       </span>

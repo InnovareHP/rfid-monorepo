@@ -9,24 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SupportRouteImport } from './routes/_support'
 import { Route as LangRouteImport } from './routes/_lang'
-import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SupportIdRouteImport } from './routes/support.$id'
-import { Route as AdminAdminRouteImport } from './routes/_admin/admin'
+import { Route as SupportSupportIndexRouteImport } from './routes/_support/support/index'
 import { Route as LangLangIndexRouteImport } from './routes/_lang/$lang/index'
 import { Route as SupportSupportTicketRouteImport } from './routes/_support/support/ticket'
 import { Route as LangLangDashboardRouteImport } from './routes/_lang/$lang/dashboard'
 import { Route as LangLangAccountRouteImport } from './routes/_lang/$lang/account'
+import { Route as SupportSupportTicketsIndexRouteImport } from './routes/_support/support/tickets/index'
 import { Route as LangLangRequestIndexRouteImport } from './routes/_lang/$lang/request/index'
+import { Route as SupportSupportTicketsTicketNumberIndexRouteImport } from './routes/_support/support/tickets/$ticketNumber/index'
 import { Route as LangLangRequestTicketNumberIndexRouteImport } from './routes/_lang/$lang/request/$ticketNumber/index'
 
-const LangRoute = LangRouteImport.update({
-  id: '/_lang',
+const SupportRoute = SupportRouteImport.update({
+  id: '/_support',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/_admin',
+const LangRoute = LangRouteImport.update({
+  id: '/_lang',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -34,15 +35,10 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SupportIdRoute = SupportIdRouteImport.update({
-  id: '/support/$id',
-  path: '/support/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminAdminRoute = AdminAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AdminRoute,
+const SupportSupportIndexRoute = SupportSupportIndexRouteImport.update({
+  id: '/support/',
+  path: '/support/',
+  getParentRoute: () => SupportRoute,
 } as any)
 const LangLangIndexRoute = LangLangIndexRouteImport.update({
   id: '/$lang/',
@@ -50,9 +46,9 @@ const LangLangIndexRoute = LangLangIndexRouteImport.update({
   getParentRoute: () => LangRoute,
 } as any)
 const SupportSupportTicketRoute = SupportSupportTicketRouteImport.update({
-  id: '/_support/support/ticket',
+  id: '/support/ticket',
   path: '/support/ticket',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SupportRoute,
 } as any)
 const LangLangDashboardRoute = LangLangDashboardRouteImport.update({
   id: '/$lang/dashboard',
@@ -64,11 +60,23 @@ const LangLangAccountRoute = LangLangAccountRouteImport.update({
   path: '/$lang/account',
   getParentRoute: () => LangRoute,
 } as any)
+const SupportSupportTicketsIndexRoute =
+  SupportSupportTicketsIndexRouteImport.update({
+    id: '/support/tickets/',
+    path: '/support/tickets/',
+    getParentRoute: () => SupportRoute,
+  } as any)
 const LangLangRequestIndexRoute = LangLangRequestIndexRouteImport.update({
   id: '/$lang/request/',
   path: '/$lang/request/',
   getParentRoute: () => LangRoute,
 } as any)
+const SupportSupportTicketsTicketNumberIndexRoute =
+  SupportSupportTicketsTicketNumberIndexRouteImport.update({
+    id: '/support/tickets/$ticketNumber/',
+    path: '/support/tickets/$ticketNumber/',
+    getParentRoute: () => SupportRoute,
+  } as any)
 const LangLangRequestTicketNumberIndexRoute =
   LangLangRequestTicketNumberIndexRouteImport.update({
     id: '/$lang/request/$ticketNumber/',
@@ -78,100 +86,104 @@ const LangLangRequestTicketNumberIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminAdminRoute
-  '/support/$id': typeof SupportIdRoute
   '/$lang/account': typeof LangLangAccountRoute
   '/$lang/dashboard': typeof LangLangDashboardRoute
   '/support/ticket': typeof SupportSupportTicketRoute
   '/$lang/': typeof LangLangIndexRoute
+  '/support/': typeof SupportSupportIndexRoute
   '/$lang/request/': typeof LangLangRequestIndexRoute
+  '/support/tickets/': typeof SupportSupportTicketsIndexRoute
   '/$lang/request/$ticketNumber/': typeof LangLangRequestTicketNumberIndexRoute
+  '/support/tickets/$ticketNumber/': typeof SupportSupportTicketsTicketNumberIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminAdminRoute
-  '/support/$id': typeof SupportIdRoute
   '/$lang/account': typeof LangLangAccountRoute
   '/$lang/dashboard': typeof LangLangDashboardRoute
   '/support/ticket': typeof SupportSupportTicketRoute
   '/$lang': typeof LangLangIndexRoute
+  '/support': typeof SupportSupportIndexRoute
   '/$lang/request': typeof LangLangRequestIndexRoute
+  '/support/tickets': typeof SupportSupportTicketsIndexRoute
   '/$lang/request/$ticketNumber': typeof LangLangRequestTicketNumberIndexRoute
+  '/support/tickets/$ticketNumber': typeof SupportSupportTicketsTicketNumberIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_admin': typeof AdminRouteWithChildren
   '/_lang': typeof LangRouteWithChildren
-  '/_admin/admin': typeof AdminAdminRoute
-  '/support/$id': typeof SupportIdRoute
+  '/_support': typeof SupportRouteWithChildren
   '/_lang/$lang/account': typeof LangLangAccountRoute
   '/_lang/$lang/dashboard': typeof LangLangDashboardRoute
   '/_support/support/ticket': typeof SupportSupportTicketRoute
   '/_lang/$lang/': typeof LangLangIndexRoute
+  '/_support/support/': typeof SupportSupportIndexRoute
   '/_lang/$lang/request/': typeof LangLangRequestIndexRoute
+  '/_support/support/tickets/': typeof SupportSupportTicketsIndexRoute
   '/_lang/$lang/request/$ticketNumber/': typeof LangLangRequestTicketNumberIndexRoute
+  '/_support/support/tickets/$ticketNumber/': typeof SupportSupportTicketsTicketNumberIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
-    | '/support/$id'
     | '/$lang/account'
     | '/$lang/dashboard'
     | '/support/ticket'
     | '/$lang/'
+    | '/support/'
     | '/$lang/request/'
+    | '/support/tickets/'
     | '/$lang/request/$ticketNumber/'
+    | '/support/tickets/$ticketNumber/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
-    | '/support/$id'
     | '/$lang/account'
     | '/$lang/dashboard'
     | '/support/ticket'
     | '/$lang'
+    | '/support'
     | '/$lang/request'
+    | '/support/tickets'
     | '/$lang/request/$ticketNumber'
+    | '/support/tickets/$ticketNumber'
   id:
     | '__root__'
     | '/'
-    | '/_admin'
     | '/_lang'
-    | '/_admin/admin'
-    | '/support/$id'
+    | '/_support'
     | '/_lang/$lang/account'
     | '/_lang/$lang/dashboard'
     | '/_support/support/ticket'
     | '/_lang/$lang/'
+    | '/_support/support/'
     | '/_lang/$lang/request/'
+    | '/_support/support/tickets/'
     | '/_lang/$lang/request/$ticketNumber/'
+    | '/_support/support/tickets/$ticketNumber/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRouteWithChildren
   LangRoute: typeof LangRouteWithChildren
-  SupportIdRoute: typeof SupportIdRoute
-  SupportSupportTicketRoute: typeof SupportSupportTicketRoute
+  SupportRoute: typeof SupportRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_support': {
+      id: '/_support'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_lang': {
       id: '/_lang'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof LangRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_admin': {
-      id: '/_admin'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -181,19 +193,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/support/$id': {
-      id: '/support/$id'
-      path: '/support/$id'
-      fullPath: '/support/$id'
-      preLoaderRoute: typeof SupportIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_admin/admin': {
-      id: '/_admin/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminAdminRouteImport
-      parentRoute: typeof AdminRoute
+    '/_support/support/': {
+      id: '/_support/support/'
+      path: '/support'
+      fullPath: '/support/'
+      preLoaderRoute: typeof SupportSupportIndexRouteImport
+      parentRoute: typeof SupportRoute
     }
     '/_lang/$lang/': {
       id: '/_lang/$lang/'
@@ -207,7 +212,7 @@ declare module '@tanstack/react-router' {
       path: '/support/ticket'
       fullPath: '/support/ticket'
       preLoaderRoute: typeof SupportSupportTicketRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SupportRoute
     }
     '/_lang/$lang/dashboard': {
       id: '/_lang/$lang/dashboard'
@@ -223,12 +228,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangLangAccountRouteImport
       parentRoute: typeof LangRoute
     }
+    '/_support/support/tickets/': {
+      id: '/_support/support/tickets/'
+      path: '/support/tickets'
+      fullPath: '/support/tickets/'
+      preLoaderRoute: typeof SupportSupportTicketsIndexRouteImport
+      parentRoute: typeof SupportRoute
+    }
     '/_lang/$lang/request/': {
       id: '/_lang/$lang/request/'
       path: '/$lang/request'
       fullPath: '/$lang/request/'
       preLoaderRoute: typeof LangLangRequestIndexRouteImport
       parentRoute: typeof LangRoute
+    }
+    '/_support/support/tickets/$ticketNumber/': {
+      id: '/_support/support/tickets/$ticketNumber/'
+      path: '/support/tickets/$ticketNumber'
+      fullPath: '/support/tickets/$ticketNumber/'
+      preLoaderRoute: typeof SupportSupportTicketsTicketNumberIndexRouteImport
+      parentRoute: typeof SupportRoute
     }
     '/_lang/$lang/request/$ticketNumber/': {
       id: '/_lang/$lang/request/$ticketNumber/'
@@ -239,16 +258,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface AdminRouteChildren {
-  AdminAdminRoute: typeof AdminAdminRoute
-}
-
-const AdminRouteChildren: AdminRouteChildren = {
-  AdminAdminRoute: AdminAdminRoute,
-}
-
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface LangRouteChildren {
   LangLangAccountRoute: typeof LangLangAccountRoute
@@ -268,12 +277,28 @@ const LangRouteChildren: LangRouteChildren = {
 
 const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
 
+interface SupportRouteChildren {
+  SupportSupportTicketRoute: typeof SupportSupportTicketRoute
+  SupportSupportIndexRoute: typeof SupportSupportIndexRoute
+  SupportSupportTicketsIndexRoute: typeof SupportSupportTicketsIndexRoute
+  SupportSupportTicketsTicketNumberIndexRoute: typeof SupportSupportTicketsTicketNumberIndexRoute
+}
+
+const SupportRouteChildren: SupportRouteChildren = {
+  SupportSupportTicketRoute: SupportSupportTicketRoute,
+  SupportSupportIndexRoute: SupportSupportIndexRoute,
+  SupportSupportTicketsIndexRoute: SupportSupportTicketsIndexRoute,
+  SupportSupportTicketsTicketNumberIndexRoute:
+    SupportSupportTicketsTicketNumberIndexRoute,
+}
+
+const SupportRouteWithChildren =
+  SupportRoute._addFileChildren(SupportRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRouteWithChildren,
   LangRoute: LangRouteWithChildren,
-  SupportIdRoute: SupportIdRoute,
-  SupportSupportTicketRoute: SupportSupportTicketRoute,
+  SupportRoute: SupportRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

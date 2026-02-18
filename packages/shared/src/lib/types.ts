@@ -336,3 +336,50 @@ export type TicketRow = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TicketMessage = {
+  id: string;
+  message: string;
+  sender: string;
+  createdAt: string;
+  senderUser: {
+    id: string;
+    user_name: string;
+    user_image: string;
+  };
+  SupportTicketAttachment: TicketAttachment[];
+};
+
+export type TicketAttachment = {
+  id: string;
+  imageUrl: string;
+  createdAt: string;
+};
+
+export type TicketDetail = {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  subject: string;
+  description: string;
+  category: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  createBy: string;
+  createByUser: {
+    id: string;
+    user_name: string;
+    user_image: string;
+  };
+  assignedToUser: {
+    id: string;
+    user_name: string;
+    user_image: string;
+  };
+  SupportTicketMessage: TicketMessage[];
+  SupportHistory: {
+    createdAt: string;
+  }[];
+};

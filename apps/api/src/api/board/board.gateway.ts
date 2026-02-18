@@ -1,8 +1,10 @@
+import { UseGuards } from "@nestjs/common";
 import {
   OnGatewayConnection,
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets";
+import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { Server, Socket } from "socket.io";
 import { appConfig } from "src/config/app-config";
 import { auth } from "src/lib/auth/auth";
@@ -10,48 +12,63 @@ import { auth } from "src/lib/auth/auth";
 @WebSocketGateway({
   cors: { origin: appConfig.WEBSITE_URL, credentials: true },
 })
+@UseGuards(AuthGuard)
 export class BoardGateway implements OnGatewayConnection {
   @WebSocketServer() server: Server;
+
+  async getSessionFromSocket(socket: Socket) {
+    const cookie = socket.handshake.headers.cookie;
+
+    if (!cookie) return null;
+
+    const session = await auth.api.getSession({
+      headers: { cookie },
+    });
+  
+    return session?.session;
+  }
 
   afterInit(server: Server) {
     server.use(async (socket, next) => {
       try {
-        const token = socket.handshake.auth.token;
+        const session = await this.getSessionFromSocket(socket);
 
-        if (!token) return next(new Error("unauthorized"));
+        if (!session) {
+          return next(new Error("Unauthorized"));
+        }
 
-        const session = await auth.api.verifyOneTimeToken({
-          body: { token },
-        });
-
-        const orgId = session?.session?.activeOrganizationId;
-
-        if (!orgId) return next(new Error("unauthorized"));
-
-        // Attach for later use
-        socket.data.orgId = orgId;
+        socket.data.session = session;
 
         next();
-      } catch {
-        next(new Error("unauthorized"));
+      } catch (err) {
+        next(err);
       }
     });
   }
 
   async handleConnection(client: Socket) {
-    const orgId = client.data.orgId;
+    const session = client.data.session;
 
-    if (!orgId) {
-      client.disconnect(true);
+    if (!session) {
+      client.disconnect();
       return;
     }
 
-    await client.join(`org:${orgId}`);
+    const orgId = session?.activeOrganizationId;
 
-    client.emit("debug:joined", {
-      room: `org:${orgId}`,
-    });
+    if (!orgId) {
+      client.disconnect();
+      return;
+    }
+
+    console.log(
+      "user connected to board gateway",
+      session.activeOrganizationId
+    );
+
+    await client.join(`org:${orgId}`);
   }
+
   emitRecordCreated(orgId: string, record: any) {
     this.server.to(`org:${orgId}`).emit("board:record-created", { record });
   }

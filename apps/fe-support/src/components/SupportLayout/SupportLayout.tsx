@@ -1,5 +1,5 @@
-import { authClient, useSession } from "@/lib/auth-client";
-import { DASHBOARD_URL } from "@/lib/contant";
+import { authClient } from "@/lib/auth-client";
+import { DASHBOARD_URL, ROLES } from "@/lib/contant";
 import {
   DEFAULT_LANGUAGE_LABEL,
   FOOTER_COPYRIGHT,
@@ -17,10 +17,17 @@ import {
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useParams, useRouter } from "@tanstack/react-router";
+import {
+  Link,
+  useParams,
+  useRouteContext,
+  useRouter,
+} from "@tanstack/react-router";
+import type { User as BetterAuthUser } from "better-auth";
 import {
   ChevronDown,
   ClipboardList,
+  LayoutDashboard,
   LogIn,
   LogOut,
   Mail,
@@ -40,8 +47,11 @@ export function SupportLayout({ children }: SupportLayoutProps) {
   const accountPath = `/${lang}/account`;
   const requestPath = `/${lang}/request`;
 
-  const { data: session } = useSession();
-  const user = session?.user;
+  const { user } = useRouteContext({ from: "__root__" }) as {
+    user: BetterAuthUser & { role: string };
+  };
+
+  const isSupport = user?.role === ROLES.SUPPORT;
   const dropdownContentClass =
     "w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg";
   const dropdownSideOffset = 4;
@@ -127,21 +137,32 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                   sideOffset={dropdownSideOffset}
                 >
                   <DropdownMenuGroup>
-                    <DropdownMenuItem asChild>
-                      <Link to={requestPath} className="cursor-pointer">
-                        <ClipboardList className="size-4" />
-                        My requests
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to={accountPath} className="cursor-pointer">
-                        <User className="size-4" />
-                        Account
-                      </Link>
-                    </DropdownMenuItem>
+                    {isSupport ? (
+                      <DropdownMenuItem asChild>
+                        <Link to="/support" className="cursor-pointer">
+                          <LayoutDashboard className="size-4" />
+                          Support Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to={requestPath} className="cursor-pointer">
+                            <ClipboardList className="size-4" />
+                            My requests
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={accountPath} className="cursor-pointer">
+                            <User className="size-4" />
+                            Account
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="size-4" />
                     Sign out
                   </DropdownMenuItem>
@@ -176,22 +197,34 @@ export function SupportLayout({ children }: SupportLayoutProps) {
               sideOffset={dropdownSideOffset}
             >
               <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                  <Link to={requestPath} className="cursor-pointer">
-                    <ClipboardList className="size-4" />
-                    My requests
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Mail className="size-4" />
-                  Contact Us
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to={accountPath} className="cursor-pointer">
-                    <User className="size-4" />
-                    Account
-                  </Link>
-                </DropdownMenuItem>
+                {isSupport ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/support" className="cursor-pointer">
+                      <LayoutDashboard className="size-4" />
+                      Support Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                ) : (
+                  <>
+                    {" "}
+                    <DropdownMenuItem asChild>
+                      <Link to={requestPath} className="cursor-pointer">
+                        <ClipboardList className="size-4" />
+                        My requests
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Mail className="size-4" />
+                      Contact Us
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={accountPath} className="cursor-pointer">
+                        <User className="size-4" />
+                        Account
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem>

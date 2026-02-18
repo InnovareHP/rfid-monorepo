@@ -360,7 +360,10 @@ const TeamPage = () => {
                       onValueChange={(value) =>
                         form.setValue(
                           "role",
-                          value as (typeof ROLES)[keyof typeof ROLES]
+                          value as Exclude<
+                            (typeof ROLES)[keyof typeof ROLES],
+                            "support" | "user"
+                          >
                         )
                       }
                       defaultValue={ROLES.LIASON}

@@ -17,10 +17,14 @@ export class SupportService {
     const offset = (page - 1) * take;
     const where: Prisma.SupportTicketWhereInput = {};
 
-    if (user.role === ROLES.OWNER) {
+    if (user.role !== ROLES.USER) {
       where.createBy = undefined;
     } else {
       where.createBy = user.id;
+    }
+
+    if (user.role === ROLES.SUPPORT) {
+      where.assignedTo = user.id;
     }
 
     if (priority) {
@@ -54,7 +58,7 @@ export class SupportService {
         createBy: true,
         createdAt: true,
         updatedAt: true,
-        ...(user.role === ROLES.OWNER && {
+        ...(user.role === ROLES.SUPPORT && {
           assignedToUser: {
             select: { id: true, user_name: true, user_image: true },
           },
@@ -102,7 +106,38 @@ export class SupportService {
     return ticket;
   }
 
+  async getNextSupportAgent(): Promise<string> {
+    const supportUsers = await prisma.user_table.findMany({
+      where: { user_role: ROLES.SUPPORT },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            SupportTicketAssignedTo: {
+              where: { status: { not: "CLOSED" } },
+            },
+          },
+        },
+      },
+    });
+
+    if (supportUsers.length === 0) {
+      throw new NotFoundException("No support agents available");
+    }
+
+    const minCount = Math.min(
+      ...supportUsers.map((u) => u._count.SupportTicketAssignedTo)
+    );
+    const leastBusy = supportUsers.filter(
+      (u) => u._count.SupportTicketAssignedTo === minCount
+    );
+
+    return leastBusy[Math.floor(Math.random() * leastBusy.length)].id;
+  }
+
   async createTicket(userId: string, data: CreateTicketDto) {
+    const assignedTo = await this.getNextSupportAgent();
+
     return prisma.supportTicket.create({
       data: {
         title: data.title,
@@ -110,7 +145,7 @@ export class SupportService {
         description: data.description,
         category: data.category,
         priority: data.priority,
-        assignedTo: userId,
+        assignedTo,
         createBy: userId,
         SupportTicketMessage: {
           create: {
