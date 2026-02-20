@@ -1,6 +1,14 @@
 import { authClient } from "@/lib/auth-client";
+import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@dashboard/ui/components/dialog";
 import {
   Form,
   FormControl,
@@ -15,10 +23,28 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import type { ErrorContext } from "better-auth/react";
-import { Loader2, Lock, Mail, TrendingUp, Users } from "lucide-react";
+import {
+  HeadphonesIcon,
+  LayoutDashboard,
+  Loader2,
+  Lock,
+  Mail,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
+
+// NOTE: the shared ROLES type may not expose SUPER_ADMIN yet,
+// so we treat the literal string as the super admin role key.
+const SUPER_ADMIN_ROLE = "super_admin";
+const PRIVILEGED_ROLES: string[] = [ROLES.SUPPORT, SUPER_ADMIN_ROLE];
+
+type PendingNav = {
+  activeOrganizationId: string | null | undefined;
+};
 
 export function LoginForm({
   className,
@@ -26,6 +52,9 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const navigate = useRouter();
   const queryClient = useQueryClient();
+  const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
+  const [pendingRole, setPendingRole] = useState<string | null>(null);
+
   const formSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
@@ -38,6 +67,35 @@ export function LoginForm({
       password: "",
     },
   });
+
+  const goToMainDashboard = async (data: PendingNav) => {
+    setPendingNav(null);
+    if (data.activeOrganizationId) {
+      await navigate.navigate({
+        to: "/$team",
+        params: { team: data.activeOrganizationId },
+        replace: true,
+      });
+    } else {
+      await navigate.navigate({ to: "/onboarding", replace: true });
+    }
+  };
+
+  const goToSupportDashboard = () => {
+    setPendingNav(null);
+    setPendingRole(null);
+    const baseUrl =
+      import.meta.env.VITE_SUPPORT_URL || "http://localhost:3001";
+    window.location.href = `${baseUrl}/support`;
+  };
+
+  const goToSuperAdminDashboard = () => {
+    setPendingNav(null);
+    setPendingRole(null);
+    const baseUrl =
+      import.meta.env.VITE_SUPPORT_URL || "http://localhost:3001";
+    window.location.href = `${baseUrl}/admin`;
+  };
 
   const handleLogin = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -55,17 +113,18 @@ export function LoginForm({
 
             const { data: freshSession } = await authClient.getSession();
 
-            if (freshSession?.session?.activeOrganizationId) {
-              await navigate.navigate({
-                to: "/$team",
-                params: {
-                  team: freshSession.session.activeOrganizationId,
-                },
-                replace: true,
-              });
-            } else {
-              await navigate.navigate({ to: "/onboarding", replace: true });
+            const role = (freshSession?.user as any)?.role as string;
+            const navData: PendingNav = {
+              activeOrganizationId: freshSession?.session?.activeOrganizationId,
+            };
+
+            if (role && PRIVILEGED_ROLES.includes(role)) {
+              setPendingNav(navData);
+              setPendingRole(role);
+              return;
             }
+
+            await goToMainDashboard(navData);
           },
         }
       );
@@ -75,198 +134,277 @@ export function LoginForm({
   };
 
   return (
-    <div
-      className={cn("flex items-center justify-center gap-0 p-4", className)}
-      {...props}
-    >
-      <div className="flex items-stretch w-full overflow-hidden rounded-2xl shadow-xl">
-        {/* Left Side - Image background + text */}
-        <div className="hidden lg:block relative lg:w-3/5 min-h-[28rem]">
-          {/* Background image - slightly dimmed so overlay and text stand out */}
-          <div
-            className="absolute inset-0 bg-cover bg-center brightness-95"
-            style={{ backgroundImage: "url(/login-page/login-img-2.jpg)" }}
-            aria-hidden
-          />
-          {/* Gradient overlay: lighter at top so image shows, darker at bottom for text readability */}
-          <div
-            className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/75"
-            aria-hidden
-          />
-          {/* Content */}
-          <div className="relative z-10 flex flex-col justify-center h-full p-10 text-white">
-            <div className="flex flex-col gap-0 space-y-10 [text-shadow:_0_1px_2px_rgba(0,0,0,0.3)]">
-              <div className="flex flex-col gap-0">
-                <img
-                  src="/login-page/rfid.png"
-                  alt="Innovare HP Referral Intelligence"
-                  className="w-full h-auto object-contain max-h-52 invert brightness-0 drop-shadow-md"
-                />
-                <p className="text-xl text-white leading-relaxed mt-4">
-                  Streamline your healthcare marketing and analytics
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
-                    <TrendingUp className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white mb-2 text-lg">
-                      Advanced Analytics
-                    </h3>
-                    <p className="text-white/95 leading-relaxed">
-                      Track performance metrics and gain actionable insights
-                    </p>
-                  </div>
+    <>
+      <div
+        className={cn("flex items-center justify-center gap-0 p-4", className)}
+        {...props}
+      >
+        <div className="flex items-stretch w-full overflow-hidden rounded-2xl shadow-xl">
+          {/* Left Side - Image background + text */}
+          <div className="hidden lg:block relative lg:w-3/5 min-h-[28rem]">
+            {/* Background image - slightly dimmed so overlay and text stand out */}
+            <div
+              className="absolute inset-0 bg-cover bg-center brightness-95"
+              style={{ backgroundImage: "url(/login-page/login-img-2.jpg)" }}
+              aria-hidden
+            />
+            {/* Gradient overlay: lighter at top so image shows, darker at bottom for text readability */}
+            <div
+              className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/75"
+              aria-hidden
+            />
+            {/* Content */}
+            <div className="relative z-10 flex flex-col justify-center h-full p-10 text-white">
+              <div className="flex flex-col gap-0 space-y-10 [text-shadow:_0_1px_2px_rgba(0,0,0,0.3)]">
+                <div className="flex flex-col gap-0">
+                  <img
+                    src="/login-page/rfid.png"
+                    alt="Innovare HP Referral Intelligence"
+                    className="w-full h-auto object-contain max-h-52 invert brightness-0 drop-shadow-md"
+                  />
+                  <p className="text-xl text-white leading-relaxed mt-4">
+                    Streamline your healthcare marketing and analytics
+                  </p>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
-                    <Users className="w-7 h-7 text-white" />
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
+                      <TrendingUp className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white mb-2 text-lg">
+                        Advanced Analytics
+                      </h3>
+                      <p className="text-white/95 leading-relaxed">
+                        Track performance metrics and gain actionable insights
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white mb-2 text-lg">
-                      Team Collaboration
-                    </h3>
-                    <p className="text-white/95 leading-relaxed">
-                      Work seamlessly with your team across all locations
-                    </p>
+
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
+                      <Users className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white mb-2 text-lg">
+                        Team Collaboration
+                      </h3>
+                      <p className="text-white/95 leading-relaxed">
+                        Work seamlessly with your team across all locations
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Right Side - Login Form */}
-        <div className="w-full lg:w-2/5">
-          <Card className="border-2 border-l-0 lg:border-l-2 shadow-none rounded-none lg:rounded-r-2xl h-full">
-            <CardContent className="p-8">
-              <Form {...form}>
-                <form
-                  className="space-y-6"
-                  onSubmit={form.handleSubmit(handleLogin)}
-                >
-                  <div className="space-y-2 text-center">
-                    <img
-                      src="/login-page/tarsier.png"
-                      alt=""
-                      className="w-16 h-16 mx-auto mb-4 object-contain"
-                    />
-                    <h2 className="text-3xl font-bold text-gray-900">
-                      Welcome back
-                    </h2>
-                    <p className="text-gray-600">
-                      Sign in to your account to continue
-                    </p>
-                  </div>
-
-                  <div className="space-y-5">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-semibold text-gray-700">
-                            Email Address
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <Input
-                                {...field}
-                                placeholder="you@example.com"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between mb-2">
-                            <FormLabel className="text-sm font-semibold text-gray-700">
-                              Password
-                            </FormLabel>
-                            <Link
-                              to="/reset-password"
-                              className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                            >
-                              Forgot password?
-                            </Link>
-                          </div>
-                          <FormControl>
-                            <div className="relative">
-                              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <Input
-                                {...field}
-                                placeholder="••••••••"
-                                type="password"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      disabled={form.formState.isSubmitting}
-                      type="submit"
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
-                    >
-                      {form.formState.isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>Signing in...</span>
-                        </div>
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-
-                    <div className="text-center text-sm text-gray-600 pt-4">
-                      Don't have an account?{" "}
-                      <Link
-                        to="/register"
-                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                      >
-                        Sign up for free
-                      </Link>
+          {/* Right Side - Login Form */}
+          <div className="w-full lg:w-2/5">
+            <Card className="border-2 border-l-0 lg:border-l-2 shadow-none rounded-none lg:rounded-r-2xl h-full">
+              <CardContent className="p-8">
+                <Form {...form}>
+                  <form
+                    className="space-y-6"
+                    onSubmit={form.handleSubmit(handleLogin)}
+                  >
+                    <div className="space-y-2 text-center">
+                      <img
+                        src="/login-page/tarsier.png"
+                        alt=""
+                        className="w-16 h-16 mx-auto mb-4 object-contain"
+                      />
+                      <h2 className="text-3xl font-bold text-gray-900">
+                        Welcome back
+                      </h2>
+                      <p className="text-gray-600">
+                        Sign in to your account to continue
+                      </p>
                     </div>
-                  </div>
-                </form>
-              </Form>
-              <div className="mt-6 text-center text-xs text-gray-500">
-                By continuing, you agree to our{" "}
-                <a
-                  href="#"
-                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
-                >
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a
-                  href="#"
-                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
-                >
-                  Privacy Policy
-                </a>
-                .
-              </div>
-            </CardContent>
-          </Card>
+
+                    <div className="space-y-5">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold text-gray-700">
+                              Email Address
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Input
+                                  {...field}
+                                  placeholder="you@example.com"
+                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between mb-2">
+                              <FormLabel className="text-sm font-semibold text-gray-700">
+                                Password
+                              </FormLabel>
+                              <Link
+                                to="/reset-password"
+                                className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                              >
+                                Forgot password?
+                              </Link>
+                            </div>
+                            <FormControl>
+                              <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Input
+                                  {...field}
+                                  placeholder="••••••••"
+                                  type="password"
+                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button
+                        disabled={form.formState.isSubmitting}
+                        type="submit"
+                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
+                      >
+                        {form.formState.isSubmitting ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Signing in...</span>
+                          </div>
+                        ) : (
+                          "Sign In"
+                        )}
+                      </Button>
+
+                      <div className="text-center text-sm text-gray-600 pt-4">
+                        Don't have an account?{" "}
+                        <Link
+                          to="/register"
+                          className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                        >
+                          Sign up for free
+                        </Link>
+                      </div>
+                    </div>
+                  </form>
+                </Form>
+                <div className="mt-6 text-center text-xs text-gray-500">
+                  By continuing, you agree to our{" "}
+                  <a
+                    href="#"
+                    className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                  >
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="#"
+                    className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                  .
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Dashboard selection dialog for support / super_admin roles */}
+      <Dialog
+        open={pendingNav !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingNav(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              Choose a Dashboard
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-500">
+              Your account has access to multiple dashboards. Where would you
+              like to go?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 mt-2">
+            <button
+              onClick={() => pendingNav && goToMainDashboard(pendingNav)}
+              className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
+            >
+              <div className="p-2.5 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors flex-shrink-0">
+                <LayoutDashboard className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">
+                  Main Dashboard
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Lead management, referrals &amp; analytics
+                </p>
+              </div>
+            </button>
+
+            {pendingRole === ROLES.SUPPORT && (
+              <button
+                onClick={goToSupportDashboard}
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+              >
+                <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
+                  <HeadphonesIcon className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    Support Dashboard
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Manage tickets, chats &amp; support requests
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {pendingRole === SUPER_ADMIN_ROLE && (
+              <button
+                onClick={goToSuperAdminDashboard}
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all text-left group"
+              >
+                <div className="p-2.5 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors flex-shrink-0">
+                  <LayoutDashboard className="w-5 h-5 text-purple-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    Super Admin Dashboard
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Platform-wide admin controls & analytics
+                  </p>
+                </div>
+              </button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
