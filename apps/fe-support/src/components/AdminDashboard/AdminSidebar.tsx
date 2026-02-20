@@ -1,4 +1,5 @@
 import { authClient, useSession } from "@/lib/auth-client";
+import { ROLES } from "@/lib/contant";
 import {
   Avatar,
   AvatarFallback,
@@ -31,6 +32,7 @@ import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
   ChevronsUpDown,
   HelpCircle,
+  LayoutDashboard,
   LogOut,
   Shield,
   Ticket,
@@ -40,23 +42,6 @@ import * as React from "react";
 const LOGO_RFID = "/images/rfid.png";
 const LOGO_TARSIER = "/images/tarsier.png";
 
-const navItems: Array<{
-  id: string;
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  path: string;
-  params?: { lang: string };
-}> = [
-  { id: "dashboard", title: "Support Dashboard", icon: Shield, path: "/support" },
-  { id: "tickets", title: "Tickets", icon: Ticket, path: "/support/tickets" },
-  {
-    id: "portal",
-    title: "Support Portal",
-    icon: HelpCircle,
-    path: "/support/ticket",
-  },
-];
-
 export function AdminSidebar() {
   const { pathname } = useLocation();
   const router = useRouter();
@@ -64,6 +49,7 @@ export function AdminSidebar() {
   const { data: session } = useSession();
   const { state, isMobile } = useSidebar();
   const user = session?.user;
+  const role = (user as { role?: string } | undefined)?.role;
 
   const handleLogout = React.useCallback(async () => {
     try {
@@ -115,32 +101,73 @@ export function AdminSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Admin</SidebarGroupLabel>
           <SidebarMenu>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                item.path === "/support"
-                  ? pathname === "/support"
-                  : pathname === item.path ||
-                    pathname.startsWith(item.path + "/");
-              return (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    tooltip={item.title}
-                    isActive={isActive}
-                    asChild
-                  >
-                    <Link
-                      to={item.path}
-                      params={item.params ?? undefined}
-                      preload={false}
+            {(() => {
+              // Role-based navigation:
+              // - SUPER_ADMIN: only Admin Dashboard (/admin)
+              // - SUPPORT: support dashboard + tickets + portal
+              // - others: no items for now
+              const items =
+                role === ROLES.SUPER_ADMIN
+                  ? [
+                      {
+                        id: "admin-dashboard",
+                        title: "Admin Dashboard",
+                        icon: LayoutDashboard,
+                        path: "/admin",
+                      },
+                    ]
+                  : role === ROLES.SUPPORT
+                  ? [
+                      {
+                        id: "dashboard",
+                        title: "Support Dashboard",
+                        icon: Shield,
+                        path: "/support",
+                      },
+                      {
+                        id: "tickets",
+                        title: "Tickets",
+                        icon: Ticket,
+                        path: "/support/tickets",
+                      },
+                      {
+                        id: "portal",
+                        title: "Support Portal",
+                        icon: HelpCircle,
+                        path: "/support/ticket",
+                      },
+                    ]
+                  : [];
+
+              return items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  item.path === "/support"
+                    ? pathname === "/support"
+                    : item.path === "/admin"
+                    ? pathname === "/admin" || pathname.startsWith("/admin/")
+                    : pathname === item.path ||
+                      pathname.startsWith(item.path + "/");
+
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      isActive={isActive}
+                      asChild
                     >
-                      <Icon className="size-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
+                      <Link
+                        to={item.path}
+                        preload={false}
+                      >
+                        <Icon className="size-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              });
+            })()}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

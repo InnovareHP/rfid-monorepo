@@ -13,6 +13,19 @@ export const IsAuthenticated = (context: any) => {
   return true;
 };
 
+export const IsSuperAdmin = (context: any) => {
+  const session = context.context.session;
+
+  const user = context.context.user;
+
+  if (!session || user.role !== ROLES.SUPER_ADMIN) {
+    // Non-super-admins should not see /admin; send them to support dashboard.
+    throw redirect({ to: "/support" as any });
+  }
+
+  return true;
+};
+
 export const IsSupport = (context: any) => {
   const session = context.context.session;
 

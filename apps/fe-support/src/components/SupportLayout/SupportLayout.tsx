@@ -52,6 +52,7 @@ export function SupportLayout({ children }: SupportLayoutProps) {
   };
 
   const isSupport = user?.role === ROLES.SUPPORT;
+  const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
   const dropdownContentClass =
     "w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg";
   const dropdownSideOffset = 4;
@@ -137,7 +138,14 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                   sideOffset={dropdownSideOffset}
                 >
                   <DropdownMenuGroup>
-                    {isSupport ? (
+                    {isSuperAdmin ? (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="cursor-pointer">
+                          <LayoutDashboard className="size-4" />
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : isSupport ? (
                       <DropdownMenuItem asChild>
                         <Link to="/support" className="cursor-pointer">
                           <LayoutDashboard className="size-4" />
@@ -197,7 +205,14 @@ export function SupportLayout({ children }: SupportLayoutProps) {
               sideOffset={dropdownSideOffset}
             >
               <DropdownMenuGroup>
-                {isSupport ? (
+                {isSuperAdmin ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="cursor-pointer">
+                      <LayoutDashboard className="size-4" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                ) : isSupport ? (
                   <DropdownMenuItem asChild>
                     <Link to="/support" className="cursor-pointer">
                       <LayoutDashboard className="size-4" />
@@ -206,7 +221,6 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                   </DropdownMenuItem>
                 ) : (
                   <>
-                    {" "}
                     <DropdownMenuItem asChild>
                       <Link to={requestPath} className="cursor-pointer">
                         <ClipboardList className="size-4" />
