@@ -1,5 +1,9 @@
 import { ROLES, User } from "@dashboard/shared";
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { Priority, Prisma, TicketCategory, TicketStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma/prisma";
 import { CreateTicketDto } from "./dto/support.schema";
@@ -106,6 +110,13 @@ export class SupportService {
     return ticket;
   }
 
+  async getSupportAgents() {
+    return prisma.user_table.findMany({
+      where: { user_role: ROLES.SUPPORT },
+      select: { id: true, user_name: true, user_image: true },
+    });
+  }
+
   async getNextSupportAgent(): Promise<string> {
     const supportUsers = await prisma.user_table.findMany({
       where: { user_role: ROLES.SUPPORT },
@@ -159,6 +170,7 @@ export class SupportService {
         SupportHistory: {
           create: {
             message: data.description,
+            changeType: "CREATED",
             sender: userId,
           },
         },
@@ -298,6 +310,140 @@ export class SupportService {
         imageUrl,
         sender: userId,
         supportLiveChatId: chatId,
+      },
+    });
+  }
+
+  async assignTicket(
+    ticketId: string,
+    agentId: string,
+    requestingUserId: string
+  ) {
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { id: ticketId },
+    });
+    if (!ticket) throw new NotFoundException("Ticket not found");
+
+    return prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: {
+        assignedTo: agentId,
+        SupportHistory: {
+          create: {
+            message: "Ticket reassigned to a different agent",
+            changeType: "ASSIGNED",
+            sender: requestingUserId,
+          },
+        },
+      },
+    });
+  }
+
+  async rateTicket(
+    ticketId: string,
+    userId: string,
+    rating: number,
+    comment?: string
+  ) {
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { ticketNumber: ticketId, createBy: userId },
+    });
+    if (!ticket) throw new NotFoundException("Ticket not found");
+    if (ticket.status !== "CLOSED" && ticket.status !== "RESOLVED") {
+      throw new BadRequestException(
+        "Can only rate a ticket that is closed or resolved"
+      );
+    }
+
+    return prisma.supportTicketRating.upsert({
+      where: { supportTicketId: ticket.id },
+      create: {
+        rating,
+        comment,
+        supportTicketId: ticket.id,
+        createdBy: userId,
+      },
+      update: { rating, comment },
+    });
+  }
+
+  async getTicketHistory(ticketId: string, user: User & { role: string }) {
+    const where: Prisma.SupportTicketWhereInput = { ticketNumber: ticketId };
+
+    if (user.role === ROLES.SUPPORT) {
+      where.assignedTo = user.id;
+    } else {
+      where.createBy = user.id;
+    }
+
+    const ticket = await prisma.supportTicket.findFirst({ where });
+    if (!ticket) throw new NotFoundException("Ticket not found");
+
+    return prisma.supportHistory.findMany({
+      where: { supportTicketId: ticket.id },
+      include: {
+        senderUser: { select: { id: true, user_name: true, user_image: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  async closeTicket(ticketId: string, user: User & { role: string }) {
+    const where: Prisma.SupportTicketWhereInput = { id: ticketId };
+
+    if (user.role === ROLES.SUPPORT) {
+      where.assignedTo = user.id;
+    } else {
+      where.createBy = user.id;
+    }
+
+    const ticket = await prisma.supportTicket.findFirst({ where });
+    if (!ticket) throw new NotFoundException("Ticket not found");
+    if (ticket.status === "CLOSED") {
+      throw new BadRequestException("Ticket is already closed");
+    }
+
+    return prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: {
+        status: "CLOSED",
+        SupportHistory: {
+          create: {
+            message: "Ticket closed",
+            changeType: "CLOSED",
+            sender: user.id,
+          },
+        },
+      },
+    });
+  }
+
+  async reopenTicket(ticketId: string, user: User & { role: string }) {
+    const where: Prisma.SupportTicketWhereInput = { id: ticketId };
+
+    if (user.role === ROLES.SUPPORT) {
+      where.assignedTo = user.id;
+    } else {
+      where.createBy = user.id;
+    }
+
+    const ticket = await prisma.supportTicket.findFirst({ where });
+    if (!ticket) throw new NotFoundException("Ticket not found");
+    if (ticket.status !== "CLOSED") {
+      throw new BadRequestException("Only closed tickets can be reopened");
+    }
+
+    return prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: {
+        status: "OPEN",
+        SupportHistory: {
+          create: {
+            message: "Ticket reopened",
+            changeType: "REOPENED",
+            sender: user.id,
+          },
+        },
       },
     });
   }

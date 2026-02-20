@@ -4,6 +4,7 @@ export const ROLES = {
   ADMISSION_MANAGER: "admission_manager",
   SUPPORT: "support",
   USER: "user",
+  SUPER_ADMIN: "super_admin",
 } as const;
 
 export const KNOWLEDGE_BASE_ITEMS = [

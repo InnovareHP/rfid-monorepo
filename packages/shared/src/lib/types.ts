@@ -356,6 +356,42 @@ export type TicketAttachment = {
   createdAt: string;
 };
 
+export type HistoryChangeType =
+  | "CREATED"
+  | "STATUS_CHANGED"
+  | "ASSIGNED"
+  | "MESSAGE_SENT"
+  | "PRIORITY_CHANGED"
+  | "CLOSED"
+  | "REOPENED"
+  | "RATED";
+
+export type TicketHistoryEntry = {
+  id: string;
+  createdAt: string;
+  message: string;
+  changeType: HistoryChangeType;
+  sender: string;
+  senderUser: {
+    id: string;
+    user_name: string;
+    user_image: string;
+  };
+};
+
+export type TicketRating = {
+  id: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+};
+
+export type SupportAgent = {
+  id: string;
+  user_name: string;
+  user_image: string;
+};
+
 export type TicketDetail = {
   id: string;
   ticketNumber: string;
@@ -365,6 +401,7 @@ export type TicketDetail = {
   category: string;
   status: string;
   priority: string;
+  assignedTo: string | null;
   createdAt: string;
   updatedAt: string;
   createBy: string;
@@ -377,9 +414,8 @@ export type TicketDetail = {
     id: string;
     user_name: string;
     user_image: string;
-  };
+  } | null;
   SupportTicketMessage: TicketMessage[];
-  SupportHistory: {
-    createdAt: string;
-  }[];
+  SupportHistory: TicketHistoryEntry[];
+  SupportTicketRating: TicketRating | null;
 };

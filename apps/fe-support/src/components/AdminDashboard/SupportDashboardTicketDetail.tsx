@@ -1,9 +1,13 @@
 import { uploadImage } from "@/services/image/image-service";
 import {
+  assignTicket,
+  closeTicket,
   createTicketAttachment,
   createTicketMessage,
   deleteSupportTicket,
+  getSupportAgents,
   getSupportTicketById,
+  reopenTicket,
   updateSupportTicket,
 } from "@/services/support/support-service";
 import {
@@ -15,6 +19,7 @@ import {
   statusConfig,
   TicketCategory,
   TicketStatus,
+  type SupportAgent,
   type TicketDetail,
 } from "@dashboard/shared";
 import {
@@ -28,8 +33,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@dashboard/ui/components/alert-dialog";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@dashboard/ui/components/avatar";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
+import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -38,14 +49,33 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { Separator } from "@dashboard/ui/components/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@dashboard/ui/components/tabs";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, Paperclip, Send, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CircleCheck,
+  Loader2,
+  MessageSquare,
+  Paperclip,
+  Send,
+  Trash2,
+  User,
+  X,
+  XCircle,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MessageItem } from "../Reusable/MessageItem";
 import { MetaRow } from "../Reusable/MetaRow";
+import { TicketHistoryPanel } from "../Reusable/TicketHistoryPanel";
 
 export function SupportDashboardTicketDetail({
   ticketId,
@@ -64,9 +94,15 @@ export function SupportDashboardTicketDetail({
       getSupportTicketById(ticketId) as unknown as Promise<TicketDetail>,
   });
 
+  const { data: agents = [] } = useQuery<SupportAgent[]>({
+    queryKey: ["support-agents"],
+    queryFn: getSupportAgents,
+  });
+
   const invalidateTicket = () => {
     queryClient.invalidateQueries({ queryKey: ["support-ticket", ticketId] });
     queryClient.invalidateQueries({ queryKey: ["support-dashboard-tickets"] });
+    queryClient.invalidateQueries({ queryKey: ["ticket-history", ticketId] });
   };
 
   const updateMutation = useMutation({
@@ -77,6 +113,42 @@ export function SupportDashboardTicketDetail({
       invalidateTicket();
     },
     onError: () => toast.error("Failed to update ticket"),
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: (agentId: string) => assignTicket(ticket!.id, agentId),
+    onSuccess: () => {
+      toast.success("Ticket assigned");
+      invalidateTicket();
+    },
+    onError: () => toast.error("Failed to assign ticket"),
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: () => updateSupportTicket(ticket!.id, { status: TicketStatus.RESOLVED }),
+    onSuccess: () => {
+      toast.success("Ticket marked as resolved");
+      invalidateTicket();
+    },
+    onError: () => toast.error("Failed to resolve ticket"),
+  });
+
+  const closeMutation = useMutation({
+    mutationFn: () => closeTicket(ticket!.id),
+    onSuccess: () => {
+      toast.success("Ticket closed");
+      invalidateTicket();
+    },
+    onError: () => toast.error("Failed to close ticket"),
+  });
+
+  const reopenMutation = useMutation({
+    mutationFn: () => reopenTicket(ticket!.id),
+    onSuccess: () => {
+      toast.success("Ticket reopened");
+      invalidateTicket();
+    },
+    onError: () => toast.error("Failed to reopen ticket"),
   });
 
   const deleteMutation = useMutation({
@@ -163,6 +235,10 @@ export function SupportDashboardTicketDetail({
     );
   }
 
+  const isClosed = ticket.status === TicketStatus.CLOSED;
+  const isResolved = ticket.status === TicketStatus.RESOLVED;
+  const isTerminal = isClosed || isResolved;
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="w-full px-4 py-6 sm:px-6">
@@ -183,104 +259,116 @@ export function SupportDashboardTicketDetail({
 
         {/* Two-column layout */}
         <div className="flex flex-col gap-6 lg:flex-row">
-          {/* Left: Conversation thread */}
+          {/* Left: Conversation thread + history tabs */}
           <div className="flex-1 min-w-0">
-            <div className="rounded-lg border border-border bg-card">
-              <MessageItem
-                name={ticket.createByUser.user_name}
-                image={ticket.createByUser.user_image}
-                date={ticket.createdAt}
-                message={ticket.description}
-              />
+            <Tabs defaultValue="conversation">
+              <TabsList className="mb-4">
+                <TabsTrigger value="conversation" className="gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Conversation
+                </TabsTrigger>
+                <TabsTrigger value="history" className="gap-1.5">
+                  <span className="h-3.5 w-3.5 text-xs">🕐</span>
+                  Audit log
+                </TabsTrigger>
+              </TabsList>
 
-              {ticket.SupportTicketMessage.map((msg) => (
-                <MessageItem
-                  key={msg.id}
-                  name={msg.senderUser.user_name}
-                  image={msg.senderUser.user_image}
-                  date={msg.createdAt}
-                  message={msg.message}
-                  attachments={msg.SupportTicketAttachment}
-                />
-              ))}
-            </div>
-
-            {/* Reply section */}
-            <div className="mt-6">
-              <h3 className="mb-3 text-sm font-semibold text-foreground">
-                Write a reply
-              </h3>
-              <Textarea
-                placeholder="Write a reply..."
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
-
-              {attachments.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {attachments.map((file, i) => (
-                    <div
-                      key={i}
-                      className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border"
-                    >
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Attachment ${i + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => removeAttachment(i)}
-                        className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        <X className="h-4 w-4 text-white" />
-                      </Button>
-                    </div>
+              <TabsContent value="conversation">
+                <div className="rounded-lg border border-border bg-card">
+                  {ticket.SupportTicketMessage.map((msg) => (
+                    <MessageItem
+                      key={msg.id}
+                      name={msg.senderUser.user_name}
+                      image={msg.senderUser.user_image}
+                      date={msg.createdAt}
+                      message={msg.message}
+                      attachments={msg.SupportTicketAttachment}
+                    />
                   ))}
                 </div>
-              )}
 
-              <div className="mt-3 flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="gap-1.5"
-                >
-                  <Paperclip className="h-4 w-4" />
-                  Attach files
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    handleFileSelect(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-                <Button
-                  size="sm"
-                  onClick={handleSubmit}
-                  disabled={
-                    sendMessageMutation.isPending ||
-                    (!replyText.trim() && attachments.length === 0)
-                  }
-                  className="gap-1.5"
-                >
-                  {sendMessageMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
+                {/* Reply section */}
+                <div className="mt-6">
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">
+                    Write a reply
+                  </h3>
+                  <Textarea
+                    placeholder="Write a reply..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
+
+                  {attachments.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {attachments.map((file, i) => (
+                        <div
+                          key={i}
+                          className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border"
+                        >
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Attachment ${i + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => removeAttachment(i)}
+                            className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  Send reply
-                </Button>
-              </div>
-            </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="gap-1.5"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      Attach files
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        handleFileSelect(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSubmit}
+                      disabled={
+                        sendMessageMutation.isPending ||
+                        (!replyText.trim() && attachments.length === 0)
+                      }
+                      className="gap-1.5"
+                    >
+                      {sendMessageMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Send reply
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="history">
+                <TicketHistoryPanel ticketId={ticketId} />
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Right: Ticket metadata sidebar with admin controls */}
@@ -300,7 +388,9 @@ export function SupportDashboardTicketDetail({
                   />
                   <MetaRow
                     label="Last activity"
-                    value={formatDate(ticket.SupportHistory[0].createdAt)}
+                    value={formatDate(
+                      ticket.SupportHistory[0]?.createdAt ?? ticket.createdAt
+                    )}
                   />
                   <MetaRow
                     label="Ticket Number"
@@ -315,11 +405,58 @@ export function SupportDashboardTicketDetail({
                   Manage Ticket
                 </h3>
 
+                {/* Assign To */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Assigned To
+                  </Label>
+                  <Select
+                    value={ticket.assignedTo ?? ""}
+                    onValueChange={(value) => assignMutation.mutate(value)}
+                    disabled={assignMutation.isPending}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Unassigned">
+                        {ticket.assignedToUser ? (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage
+                                src={ticket.assignedToUser.user_image}
+                              />
+                              <AvatarFallback className="text-[9px]">
+                                <User className="h-3 w-3" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{ticket.assignedToUser.user_name}</span>
+                          </div>
+                        ) : (
+                          "Unassigned"
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {agents.map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={agent.user_image} />
+                              <AvatarFallback className="text-[9px]">
+                                <User className="h-3 w-3" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{agent.user_name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Status select */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <Label className="text-xs font-medium text-muted-foreground">
                     Status
-                  </label>
+                  </Label>
                   <Select
                     value={ticket.status}
                     onValueChange={(value) =>
@@ -347,9 +484,9 @@ export function SupportDashboardTicketDetail({
 
                 {/* Priority select */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <Label className="text-xs font-medium text-muted-foreground">
                     Priority
-                  </label>
+                  </Label>
                   <Select
                     value={ticket.priority}
                     onValueChange={(value) =>
@@ -402,6 +539,57 @@ export function SupportDashboardTicketDetail({
                     </SelectContent>
                   </Select>
                 </div>
+
+                <Separator />
+
+                {/* Resolve / Close / Reopen */}
+                {isTerminal ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-1.5"
+                    onClick={() => reopenMutation.mutate()}
+                    disabled={reopenMutation.isPending}
+                  >
+                    {reopenMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                    Reopen ticket
+                  </Button>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-1.5"
+                      onClick={() => resolveMutation.mutate()}
+                      disabled={resolveMutation.isPending}
+                    >
+                      {resolveMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CircleCheck className="h-4 w-4 text-green-500" />
+                      )}
+                      Mark as resolved
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-1.5"
+                      onClick={() => closeMutation.mutate()}
+                      disabled={closeMutation.isPending}
+                    >
+                      {closeMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      Close ticket
+                    </Button>
+                  </div>
+                )}
 
                 <Separator />
 

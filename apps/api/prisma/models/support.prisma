@@ -17,6 +17,7 @@ model SupportTicket {
 
   SupportTicketMessage SupportTicketMessage[] @relation("SupportTicketMessage")
   SupportHistory SupportHistory[] @relation("SupportTicketHistory")
+  SupportTicketRating SupportTicketRating? @relation("SupportTicketRating")
 
   @@schema("support_schema")
 }
@@ -25,11 +26,27 @@ model SupportHistory {
   id String @id @default(uuid())
   createdAt DateTime @default(now())
   message String
+  changeType HistoryChangeType @default(MESSAGE_SENT)
   sender String
   senderUser user_table @relation("SupportHistorySender", fields: [sender], references: [id])
 
   supportTicketId String
   supportTicket SupportTicket @relation("SupportTicketHistory", fields: [supportTicketId], references: [id])
+
+  @@schema("support_schema")
+}
+
+model SupportTicketRating {
+  id String @id @default(uuid())
+  createdAt DateTime @default(now())
+  rating Int
+  comment String?
+
+  supportTicketId String @unique
+  supportTicket SupportTicket @relation("SupportTicketRating", fields: [supportTicketId], references: [id], onDelete: Cascade)
+
+  createdBy String
+  createdByUser user_table @relation("SupportTicketRatingCreatedBy", fields: [createdBy], references: [id])
 
   @@schema("support_schema")
 }
@@ -122,6 +139,19 @@ enum TicketCategory {
   TECHNICAL
   ACCOUNT
   OTHER
+
+  @@schema("support_schema")
+}
+
+enum HistoryChangeType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  MESSAGE_SENT
+  PRIORITY_CHANGED
+  CLOSED
+  REOPENED
+  RATED
 
   @@schema("support_schema")
 }

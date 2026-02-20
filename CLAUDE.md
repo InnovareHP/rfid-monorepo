@@ -7,8 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A pnpm workspace monorepo for a multi-tenant business dashboard (lead management, referrals, expenses, analytics). Uses PostgreSQL, Redis, Stripe, and Better Auth.
 
 **Workspaces:**
+
 - `apps/api` — NestJS backend (port 8080). See `apps/api/CLAUDE.md` for detailed backend guidance.
 - `apps/fe` — React + Vite frontend (port 3000). See `apps/fe/CLAUDE.md` for detailed frontend guidance.
+- `apps/fe-support` — React + Vite frontend (port 3001). See `apps/fe-support/CLAUDE.md` for detailed frontend support guidance.
 - `packages/ui` — Shared Radix UI + Tailwind component library
 - `packages/shared` — Shared utilities
 
@@ -44,6 +46,7 @@ pnpm prisma:studio    # Open database GUI
 ```
 
 To run a single frontend test file:
+
 ```bash
 pnpm --filter fe exec vitest run path/to/file.test.tsx
 ```
@@ -51,33 +54,41 @@ pnpm --filter fe exec vitest run path/to/file.test.tsx
 ## Architecture
 
 ### Tech Stack
+
 - **Backend**: NestJS 11, Prisma ORM (multi-schema PostgreSQL), Better Auth, Stripe, Redis, Resend email, Google Gemini AI
 - **Frontend**: React 19, Vite, TanStack Router (file-based), TanStack Query, TanStack Table, shadcn/ui, Tailwind CSS v4, react-hook-form + Zod
 - **Auth**: Better Auth with organization plugin — custom table/field names (e.g., `user_table.user_id`, not `users.id`)
 
 ### Multi-Tenant Design
+
 Organization-based tenancy. Every authenticated request carries `activeOrganizationId`, `memberId`, and `memberRole` in the session. Roles: `owner`, `liason`, `admission_manager`.
 
 ### Lead Management (EAV Pattern)
+
 Leads use an Entity-Attribute-Value pattern for dynamic custom fields per organization:
+
 - `LeadField` — field definitions (name, type, order) per org
 - `LeadValue` — stores values for each lead-field pair
 - `LeadFlatView` — materialized view for efficient querying
 - Columns are dynamic (fetched from API), never hardcoded on the frontend
 
 ### Database Schema Organization
+
 Prisma models are split across `apps/api/prisma/models/*.prisma` (not a single schema file). Schemas: `auth_schema`, `lead_schema`, `stripe_schema`, `referral_schema`, `liason_schema`, `public_schema`.
 
 After any schema change: run `pnpm prisma:generate`, then `pnpm prisma:migrate`. If auth tables change, also run `pnpm --filter api auth:generate`.
 
 ### Frontend Routing
+
 File-based routing in `apps/fe/src/routes/`:
+
 - `__root.tsx` — root layout, QueryClientProvider
 - `_auth.tsx` — auth layout (login, register, OTP, password reset)
 - `_team.tsx` — team layout guard; provides `TeamLayoutContext` (user, org, role, subscription)
 - `_team/$team/...` — all organization-scoped routes (`$team` = org ID)
 
 ### Data Flow
+
 - Frontend proxies `/api/*` to `VITE_API_URL` in dev
 - Backend global prefix: `/api`, Swagger docs at `/api/docs`
 - All API calls use Axios with `withCredentials: true`
@@ -85,6 +96,7 @@ File-based routing in `apps/fe/src/routes/`:
 - Always invalidate relevant query keys after mutations
 
 ### Environment Variables
+
 - **Backend**: `.env` from `.env.example` — requires `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `CLOUDINARY_*`, `WEBSITE_URL`
 - **Frontend**: `VITE_API_URL` (backend URL)
 

@@ -37,10 +37,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
 
-// NOTE: the shared ROLES type may not expose SUPER_ADMIN yet,
-// so we treat the literal string as the super admin role key.
-const SUPER_ADMIN_ROLE = "super_admin";
-const PRIVILEGED_ROLES: string[] = [ROLES.SUPPORT, SUPER_ADMIN_ROLE];
+const PRIVILEGED_ROLES: string[] = [ROLES.SUPPORT, ROLES.SUPER_ADMIN];
 
 type PendingNav = {
   activeOrganizationId: string | null | undefined;
@@ -53,7 +50,6 @@ export function LoginForm({
   const navigate = useRouter();
   const queryClient = useQueryClient();
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
-  const [pendingRole, setPendingRole] = useState<string | null>(null);
 
   const formSchema = z.object({
     email: z.string().email(),
@@ -83,18 +79,10 @@ export function LoginForm({
 
   const goToSupportDashboard = () => {
     setPendingNav(null);
-    setPendingRole(null);
-    const baseUrl =
-      import.meta.env.VITE_SUPPORT_URL || "http://localhost:3001";
-    window.location.href = `${baseUrl}/support`;
-  };
-
-  const goToSuperAdminDashboard = () => {
-    setPendingNav(null);
-    setPendingRole(null);
-    const baseUrl =
-      import.meta.env.VITE_SUPPORT_URL || "http://localhost:3001";
-    window.location.href = `${baseUrl}/admin`;
+    const supportUrl =
+      import.meta.env.VITE_SUPPORT_URL + "/support" ||
+      "http://localhost:3001/support";
+    window.location.href = supportUrl;
   };
 
   const handleLogin = async (values: z.infer<typeof formSchema>) => {
@@ -113,14 +101,13 @@ export function LoginForm({
 
             const { data: freshSession } = await authClient.getSession();
 
-            const role = (freshSession?.user as any)?.role as string;
+            const role = freshSession?.user?.role as string;
             const navData: PendingNav = {
               activeOrganizationId: freshSession?.session?.activeOrganizationId,
             };
 
             if (role && PRIVILEGED_ROLES.includes(role)) {
               setPendingNav(navData);
-              setPendingRole(role);
               return;
             }
 
@@ -365,43 +352,22 @@ export function LoginForm({
               </div>
             </button>
 
-            {pendingRole === ROLES.SUPPORT && (
-              <button
-                onClick={goToSupportDashboard}
-                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
-              >
-                <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
-                  <HeadphonesIcon className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">
-                    Support Dashboard
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Manage tickets, chats &amp; support requests
-                  </p>
-                </div>
-              </button>
-            )}
-
-            {pendingRole === SUPER_ADMIN_ROLE && (
-              <button
-                onClick={goToSuperAdminDashboard}
-                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all text-left group"
-              >
-                <div className="p-2.5 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors flex-shrink-0">
-                  <LayoutDashboard className="w-5 h-5 text-purple-700" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">
-                    Super Admin Dashboard
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Platform-wide admin controls & analytics
-                  </p>
-                </div>
-              </button>
-            )}
+            <button
+              onClick={goToSupportDashboard}
+              className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+            >
+              <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
+                <HeadphonesIcon className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">
+                  Support Dashboard
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Manage tickets, chats &amp; support requests
+                </p>
+              </div>
+            </button>
           </div>
         </DialogContent>
       </Dialog>

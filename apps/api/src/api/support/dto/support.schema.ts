@@ -1,11 +1,13 @@
 import { createZodDto } from "nestjs-zod";
 import {
+  AssignTicketSchema,
   CreateLiveChatAttachmentSchema,
   CreateLiveChatMessageSchema,
   CreateLiveChatSchema,
   CreateTicketAttachmentSchema,
   CreateTicketMessageSchema,
   CreateTicketSchema,
+  RateTicketSchema,
   UpdateTicketSchema,
 } from "./support.dto";
 
@@ -24,3 +26,5 @@ export class CreateLiveChatMessageDto extends createZodDto(
 export class CreateLiveChatAttachmentDto extends createZodDto(
   CreateLiveChatAttachmentSchema
 ) {}
+export class AssignTicketDto extends createZodDto(AssignTicketSchema) {}
+export class RateTicketDto extends createZodDto(RateTicketSchema) {}
