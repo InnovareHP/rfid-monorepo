@@ -20,7 +20,7 @@ export const IsSuperAdmin = (context: any) => {
 
   if (!session || user.role !== ROLES.SUPER_ADMIN) {
     // Non-super-admins should not see /admin; send them to support dashboard.
-    throw redirect({ to: "/support" as any });
+    throw redirect({ to: "/$lang" as any });
   }
 
   return true;

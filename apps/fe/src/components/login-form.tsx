@@ -37,10 +37,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
 
-const PRIVILEGED_ROLES: string[] = [ROLES.SUPPORT, ROLES.SUPER_ADMIN];
-
 type PendingNav = {
   activeOrganizationId: string | null | undefined;
+  role: string;
 };
 
 export function LoginForm({
@@ -77,11 +76,11 @@ export function LoginForm({
     }
   };
 
-  const goToSupportDashboard = () => {
+  const goToParamsDashboard = (params: string) => {
     setPendingNav(null);
     const supportUrl =
-      import.meta.env.VITE_SUPPORT_URL + "/support" ||
-      "http://localhost:3001/support";
+      import.meta.env.VITE_SUPPORT_URL + `${params}` ||
+      `http://localhost:3001${params}`;
     window.location.href = supportUrl;
   };
 
@@ -104,9 +103,13 @@ export function LoginForm({
             const role = freshSession?.user?.role as string;
             const navData: PendingNav = {
               activeOrganizationId: freshSession?.session?.activeOrganizationId,
+              role: role,
             };
 
-            if (role && PRIVILEGED_ROLES.includes(role)) {
+            if (
+              (role && role === ROLES.SUPPORT) ||
+              role === ROLES.SUPER_ADMIN
+            ) {
               setPendingNav(navData);
               return;
             }
@@ -352,22 +355,41 @@ export function LoginForm({
               </div>
             </button>
 
-            <button
-              onClick={goToSupportDashboard}
-              className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
-            >
-              <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
-                <HeadphonesIcon className="w-5 h-5 text-indigo-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">
-                  Support Dashboard
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Manage tickets, chats &amp; support requests
-                </p>
-              </div>
-            </button>
+            {pendingNav?.role === ROLES.SUPPORT ? (
+              <button
+                onClick={() => goToParamsDashboard("/support")}
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+              >
+                <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
+                  <HeadphonesIcon className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    Support Dashboard
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Manage tickets, chats &amp; support requests
+                  </p>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={() => pendingNav && goToParamsDashboard("/admin")}
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+              >
+                <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
+                  <LayoutDashboard className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    Admin Dashboard
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Manage users, roles &amp; permissions
+                  </p>
+                </div>
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
