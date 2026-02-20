@@ -14,12 +14,14 @@ import {
 import { Priority, TicketCategory, TicketStatus } from "@prisma/client";
 import { AuthGuard, Roles, Session } from "@thallesp/nestjs-better-auth";
 import {
+  AssignTicketDto,
   CreateLiveChatAttachmentDto,
   CreateLiveChatDto,
   CreateLiveChatMessageDto,
   CreateTicketAttachmentDto,
   CreateTicketDto,
   CreateTicketMessageDto,
+  RateTicketDto,
   UpdateTicketDto,
 } from "./dto/support.schema";
 import { SupportService } from "./support.service";
@@ -139,6 +141,98 @@ export class SupportController {
         messageId,
         dto.imageUrl
       );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/tickets/:ticketId/history")
+  @Roles([ROLES.SUPPORT, ROLES.USER])
+  async getTicketHistory(
+    @Param("ticketId") ticketId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.supportService.getTicketHistory(ticketId, session.user);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Patch("/tickets/:ticketId/assign")
+  @Roles([ROLES.SUPPORT])
+  async assignTicket(
+    @Param("ticketId") ticketId: string,
+    @Body() dto: AssignTicketDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.supportService.assignTicket(
+        ticketId,
+        dto.agentId,
+        session.user.id
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Patch("/tickets/:ticketId/close")
+  @Roles([ROLES.SUPPORT])
+  async closeTicket(
+    @Param("ticketId") ticketId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.supportService.closeTicket(
+        ticketId,
+        session.user as any
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Patch("/tickets/:ticketId/reopen")
+  @Roles([ROLES.SUPPORT])
+  async reopenTicket(
+    @Param("ticketId") ticketId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.supportService.reopenTicket(
+        ticketId,
+        session.user as any
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/tickets/:ticketId/rating")
+  @Roles([ROLES.USER])
+  async rateTicket(
+    @Param("ticketId") ticketId: string,
+    @Body() dto: RateTicketDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.supportService.rateTicket(
+        ticketId,
+        session.user.id,
+        dto.rating,
+        dto.comment
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/agents")
+  @Roles([ROLES.SUPPORT])
+  async getSupportAgents() {
+    try {
+      return await this.supportService.getSupportAgents();
     } catch (error) {
       throw new BadRequestException(error.message);
     }

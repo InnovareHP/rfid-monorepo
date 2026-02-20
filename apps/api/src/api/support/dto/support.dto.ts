@@ -37,3 +37,12 @@ export const CreateLiveChatMessageSchema = z.object({
 export const CreateLiveChatAttachmentSchema = z.object({
   imageUrl: z.string(),
 });
+
+export const AssignTicketSchema = z.object({
+  agentId: z.string(),
+});
+
+export const RateTicketSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().optional(),
+});

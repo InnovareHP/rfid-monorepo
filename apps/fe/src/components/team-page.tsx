@@ -362,7 +362,7 @@ const TeamPage = () => {
                           "role",
                           value as Exclude<
                             (typeof ROLES)[keyof typeof ROLES],
-                            "support" | "user"
+                            "support" | "user" | "super_admin"
                           >
                         )
                       }

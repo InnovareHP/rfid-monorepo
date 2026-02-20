@@ -24,7 +24,7 @@ export class BoardGateway implements OnGatewayConnection {
     const session = await auth.api.getSession({
       headers: { cookie },
     });
-  
+
     return session?.session;
   }
 

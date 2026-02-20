@@ -28,6 +28,7 @@ model user_table {
   SupportLiveChatMessage SupportLiveChatMessage[] @relation("SupportLiveChatMessageSender")
   SupportLiveChatAttachment SupportLiveChatAttachment[] @relation("SupportLiveChatAttachmentSender")
   SupportHistory SupportHistory[] @relation("SupportHistorySender")
+  SupportTicketRating SupportTicketRating[] @relation("SupportTicketRatingCreatedBy")
 
   @@map("user_table")
   @@schema("auth_schema")

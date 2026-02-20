@@ -1,5 +1,12 @@
 import { axiosClient } from "@/lib/axios-client";
-import type { SupportTicket, TicketRow, TicketStatus } from "@dashboard/shared";
+import type {
+  SupportAgent,
+  SupportTicket,
+  TicketHistoryEntry,
+  TicketRating,
+  TicketRow,
+  TicketStatus,
+} from "@dashboard/shared";
 
 export const createSupportTicket = async (ticket: SupportTicket) => {
   const response = await axiosClient.post(`/api/support/tickets`, ticket);
@@ -64,6 +71,49 @@ export const createTicketAttachment = async (
   const response = await axiosClient.post(
     `/api/support/tickets/${ticketId}/messages/${messageId}/attachments`,
     { imageUrl }
+  );
+  return response.data;
+};
+
+export const getSupportAgents = async (): Promise<SupportAgent[]> => {
+  const response = await axiosClient.get("/api/support/agents");
+  return response.data;
+};
+
+export const assignTicket = async (
+  ticketId: string,
+  agentId: string
+): Promise<void> => {
+  await axiosClient.patch(`/api/support/tickets/${ticketId}/assign`, {
+    agentId,
+  });
+};
+
+export const getTicketHistory = async (
+  ticketId: string
+): Promise<TicketHistoryEntry[]> => {
+  const response = await axiosClient.get(
+    `/api/support/tickets/${ticketId}/history`
+  );
+  return response.data;
+};
+
+export const closeTicket = async (ticketId: string): Promise<void> => {
+  await axiosClient.patch(`/api/support/tickets/${ticketId}/close`);
+};
+
+export const reopenTicket = async (ticketId: string): Promise<void> => {
+  await axiosClient.patch(`/api/support/tickets/${ticketId}/reopen`);
+};
+
+export const rateTicket = async (
+  ticketId: string,
+  rating: number,
+  comment?: string
+): Promise<TicketRating> => {
+  const response = await axiosClient.post(
+    `/api/support/tickets/${ticketId}/rating`,
+    { rating, comment }
   );
   return response.data;
 };
