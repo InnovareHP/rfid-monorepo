@@ -175,27 +175,19 @@ export class SupportController {
     }
   }
 
-  @Patch("/tickets/:ticketId/close")
+  @Patch("/tickets/:ticketId/:status")
   @Roles([ROLES.SUPPORT])
-  async closeTicket(
+  async updateSupportTicketStatus(
     @Param("ticketId") ticketId: string,
+    @Param("status") status: TicketStatus,
     @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.supportService.closeTicket(ticketId, session.user);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Patch("/tickets/:ticketId/reopen")
-  @Roles([ROLES.SUPPORT])
-  async reopenTicket(
-    @Param("ticketId") ticketId: string,
-    @Session() session: AuthenticatedSession
-  ) {
-    try {
-      return await this.supportService.reopenTicket(ticketId, session.user);
+      return await this.supportService.updateSupportTicketStatus(
+        ticketId,
+        session.user,
+        status
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

@@ -30,7 +30,7 @@ export function CannedResponses({ onSelect }: CannedResponsesProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 p-0"
+        className="w-80 overflow-y-scroll p-0"
         align="start"
         side="top"
         sideOffset={8}

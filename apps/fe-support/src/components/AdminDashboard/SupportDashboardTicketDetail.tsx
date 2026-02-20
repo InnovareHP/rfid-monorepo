@@ -1,14 +1,13 @@
 import { uploadImage } from "@/services/image/image-service";
 import {
   assignTicket,
-  closeTicket,
   createTicketAttachment,
   createTicketMessage,
   deleteSupportTicket,
   getSupportAgents,
   getSupportTicketById,
-  reopenTicket,
   updateSupportTicket,
+  updateSupportTicketStatus,
 } from "@/services/support/support-service";
 import {
   formatCapitalize,
@@ -126,7 +125,8 @@ export function SupportDashboardTicketDetail({
   });
 
   const resolveMutation = useMutation({
-    mutationFn: () => updateSupportTicket(ticket!.id, { status: TicketStatus.RESOLVED }),
+    mutationFn: () =>
+      updateSupportTicketStatus(ticket!.id, TicketStatus.RESOLVED),
     onSuccess: () => {
       toast.success("Ticket marked as resolved");
       invalidateTicket();
@@ -135,7 +135,8 @@ export function SupportDashboardTicketDetail({
   });
 
   const closeMutation = useMutation({
-    mutationFn: () => closeTicket(ticket!.id),
+    mutationFn: () =>
+      updateSupportTicketStatus(ticket!.id, TicketStatus.CLOSED),
     onSuccess: () => {
       toast.success("Ticket closed");
       invalidateTicket();
@@ -144,7 +145,7 @@ export function SupportDashboardTicketDetail({
   });
 
   const reopenMutation = useMutation({
-    mutationFn: () => reopenTicket(ticket!.id),
+    mutationFn: () => updateSupportTicketStatus(ticket!.id, TicketStatus.OPEN),
     onSuccess: () => {
       toast.success("Ticket reopened");
       invalidateTicket();

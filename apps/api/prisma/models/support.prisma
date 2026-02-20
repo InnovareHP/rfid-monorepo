@@ -153,6 +153,7 @@ enum HistoryChangeType {
   REOPENED
   RATED
   RESOLVED
+  OPEN
 
   @@schema("support_schema")
 }

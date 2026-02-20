@@ -1,9 +1,9 @@
 import { uploadImage } from "@/services/image/image-service";
 import {
-  closeTicket,
   createTicketAttachment,
   createTicketMessage,
   getSupportTicketById,
+  updateSupportTicketStatus,
 } from "@/services/support/support-service";
 import {
   formatDate,
@@ -84,7 +84,8 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
   });
 
   const closeMutation = useMutation({
-    mutationFn: () => closeTicket(ticket!.id),
+    mutationFn: () =>
+      updateSupportTicketStatus(ticket!.id, TicketStatus.CLOSED),
     onSuccess: () => {
       toast.success("Ticket closed");
       invalidateTicket();

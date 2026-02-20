@@ -100,12 +100,11 @@ export const getTicketHistory = async (
   return response.data;
 };
 
-export const closeTicket = async (ticketId: string): Promise<void> => {
-  await axiosClient.patch(`/api/support/tickets/${ticketId}/close`);
-};
-
-export const reopenTicket = async (ticketId: string): Promise<void> => {
-  await axiosClient.patch(`/api/support/tickets/${ticketId}/reopen`);
+export const updateSupportTicketStatus = async (
+  ticketId: string,
+  status: TicketStatus
+): Promise<void> => {
+  await axiosClient.patch(`/api/support/tickets/${ticketId}/${status}`);
 };
 
 export const rateTicket = async (

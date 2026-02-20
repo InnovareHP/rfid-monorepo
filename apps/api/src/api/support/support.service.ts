@@ -436,7 +436,11 @@ export class SupportService {
     });
   }
 
-  async reopenTicket(ticketId: string, user: AuthenticatedSession["user"]) {
+  async updateSupportTicketStatus(
+    ticketId: string,
+    user: AuthenticatedSession["user"],
+    status: TicketStatus
+  ) {
     const where: Prisma.SupportTicketWhereInput = { id: ticketId };
 
     if (user.role === ROLES.SUPPORT) {
@@ -447,18 +451,18 @@ export class SupportService {
 
     const ticket = await prisma.supportTicket.findFirst({ where });
     if (!ticket) throw new NotFoundException("Ticket not found");
-    if (ticket.status !== "CLOSED") {
-      throw new BadRequestException("Only closed tickets can be reopened");
-    }
+    // if (ticket.status !== "CLOSED") {
+    //   throw new BadRequestException("Only closed tickets can be reopened");
+    // }
 
     return prisma.supportTicket.update({
       where: { id: ticketId },
       data: {
-        status: "OPEN",
+        status: status,
         SupportHistory: {
           create: {
-            message: "Ticket reopened",
-            changeType: "REOPENED",
+            message: `Ticket ${status}`,
+            changeType: status as HistoryChangeType,
             sender: user.id,
           },
         },
