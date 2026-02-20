@@ -4,7 +4,9 @@ import type {
   SupportTicket,
   TicketHistoryEntry,
   TicketRating,
+  TicketRatingRow,
   TicketRow,
+  TicketStats,
   TicketStatus,
 } from "@dashboard/shared";
 
@@ -115,5 +117,20 @@ export const rateTicket = async (
     `/api/support/tickets/${ticketId}/rating`,
     { rating, comment }
   );
+  return response.data;
+};
+
+export const getTicketStats = async (): Promise<TicketStats> => {
+  const response = await axiosClient.get("/api/support/stats");
+  return response.data;
+};
+
+export const getTicketRatings = async (
+  page: number,
+  take: number
+): Promise<{ ratings: TicketRatingRow[]; total: number }> => {
+  const response = await axiosClient.get("/api/support/ratings", {
+    params: { page, take },
+  });
   return response.data;
 };

@@ -329,12 +329,43 @@ export type TicketRow = {
   category: TicketCategory;
   status: TicketStatus;
   priority: Priority;
-  assignedTo: string;
-  assignedToUser: UserTable;
+  assignedTo: string | null;
+  assignedToUser: UserTable | null;
   createBy: string;
   createByUser: UserTable;
   createdAt: string;
   updatedAt: string;
+  hasAgentReply: boolean;
+};
+
+export type TicketStats = {
+  open: number;
+  inProgress: number;
+  resolved: number;
+  closed: number;
+  unassigned: number;
+  avgCsat: number | null;
+  totalRatings: number;
+  avgFirstReplyHours: number | null;
+  avgResolutionHours: number | null;
+};
+
+export type TicketRatingRow = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  supportTicketId: string;
+  supportTicket: {
+    ticketNumber: string;
+    title: string;
+    subject: string;
+  };
+  createdByUser: {
+    id: string;
+    user_name: string;
+    user_image: string;
+  };
 };
 
 export type TicketMessage = {

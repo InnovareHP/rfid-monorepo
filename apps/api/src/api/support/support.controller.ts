@@ -57,13 +57,11 @@ export class SupportController {
 
   @Get("/tickets/:ticketId")
   @Roles([ROLES.SUPPORT, ROLES.USER])
-  async getTicketById(
-    @Param("ticketId") ticketId: string,
-    @Session() session: AuthenticatedSession
-  ) {
+  async getTicketById(@Param("ticketId") ticketId: string) {
     try {
-      return await this.supportService.getTicketById(ticketId, session.user.id);
+      return await this.supportService.getTicketById(ticketId);
     } catch (error) {
+      console.error(error);
       throw new BadRequestException(error.message);
     }
   }
@@ -184,10 +182,7 @@ export class SupportController {
     @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.supportService.closeTicket(
-        ticketId,
-        session.user as any
-      );
+      return await this.supportService.closeTicket(ticketId, session.user);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -200,10 +195,7 @@ export class SupportController {
     @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.supportService.reopenTicket(
-        ticketId,
-        session.user as any
-      );
+      return await this.supportService.reopenTicket(ticketId, session.user);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -233,6 +225,34 @@ export class SupportController {
   async getSupportAgents() {
     try {
       return await this.supportService.getSupportAgents();
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/stats")
+  @Roles([ROLES.SUPPORT])
+  async getStats(@Session() session: AuthenticatedSession) {
+    try {
+      return await this.supportService.getStats(session.user);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/ratings")
+  @Roles([ROLES.SUPPORT])
+  async getRatings(
+    @Query("page") page: number = 1,
+    @Query("take") take: number = 20,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.supportService.getRatings(
+        Number(page),
+        Number(take),
+        session.user
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

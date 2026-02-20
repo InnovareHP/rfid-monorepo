@@ -4,7 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Priority, Prisma, TicketCategory, TicketStatus } from "@prisma/client";
+import {
+  HistoryChangeType,
+  Priority,
+  Prisma,
+  TicketCategory,
+  TicketStatus,
+} from "@prisma/client";
 import { prisma } from "../../lib/prisma/prisma";
 import { CreateTicketDto } from "./dto/support.schema";
 
@@ -47,7 +53,7 @@ export class SupportService {
       where.category = category;
     }
 
-    const tickets = await prisma.supportTicket.findMany({
+    const rawTickets = await prisma.supportTicket.findMany({
       where,
       orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
       take,
@@ -59,6 +65,7 @@ export class SupportService {
         category: true,
         status: true,
         priority: true,
+        assignedTo: true,
         createBy: true,
         createdAt: true,
         updatedAt: true,
@@ -70,16 +77,27 @@ export class SupportService {
         createByUser: {
           select: { id: true, user_name: true, user_image: true },
         },
+        _count: {
+          select: {
+            SupportTicketMessage: {
+              where: { senderUser: { user_role: ROLES.SUPPORT } },
+            },
+          },
+        },
       },
       skip: offset,
     });
     const total = await prisma.supportTicket.count({ where: where });
-    return { tickets, total: total };
+    const tickets = rawTickets.map(({ _count, ...t }) => ({
+      ...t,
+      hasAgentReply: _count.SupportTicketMessage > 0,
+    }));
+    return { tickets, total };
   }
 
-  async getTicketById(ticketId: string, userId: string) {
+  async getTicketById(ticketId: string) {
     const ticket = await prisma.supportTicket.findFirst({
-      where: { ticketNumber: ticketId, createBy: userId },
+      where: { ticketNumber: ticketId },
       include: {
         assignedToUser: {
           select: { id: true, user_name: true, user_image: true },
@@ -388,7 +406,7 @@ export class SupportService {
     });
   }
 
-  async closeTicket(ticketId: string, user: User & { role: string }) {
+  async closeTicket(ticketId: string, user: AuthenticatedSession["user"]) {
     const where: Prisma.SupportTicketWhereInput = { id: ticketId };
 
     if (user.role === ROLES.SUPPORT) {
@@ -418,7 +436,7 @@ export class SupportService {
     });
   }
 
-  async reopenTicket(ticketId: string, user: User & { role: string }) {
+  async reopenTicket(ticketId: string, user: AuthenticatedSession["user"]) {
     const where: Prisma.SupportTicketWhereInput = { id: ticketId };
 
     if (user.role === ROLES.SUPPORT) {
@@ -446,5 +464,136 @@ export class SupportService {
         },
       },
     });
+  }
+
+  async getStats(user: AuthenticatedSession["user"]) {
+    const [
+      open,
+      inProgress,
+      resolved,
+      closed,
+      unassigned,
+      csatAgg,
+      ticketsWithFirstReply,
+      resolvedTickets,
+    ] = await Promise.all([
+      prisma.supportTicket.count({
+        where: { status: "OPEN", assignedTo: user.id },
+      }),
+      prisma.supportTicket.count({
+        where: { status: "IN_PROGRESS", assignedTo: user.id },
+      }),
+      prisma.supportTicket.count({
+        where: { status: "RESOLVED", assignedTo: user.id },
+      }),
+      prisma.supportTicket.count({
+        where: { status: "CLOSED", assignedTo: user.id },
+      }),
+      prisma.supportTicket.count({ where: { assignedTo: user.id } }),
+      prisma.supportTicketRating.aggregate({
+        _avg: { rating: true },
+        _count: { rating: true },
+        where: { supportTicket: { assignedTo: user.id } },
+      }),
+      prisma.supportTicket.findMany({
+        where: {
+          assignedTo: user.id,
+          SupportTicketMessage: {
+            some: { senderUser: { user_role: ROLES.SUPPORT } },
+          },
+        },
+        select: {
+          createdAt: true,
+          SupportTicketMessage: {
+            where: { senderUser: { user_role: ROLES.SUPPORT } },
+            orderBy: { createdAt: "asc" },
+            take: 1,
+            select: { createdAt: true },
+          },
+        },
+      }),
+
+      prisma.supportTicket.findMany({
+        where: {
+          assignedTo: user.id,
+          status: { in: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
+        },
+        select: {
+          createdAt: true,
+          SupportHistory: {
+            where: {
+              changeType: {
+                in: [HistoryChangeType.RESOLVED, HistoryChangeType.CLOSED],
+              },
+            },
+            orderBy: { createdAt: "asc" },
+            take: 1,
+            select: { createdAt: true },
+          },
+        },
+      }),
+    ]);
+
+    const toHours = (ms: number) => Math.round(ms / 3_600_000);
+
+    const firstReplyMs = ticketsWithFirstReply
+      .filter((t) => t.SupportTicketMessage.length > 0)
+      .map(
+        (t) =>
+          t.SupportTicketMessage[0].createdAt.getTime() - t.createdAt.getTime()
+      );
+
+    const resolutionMs = resolvedTickets
+      .filter((t) => t.SupportHistory.length > 0)
+      .map(
+        (t) => t.SupportHistory[0].createdAt.getTime() - t.createdAt.getTime()
+      );
+
+    const avg = (arr: number[]) =>
+      arr.length > 0
+        ? toHours(arr.reduce((a, b) => a + b, 0) / arr.length)
+        : null;
+
+    return {
+      open,
+      inProgress,
+      resolved,
+      closed,
+      unassigned,
+      avgCsat: csatAgg._avg.rating
+        ? Number(csatAgg._avg.rating.toFixed(1))
+        : null,
+      totalRatings: csatAgg._count.rating,
+      avgFirstReplyHours: avg(firstReplyMs),
+      avgResolutionHours: avg(resolutionMs),
+    };
+  }
+
+  async getRatings(
+    page: number,
+    take: number,
+    user: AuthenticatedSession["user"]
+  ) {
+    const offset = (page - 1) * take;
+    const [ratings, total] = await Promise.all([
+      prisma.supportTicketRating.findMany({
+        skip: offset,
+        take,
+        where: { supportTicket: { assignedTo: user.id } },
+        orderBy: { createdAt: "desc" },
+        include: {
+          supportTicket: {
+            select: { ticketNumber: true, title: true, subject: true },
+          },
+          createdByUser: {
+            select: { id: true, user_name: true, user_image: true },
+          },
+        },
+      }),
+      prisma.supportTicketRating.count({
+        where: { supportTicket: { assignedTo: user.id } },
+      }),
+    ]);
+    return { ratings, total };
   }
 }

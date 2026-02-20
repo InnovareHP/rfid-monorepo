@@ -73,6 +73,7 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { CannedResponses } from "../Reusable/CannedResponses";
 import { MessageItem } from "../Reusable/MessageItem";
 import { MetaRow } from "../Reusable/MetaRow";
 import { TicketHistoryPanel } from "../Reusable/TicketHistoryPanel";
@@ -325,15 +326,24 @@ export function SupportDashboardTicketDetail({
                   )}
 
                   <div className="mt-3 flex items-center justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="gap-1.5"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                      Attach files
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="gap-1.5"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        Attach files
+                      </Button>
+                      <CannedResponses
+                        onSelect={(text) =>
+                          setReplyText((prev) =>
+                            prev ? `${prev}\n\n${text}` : text
+                          )
+                        }
+                      />
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"

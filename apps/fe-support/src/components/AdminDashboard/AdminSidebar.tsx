@@ -31,10 +31,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
   ChevronsUpDown,
-  HelpCircle,
   LayoutDashboard,
   LogOut,
   Shield,
+  Star,
   Ticket,
 } from "lucide-react";
 import * as React from "react";
@@ -117,27 +117,27 @@ export function AdminSidebar() {
                       },
                     ]
                   : role === ROLES.SUPPORT
-                  ? [
-                      {
-                        id: "dashboard",
-                        title: "Support Dashboard",
-                        icon: Shield,
-                        path: "/support",
-                      },
-                      {
-                        id: "tickets",
-                        title: "Tickets",
-                        icon: Ticket,
-                        path: "/support/tickets",
-                      },
-                      {
-                        id: "portal",
-                        title: "Support Portal",
-                        icon: HelpCircle,
-                        path: "/support/ticket",
-                      },
-                    ]
-                  : [];
+                    ? [
+                        {
+                          id: "dashboard",
+                          title: "Support Dashboard",
+                          icon: Shield,
+                          path: "/support",
+                        },
+                        {
+                          id: "tickets",
+                          title: "Tickets",
+                          icon: Ticket,
+                          path: "/support/tickets",
+                        },
+                        {
+                          id: "ratings",
+                          title: "CSAT Report",
+                          icon: Star,
+                          path: "/support/ratings",
+                        },
+                      ]
+                    : [];
 
               return items.map((item) => {
                 const Icon = item.icon;
@@ -145,9 +145,9 @@ export function AdminSidebar() {
                   item.path === "/support"
                     ? pathname === "/support"
                     : item.path === "/admin"
-                    ? pathname === "/admin" || pathname.startsWith("/admin/")
-                    : pathname === item.path ||
-                      pathname.startsWith(item.path + "/");
+                      ? pathname === "/admin" || pathname.startsWith("/admin/")
+                      : pathname === item.path ||
+                        pathname.startsWith(item.path + "/");
 
                 return (
                   <SidebarMenuItem key={item.id}>
@@ -156,10 +156,7 @@ export function AdminSidebar() {
                       isActive={isActive}
                       asChild
                     >
-                      <Link
-                        to={item.path}
-                        preload={false}
-                      >
+                      <Link to={item.path} preload={false}>
                         <Icon className="size-4" />
                         <span>{item.title}</span>
                       </Link>

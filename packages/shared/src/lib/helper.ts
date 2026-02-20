@@ -152,3 +152,12 @@ export const getInitials = (name: string) => {
     .toUpperCase()
     .slice(0, 2);
 };
+
+export const formatHours = (h: number | null | undefined): string => {
+  if (h == null) return "—";
+  if (h < 1) return "<1h";
+  if (h < 24) return `${Math.round(h)}h`;
+  const days = Math.floor(h / 24);
+  const rem = Math.round(h % 24);
+  return rem > 0 ? `${days}d ${rem}h` : `${days}d`;
+};

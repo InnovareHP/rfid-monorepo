@@ -56,9 +56,11 @@ import {
 } from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { exportToCsv } from "@/lib/export-csv";
 import {
   ArrowUpDown,
   Calendar,
+  Download,
   Eye,
   MoreHorizontal,
   RefreshCw,
@@ -71,6 +73,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { PriorityBadge, StatusBadge } from "../Reusable/StatusBadges";
 import { ReusableTable } from "../ReusableTable/ReusableTable";
+
+function ticketAgeHours(createdAt: string): number {
+  return (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+}
 
 export function SupportDashboardTickets() {
   const navigate = useNavigate();
@@ -172,9 +178,38 @@ export function SupportDashboardTickets() {
     {
       key: "subject",
       header: "Subject",
-      render: (row: TicketRow) => (
-        <span className="text-sm text-foreground">{row.subject}</span>
-      ),
+      render: (row: TicketRow) => {
+        const isTerminal =
+          row.status === "CLOSED" || row.status === "RESOLVED";
+        const age = ticketAgeHours(row.createdAt);
+        const awaitingReply = !row.hasAgentReply && !isTerminal;
+        const isOverdue = awaitingReply && age > 24;
+        const isSlaAtRisk = row.hasAgentReply && !isTerminal && age > 72;
+
+        return (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm text-foreground">{row.subject}</span>
+            {isOverdue && (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950/40 dark:text-red-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                Overdue — no reply
+              </span>
+            )}
+            {!isOverdue && awaitingReply && (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-950/40 dark:text-orange-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                Awaiting reply
+              </span>
+            )}
+            {isSlaAtRisk && (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
+                SLA at risk
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "category",
@@ -325,7 +360,8 @@ export function SupportDashboardTickets() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 flex-1">
           <div className="relative flex-1 max-w-md">
             <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
             <Input
@@ -400,6 +436,38 @@ export function SupportDashboardTickets() {
               ))}
             </SelectContent>
           </Select>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 shrink-0"
+            disabled={tickets.length === 0}
+            onClick={() =>
+              exportToCsv("support-tickets", tickets, [
+                { header: "Ticket #", value: (r) => r.ticketNumber },
+                { header: "Subject", value: (r) => r.subject },
+                { header: "Category", value: (r) => r.category },
+                { header: "Status", value: (r) => r.status },
+                { header: "Priority", value: (r) => r.priority },
+                {
+                  header: "Assigned To",
+                  value: (r) => r.assignedToUser?.user_name ?? "",
+                },
+                {
+                  header: "Created By",
+                  value: (r) => r.createByUser?.user_name ?? "",
+                },
+                {
+                  header: "Created At",
+                  value: (r) =>
+                    new Date(r.createdAt).toLocaleString("en-US"),
+                },
+              ])
+            }
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
 
         <Tabs defaultValue="all-tickets" className="w-full">
