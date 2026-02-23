@@ -30,12 +30,14 @@ import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
+  Building2,
   ChevronsUpDown,
-  LayoutDashboard,
+  ClipboardList,
   LogOut,
   Shield,
   Star,
   Ticket,
+  Users,
 } from "lucide-react";
 import * as React from "react";
 
@@ -110,10 +112,28 @@ export function AdminSidebar() {
                 role === ROLES.SUPER_ADMIN
                   ? [
                       {
-                        id: "admin-dashboard",
-                        title: "Admin Dashboard",
-                        icon: LayoutDashboard,
-                        path: "/admin",
+                        id: "user-management",
+                        title: "User Management",
+                        icon: Users,
+                        path: "/admin/users",
+                      },
+                      {
+                        id: "organizations",
+                        title: "Organizations",
+                        icon: Building2,
+                        path: "/admin/organizations",
+                      },
+                      {
+                        id: "activity-log",
+                        title: "Activity Log",
+                        icon: ClipboardList,
+                        path: "/admin/activity-log",
+                      },
+                      {
+                        id: "tickets",
+                        title: "Tickets",
+                        icon: Ticket,
+                        path: "/support/tickets",
                       },
                     ]
                   : role === ROLES.SUPPORT

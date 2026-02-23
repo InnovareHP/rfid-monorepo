@@ -15,7 +15,8 @@
       "Bash(pnpm test:fe:*)",
       "mcp__ide__getDiagnostics",
       "Bash(pnpm build:api:*)",
-      "Bash(pnpm --filter fe-support exec tsr generate:*)"
+      "Bash(pnpm --filter fe-support exec tsr generate:*)",
+      "Bash(find:*)"
     ]
   }
 }

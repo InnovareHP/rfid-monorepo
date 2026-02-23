@@ -6,18 +6,18 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@dashboard/ui/components/avatar";
+import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { Button } from "@dashboard/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Download, ExternalLink, MessageSquare, Star } from "lucide-react";
 import { useState } from "react";
-import { ReusableTable } from "../ReusableTable/ReusableTable";
+import { ReusableTable } from "../../ReusableTable/ReusableTable";
 
 const TAKE = 20;
 
@@ -148,68 +148,71 @@ export function CsatReportPage() {
 
           {/* Summary pill + export */}
           <div className="flex items-center gap-3 shrink-0">
-          {!isLoading && total > 0 && (
-            <Card className="shrink-0 border border-border shadow-sm">
-              <CardContent className="flex items-center gap-3 px-5 py-3">
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      className={`h-4 w-4 ${
-                        s <= Math.round(Number(avgRating ?? 0))
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-muted-foreground/30"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-foreground leading-none">
-                    {avgRating}
-                    <span className="text-sm font-normal text-muted-foreground ml-1">
-                      / 5
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {total} rating{total !== 1 ? "s" : ""}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            disabled={ratings.length === 0}
-            onClick={() =>
-              exportToCsv("csat-ratings", ratings, [
-                {
-                  header: "Ticket #",
-                  value: (r) => r.supportTicket.ticketNumber,
-                },
-                {
-                  header: "Subject",
-                  value: (r) => r.supportTicket.subject,
-                },
-                { header: "Requester", value: (r) => r.createdByUser.user_name },
-                { header: "Rating", value: (r) => r.rating },
-                { header: "Comment", value: (r) => r.comment ?? "" },
-                {
-                  header: "Date",
-                  value: (r) =>
-                    new Date(r.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    }),
-                },
-              ])
-            }
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
+            {!isLoading && total > 0 && (
+              <Card className="shrink-0 border border-border shadow-sm">
+                <CardContent className="flex items-center gap-3 px-5 py-3">
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`h-4 w-4 ${
+                          s <= Math.round(Number(avgRating ?? 0))
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-foreground leading-none">
+                      {avgRating}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                        / 5
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {total} rating{total !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={ratings.length === 0}
+              onClick={() =>
+                exportToCsv("csat-ratings", ratings, [
+                  {
+                    header: "Ticket #",
+                    value: (r) => r.supportTicket.ticketNumber,
+                  },
+                  {
+                    header: "Subject",
+                    value: (r) => r.supportTicket.subject,
+                  },
+                  {
+                    header: "Requester",
+                    value: (r) => r.createdByUser.user_name,
+                  },
+                  { header: "Rating", value: (r) => r.rating },
+                  { header: "Comment", value: (r) => r.comment ?? "" },
+                  {
+                    header: "Date",
+                    value: (r) =>
+                      new Date(r.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      }),
+                  },
+                ])
+              }
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
           </div>
         </div>
 

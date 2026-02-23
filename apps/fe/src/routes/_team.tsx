@@ -59,6 +59,7 @@ export const Route = createFileRoute("/_team")({
 
     return {
       user,
+      session,
       activeOrganizationId: session.activeOrganizationId,
     };
   },

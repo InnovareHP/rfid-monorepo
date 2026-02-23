@@ -1,13 +1,40 @@
-import { authClient } from "@/lib/auth-client";
+import { ImpersonationBanner } from "@/components/AdminDashboard/UserManagementPage/ImpersonationBanner";
+import { getSession } from "@/lib/auth-client";
 import { Toaster } from "@dashboard/ui/components/sonner";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
 
 const queryClient = new QueryClient();
 
+const sessionQueryOptions = {
+  queryKey: ["session"],
+  queryFn: async () => {
+    const { data } = await getSession();
+    return data;
+  },
+  staleTime: 1000 * 60 * 5, // 5 minutes
+};
+
+function ImpersonationBannerWrapper() {
+  const { data: session } = useQuery(sessionQueryOptions);
+
+  const impersonatedBy = (
+    session?.session as { impersonatedBy?: string } | undefined
+  )?.impersonatedBy;
+
+  if (!impersonatedBy || !session?.user) return null;
+
+  return <ImpersonationBanner userName={session.user.name} />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ImpersonationBannerWrapper />
       <main>
         <Outlet />
       </main>
@@ -30,7 +57,7 @@ function RootErrorComponent({ error }: { error: Error }) {
       <p className="max-w-sm text-sm text-gray-600">
         {isNetworkError
           ? "The server may be unavailable. Check that the API is running and try again."
-          : error?.message ?? "An unexpected error occurred."}
+          : (error?.message ?? "An unexpected error occurred.")}
       </p>
     </div>
   );
@@ -39,10 +66,9 @@ function RootErrorComponent({ error }: { error: Error }) {
 export const Route = createRootRoute({
   beforeLoad: async () => {
     try {
-      const { data: session } = await authClient.getSession();
+      const session = await queryClient.fetchQuery(sessionQueryOptions);
       return session;
     } catch {
-      // API down or network error: continue without session so the app still loads
       return null;
     }
   },

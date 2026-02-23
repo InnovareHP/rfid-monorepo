@@ -37,3 +37,17 @@ export const IsSupport = (context: any) => {
 
   return true;
 };
+
+export const IsSupportOrAdmin = (context: any) => {
+  const session = context.context.session;
+  const user = context.context.user;
+
+  if (
+    !session ||
+    (user.role !== ROLES.SUPPORT && user.role !== ROLES.SUPER_ADMIN)
+  ) {
+    throw redirect({ to: "/$lang" as any });
+  }
+
+  return true;
+};

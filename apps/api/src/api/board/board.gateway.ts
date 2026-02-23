@@ -61,11 +61,6 @@ export class BoardGateway implements OnGatewayConnection {
       return;
     }
 
-    console.log(
-      "user connected to board gateway",
-      session.activeOrganizationId
-    );
-
     await client.join(`org:${orgId}`);
   }
 

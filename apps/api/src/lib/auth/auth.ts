@@ -18,6 +18,7 @@ import { redis } from "../redis/redis";
 import { sendEmail } from "../resend/resend";
 import { stripe as stripeClient } from "../stripe/stripe";
 import { OnboardingSeeding } from "./onboarding";
+import { ac, super_admin, support } from "./permission";
 
 export const auth = betterAuth({
   baseURL: appConfig.WEBSITE_URL,
@@ -219,6 +220,11 @@ export const auth = betterAuth({
   },
   plugins: [
     admin({
+      ac,
+      roles: {
+        super_admin,
+        support,
+      },
       schema: {
         user: {
           fields: {

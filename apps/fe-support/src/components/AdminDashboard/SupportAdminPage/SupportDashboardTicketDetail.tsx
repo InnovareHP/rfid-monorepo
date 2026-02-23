@@ -72,10 +72,10 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CannedResponses } from "../Reusable/CannedResponses";
-import { MessageItem } from "../Reusable/MessageItem";
-import { MetaRow } from "../Reusable/MetaRow";
-import { TicketHistoryPanel } from "../Reusable/TicketHistoryPanel";
+import { CannedResponses } from "../../Reusable/CannedResponses";
+import { MessageItem } from "../../Reusable/MessageItem";
+import { MetaRow } from "../../Reusable/MetaRow";
+import { TicketHistoryPanel } from "../../Reusable/TicketHistoryPanel";
 
 export function SupportDashboardTicketDetail({
   ticketId,

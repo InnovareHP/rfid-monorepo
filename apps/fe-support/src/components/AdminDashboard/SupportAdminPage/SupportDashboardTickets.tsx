@@ -1,3 +1,4 @@
+import { exportToCsv } from "@/lib/export-csv";
 import {
   deleteSupportTicket,
   getSupportTickets,
@@ -56,7 +57,6 @@ import {
 } from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { exportToCsv } from "@/lib/export-csv";
 import {
   ArrowUpDown,
   Calendar,
@@ -71,8 +71,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PriorityBadge, StatusBadge } from "../Reusable/StatusBadges";
-import { ReusableTable } from "../ReusableTable/ReusableTable";
+import { PriorityBadge, StatusBadge } from "../../Reusable/StatusBadges";
+import { ReusableTable } from "../../ReusableTable/ReusableTable";
 
 function ticketAgeHours(createdAt: string): number {
   return (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
@@ -179,8 +179,7 @@ export function SupportDashboardTickets() {
       key: "subject",
       header: "Subject",
       render: (row: TicketRow) => {
-        const isTerminal =
-          row.status === "CLOSED" || row.status === "RESOLVED";
+        const isTerminal = row.status === "CLOSED" || row.status === "RESOLVED";
         const age = ticketAgeHours(row.createdAt);
         const awaitingReply = !row.hasAgentReply && !isTerminal;
         const isOverdue = awaitingReply && age > 24;
@@ -362,80 +361,80 @@ export function SupportDashboardTickets() {
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-            <Input
-              type="search"
-              placeholder="Search by ticket number or title..."
-              value={filterMeta.search}
-              onChange={(e) =>
+            <div className="relative flex-1 max-w-md">
+              <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+              <Input
+                type="search"
+                placeholder="Search by ticket number or title..."
+                value={filterMeta.search}
+                onChange={(e) =>
+                  setFilterMeta({
+                    ...filterMeta,
+                    search: e.target.value,
+                    page: 1,
+                  })
+                }
+                className="pl-9"
+              />
+            </div>
+            <Select
+              value={filterMeta.status}
+              onValueChange={(value) =>
+                setFilterMeta({ ...filterMeta, status: value, page: 1 })
+              }
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All statuses</SelectItem>
+                {Object.values(TicketStatus).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {getStatusLabel(s)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={filterMeta.category ?? "ALL"}
+              onValueChange={(value) =>
                 setFilterMeta({
                   ...filterMeta,
-                  search: e.target.value,
+                  category: value === "ALL" ? null : value,
                   page: 1,
                 })
               }
-              className="pl-9"
-            />
-          </div>
-          <Select
-            value={filterMeta.status}
-            onValueChange={(value) =>
-              setFilterMeta({ ...filterMeta, status: value, page: 1 })
-            }
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All statuses</SelectItem>
-              {Object.values(TicketStatus).map((s) => (
-                <SelectItem key={s} value={s}>
-                  {getStatusLabel(s)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={filterMeta.category ?? "ALL"}
-            onValueChange={(value) =>
-              setFilterMeta({
-                ...filterMeta,
-                category: value === "ALL" ? null : value,
-                page: 1,
-              })
-            }
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All categories</SelectItem>
-              {Object.values(TicketCategory).map((c) => (
-                <SelectItem key={c} value={c}>
-                  {formatCapitalize(c.toLowerCase())}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={filterMeta.priority}
-            onValueChange={(value) =>
-              setFilterMeta({ ...filterMeta, priority: value, page: 1 })
-            }
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All priorities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All priorities</SelectItem>
-              {Object.values(Priority).map((p) => (
-                <SelectItem key={p} value={p}>
-                  {formatCapitalize(p.toLowerCase())}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All categories</SelectItem>
+                {Object.values(TicketCategory).map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {formatCapitalize(c.toLowerCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={filterMeta.priority}
+              onValueChange={(value) =>
+                setFilterMeta({ ...filterMeta, priority: value, page: 1 })
+              }
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All priorities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All priorities</SelectItem>
+                {Object.values(Priority).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {formatCapitalize(p.toLowerCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button
             variant="outline"
@@ -459,8 +458,7 @@ export function SupportDashboardTickets() {
                 },
                 {
                   header: "Created At",
-                  value: (r) =>
-                    new Date(r.createdAt).toLocaleString("en-US"),
+                  value: (r) => new Date(r.createdAt).toLocaleString("en-US"),
                 },
               ])
             }

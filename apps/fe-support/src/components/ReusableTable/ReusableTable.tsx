@@ -27,6 +27,7 @@ interface ReusableTableProps<T> {
   totalCount?: number;
   emptyMessage?: string;
   isLoading?: boolean;
+  onRowClick?: (row: T) => void;
 }
 
 export function ReusableTable<T>({
@@ -38,6 +39,7 @@ export function ReusableTable<T>({
   totalCount,
   emptyMessage = "No records found",
   isLoading = false,
+  onRowClick,
 }: ReusableTableProps<T>) {
   const totalPages = totalCount ? Math.ceil(totalCount / itemsPerPage) : 1;
 
@@ -144,8 +146,10 @@ export function ReusableTable<T>({
                   key={rowIndex}
                   className={cn(
                     "border-b border-gray-300 hover:bg-blue-50/50 transition-colors",
-                    rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50",
+                    onRowClick && "cursor-pointer"
                   )}
+                  onClick={() => onRowClick?.(row)}
                 >
                   {columns.map((col, colIndex) => (
                     <TableCell

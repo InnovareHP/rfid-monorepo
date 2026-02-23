@@ -39,3 +39,11 @@ export const liason = ac.newRole({
 export const admin = ac.newRole({
   project: ["create", "update"],
 });
+
+export const support = ac.newRole({
+  project: ["create", "update"],
+});
+
+export const super_admin = ac.newRole({
+  ...adminAc.statements,
+});

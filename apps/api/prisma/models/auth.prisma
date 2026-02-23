@@ -29,6 +29,8 @@ model user_table {
   SupportLiveChatAttachment SupportLiveChatAttachment[] @relation("SupportLiveChatAttachmentSender")
   SupportHistory SupportHistory[] @relation("SupportHistorySender")
   SupportTicketRating SupportTicketRating[] @relation("SupportTicketRatingCreatedBy")
+  AdminActivityLogAdmin   admin_activity_log[] @relation("AdminActivityLogAdmin")
+  AdminActivityLogTarget  admin_activity_log[] @relation("AdminActivityLogTarget")
 
   @@map("user_table")
   @@schema("auth_schema")
@@ -131,5 +133,32 @@ model invitation_table {
   organization_table    organization_table @relation(fields: [organization_id], references: [id], onDelete: Cascade)
 
   @@map("invitation_table")
+  @@schema("auth_schema")
+}
+
+enum AdminAction {
+  BAN_USER
+  UNBAN_USER
+  SET_ROLE
+  REMOVE_USER
+  IMPERSONATE_USER
+  STOP_IMPERSONATE
+
+  @@schema("auth_schema")
+}
+
+model admin_activity_log {
+  id              String       @id @default(uuid())
+  created_at      DateTime     @default(now()) @db.Timestamptz(3)
+  admin_id        String
+  action          AdminAction
+  target_user_id  String?
+  target_org_id   String?
+  details         String?
+  ip_address      String?
+  admin_user      user_table   @relation("AdminActivityLogAdmin", fields: [admin_id], references: [id], onDelete: Cascade)
+  target_user     user_table?  @relation("AdminActivityLogTarget", fields: [target_user_id], references: [id], onDelete: SetNull)
+
+  @@map("admin_activity_log")
   @@schema("auth_schema")
 }

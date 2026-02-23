@@ -32,7 +32,7 @@ export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
   @Get("/tickets")
-  @Roles([ROLES.SUPPORT, ROLES.USER])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN, ROLES.USER])
   async getTickets(
     @Session() session: AuthenticatedSession,
     @Query("page") page: number = 1,
@@ -56,7 +56,7 @@ export class SupportController {
   }
 
   @Get("/tickets/:ticketId")
-  @Roles([ROLES.SUPPORT, ROLES.USER])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN, ROLES.USER])
   async getTicketById(@Param("ticketId") ticketId: string) {
     try {
       return await this.supportService.getTicketById(ticketId);
@@ -80,7 +80,7 @@ export class SupportController {
   }
 
   @Patch("/tickets/:ticketId")
-  @Roles([ROLES.SUPPORT])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async updateTicket(
     @Param("ticketId") ticketId: string,
     @Body() dto: UpdateTicketDto,
@@ -98,7 +98,7 @@ export class SupportController {
   }
 
   @Delete("/tickets/:ticketId")
-  @Roles([ROLES.SUPPORT])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async deleteTicket(
     @Param("ticketId") ticketId: string,
     @Session() session: AuthenticatedSession
@@ -111,7 +111,7 @@ export class SupportController {
   }
 
   @Post("/tickets/:ticketId/messages")
-  @Roles([ROLES.SUPPORT, ROLES.USER])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN, ROLES.USER])
   async createTicketMessage(
     @Param("ticketId") ticketId: string,
     @Body() dto: CreateTicketMessageDto,
@@ -129,7 +129,7 @@ export class SupportController {
   }
 
   @Post("/tickets/:ticketId/messages/:messageId/attachments")
-  @Roles([ROLES.SUPPORT, ROLES.USER])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN, ROLES.USER])
   async createTicketAttachment(
     @Param("messageId") messageId: string,
     @Body() dto: CreateTicketAttachmentDto
@@ -145,7 +145,7 @@ export class SupportController {
   }
 
   @Get("/tickets/:ticketId/history")
-  @Roles([ROLES.SUPPORT, ROLES.USER])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN, ROLES.USER])
   async getTicketHistory(
     @Param("ticketId") ticketId: string,
     @Session() session: AuthenticatedSession
@@ -158,7 +158,7 @@ export class SupportController {
   }
 
   @Patch("/tickets/:ticketId/assign")
-  @Roles([ROLES.SUPPORT])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async assignTicket(
     @Param("ticketId") ticketId: string,
     @Body() dto: AssignTicketDto,
@@ -176,7 +176,7 @@ export class SupportController {
   }
 
   @Patch("/tickets/:ticketId/:status")
-  @Roles([ROLES.SUPPORT])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async updateSupportTicketStatus(
     @Param("ticketId") ticketId: string,
     @Param("status") status: TicketStatus,
@@ -213,7 +213,7 @@ export class SupportController {
   }
 
   @Get("/agents")
-  @Roles([ROLES.SUPPORT])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async getSupportAgents() {
     try {
       return await this.supportService.getSupportAgents();
@@ -223,7 +223,7 @@ export class SupportController {
   }
 
   @Get("/stats")
-  @Roles([ROLES.SUPPORT])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async getStats(@Session() session: AuthenticatedSession) {
     try {
       return await this.supportService.getStats(session.user);
@@ -233,7 +233,7 @@ export class SupportController {
   }
 
   @Get("/ratings")
-  @Roles([ROLES.SUPPORT])
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async getRatings(
     @Query("page") page: number = 1,
     @Query("take") take: number = 20,

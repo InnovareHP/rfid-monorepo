@@ -482,26 +482,44 @@ export class SupportService {
       resolvedTickets,
     ] = await Promise.all([
       prisma.supportTicket.count({
-        where: { status: "OPEN", assignedTo: user.id },
+        where: {
+          status: "OPEN",
+          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+        },
       }),
       prisma.supportTicket.count({
-        where: { status: "IN_PROGRESS", assignedTo: user.id },
+        where: {
+          status: "IN_PROGRESS",
+          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+        },
       }),
       prisma.supportTicket.count({
-        where: { status: "RESOLVED", assignedTo: user.id },
+        where: {
+          status: "RESOLVED",
+          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+        },
       }),
       prisma.supportTicket.count({
-        where: { status: "CLOSED", assignedTo: user.id },
+        where: {
+          status: "CLOSED",
+          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+        },
       }),
-      prisma.supportTicket.count({ where: { assignedTo: user.id } }),
+      prisma.supportTicket.count({
+        where: { ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }) },
+      }),
       prisma.supportTicketRating.aggregate({
         _avg: { rating: true },
         _count: { rating: true },
-        where: { supportTicket: { assignedTo: user.id } },
+        where: {
+          supportTicket: {
+            ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+          },
+        },
       }),
       prisma.supportTicket.findMany({
         where: {
-          assignedTo: user.id,
+          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
           SupportTicketMessage: {
             some: { senderUser: { user_role: ROLES.SUPPORT } },
           },
@@ -519,7 +537,7 @@ export class SupportService {
 
       prisma.supportTicket.findMany({
         where: {
-          assignedTo: user.id,
+          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
           status: { in: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
         },
         select: {
@@ -583,7 +601,11 @@ export class SupportService {
       prisma.supportTicketRating.findMany({
         skip: offset,
         take,
-        where: { supportTicket: { assignedTo: user.id } },
+        where: {
+          supportTicket: {
+            ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+          },
+        },
         orderBy: { createdAt: "desc" },
         include: {
           supportTicket: {
@@ -595,7 +617,11 @@ export class SupportService {
         },
       }),
       prisma.supportTicketRating.count({
-        where: { supportTicket: { assignedTo: user.id } },
+        where: {
+          supportTicket: {
+            ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+          },
+        },
       }),
     ]);
     return { ratings, total };

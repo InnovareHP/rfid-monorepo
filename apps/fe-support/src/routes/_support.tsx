@@ -1,8 +1,9 @@
 import { AdminLayout } from "@/components/AdminDashboard/AdminLayout";
+import { IsSupportOrAdmin } from "@/lib/authorization";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_support")({
-  // No auth/session check for now — design-only. Add beforeLoad with getSession() + redirect when ready for backend.
+  beforeLoad: IsSupportOrAdmin,
   component: AdminLayoutWrapper,
 });
 
