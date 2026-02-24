@@ -31,7 +31,6 @@ import {
   Video,
 } from "lucide-react";
 
-// --- Types (Ensure this matches the service layer) ---
 export type LeadAnalyze = {
   recordId: string;
   recordName: string;

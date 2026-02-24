@@ -1,5 +1,8 @@
 import { createZodDto } from "nestjs-zod";
 import {
+  BulkEmailSchema,
+  CompleteActivitySchema,
+  CreateActivitySchema,
   CreateColumnSchema,
   CreateFieldOptionSchema,
   CreateHistorySchema,
@@ -10,6 +13,7 @@ import {
   DeleteRecordsSchema,
   NotificationStateSchema,
   RestoreHistorySchema,
+  UpdateActivitySchema,
   UpdateRecordValueSchema,
 } from "./board.dto";
 
@@ -32,3 +36,9 @@ export class DeleteRecordsDto extends createZodDto(DeleteRecordsSchema) {}
 export class CreateRecordCountyAssignmentDto extends createZodDto(
   CreateRecordCountyAssignmentSchema
 ) {}
+export class CreateActivityDto extends createZodDto(CreateActivitySchema) {}
+export class UpdateActivityDto extends createZodDto(UpdateActivitySchema) {}
+export class CompleteActivityDto extends createZodDto(
+  CompleteActivitySchema
+) {}
+export class BulkEmailDto extends createZodDto(BulkEmailSchema) {}

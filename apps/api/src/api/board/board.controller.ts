@@ -8,12 +8,18 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import type { Response } from "express";
+import { appConfig } from "src/config/app-config";
 import { StripeGuard } from "src/guard/stripe/stripe.guard";
 import { BoardService } from "./board.service";
 import {
+  BulkEmailDto,
+  CompleteActivityDto,
+  CreateActivityDto,
   CreateColumnDto,
   CreateFieldOptionDto,
   CreateHistoryDto,
@@ -23,14 +29,231 @@ import {
   DeleteRecordsDto,
   NotificationStateDto,
   RestoreHistoryDto,
+  UpdateActivityDto,
   UpdateRecordValueDto,
 } from "./dto/board.schema";
+import { GmailService } from "./gmail.service";
+import { OutlookService } from "./outlook.service";
 
 @Controller("boards")
 @UseGuards(AuthGuard)
 @UseGuards(StripeGuard)
 export class BoardController {
-  constructor(private readonly boardService: BoardService) {}
+  constructor(
+    private readonly boardService: BoardService,
+    private readonly gmailService: GmailService,
+    private readonly outlookService: OutlookService
+  ) {}
+
+  // ---- Gmail Integration Endpoints ----
+
+  @Get("/gmail/auth-url")
+  async getGmailAuthUrl(@Session() session: AuthenticatedSession) {
+    try {
+      const state = JSON.stringify({
+        userId: session.user.id,
+        orgId: session.session.activeOrganizationId,
+      });
+      const url = this.gmailService.getAuthUrl(state);
+      return { url };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/gmail/callback")
+  async handleGmailCallback(
+    @Query("code") code: string,
+    @Query("state") state: string,
+    @Res() res: Response
+  ) {
+    try {
+      const { userId, orgId } = JSON.parse(state);
+      await this.gmailService.handleCallback(code, userId);
+      res.redirect(`${appConfig.WEBSITE_URL}/${orgId}/profile?gmail=connected`);
+    } catch (error) {
+      res.redirect(
+        `${appConfig.WEBSITE_URL}/profile?gmail=error&message=${encodeURIComponent(error.message)}`
+      );
+    }
+  }
+
+  @Get("/gmail/status")
+  async getGmailStatus(@Session() session: AuthenticatedSession) {
+    try {
+      return await this.gmailService.getConnectionStatus(session.user.id);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/gmail/disconnect")
+  async disconnectGmail(@Session() session: AuthenticatedSession) {
+    try {
+      await this.gmailService.disconnect(session.user.id);
+      return { message: "Gmail disconnected successfully" };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/outlook/auth-url")
+  async getOutlookAuthUrl(@Session() session: AuthenticatedSession) {
+    try {
+      const state = JSON.stringify({
+        userId: session.user.id,
+        orgId: session.session.activeOrganizationId,
+      });
+      const url = this.outlookService.getAuthUrl(state);
+      return { url };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/outlook/callback")
+  async handleOutlookCallback(
+    @Query("code") code: string,
+    @Query("state") state: string,
+    @Res() res: Response
+  ) {
+    try {
+      const { userId, orgId } = JSON.parse(state);
+      await this.outlookService.handleCallback(code, userId);
+      res.redirect(
+        `${appConfig.WEBSITE_URL}/${orgId}/profile?outlook=connected`
+      );
+    } catch (error) {
+      res.redirect(
+        `${appConfig.WEBSITE_URL}/profile?outlook=error&message=${encodeURIComponent(error.message)}`
+      );
+    }
+  }
+
+  @Get("/outlook/status")
+  async getOutlookStatus(@Session() session: AuthenticatedSession) {
+    try {
+      return await this.outlookService.getConnectionStatus(session.user.id);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/outlook/disconnect")
+  async disconnectOutlook(@Session() session: AuthenticatedSession) {
+    try {
+      await this.outlookService.disconnect(session.user.id);
+      return { message: "Outlook disconnected successfully" };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/bulk-email")
+  async sendBulkEmail(
+    @Body() dto: BulkEmailDto,
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      return await this.boardService.sendBulkEmail(
+        dto.record_ids,
+        dto.email_subject,
+        dto.email_body,
+        session.session.activeOrganizationId,
+        session.user.id,
+        moduleType || "LEAD",
+        dto.send_via
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/:recordId/activities")
+  async getActivities(
+    @Param("recordId") recordId: string,
+    @Session() session: AuthenticatedSession,
+    @Query("page") page = 1,
+    @Query("limit") limit = 15
+  ) {
+    try {
+      return await this.boardService.getActivities(
+        recordId,
+        session.session.activeOrganizationId,
+        Number(page),
+        Number(limit)
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/activities")
+  async createActivity(
+    @Body() dto: CreateActivityDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.createActivity(
+        dto,
+        session.session.activeOrganizationId,
+        session.user.id
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/activities/:activityId/complete")
+  async completeActivity(
+    @Param("activityId") activityId: string,
+    @Body() dto: CompleteActivityDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.completeActivity(
+        activityId,
+        session.session.activeOrganizationId,
+        session.user.id,
+        dto
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Patch("/activities/:activityId")
+  async updateActivity(
+    @Param("activityId") activityId: string,
+    @Body() dto: UpdateActivityDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.updateActivity(
+        activityId,
+        session.session.activeOrganizationId,
+        dto
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/activities/:activityId")
+  async deleteActivity(
+    @Param("activityId") activityId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.deleteActivity(
+        activityId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 
   @Get("/:recordId")
   async getRecordById(

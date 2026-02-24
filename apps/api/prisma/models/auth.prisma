@@ -31,6 +31,9 @@ model user_table {
   SupportTicketRating SupportTicketRating[] @relation("SupportTicketRatingCreatedBy")
   AdminActivityLogAdmin   admin_activity_log[] @relation("AdminActivityLogAdmin")
   AdminActivityLogTarget  admin_activity_log[] @relation("AdminActivityLogTarget")
+  Activity                Activity[]
+  GmailToken              GmailToken?
+  OutlookToken            OutlookToken?
 
   @@map("user_table")
   @@schema("auth_schema")
@@ -99,6 +102,7 @@ model organization_table {
   Field               Field[]
   // ReferralField       ReferralField[]
   boardCounty         boardCounty[]
+  Activity            Activity[]
 
   @@map("organization_table")
   @@schema("auth_schema")

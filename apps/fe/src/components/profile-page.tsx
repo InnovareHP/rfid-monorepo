@@ -2,6 +2,14 @@ import { authClient } from "@/lib/auth-client";
 import { useTeamLayoutContext } from "@/routes/_team";
 import { uploadImage } from "@/services/image/image-service";
 import {
+  disconnectGmail,
+  disconnectOutlook,
+  getGmailAuthUrl,
+  getGmailStatus,
+  getOutlookAuthUrl,
+  getOutlookStatus,
+} from "@/services/lead/lead-service";
+import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -20,20 +28,23 @@ import { Label } from "@dashboard/ui/components/label";
 import { Separator } from "@dashboard/ui/components/separator";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearch } from "@tanstack/react-router";
 import {
   AlertCircle,
   Calendar,
   Camera,
   CheckCircle,
+  Link,
   Loader2,
   LogOut,
   Mail,
   Shield,
+  Unlink,
   Upload,
   User,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -51,12 +62,90 @@ export function ProfilePage({
 }: React.ComponentProps<"div">) {
   const { user, memberData } = useTeamLayoutContext();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const search = useSearch({ strict: false }) as Record<string, string>;
 
   const [isUploading, setIsUploading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ---- Gmail connection ----
+
+  const gmailStatusQuery = useQuery({
+    queryKey: ["gmail-status"],
+    queryFn: getGmailStatus,
+  });
+
+  const connectGmailMutation = useMutation({
+    mutationFn: getGmailAuthUrl,
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: () => {
+      toast.error("Failed to start Gmail connection");
+    },
+  });
+
+  const disconnectGmailMutation = useMutation({
+    mutationFn: disconnectGmail,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gmail-status"] });
+      toast.success("Gmail disconnected successfully");
+    },
+    onError: () => {
+      toast.error("Failed to disconnect Gmail");
+    },
+  });
+
+  // Show toast on redirect back from Gmail OAuth
+  useEffect(() => {
+    if (search?.gmail === "connected") {
+      toast.success("Gmail connected successfully!");
+      queryClient.invalidateQueries({ queryKey: ["gmail-status"] });
+    } else if (search?.gmail === "error") {
+      toast.error(search?.message || "Failed to connect Gmail");
+    }
+  }, []);
+
+  // ---- Outlook connection ----
+
+  const outlookStatusQuery = useQuery({
+    queryKey: ["outlook-status"],
+    queryFn: getOutlookStatus,
+  });
+
+  const connectOutlookMutation = useMutation({
+    mutationFn: getOutlookAuthUrl,
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: () => {
+      toast.error("Failed to start Outlook connection");
+    },
+  });
+
+  const disconnectOutlookMutation = useMutation({
+    mutationFn: disconnectOutlook,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+      toast.success("Outlook disconnected successfully");
+    },
+    onError: () => {
+      toast.error("Failed to disconnect Outlook");
+    },
+  });
+
+  // Show toast on redirect back from Outlook OAuth
+  useEffect(() => {
+    if (search?.outlook === "connected") {
+      toast.success("Outlook connected successfully!");
+      queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
+    } else if (search?.outlook === "error") {
+      toast.error(search?.message || "Failed to connect Outlook");
+    }
+  }, []);
 
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -443,6 +532,161 @@ export function ProfilePage({
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* ---------------- CONNECTED ACCOUNTS ---------------- */}
+          <Card className="lg:col-span-3 border-2 border-gray-300 shadow-sm">
+            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
+              <div className="flex items-center gap-2">
+                <Link className="h-5 w-5 text-blue-600" />
+                <div>
+                  <CardTitle className="text-blue-900">
+                    Connected Accounts
+                  </CardTitle>
+                  <CardDescription>
+                    Connect external accounts to enhance your workflow
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-6 space-y-4">
+              {/* Gmail */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-lg bg-red-50 border-2 border-red-200 flex items-center justify-center">
+                    <Mail className="h-6 w-6 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Gmail</p>
+                    {gmailStatusQuery.data?.connected ? (
+                      <p className="text-sm text-gray-600">
+                        Connected as{" "}
+                        <span className="font-medium text-blue-600">
+                          {gmailStatusQuery.data.email}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        Send activity emails from your Gmail account
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {gmailStatusQuery.data?.connected && (
+                    <Badge className="bg-green-100 text-green-700 border-2 border-green-300 font-semibold">
+                      Connected
+                    </Badge>
+                  )}
+
+                  {gmailStatusQuery.data?.connected ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                      onClick={() => disconnectGmailMutation.mutate()}
+                      disabled={disconnectGmailMutation.isPending}
+                    >
+                      {disconnectGmailMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Unlink className="w-4 h-4 mr-1" />
+                      )}
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-300 hover:bg-blue-50"
+                      onClick={() => connectGmailMutation.mutate()}
+                      disabled={
+                        connectGmailMutation.isPending ||
+                        gmailStatusQuery.isLoading
+                      }
+                    >
+                      {connectGmailMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Link className="w-4 h-4 mr-1" />
+                      )}
+                      Connect Gmail
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <Separator className="bg-gray-300" />
+
+              {/* Outlook */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-lg bg-blue-50 border-2 border-blue-200 flex items-center justify-center">
+                    <Mail className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Outlook</p>
+                    {outlookStatusQuery.data?.connected ? (
+                      <p className="text-sm text-gray-600">
+                        Connected as{" "}
+                        <span className="font-medium text-blue-600">
+                          {outlookStatusQuery.data.email}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        Send activity emails from your Outlook account
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {outlookStatusQuery.data?.connected && (
+                    <Badge className="bg-green-100 text-green-700 border-2 border-green-300 font-semibold">
+                      Connected
+                    </Badge>
+                  )}
+
+                  {outlookStatusQuery.data?.connected ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                      onClick={() => disconnectOutlookMutation.mutate()}
+                      disabled={disconnectOutlookMutation.isPending}
+                    >
+                      {disconnectOutlookMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Unlink className="w-4 h-4 mr-1" />
+                      )}
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-300 hover:bg-blue-50"
+                      onClick={() => connectOutlookMutation.mutate()}
+                      disabled={
+                        connectOutlookMutation.isPending ||
+                        outlookStatusQuery.isLoading
+                      }
+                    >
+                      {connectOutlookMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Link className="w-4 h-4 mr-1" />
+                      )}
+                      Connect Outlook
+                    </Button>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

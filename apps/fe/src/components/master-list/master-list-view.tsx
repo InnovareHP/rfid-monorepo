@@ -38,6 +38,7 @@ import {
   Clock,
   FileText,
   RotateCcw,
+  CalendarCheck,
   Lightbulb,
 } from "lucide-react";
 import * as React from "react";
@@ -45,6 +46,7 @@ import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { RestoreHistoryModal } from "../history-report/restore-history-modal";
 import { EditableCell } from "../reusable-table/editable-cell";
+import { ActivityTab } from "./activity-tab";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
 
 function serializeValue(value: unknown): string {
@@ -70,7 +72,7 @@ export function MasterListView({
   leadId: string;
   isReferral: boolean;
   hasNotification?: boolean;
-  initialTab?: "details" | "history" | "suggestions";
+  initialTab?: "details" | "history" | "suggestions" | "activities";
   open?: boolean;
   setOpen?: (open: boolean) => void;
 }) {
@@ -247,7 +249,7 @@ export function MasterListView({
           ) : (
             <Tabs
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as "details" | "history" | "suggestions")}
+              onValueChange={(v) => setActiveTab(v as "details" | "history" | "suggestions" | "activities")}
               className="w-full"
             >
               <div className="px-6 border-b bg-gradient-to-r from-gray-50 to-slate-50">
@@ -274,6 +276,14 @@ export function MasterListView({
                   >
                     <Lightbulb className="h-4 w-4 mr-2" />
                     Suggestions
+                  </TabsTrigger>
+
+                  <TabsTrigger
+                    value="activities"
+                    className="data-[state=active]:border-b-3 data-[state=active]:border-amber-500 data-[state=active]:text-amber-600 data-[state=active]:font-bold rounded-none transition-all"
+                  >
+                    <CalendarCheck className="h-4 w-4 mr-2" />
+                    Activities
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -493,6 +503,13 @@ export function MasterListView({
                 <FollowUpSuggestions
                   recordId={leadId}
                   enabled={activeTab === "suggestions"}
+                />
+              </TabsContent>
+
+              <TabsContent value="activities" className="mt-0">
+                <ActivityTab
+                  recordId={leadId}
+                  enabled={activeTab === "activities"}
                 />
               </TabsContent>
             </Tabs>

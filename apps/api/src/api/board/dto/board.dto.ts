@@ -57,3 +57,39 @@ export const CreateRecordCountyAssignmentSchema = z.object({
   name: z.string(),
   assigned_to: z.string(),
 });
+
+export const CreateActivitySchema = z.object({
+  record_id: z.string(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  activity_type: z.enum(["CALL", "EMAIL", "MEETING", "NOTE"]),
+  due_date: z.string().optional(),
+  recipient_email: z.string().email().optional(),
+  email_subject: z.string().optional(),
+  email_body: z.string().optional(),
+  send_via: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
+});
+
+export const UpdateActivitySchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().optional(),
+  status: z.enum(["PENDING", "COMPLETED", "CANCELLED"]).optional(),
+  due_date: z.string().optional(),
+  recipient_email: z.string().email().optional(),
+  email_subject: z.string().optional(),
+  email_body: z.string().optional(),
+});
+
+export const CompleteActivitySchema = z.object({
+  email_body: z.string().optional(),
+  email_subject: z.string().optional(),
+  recipient_email: z.string().email().optional(),
+  send_via: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
+});
+
+export const BulkEmailSchema = z.object({
+  record_ids: z.array(z.string()).min(1).max(50),
+  email_subject: z.string().min(1),
+  email_body: z.string().min(1),
+  send_via: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
+});

@@ -15,6 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
+import { Input } from "@dashboard/ui/components/input";
+import { Label } from "@dashboard/ui/components/label";
 import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 import {
   Table,
@@ -24,6 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from "@dashboard/ui/components/table";
+import { Textarea } from "@dashboard/ui/components/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@dashboard/ui/components/select";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
   type ColumnDef,
@@ -34,12 +44,16 @@ import {
   AlertCircle,
   ArrowDown,
   Loader2,
+  MailIcon,
   MoreHorizontalIcon,
+  SendIcon,
   Trash2Icon,
   X,
 } from "lucide-react";
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getGmailStatus, getOutlookStatus, sendBulkEmail } from "../../services/lead/lead-service";
 import Loader from "../loader";
 import AddRow from "./add-row";
 
@@ -74,6 +88,21 @@ const ReusableTable = <T extends { id: string }>({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [sendVia, setSendVia] = useState<string>("AUTO");
+
+  const { data: gmailStatus } = useQuery({
+    queryKey: ["gmail-status"],
+    queryFn: getGmailStatus,
+  });
+
+  const { data: outlookStatus } = useQuery({
+    queryKey: ["outlook-status"],
+    queryFn: getOutlookStatus,
+  });
 
   const selectedRows = table.getSelectedRowModel().rows;
   const hasSelected = selectedRows.length > 0;
@@ -106,6 +135,36 @@ const ReusableTable = <T extends { id: string }>({
       toast.error("Failed to load more data.");
     } finally {
       setIsLoadingMore(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailSubject.trim() || !emailBody.trim()) return;
+
+    setIsSendingEmail(true);
+    try {
+      const result = await sendBulkEmail({
+        record_ids: selectedIds,
+        email_subject: emailSubject,
+        email_body: emailBody,
+        send_via: sendVia as "AUTO" | "GMAIL" | "OUTLOOK",
+      });
+
+      const parts: string[] = [];
+      if (result.sent > 0) parts.push(`Sent ${result.sent}`);
+      if (result.skipped > 0) parts.push(`Skipped ${result.skipped}`);
+      if (result.errors > 0) parts.push(`Failed ${result.errors}`);
+
+      toast.success(parts.join(", "));
+      setEmailDialogOpen(false);
+      setEmailSubject("");
+      setEmailBody("");
+      setSendVia("AUTO");
+      table.resetRowSelection();
+    } catch {
+      toast.error("Failed to send emails. Please try again.");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -157,6 +216,12 @@ const ReusableTable = <T extends { id: string }>({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        onClick={() => setEmailDialogOpen(true)}
+                      >
+                        <MailIcon className="h-4 w-4 mr-2" />
+                        Send Email
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         variant="destructive"
                         onClick={() => setDeleteDialogOpen(true)}
@@ -371,6 +436,110 @@ const ReusableTable = <T extends { id: string }>({
                   <>
                     <Trash2Icon className="w-4 h-4 mr-2" />
                     Delete Permanently
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {/* Send Email Compose Dialog */}
+        <Dialog
+          open={emailDialogOpen}
+          onOpenChange={(open) => {
+            setEmailDialogOpen(open);
+            if (!open) {
+              setEmailSubject("");
+              setEmailBody("");
+              setSendVia("AUTO");
+            }
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <MailIcon className="h-6 w-6 text-blue-600" />
+              </div>
+              <DialogTitle className="text-center text-xl">
+                Send Email
+              </DialogTitle>
+              <DialogDescription className="text-center">
+                Send an email to {selectedIds.length} selected{" "}
+                {selectedIds.length === 1 ? "recipient" : "recipients"}. Records
+                without an email address will be skipped.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="email-subject">Subject</Label>
+                <Input
+                  id="email-subject"
+                  placeholder="Enter email subject..."
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  disabled={isSendingEmail}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email-body">Body</Label>
+                <Textarea
+                  id="email-body"
+                  placeholder="Enter email body..."
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  disabled={isSendingEmail}
+                  rows={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Send via</Label>
+                <Select value={sendVia} onValueChange={setSendVia} disabled={isSendingEmail}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Send via" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AUTO">Auto-detect</SelectItem>
+                    {gmailStatus?.connected && (
+                      <SelectItem value="GMAIL">
+                        Gmail ({gmailStatus.email})
+                      </SelectItem>
+                    )}
+                    {outlookStatus?.connected && (
+                      <SelectItem value="OUTLOOK">
+                        Outlook ({outlookStatus.email})
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setEmailDialogOpen(false)}
+                disabled={isSendingEmail}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSendEmail}
+                disabled={
+                  isSendingEmail ||
+                  !emailSubject.trim() ||
+                  !emailBody.trim()
+                }
+                className="flex-1"
+              >
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <SendIcon className="w-4 h-4 mr-2" />
+                    Send to {selectedIds.length}{" "}
+                    {selectedIds.length === 1 ? "recipient" : "recipients"}
                   </>
                 )}
               </Button>

@@ -33,6 +33,7 @@ model Board {
   values          FieldValue[]
   history         History[]
   notifications   BoardNotificationState[]
+  activities      Activity[]
 
   @@schema("board_schema")
   @@index([organization_id, record_name])
@@ -113,6 +114,82 @@ model boardCountyAssignedTo {
   @@index([board_county_id])
 }
 
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  NOTE
+
+  @@schema("board_schema")
+}
+
+enum ActivityStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+
+  @@schema("board_schema")
+}
+
+model Activity {
+  id              String             @id @default(uuid())
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+  title           String
+  description     String?
+  activity_type   ActivityType
+  status          ActivityStatus     @default(PENDING)
+  due_date        DateTime?
+  completed_at    DateTime?
+  recipient_email String?
+  email_subject   String?
+  email_body      String?
+  email_sent_at   DateTime?
+  sender_email    String?
+
+  record_id       String
+  record          Board              @relation(fields: [record_id], references: [id])
+
+  created_by      String
+  creator         user_table         @relation(fields: [created_by], references: [id])
+
+  organization_id String
+  organization    organization_table @relation(fields: [organization_id], references: [id])
+
+  @@schema("board_schema")
+  @@index([record_id])
+  @@index([organization_id])
+  @@index([due_date])
+}
+
+model GmailToken {
+  id              String     @id @default(uuid())
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+  user_id         String     @unique
+  user            user_table @relation(fields: [user_id], references: [id])
+  access_token    String
+  refresh_token   String
+  token_expiry    DateTime
+  gmail_address   String
+
+  @@schema("board_schema")
+}
+
+model OutlookToken {
+  id              String     @id @default(uuid())
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+  user_id         String     @unique
+  user            user_table @relation(fields: [user_id], references: [id])
+  access_token    String
+  refresh_token   String
+  token_expiry    DateTime
+  outlook_email   String
+
+  @@schema("board_schema")
+}
 
 enum BoardFieldType {
   TEXT

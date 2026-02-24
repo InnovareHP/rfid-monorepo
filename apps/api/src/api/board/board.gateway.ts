@@ -100,4 +100,21 @@ export class BoardGateway implements OnGatewayConnection {
       .to(`org:${orgId}`)
       .emit("board:update-location", { recordId, data });
   }
+
+  emitActivityCreated(orgId: string, recordId: string, activity: any) {
+    this.server
+      .to(`org:${orgId}`)
+      .emit("board:activity-created", { recordId, activity });
+  }
+
+  emitActivityUpdated(
+    orgId: string,
+    recordId: string,
+    activityId: string,
+    status: string
+  ) {
+    this.server
+      .to(`org:${orgId}`)
+      .emit("board:activity-updated", { recordId, activityId, status });
+  }
 }

@@ -32,9 +32,7 @@ export const getColumnOptions = async (moduleType?: string) => {
 };
 
 export const getFollowUpSuggestions = async (recordId: string) => {
-  const response = await axiosClient.get(
-    `/api/boards/${recordId}/suggestions`
-  );
+  const response = await axiosClient.get(`/api/boards/${recordId}/suggestions`);
 
   if (response.status !== 200) {
     throw new Error("Failed to fetch follow-up suggestions");
@@ -283,5 +281,145 @@ export const importLeads = async (data: any, moduleType: string = "LEAD") => {
     moduleType: moduleType,
   });
 
+  return response.data;
+};
+
+export const sendBulkEmail = async (data: {
+  record_ids: string[];
+  email_subject: string;
+  email_body: string;
+  moduleType?: string;
+  send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
+}) => {
+  const response = await axiosClient.post("/api/boards/bulk-email", data, {
+    params: {
+      moduleType: data.moduleType,
+    },
+  });
+  return response.data as { sent: number; skipped: number; errors: number };
+};
+
+export interface Activity {
+  id: string;
+  title: string;
+  description: string | null;
+  activity_type: "CALL" | "EMAIL" | "MEETING" | "NOTE";
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+  due_date: string | null;
+  completed_at: string | null;
+  recipient_email: string | null;
+  email_subject: string | null;
+  email_body: string | null;
+  email_sent_at: string | null;
+  sender_email: string | null;
+  created_at: string;
+  created_by: string;
+  creator_email: string;
+}
+
+export const getActivities = async (
+  recordId: string,
+  page: number = 1,
+  limit: number = 15
+) => {
+  const response = await axiosClient.get(`/api/boards/${recordId}/activities`, {
+    params: { page, limit },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch activities");
+  }
+
+  return response.data as { data: Activity[]; total: number };
+};
+
+export const createActivity = async (data: {
+  record_id: string;
+  title: string;
+  description?: string;
+  activity_type: "CALL" | "EMAIL" | "MEETING" | "NOTE";
+  due_date?: string;
+  recipient_email?: string;
+  email_subject?: string;
+  email_body?: string;
+  send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
+}) => {
+  const response = await axiosClient.post("/api/boards/activities", data);
+  return response.data;
+};
+
+export const completeActivity = async (
+  activityId: string,
+  data?: {
+    email_body?: string;
+    email_subject?: string;
+    recipient_email?: string;
+    send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
+  }
+) => {
+  const response = await axiosClient.post(
+    `/api/boards/activities/${activityId}/complete`,
+    data || {}
+  );
+  return response.data;
+};
+
+export const updateActivity = async (
+  activityId: string,
+  data: {
+    title?: string;
+    description?: string;
+    status?: string;
+    due_date?: string;
+  }
+) => {
+  const response = await axiosClient.patch(
+    `/api/boards/activities/${activityId}`,
+    data
+  );
+  return response.data;
+};
+
+export const deleteActivity = async (activityId: string) => {
+  const response = await axiosClient.delete(
+    `/api/boards/activities/${activityId}`
+  );
+
+  if (response.status !== 200) {
+    throw new Error("Failed to delete activity");
+  }
+
+  return response.data;
+};
+
+export const getGmailAuthUrl = async () => {
+  const response = await axiosClient.get("/api/boards/gmail/auth-url");
+  return response.data as { url: string };
+};
+
+export const getGmailStatus = async () => {
+  const response = await axiosClient.get("/api/boards/gmail/status");
+  return response.data as { connected: boolean; email: string | null };
+};
+
+export const disconnectGmail = async () => {
+  const response = await axiosClient.delete("/api/boards/gmail/disconnect");
+  return response.data;
+};
+
+// ---- Outlook Integration ----
+
+export const getOutlookAuthUrl = async () => {
+  const response = await axiosClient.get("/api/boards/outlook/auth-url");
+  return response.data as { url: string };
+};
+
+export const getOutlookStatus = async () => {
+  const response = await axiosClient.get("/api/boards/outlook/status");
+  return response.data as { connected: boolean; email: string | null };
+};
+
+export const disconnectOutlook = async () => {
+  const response = await axiosClient.delete("/api/boards/outlook/disconnect");
   return response.data;
 };

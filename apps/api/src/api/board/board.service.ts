@@ -1,16 +1,24 @@
 import { normalizeKey, normalizeOptionValue } from "@dashboard/shared";
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { BoardFieldType, Field, FieldOption, Prisma } from "@prisma/client";
 import { appConfig } from "src/config/app-config";
 import { gemini } from "src/lib/gemini/gemini";
 import { followUpPrompt } from "src/lib/gemini/prompt";
 import { isSelectType } from "src/lib/helper";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
+import { sendEmail } from "src/lib/resend/resend";
+import { ActivityEmail } from "src/react-email/activity-email";
 import { lookupByName } from "zipcodes-perogi";
 import { uuidv4 } from "zod";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { prisma } from "../../lib/prisma/prisma";
 import { BoardGateway } from "./board.gateway";
+import { GmailService } from "./gmail.service";
+import { OutlookService } from "./outlook.service";
 
 interface BoardFilters {
   filter?: Record<string, string>;
@@ -30,7 +38,11 @@ interface HistoryFilters {
 
 @Injectable()
 export class BoardService {
-  constructor(private readonly boardGateway: BoardGateway) {}
+  constructor(
+    private readonly boardGateway: BoardGateway,
+    private readonly gmailService: GmailService,
+    private readonly outlookService: OutlookService
+  ) {}
   async getAllBoards(organizationId: string, filters: BoardFilters) {
     const {
       boardDateFrom,
@@ -1737,6 +1749,437 @@ export class BoardService {
       });
     });
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+  }
+
+  private async sendEmailWithProvider(
+    userId: string,
+    to: string,
+    subject: string,
+    recipientName: string,
+    body: string,
+    senderName: string,
+    sendVia?: string
+  ): Promise<string> {
+    const gmailStatus = await this.gmailService.getConnectionStatus(userId);
+    const outlookStatus = await this.outlookService.getConnectionStatus(userId);
+
+    if (sendVia === "GMAIL") {
+      const sent = await this.gmailService.trySendViaGmail(
+        userId,
+        to,
+        subject,
+        recipientName,
+        body,
+        senderName
+      );
+      if (sent && gmailStatus.email) return gmailStatus.email;
+      await sendEmail({
+        to,
+        subject,
+        html: ActivityEmail({ recipientName, body }),
+        from: appConfig.APP_EMAIL,
+      });
+      return appConfig.APP_EMAIL;
+    }
+
+    if (sendVia === "OUTLOOK") {
+      const sent = await this.outlookService.trySendViaOutlook(
+        userId,
+        to,
+        subject,
+        recipientName,
+        body,
+        senderName
+      );
+      if (sent && outlookStatus.email) return outlookStatus.email;
+      await sendEmail({
+        to,
+        subject,
+        html: ActivityEmail({ recipientName, body }),
+        from: appConfig.APP_EMAIL,
+      });
+      return appConfig.APP_EMAIL;
+    }
+
+    // AUTO: Gmail → Outlook → Resend
+    const sentViaGmail = await this.gmailService.trySendViaGmail(
+      userId,
+      to,
+      subject,
+      recipientName,
+      body,
+      senderName
+    );
+    if (sentViaGmail && gmailStatus.email) return gmailStatus.email;
+
+    const sentViaOutlook = await this.outlookService.trySendViaOutlook(
+      userId,
+      to,
+      subject,
+      recipientName,
+      body,
+      senderName
+    );
+    if (sentViaOutlook && outlookStatus.email) return outlookStatus.email;
+
+    await sendEmail({
+      to,
+      subject,
+      html: ActivityEmail({ recipientName, body }),
+      from: appConfig.APP_EMAIL,
+    });
+    return appConfig.APP_EMAIL;
+  }
+
+  async sendBulkEmail(
+    recordIds: string[],
+    emailSubject: string,
+    emailBody: string,
+    organizationId: string,
+    userId: string,
+    moduleType: string,
+    sendVia?: string
+  ) {
+    const emailField = await prisma.field.findFirst({
+      where: {
+        organization_id: organizationId,
+        module_type: moduleType,
+        field_type: "EMAIL",
+      },
+      select: { id: true },
+    });
+
+    if (!emailField) {
+      throw new BadRequestException(
+        "No EMAIL field found for this organization"
+      );
+    }
+
+    const records = await prisma.board.findMany({
+      where: {
+        id: { in: recordIds },
+        organization_id: organizationId,
+        is_deleted: false,
+      },
+      select: {
+        id: true,
+        record_name: true,
+        values: {
+          where: { field_id: emailField.id },
+          select: { value: true },
+        },
+      },
+    });
+
+    const creator = await prisma.user_table.findUniqueOrThrow({
+      where: { id: userId },
+      select: { user_name: true, user_email: true },
+    });
+
+    let sent = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const record of records) {
+      const recipientEmail = record.values[0]?.value;
+
+      if (!recipientEmail) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        const senderEmail = await this.sendEmailWithProvider(
+          userId,
+          recipientEmail,
+          emailSubject,
+          record.record_name,
+          emailBody,
+          creator.user_name,
+          sendVia
+        );
+
+        await prisma.activity.create({
+          data: {
+            title: emailSubject,
+            description: emailBody,
+            activity_type: "EMAIL",
+            status: "COMPLETED",
+            completed_at: new Date(),
+            recipient_email: recipientEmail,
+            email_subject: emailSubject,
+            email_body: emailBody,
+            email_sent_at: new Date(),
+            sender_email: senderEmail,
+            record_id: record.id,
+            created_by: userId,
+            organization_id: organizationId,
+          },
+        });
+
+        sent++;
+      } catch (error) {
+        errors++;
+      }
+    }
+
+    skipped += recordIds.length - records.length;
+
+    return { sent, skipped, errors };
+  }
+
+  async getActivities(
+    recordId: string,
+    organizationId: string,
+    page: number = 1,
+    limit: number = 15
+  ) {
+    const offset = (page - 1) * limit;
+
+    const [activities, total] = await Promise.all([
+      prisma.activity.findMany({
+        where: {
+          record_id: recordId,
+          organization_id: organizationId,
+        },
+        include: {
+          creator: {
+            select: { user_name: true, user_email: true },
+          },
+        },
+        orderBy: { created_at: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.activity.count({
+        where: {
+          record_id: recordId,
+          organization_id: organizationId,
+        },
+      }),
+    ]);
+
+    return {
+      data: activities.map((a) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        activity_type: a.activity_type,
+        status: a.status,
+        due_date: a.due_date,
+        completed_at: a.completed_at,
+        recipient_email: a.recipient_email,
+        email_subject: a.email_subject,
+        email_body: a.email_body,
+        email_sent_at: a.email_sent_at,
+        sender_email: a.sender_email,
+        created_at: a.created_at,
+        created_by: a.creator.user_name,
+        creator_email: a.creator.user_email,
+      })),
+      total,
+    };
+  }
+
+  async createActivity(
+    data: {
+      record_id?: string;
+      title?: string;
+      description?: string;
+      activity_type?: string;
+      due_date?: string;
+      recipient_email?: string;
+      email_subject?: string;
+      email_body?: string;
+      send_via?: string;
+    },
+    organizationId: string,
+    userId: string
+  ) {
+    const recordId = data.record_id!;
+    const title = data.title!;
+    const activityType = data.activity_type!;
+
+    await prisma.board.findFirstOrThrow({
+      where: { id: recordId, organization_id: organizationId },
+    });
+
+    const activity = await prisma.activity.create({
+      data: {
+        title: title,
+        description: data.description,
+        activity_type: activityType as any,
+        due_date: data.due_date ? new Date(data.due_date) : null,
+        recipient_email: data.recipient_email,
+        email_subject: data.email_subject,
+        email_body: data.email_body,
+        record_id: recordId,
+        created_by: userId,
+        organization_id: organizationId,
+      },
+    });
+
+    const creator = await prisma.user_table.findUniqueOrThrow({
+      where: { id: userId },
+      select: { user_name: true, user_email: true },
+    });
+
+    this.boardGateway.emitActivityCreated(organizationId, recordId, {
+      id: activity.id,
+      title: activity.title,
+      activity_type: activity.activity_type,
+      status: activity.status,
+      created_by: creator.user_name,
+      created_at: activity.created_at,
+    });
+
+    return {
+      id: activity.id,
+      title: activity.title,
+      description: activity.description,
+      activity_type: activity.activity_type,
+      status: activity.status,
+      due_date: activity.due_date,
+      recipient_email: activity.recipient_email,
+      email_subject: activity.email_subject,
+      email_body: activity.email_body,
+      sender_email: activity.sender_email,
+      created_at: activity.created_at,
+      created_by: creator.user_name,
+      creator_email: creator.user_email,
+    };
+  }
+
+  async completeActivity(
+    activityId: string,
+    organizationId: string,
+    userId: string,
+    emailOverrides?: {
+      email_body?: string;
+      email_subject?: string;
+      recipient_email?: string;
+      send_via?: string;
+    }
+  ) {
+    const activity = await prisma.activity.findFirstOrThrow({
+      where: { id: activityId, organization_id: organizationId },
+      include: {
+        record: { select: { record_name: true } },
+        creator: { select: { user_name: true, user_email: true } },
+      },
+    });
+
+    if (activity.status === "COMPLETED") {
+      throw new BadRequestException("Activity is already completed");
+    }
+
+    const updateData: Prisma.ActivityUpdateInput = {
+      status: "COMPLETED",
+      completed_at: new Date(),
+    };
+
+    if (activity.activity_type === "EMAIL") {
+      const recipientEmail =
+        emailOverrides?.recipient_email || activity.recipient_email;
+      const subject =
+        emailOverrides?.email_subject ||
+        activity.email_subject ||
+        activity.title;
+      const body =
+        emailOverrides?.email_body ||
+        activity.email_body ||
+        activity.description ||
+        "";
+
+      if (!recipientEmail) {
+        throw new BadRequestException(
+          "Recipient email is required for EMAIL activities"
+        );
+      }
+
+      const senderEmail = await this.sendEmailWithProvider(
+        userId,
+        recipientEmail,
+        subject,
+        activity.record.record_name,
+        body,
+        activity.creator.user_name,
+        emailOverrides?.send_via
+      );
+
+      updateData.email_sent_at = new Date();
+      updateData.recipient_email = recipientEmail;
+      updateData.email_subject = subject;
+      updateData.email_body = body;
+      updateData.sender_email = senderEmail;
+    }
+
+    const updated = await prisma.activity.update({
+      where: { id: activityId },
+      data: updateData,
+    });
+
+    this.boardGateway.emitActivityUpdated(
+      organizationId,
+      activity.record_id,
+      activityId,
+      "COMPLETED"
+    );
+
+    return updated;
+  }
+
+  async updateActivity(
+    activityId: string,
+    organizationId: string,
+    data: {
+      title?: string;
+      description?: string;
+      status?: string;
+      due_date?: string;
+      recipient_email?: string;
+      email_subject?: string;
+      email_body?: string;
+    }
+  ) {
+    await prisma.activity.findFirstOrThrow({
+      where: { id: activityId, organization_id: organizationId },
+    });
+
+    const updateData: Prisma.ActivityUpdateInput = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.status !== undefined) updateData.status = data.status as any;
+    if (data.due_date !== undefined)
+      updateData.due_date = data.due_date ? new Date(data.due_date) : null;
+    if (data.recipient_email !== undefined)
+      updateData.recipient_email = data.recipient_email;
+    if (data.email_subject !== undefined)
+      updateData.email_subject = data.email_subject;
+    if (data.email_body !== undefined) updateData.email_body = data.email_body;
+
+    if (data.status === "COMPLETED") {
+      updateData.completed_at = new Date();
+    }
+    if (data.status === "CANCELLED") {
+      updateData.completed_at = null;
+    }
+
+    return await prisma.activity.update({
+      where: { id: activityId },
+      data: updateData,
+    });
+  }
+
+  async deleteActivity(activityId: string, organizationId: string) {
+    await prisma.activity.findFirstOrThrow({
+      where: { id: activityId, organization_id: organizationId },
+    });
+
+    await prisma.activity.delete({ where: { id: activityId } });
+
+    return { message: "Activity deleted successfully" };
   }
 }
 
