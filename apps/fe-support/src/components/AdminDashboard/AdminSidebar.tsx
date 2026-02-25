@@ -37,6 +37,7 @@ import {
   Shield,
   Star,
   Ticket,
+  User,
   Users,
 } from "lucide-react";
 import * as React from "react";
@@ -244,6 +245,18 @@ export function AdminSidebar() {
                     </div>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    router.navigate({
+                      to: "/$lang/account",
+                      params: { lang: "en" },
+                    })
+                  }
+                >
+                  <User />
+                  Account
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut />
