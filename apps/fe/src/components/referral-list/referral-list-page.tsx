@@ -176,10 +176,7 @@ export default function ReferralListPage() {
   const tableColumns = useMemo(() => {
     return table
       .getAllColumns()
-      .filter(
-        (column) =>
-          column.id !== "view_referral" && column.id !== "create_column"
-      )
+      .filter((column) => column.id !== "create_column")
       .map((column) => {
         const header = column.columnDef.header;
         let columnLabel = column.id || "Unnamed Column"; // Default to column id

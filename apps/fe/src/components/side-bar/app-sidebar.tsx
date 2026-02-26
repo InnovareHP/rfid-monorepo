@@ -15,7 +15,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
-import { CircuitBoard, FileText, Folder, Settings2, SquareTerminal } from "lucide-react";
+import {
+  CircuitBoard,
+  FileText,
+  Folder,
+  Settings2,
+  SquareTerminal,
+} from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
@@ -231,7 +237,7 @@ export function AppSidebar({
       const newLead = [
         {
           id: uuidv4(),
-          lead_name: value,
+          record_name: value,
           status: "",
           activities_time: 0,
           create_contact: "",

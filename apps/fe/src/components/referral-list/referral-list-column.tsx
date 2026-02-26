@@ -94,7 +94,7 @@ export function generateReferralColumns(
 
   const createNewColumn: ColumnDef<ReferralRow> = {
     header: () => <CreateColumnModal isReferral={true} />,
-    accessorKey: " create_column",
+    accessorKey: "create_column",
   };
 
   return [selectColumn, referralNameColumn, ...dynamicColumns, createNewColumn];

@@ -11,8 +11,8 @@ import { followUpPrompt } from "src/lib/gemini/prompt";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
 import { sendEmail } from "src/lib/resend/resend";
 import { ActivityEmail } from "src/react-email/activity-email";
+import { v4 as uuidv4 } from "uuid";
 import { lookupByName } from "zipcodes-perogi";
-import { uuidv4 } from "zod";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
@@ -583,10 +583,7 @@ export class BoardService {
       cacheTtl: 60 * 10,
     });
 
-    const result = await job.waitUntilFinished(
-      this.geminiQueueEvents,
-      30000
-    );
+    const result = await job.waitUntilFinished(this.geminiQueueEvents, 30000);
     return result;
   }
 
@@ -810,9 +807,14 @@ export class BoardService {
           );
           await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
-          this.boardGateway.emitRecordValueLocation(organizationId, record_id, {
-            ...locationData,
-          }, moduleType);
+          this.boardGateway.emitRecordValueLocation(
+            organizationId,
+            record_id,
+            {
+              ...locationData,
+            },
+            moduleType
+          );
           return {
             message: "Location updated successfully",
           };
@@ -1073,13 +1075,14 @@ export class BoardService {
   }
 
   async createReferral(
-    data: { referral_name: string; [key: string]: any }[],
+    referralItems: { referral_name: string; [key: string]: any }[],
     organizationId: string,
-    memberId: string
+    memberId: string,
+    moduleType: string
   ) {
-    return await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const fields = await tx.field.findMany({
-        where: { organization_id: organizationId },
+        where: { organization_id: organizationId, module_type: moduleType },
         orderBy: { field_order: "asc" },
       });
 
@@ -1088,11 +1091,11 @@ export class BoardService {
       const allHistoryEntries: any[] = [];
       const allNotificationStates: any[] = [];
 
-      for (const referralData of data) {
+      for (const referralData of referralItems) {
         const referral = await tx.board.create({
           data: {
             record_name: referralData.referral_name ?? "",
-            module_type: "REFERRAL",
+            module_type: moduleType,
             organization_id: organizationId,
           },
         });
@@ -1101,7 +1104,8 @@ export class BoardService {
 
         for (const field of fields) {
           const customValue =
-            data[field.field_name] ?? data[field.field_name.toLowerCase()];
+            referralData[field.field_name] ??
+            referralData[field.field_name.toLowerCase()];
           let value: string | null = null;
 
           if (customValue !== undefined && customValue !== null) {
@@ -1126,6 +1130,7 @@ export class BoardService {
             record_id: referral.id,
             field_id: field.id,
             value: value,
+            moduleType: moduleType,
           });
         }
 
@@ -1176,6 +1181,14 @@ export class BoardService {
         referrals: createdReferrals,
       };
     });
+
+    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+    for (const referral of result.referrals) {
+      this.boardGateway.emitRecordCreated(organizationId, referral, "REFERRAL");
+    }
+
+    return result;
   }
 
   async createCountyAssignment(
@@ -1317,7 +1330,11 @@ export class BoardService {
 
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
-    this.boardGateway.emitRecordNotificationState(organizationId, record_id, record?.module_type ?? "LEAD");
+    this.boardGateway.emitRecordNotificationState(
+      organizationId,
+      record_id,
+      record?.module_type ?? "LEAD"
+    );
 
     return {
       message: "Notification marked as seen",
@@ -1350,7 +1367,11 @@ export class BoardService {
 
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
-    this.boardGateway.emitColumnCreated(organizationId, column_name, module_type);
+    this.boardGateway.emitColumnCreated(
+      organizationId,
+      column_name,
+      module_type
+    );
   }
 
   async createLocation(

@@ -90,24 +90,7 @@ export default function MasterListPage() {
 
   const addLeadMutation = useMutation({
     mutationFn: (data: any) => createLead(data, "LEAD"),
-    onMutate: async (newLead) => {
-      await queryClient.cancelQueries({ queryKey: ["leads", filterMeta] });
-      const previousData = queryClient.getQueryData(["leads", filterMeta]);
-      queryClient.setQueryData(["leads", filterMeta], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: [
-            {
-              ...old.pages[0],
-              data: [newLead[0], ...old.pages[0].data],
-            },
-            ...old.pages.slice(1),
-          ],
-        };
-      });
-      return { previousData };
-    },
+
     onError: (_err, _newLead, context: any) => {
       queryClient.setQueryData(["leads", filterMeta], context.previousData);
       toast.error("Failed to add lead.");
@@ -148,7 +131,7 @@ export default function MasterListPage() {
     const newLead = [
       {
         id: uuidv4(),
-        lead_name: value,
+        record_name: value,
         status: "",
         activities_time: 0,
         create_contact: "",
@@ -207,8 +190,8 @@ export default function MasterListPage() {
   const tableColumns = useMemo(() => {
     return table
       .getAllColumns()
-      .filter((column) => column.id !== "create_column")
-      .map((column) => {
+      .filter((column: any) => column.id !== "create_column")
+      .map((column: any) => {
         const header = column.columnDef.header;
         let columnLabel = column.id || "Unnamed Column"; // Default to column id
 

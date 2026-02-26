@@ -147,7 +147,7 @@ export const updateLead = async (
 
 export const createLead = async (data: any, moduleType?: string) => {
   const response = await axiosClient.post("/api/boards", {
-    lead_name: data[0].lead_name,
+    record_name: data[0].record_name,
     moduleType: moduleType || "LEAD",
   });
 

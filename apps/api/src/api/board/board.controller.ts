@@ -424,12 +424,14 @@ export class BoardController {
     session: AuthenticatedSession
   ) {
     const organizationId = session.session.activeOrganizationId;
+
     try {
       if (dto.moduleType === "REFERRAL") {
         return this.boardService.createReferral(
           dto.data,
           organizationId,
-          session.user.id
+          session.user.id,
+          dto.moduleType
         );
       }
       return this.boardService.createRecord(
