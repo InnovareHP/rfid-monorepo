@@ -30,6 +30,7 @@ import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
+  BarChart3,
   Building2,
   ChevronsUpDown,
   ClipboardList,
@@ -37,6 +38,7 @@ import {
   Shield,
   Star,
   Ticket,
+  User,
   Users,
 } from "lucide-react";
 import * as React from "react";
@@ -135,6 +137,12 @@ export function AdminSidebar() {
                         icon: Ticket,
                         path: "/support/tickets",
                       },
+                      {
+                        id: "team-kpis",
+                        title: "Team KPIs",
+                        icon: BarChart3,
+                        path: "/support/kpi/team",
+                      },
                     ]
                   : role === ROLES.SUPPORT
                     ? [
@@ -156,6 +164,12 @@ export function AdminSidebar() {
                           icon: Star,
                           path: "/support/ratings",
                         },
+                        {
+                          id: "my-kpis",
+                          title: "My KPIs",
+                          icon: BarChart3,
+                          path: "/support/kpi/my",
+                        },
                       ]
                     : [];
 
@@ -176,7 +190,14 @@ export function AdminSidebar() {
                       isActive={isActive}
                       asChild
                     >
-                      <Link to={item.path} preload={false}>
+                      <Link
+                        to={item.path}
+                        preload={
+                          item.id === "my-kpis" || item.id === "team-kpis"
+                            ? "intent"
+                            : false
+                        }
+                      >
                         <Icon className="size-4" />
                         <span>{item.title}</span>
                       </Link>
@@ -244,6 +265,18 @@ export function AdminSidebar() {
                     </div>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    router.navigate({
+                      to: "/$lang/account",
+                      params: { lang: "en" },
+                    })
+                  }
+                >
+                  <User />
+                  Account
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut />
