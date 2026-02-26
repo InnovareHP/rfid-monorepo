@@ -43,7 +43,13 @@ CREATE PUBLICATION my_publication_sg FOR TABLE
   board_schema."BoardNotificationState",
   board_schema."boardCounty",
   board_schema."boardCountyAssignedTo",
-s
+  board_schema."Activity",
+  board_schema."GmailToken",
+  board_schema."OutlookToken",
+
+  -- auth_schema (additional)
+  auth_schema.admin_activity_log,
+
   -- support_schema
   support_schema."SupportTicket",
   support_schema."SupportHistory",
@@ -53,6 +59,13 @@ s
   support_schema."SupportLiveChat",
   support_schema."SupportLiveChatMessage",
   support_schema."SupportLiveChatAttachment";
+
+-- alter publication to add new tables (run this if publication already exists)
+ALTER PUBLICATION my_publication_sg ADD TABLE
+  board_schema."Activity",
+  board_schema."GmailToken",
+  board_schema."OutlookToken",
+  auth_schema.admin_activity_log;
 
   -- to connect to the subscription
 

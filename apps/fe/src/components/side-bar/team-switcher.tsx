@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { ChevronsUpDown, User } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -29,6 +30,7 @@ export function TeamSwitcher({
 }: TeamSwitcherProps) {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [activeTeam, setActiveTeam] = useState<Organization | undefined>(
     undefined
@@ -47,21 +49,22 @@ export function TeamSwitcher({
     setActiveTeam(currentTeam ?? undefined);
   }, [organizations]);
 
-  const HandleSelectActiveTeam = (team: Organization) => {
+  const HandleSelectActiveTeam = async (team: Organization) => {
     try {
-      authClient.organization.setActive({
+      setActiveTeam(team);
+
+      await authClient.organization.setActive({
         organizationId: team.id,
       });
 
-      setActiveTeam(team);
+      queryClient.clear();
 
       router.navigate({
         to: "/$team",
-        params: { team: team.id ?? "" },
-        resetScroll: true,
+        params: { team: String(team.id) },
       });
 
-      router.invalidate({});
+      window.location.reload();
     } catch (error) {
       toast.error("Failed to switch team");
     }

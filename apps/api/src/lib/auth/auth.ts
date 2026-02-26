@@ -254,17 +254,9 @@ export const auth = betterAuth({
       },
       organizationHooks: {
         beforeCreateOrganization: async ({ organization, user }) => {
-          const existingMember = await prisma.member_table.findFirstOrThrow({
-            where: {
-              userId: user.id,
-              organizationId: organization.id,
-            },
-            take: 1,
-          });
           return {
             data: {
               ...organization,
-              memberRole: existingMember?.member_role,
               activeOrganizationId: organization.id,
             },
           };

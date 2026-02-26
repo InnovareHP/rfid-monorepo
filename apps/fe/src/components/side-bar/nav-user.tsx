@@ -1,4 +1,9 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@dashboard/ui/components/avatar";
+import { authClient } from "@/lib/auth-client";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@dashboard/ui/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +19,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
-import { authClient } from "@/lib/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import type { User as BetterAuthUser } from "better-auth";
@@ -32,9 +36,9 @@ export function NavUser({ user, activeOrganizationId }: NavUserProps) {
 
   const handleLogout = async () => {
     try {
-      queryClient.clear();
-
       await authClient.signOut();
+
+      queryClient.clear();
 
       router.navigate({ to: "/login" });
     } catch (error) {
