@@ -455,7 +455,8 @@ export class BoardController {
         dto.history_id,
         session.session.activeOrganizationId,
         dto.event_type,
-        session.user.id
+        session.user.id,
+        dto.moduleType
       );
     } catch (error) {
       throw new BadRequestException(error.message);

@@ -18,6 +18,7 @@ export const RestoreHistorySchema = z.object({
   record_id: z.string(),
   history_id: z.string(),
   event_type: z.string(),
+  moduleType: z.string().default("LEAD"),
 });
 
 export const NotificationStateSchema = z.object({

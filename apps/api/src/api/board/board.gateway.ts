@@ -64,29 +64,30 @@ export class BoardGateway implements OnGatewayConnection {
     await client.join(`org:${orgId}`);
   }
 
-  emitRecordCreated(orgId: string, record: any) {
-    this.server.to(`org:${orgId}`).emit("board:record-created", { record });
+  emitRecordCreated(orgId: string, record: any, moduleType?: string) {
+    this.server.to(`org:${orgId}`).emit("board:record-created", { record, moduleType: moduleType ?? record.module_type ?? "LEAD" });
   }
-  emitRecordDeleted(orgId: string, recordIds: string[]) {
-    this.server.to(`org:${orgId}`).emit("board:record-deleted", { recordIds });
+  emitRecordDeleted(orgId: string, recordIds: string[], moduleType: string = "LEAD") {
+    this.server.to(`org:${orgId}`).emit("board:record-deleted", { recordIds, moduleType });
   }
-  emitRecordNotificationState(orgId: string, recordId: string) {
+  emitRecordNotificationState(orgId: string, recordId: string, moduleType: string = "LEAD") {
     this.server
       .to(`org:${orgId}`)
-      .emit("board:record-notification-state", { recordId });
+      .emit("board:record-notification-state", { recordId, moduleType });
   }
-  emitColumnCreated(orgId: string, column: string) {
-    this.server.to(`org:${orgId}`).emit("board:column-created", { column });
+  emitColumnCreated(orgId: string, column: string, moduleType: string = "LEAD") {
+    this.server.to(`org:${orgId}`).emit("board:column-created", { column, moduleType });
   }
   emitRecordValueUpdated(
     orgId: string,
     recordId: string,
     fieldName: string,
-    value: any
+    value: any,
+    moduleType: string = "LEAD"
   ) {
     this.server
       .to(`org:${orgId}`)
-      .emit("board:update", { recordId, fieldName, value });
+      .emit("board:update", { recordId, fieldName, value, moduleType });
   }
 
   emitRecordValueLocation(
@@ -94,11 +95,12 @@ export class BoardGateway implements OnGatewayConnection {
     recordId: string,
     data: {
       [key: string]: any;
-    }
+    },
+    moduleType: string = "LEAD"
   ) {
     this.server
       .to(`org:${orgId}`)
-      .emit("board:update-location", { recordId, data });
+      .emit("board:update-location", { recordId, data, moduleType });
   }
 
   emitActivityCreated(orgId: string, recordId: string, activity: any) {

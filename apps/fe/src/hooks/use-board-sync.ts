@@ -3,6 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 
+function getQueryKey(moduleType?: string): string[] {
+  return moduleType === "REFERRAL" ? ["referrals"] : ["leads"];
+}
+
 export function useBoardSync() {
   const queryClient = useQueryClient();
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -18,9 +22,9 @@ export function useBoardSync() {
   useEffect(() => {
     if (!socket) return;
 
-    const handleUpdate = ({ recordId, fieldName, value }: any) => {
+    const handleUpdate = ({ recordId, fieldName, value, moduleType }: any) => {
       queryClient.setQueriesData(
-        { queryKey: ["leads"], exact: false },
+        { queryKey: getQueryKey(moduleType), exact: false },
         (old: any) => {
           if (!old) return old;
           return {
@@ -38,15 +42,15 @@ export function useBoardSync() {
       );
     };
 
-    const handleCreated = ({ record }: any) => {
+    const handleCreated = ({ record, moduleType }: any) => {
       queryClient.setQueriesData(
-        { queryKey: ["leads"], exact: false },
+        { queryKey: getQueryKey(moduleType), exact: false },
         (old: any) => {
           if (!old) return old;
           return {
             ...old,
             pages: old.pages.map((page: any, index: number) =>
-              index === 0 // Prepend the new record only to the first page
+              index === 0
                 ? { ...page, data: [record, ...page.data] }
                 : page
             ),
@@ -55,9 +59,9 @@ export function useBoardSync() {
       );
     };
 
-    const handleDelete = ({ recordIds }: any) => {
+    const handleDelete = ({ recordIds, moduleType }: any) => {
       queryClient.setQueriesData(
-        { queryKey: ["leads"], exact: false },
+        { queryKey: getQueryKey(moduleType), exact: false },
         (old: any) => {
           if (!old) return old;
           return {
@@ -71,9 +75,9 @@ export function useBoardSync() {
       );
     };
 
-    const handleUpdateLocation = ({ recordId, data }: any) => {
+    const handleUpdateLocation = ({ recordId, data, moduleType }: any) => {
       queryClient.setQueriesData(
-        { queryKey: ["leads"], exact: false },
+        { queryKey: getQueryKey(moduleType), exact: false },
         (old: any) => {
           if (!old) return old;
           return {
@@ -91,9 +95,9 @@ export function useBoardSync() {
       );
     };
 
-    const handleUpdateNotificationState = ({ recordId }: any) => {
+    const handleUpdateNotificationState = ({ recordId, moduleType }: any) => {
       queryClient.setQueriesData(
-        { queryKey: ["leads"], exact: false },
+        { queryKey: getQueryKey(moduleType), exact: false },
         (old: any) => {
           if (!old) return old;
           return {
@@ -114,7 +118,6 @@ export function useBoardSync() {
     socket.on("board:record-created", handleCreated);
     socket.on("board:record-deleted", handleDelete);
     socket.on("board:record-notification-state", handleUpdateNotificationState);
-
     socket.on("board:update-location", handleUpdateLocation);
 
     return () => {

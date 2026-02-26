@@ -229,6 +229,7 @@ const OnBoardingPage = () => {
         {
           onSuccess: () => {
             refetch();
+            window.location.reload();
           },
           onError: (ctx: ErrorContext) => {
             form.setError("root", {
@@ -245,6 +246,7 @@ const OnBoardingPage = () => {
 
       await refetch();
 
+      window.location.reload();
       navigate({ to: `/${createRes.id}` });
     } catch (err: unknown) {
       const message =

@@ -764,7 +764,8 @@ export class BoardService {
             organizationId,
             record_id,
             "Assigned To",
-            value
+            value,
+            moduleType
           );
 
           return {
@@ -781,7 +782,8 @@ export class BoardService {
             organizationId,
             record_id,
             "Record",
-            value
+            value,
+            moduleType
           );
 
           return {
@@ -810,7 +812,7 @@ export class BoardService {
 
           this.boardGateway.emitRecordValueLocation(organizationId, record_id, {
             ...locationData,
-          });
+          }, moduleType);
           return {
             message: "Location updated successfully",
           };
@@ -1020,7 +1022,8 @@ export class BoardService {
           organizationId,
           record_id,
           field.field_name,
-          value
+          value,
+          moduleType
         );
         return {
           message: "Record value updated successfully",
@@ -1064,7 +1067,7 @@ export class BoardService {
       purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`),
     ]);
 
-    this.boardGateway.emitRecordCreated(organizationId, record);
+    this.boardGateway.emitRecordCreated(organizationId, record, moduleType);
 
     return record;
   }
@@ -1202,7 +1205,8 @@ export class BoardService {
     history_id: string,
     organizationId: string,
     event_type: string,
-    userId: string
+    userId: string,
+    moduleType: string = "LEAD"
   ) {
     const history = await prisma.history.findUniqueOrThrow({
       where: { id: history_id },
@@ -1259,7 +1263,8 @@ export class BoardService {
         organizationId,
         history.record_id,
         history.column ?? "",
-        history.old_value ?? ""
+        history.old_value ?? "",
+        moduleType
       );
       return {
         message: "Record restored successfully",
@@ -1290,7 +1295,8 @@ export class BoardService {
         organizationId,
         history.record_id,
         history.column ?? "",
-        history.old_value ?? ""
+        history.old_value ?? "",
+        moduleType
       );
       return {
         message: "Record deleted successfully",
@@ -1299,13 +1305,19 @@ export class BoardService {
   }
 
   async setRecordNotificationState(record_id: string, organizationId: string) {
-    const deleted = await prisma.boardNotificationState.deleteMany({
-      where: { record_id: record_id },
-    });
+    const [deleted, record] = await Promise.all([
+      prisma.boardNotificationState.deleteMany({
+        where: { record_id: record_id },
+      }),
+      prisma.board.findUnique({
+        where: { id: record_id },
+        select: { module_type: true },
+      }),
+    ]);
 
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
-    this.boardGateway.emitRecordNotificationState(organizationId, record_id);
+    this.boardGateway.emitRecordNotificationState(organizationId, record_id, record?.module_type ?? "LEAD");
 
     return {
       message: "Notification marked as seen",
@@ -1338,7 +1350,7 @@ export class BoardService {
 
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
-    this.boardGateway.emitColumnCreated(organizationId, column_name);
+    this.boardGateway.emitColumnCreated(organizationId, column_name, module_type);
   }
 
   async createLocation(
