@@ -24,6 +24,8 @@ import { Route as SupportSupportRatingsIndexRouteImport } from './routes/_suppor
 import { Route as LangLangRequestIndexRouteImport } from './routes/_lang/$lang/request/index'
 import { Route as AdminAdminUsersIndexRouteImport } from './routes/_admin/admin/users/index'
 import { Route as AdminAdminOrganizationsIndexRouteImport } from './routes/_admin/admin/organizations/index'
+import { Route as SupportSupportKpiTeamRouteImport } from './routes/_support/support/kpi.team'
+import { Route as SupportSupportKpiMyRouteImport } from './routes/_support/support/kpi.my'
 import { Route as SupportSupportTicketsTicketNumberIndexRouteImport } from './routes/_support/support/tickets/$ticketNumber/index'
 import { Route as LangLangRequestTicketNumberIndexRouteImport } from './routes/_lang/$lang/request/$ticketNumber/index'
 import { Route as AdminAdminUsersUserIdIndexRouteImport } from './routes/_admin/admin/users/$userId/index'
@@ -104,6 +106,16 @@ const AdminAdminOrganizationsIndexRoute =
     path: '/admin/organizations/',
     getParentRoute: () => AdminRoute,
   } as any)
+const SupportSupportKpiTeamRoute = SupportSupportKpiTeamRouteImport.update({
+  id: '/support/kpi/team',
+  path: '/support/kpi/team',
+  getParentRoute: () => SupportRoute,
+} as any)
+const SupportSupportKpiMyRoute = SupportSupportKpiMyRouteImport.update({
+  id: '/support/kpi/my',
+  path: '/support/kpi/my',
+  getParentRoute: () => SupportRoute,
+} as any)
 const SupportSupportTicketsTicketNumberIndexRoute =
   SupportSupportTicketsTicketNumberIndexRouteImport.update({
     id: '/support/tickets/$ticketNumber/',
@@ -137,6 +149,8 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminAdminIndexRoute
   '/$lang/': typeof LangLangIndexRoute
   '/support/': typeof SupportSupportIndexRoute
+  '/support/kpi/my': typeof SupportSupportKpiMyRoute
+  '/support/kpi/team': typeof SupportSupportKpiTeamRoute
   '/admin/organizations/': typeof AdminAdminOrganizationsIndexRoute
   '/admin/users/': typeof AdminAdminUsersIndexRoute
   '/$lang/request/': typeof LangLangRequestIndexRoute
@@ -155,6 +169,8 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAdminIndexRoute
   '/$lang': typeof LangLangIndexRoute
   '/support': typeof SupportSupportIndexRoute
+  '/support/kpi/my': typeof SupportSupportKpiMyRoute
+  '/support/kpi/team': typeof SupportSupportKpiTeamRoute
   '/admin/organizations': typeof AdminAdminOrganizationsIndexRoute
   '/admin/users': typeof AdminAdminUsersIndexRoute
   '/$lang/request': typeof LangLangRequestIndexRoute
@@ -177,6 +193,8 @@ export interface FileRoutesById {
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_lang/$lang/': typeof LangLangIndexRoute
   '/_support/support/': typeof SupportSupportIndexRoute
+  '/_support/support/kpi/my': typeof SupportSupportKpiMyRoute
+  '/_support/support/kpi/team': typeof SupportSupportKpiTeamRoute
   '/_admin/admin/organizations/': typeof AdminAdminOrganizationsIndexRoute
   '/_admin/admin/users/': typeof AdminAdminUsersIndexRoute
   '/_lang/$lang/request/': typeof LangLangRequestIndexRoute
@@ -197,6 +215,8 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/$lang/'
     | '/support/'
+    | '/support/kpi/my'
+    | '/support/kpi/team'
     | '/admin/organizations/'
     | '/admin/users/'
     | '/$lang/request/'
@@ -215,6 +235,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/$lang'
     | '/support'
+    | '/support/kpi/my'
+    | '/support/kpi/team'
     | '/admin/organizations'
     | '/admin/users'
     | '/$lang/request'
@@ -236,6 +258,8 @@ export interface FileRouteTypes {
     | '/_admin/admin/'
     | '/_lang/$lang/'
     | '/_support/support/'
+    | '/_support/support/kpi/my'
+    | '/_support/support/kpi/team'
     | '/_admin/admin/organizations/'
     | '/_admin/admin/users/'
     | '/_lang/$lang/request/'
@@ -361,6 +385,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminOrganizationsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_support/support/kpi/team': {
+      id: '/_support/support/kpi/team'
+      path: '/support/kpi/team'
+      fullPath: '/support/kpi/team'
+      preLoaderRoute: typeof SupportSupportKpiTeamRouteImport
+      parentRoute: typeof SupportRoute
+    }
+    '/_support/support/kpi/my': {
+      id: '/_support/support/kpi/my'
+      path: '/support/kpi/my'
+      fullPath: '/support/kpi/my'
+      preLoaderRoute: typeof SupportSupportKpiMyRouteImport
+      parentRoute: typeof SupportRoute
+    }
     '/_support/support/tickets/$ticketNumber/': {
       id: '/_support/support/tickets/$ticketNumber/'
       path: '/support/tickets/$ticketNumber'
@@ -433,6 +471,8 @@ const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
 
 interface SupportRouteChildren {
   SupportSupportIndexRoute: typeof SupportSupportIndexRoute
+  SupportSupportKpiMyRoute: typeof SupportSupportKpiMyRoute
+  SupportSupportKpiTeamRoute: typeof SupportSupportKpiTeamRoute
   SupportSupportRatingsIndexRoute: typeof SupportSupportRatingsIndexRoute
   SupportSupportTicketsIndexRoute: typeof SupportSupportTicketsIndexRoute
   SupportSupportTicketsTicketNumberIndexRoute: typeof SupportSupportTicketsTicketNumberIndexRoute
@@ -440,6 +480,8 @@ interface SupportRouteChildren {
 
 const SupportRouteChildren: SupportRouteChildren = {
   SupportSupportIndexRoute: SupportSupportIndexRoute,
+  SupportSupportKpiMyRoute: SupportSupportKpiMyRoute,
+  SupportSupportKpiTeamRoute: SupportSupportKpiTeamRoute,
   SupportSupportRatingsIndexRoute: SupportSupportRatingsIndexRoute,
   SupportSupportTicketsIndexRoute: SupportSupportTicketsIndexRoute,
   SupportSupportTicketsTicketNumberIndexRoute:

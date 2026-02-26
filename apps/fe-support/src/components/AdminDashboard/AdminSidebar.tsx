@@ -30,6 +30,7 @@ import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
+  BarChart3,
   Building2,
   ChevronsUpDown,
   ClipboardList,
@@ -136,6 +137,12 @@ export function AdminSidebar() {
                         icon: Ticket,
                         path: "/support/tickets",
                       },
+                      {
+                        id: "team-kpis",
+                        title: "Team KPIs",
+                        icon: BarChart3,
+                        path: "/support/kpi/team",
+                      },
                     ]
                   : role === ROLES.SUPPORT
                     ? [
@@ -157,6 +164,12 @@ export function AdminSidebar() {
                           icon: Star,
                           path: "/support/ratings",
                         },
+                        {
+                          id: "my-kpis",
+                          title: "My KPIs",
+                          icon: BarChart3,
+                          path: "/support/kpi/my",
+                        },
                       ]
                     : [];
 
@@ -177,7 +190,14 @@ export function AdminSidebar() {
                       isActive={isActive}
                       asChild
                     >
-                      <Link to={item.path} preload={false}>
+                      <Link
+                        to={item.path}
+                        preload={
+                          item.id === "my-kpis" || item.id === "team-kpis"
+                            ? "intent"
+                            : false
+                        }
+                      >
                         <Icon className="size-4" />
                         <span>{item.title}</span>
                       </Link>
