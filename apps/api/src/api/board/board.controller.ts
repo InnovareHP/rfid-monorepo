@@ -1,3 +1,4 @@
+import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
   Body,
@@ -12,9 +13,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { Queue } from "bullmq";
 import type { Response } from "express";
 import { appConfig } from "src/config/app-config";
-import { StripeGuard } from "src/guard/stripe/stripe.guard";
+import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 import {
   BulkEmailDto,
@@ -37,15 +39,19 @@ import { OutlookService } from "./outlook.service";
 
 @Controller("boards")
 @UseGuards(AuthGuard)
-@UseGuards(StripeGuard)
+// @UseGuards(StripeGuard)
 export class BoardController {
   constructor(
     private readonly boardService: BoardService,
     private readonly gmailService: GmailService,
-    private readonly outlookService: OutlookService
+    private readonly outlookService: OutlookService,
+    @InjectQueue(QUEUE_NAMES.BULK_EMAIL)
+    private readonly bulkEmailQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.CSV_IMPORT)
+    private readonly csvImportQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.GEMINI)
+    private readonly geminiQueue: Queue
   ) {}
-
-  // ---- Gmail Integration Endpoints ----
 
   @Get("/gmail/auth-url")
   async getGmailAuthUrl(@Session() session: AuthenticatedSession) {
@@ -497,12 +503,11 @@ export class BoardController {
   ) {
     const organizationId = session.session.activeOrganizationId;
     try {
-      await this.boardService.createRecordDataFromCSV(
+      return await this.boardService.createRecordDataFromCSV(
         dto.excelData as Record<string, unknown>[],
         organizationId,
         dto.moduleType
       );
-      return { message: "Lead data imported successfully" };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -586,6 +591,7 @@ export class BoardController {
         dto.value,
         organizationId,
         session.session.userId,
+        dto.moduleType,
         dto.reason
       );
     } catch (error) {
@@ -632,6 +638,43 @@ export class BoardController {
       return await this.boardService.deleteRecordFieldOption(optionId);
     } catch (error) {
       throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/jobs/:jobId/status")
+  async getJobStatus(
+    @Param("jobId") jobId: string,
+    @Query("queue") queueName: string
+  ) {
+    try {
+      const queue = this.getQueueByName(queueName);
+      const job = await queue.getJob(jobId);
+      if (!job) {
+        throw new BadRequestException("Job not found");
+      }
+      const state = await job.getState();
+      return {
+        jobId: job.id,
+        status: state,
+        progress: job.progress,
+        result: job.returnvalue,
+        failedReason: job.failedReason,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  private getQueueByName(name: string): Queue {
+    switch (name) {
+      case QUEUE_NAMES.BULK_EMAIL:
+        return this.bulkEmailQueue;
+      case QUEUE_NAMES.CSV_IMPORT:
+        return this.csvImportQueue;
+      case QUEUE_NAMES.GEMINI:
+        return this.geminiQueue;
+      default:
+        throw new BadRequestException(`Unknown queue: ${name}`);
     }
   }
 }

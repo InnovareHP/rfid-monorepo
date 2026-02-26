@@ -1,9 +1,5 @@
 import { authClient } from "@/lib/auth-client";
-import {
-  getInvitationDetails,
-  type InvitationDetails,
-  verifyInviteEmail,
-} from "@/services/invitation/invitation-service";
+import { verifyInviteEmail } from "@/services/invitation/invitation-service";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -24,42 +20,82 @@ import { Input } from "@dashboard/ui/components/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { ErrorContext } from "better-auth/react";
-import { Loader2, Lock, Mail, User } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldCheck,
+  User,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
 
+type InvitationData = {
+  email: string;
+  organizationName: string;
+  inviterName: string;
+};
+
 type PageState =
   | { step: "loading" }
   | { step: "accepting" }
-  | { step: "form"; mode: "login" | "register"; invitation: InvitationDetails }
+  | { step: "form"; mode: "login" | "register"; invitation: InvitationData }
   | { step: "success"; organizationId: string }
   | { step: "rejected" }
   | { step: "error"; message: string };
 
 const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
-  const { token } = useSearch({ from: "/invitation/$action" }) as {
-    token: string;
-  };
+  const { token, email, orgName, inviter } = useSearch({
+    from: "/invitation/$action",
+  }) as any;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [state, setState] = useState<PageState>({ step: "loading" });
 
-  useEffect(() => {
-    if (!token) {
-      setState({ step: "error", message: "Missing invitation token." });
-      return;
-    }
+  const acceptAndRedirect = async () => {
+    setState({ step: "accepting" });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      const { data: acceptData, error } =
+        await authClient.organization.acceptInvitation({
+          invitationId: token,
+        });
 
+      if (error) throw new Error(error.message);
+
+      const organizationId = acceptData?.member?.organizationId;
+      if (organizationId) {
+        await authClient.organization.setActive({ organizationId });
+        await queryClient.invalidateQueries({ queryKey: ["session"] });
+        setState({ step: "success", organizationId });
+      } else {
+        setState({ step: "success", organizationId: "" });
+      }
+    } catch (err: any) {
+      setState({
+        step: "error",
+        message: err.message || "Failed to accept invitation.",
+      });
+    }
+  };
+
+  useEffect(() => {
     const init = async () => {
       try {
-        // Check if user is already authenticated
         const { data: sessionData } = await authClient.getSession();
-
         if (sessionData?.user) {
-          // Already logged in — process directly
+          if (email && sessionData.user.email !== email) {
+            setState({
+              step: "error",
+              message: `This invite is for ${email}, but you are signed in as ${sessionData.user.email}.`,
+            });
+            return;
+          }
           if (action === "reject") {
             await authClient.organization.rejectInvitation({
               invitationId: token,
@@ -67,443 +103,400 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
             setState({ step: "rejected" });
             return;
           }
-
-          setState({ step: "accepting" });
           await acceptAndRedirect();
           return;
         }
-
-        // Not authenticated — fetch invitation details to show form
         if (action === "reject") {
-          setState({
-            step: "error",
-            message: "You must be logged in to reject an invitation.",
-          });
+          navigate({ to: "/login" });
           return;
         }
-
-        const invitation = await getInvitationDetails(token);
         setState({
           step: "form",
-          mode: invitation.userExists ? "login" : "register",
-          invitation,
+          mode: "login",
+          invitation: {
+            email: email || "",
+            organizationName: orgName || "the team",
+            inviterName: inviter || "A colleague",
+          },
         });
       } catch (err: any) {
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Invalid or expired invitation.";
-        setState({ step: "error", message });
+        setState({
+          step: "error",
+          message: "Initialization failed. Please try again.",
+        });
       }
     };
-
     init();
   }, [token, action]);
 
-  const acceptAndRedirect = async () => {
-    const { data: acceptData } =
-      await authClient.organization.acceptInvitation({
-        invitationId: token,
-      });
-
-    const organizationId = acceptData?.member?.organizationId;
-
-    if (organizationId) {
-      await authClient.organization.setActive({ organizationId });
-      await queryClient.invalidateQueries({ queryKey: ["session"] });
-      setState({ step: "success", organizationId });
-    } else {
-      setState({ step: "success", organizationId: "" });
-    }
-  };
+  // --- UI States ---
 
   if (state.step === "loading" || state.step === "accepting") {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
-        <span className="ml-2 text-gray-600">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-16 h-16 border-4 border-primary/20 rounded-full" />
+          <Loader2
+            className="w-16 h-16 animate-spin text-primary"
+            strokeWidth={1.5}
+          />
+        </div>
+        <h2 className="mt-8 text-xl font-medium text-slate-900">
           {state.step === "accepting"
-            ? "Accepting invitation..."
-            : "Loading..."}
-        </span>
+            ? "Finalizing your access..."
+            : "Checking invitation..."}
+        </h2>
+        <p className="mt-2 text-slate-500">This will only take a moment.</p>
       </div>
     );
   }
 
   if (state.step === "error") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-red-600">
-        <p>{state.message}</p>
-        <button
-          onClick={() => navigate({ to: "/login" })}
-          className="mt-4 px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-700"
-        >
-          Go back to Login
-        </button>
-      </div>
-    );
-  }
-
-  if (state.step === "rejected") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-green-600">
-        <p>Invitation rejected.</p>
-        <button
-          onClick={() => navigate({ to: "/login" })}
-          className="mt-4 px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-700"
-        >
-          Go to Login
-        </button>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+        <Card className="w-full max-w-md border-destructive/20 shadow-xl">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <XCircle className="w-8 h-8 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">Something went wrong</CardTitle>
+            <CardDescription className="mt-2">{state.message}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => navigate({ to: "/login" })}
+              className="w-full"
+              variant="outline"
+            >
+              Return to Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (state.step === "success") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-green-600">
-        <p>Invitation accepted successfully!</p>
-        <button
-          onClick={() =>
-            navigate({
-              to: state.organizationId ? "/$team" : "/login",
-              params: state.organizationId
-                ? { team: state.organizationId }
-                : undefined,
-            })
-          }
-          className="mt-4 px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-700"
-        >
-          Go to Dashboard
-        </button>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+        <Card className="w-full max-w-md shadow-2xl border-none">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
+              <CheckCircle2 className="w-10 h-10 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-slate-900">
+              You're in!
+            </CardTitle>
+            <CardDescription className="text-base">
+              Your invitation has been accepted successfully.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Button
+              onClick={() =>
+                navigate({
+                  to: state.organizationId ? "/$team" : "/login",
+                  params: state.organizationId
+                    ? { team: state.organizationId }
+                    : undefined,
+                })
+              }
+              className="w-full h-12 text-lg group"
+            >
+              Enter Dashboard
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // step === "form"
-  return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            You've been invited
-          </CardTitle>
-          <CardDescription>
-            <span className="font-medium text-foreground">
-              {state.invitation.inviterName}
-            </span>{" "}
-            invited you to join{" "}
-            <span className="font-medium text-foreground">
-              {state.invitation.organizationName}
-            </span>
-          </CardDescription>
-          <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm mx-auto">
-            <Mail className="w-3.5 h-3.5" />
-            {state.invitation.email}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {state.mode === "login" ? (
-            <LoginForm
-              email={state.invitation.email}
-              onSuccess={acceptAndRedirect}
-            />
-          ) : (
-            <RegisterForm
-              email={state.invitation.email}
-              token={token}
-              onSuccess={acceptAndRedirect}
-            />
-          )}
-          <div className="text-center text-sm text-muted-foreground mt-4">
-            {state.mode === "login" ? (
-              <>
-                Don't have an account?{" "}
+  // Only render the form step if in "form", ensure type safety (fixes lint error)
+  if (state.step === "form") {
+    const { invitation, mode } = state;
+
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-slate-50 to-slate-100">
+        <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-slate-200">
+          <CardHeader className="space-y-1 text-center pb-8">
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+              <ShieldCheck className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              Join the team
+            </CardTitle>
+            <CardDescription className="text-slate-500 text-base">
+              <span className="font-semibold text-slate-900">
+                {invitation.inviterName}
+              </span>{" "}
+              has invited you to join{" "}
+              <span className="font-semibold text-slate-900">
+                {invitation.organizationName}
+              </span>
+              .
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-slate-50 rounded-lg p-3 mb-6 flex items-center gap-3 border border-slate-100">
+              <Mail className="w-5 h-5 text-slate-400" />
+              <span className="text-sm font-medium text-slate-600">
+                {invitation.email || "Your Email"}
+              </span>
+            </div>
+
+            {mode === "login" ? (
+              <LoginForm
+                email={invitation.email}
+                onSuccess={acceptAndRedirect}
+              />
+            ) : (
+              <RegisterForm
+                email={invitation.email}
+                token={token}
+                onSuccess={acceptAndRedirect}
+                onSwitchToLogin={() =>
+                  setState((s) =>
+                    s.step === "form" ? { ...s, mode: "login" } : s
+                  )
+                }
+              />
+            )}
+
+            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+              <p className="text-sm text-slate-500">
+                {mode === "login"
+                  ? "Don't have an account yet?"
+                  : "Already have an account?"}
                 <button
-                  type="button"
-                  className="font-semibold text-blue-600 hover:text-blue-700"
+                  className="ml-2 font-semibold text-primary hover:underline"
                   onClick={() =>
                     setState((s) =>
                       s.step === "form"
-                        ? { ...s, mode: "register" }
+                        ? {
+                            ...s,
+                            mode: s.mode === "login" ? "register" : "login",
+                          }
                         : s
                     )
                   }
                 >
-                  Sign up
+                  {mode === "login" ? "Create one now" : "Sign in here"}
                 </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  className="font-semibold text-blue-600 hover:text-blue-700"
-                  onClick={() =>
-                    setState((s) =>
-                      s.step === "form" ? { ...s, mode: "login" } : s
-                    )
-                  }
-                >
-                  Sign in
-                </button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-// --- Inline Login Form ---
-
-const loginSchema = z.object({
-  password: z.string().min(8),
-});
-
-function LoginForm({
-  email,
-  onSuccess,
-}: {
-  email: string;
-  onSuccess: () => Promise<void>;
-}) {
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { password: "" },
-  });
-
-  const handleLogin = async (values: z.infer<typeof loginSchema>) => {
-    try {
-      await authClient.signIn.email(
-        { email, password: values.password },
-        {
-          onError: (ctx: ErrorContext) => {
-            toast.error(ctx.error.message);
-          },
-          onSuccess: async () => {
-            try {
-              await onSuccess();
-            } catch (err: any) {
-              toast.error(
-                err?.message || "Failed to accept invitation after login."
-              );
-            }
-          },
-        }
-      );
-    } catch {
-      toast.error("Failed to sign in.");
-    }
-  };
-
-  return (
-    <Form {...form}>
-      <form
-        className="space-y-4"
-        onSubmit={form.handleSubmit(handleLogin)}
-      >
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    {...field}
-                    type="password"
-                    placeholder="Enter your password"
-                    className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button
-          disabled={form.formState.isSubmitting}
-          type="submit"
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
-        >
-          {form.formState.isSubmitting ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Signing in...</span>
+              </p>
             </div>
-          ) : (
-            "Sign In & Accept"
-          )}
-        </Button>
-      </form>
-    </Form>
-  );
-}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-// --- Inline Register Form ---
+  // --- Form Components with Icons ---
 
-const registerSchema = z
-  .object({
-    name: z.string().min(1, "Name is required"),
-    password: z.string().min(8),
-    confirmPassword: z.string().min(8),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+  function LoginForm({
+    email: initialEmail,
+    onSuccess,
+  }: {
+    email: string;
+    onSuccess: () => Promise<void>;
+  }) {
+    const form = useForm({
+      resolver: zodResolver(
+        z.object({ email: z.string().email(), password: z.string().min(8) })
+      ),
+      defaultValues: { email: initialEmail, password: "" },
+    });
 
-function RegisterForm({
-  email,
-  token,
-  onSuccess,
-}: {
-  email: string;
-  token: string;
-  onSuccess: () => Promise<void>;
-}) {
-  const form = useForm<z.infer<typeof registerSchema>>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", password: "", confirmPassword: "" },
-  });
-
-  const handleRegister = async (values: z.infer<typeof registerSchema>) => {
-    try {
-      // 1. Create account
-      const { error } = await authClient.signUp.email({
-        email,
+    const onSubmit = async (values: any) => {
+      const { error } = await authClient.signIn.email({
+        email: values.email,
         password: values.password,
-        name: values.name,
       });
-
       if (error) {
         toast.error(error.message);
         return;
       }
+      await onSuccess();
+    };
 
-      // 2. Verify email & skip onboarding via backend
-      await verifyInviteEmail(token);
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {!initialEmail && (
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email address</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                      <Input
+                        placeholder="name@company.com"
+                        className="pl-10"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      className="pl-10"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button
+            className="w-full h-11"
+            type="submit"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting
+              ? "Authenticating..."
+              : "Sign In & Accept"}
+          </Button>
+        </form>
+      </Form>
+    );
+  }
 
-      // 3. Sign in to create a session
-      await authClient.signIn.email(
-        { email, password: values.password },
-        {
-          onError: (ctx: ErrorContext) => {
-            toast.error(ctx.error.message);
-          },
-          onSuccess: async () => {
-            try {
-              // 4. Accept invitation & set active org
-              await onSuccess();
-            } catch (err: any) {
-              toast.error(
-                err?.message || "Failed to accept invitation after registration."
-              );
-            }
-          },
+  function RegisterForm({
+    email: initialEmail,
+    token,
+    onSuccess,
+    onSwitchToLogin,
+  }: any) {
+    const form = useForm({
+      resolver: zodResolver(
+        z.object({
+          name: z.string().min(2),
+          email: z.string().email(),
+          password: z.string().min(8),
+        })
+      ),
+      defaultValues: { name: "", email: initialEmail, password: "" },
+    });
+
+    const onSubmit = async (values: any) => {
+      const { error } = await authClient.signUp.email({
+        email: values.email,
+        password: values.password,
+        name: values.name,
+      });
+      if (error) {
+        if (error.code === "USER_ALREADY_EXISTS") {
+          toast.info("User exists, switching to login.");
+          onSwitchToLogin();
+          return;
         }
-      );
-    } catch {
-      toast.error("Failed to create account.");
-    }
-  };
+        toast.error(error.message);
+        return;
+      }
+      try {
+        await verifyInviteEmail(token);
+        await authClient.signIn.email({
+          email: values.email,
+          password: values.password,
+        });
+        await onSuccess();
+      } catch (e) {
+        onSwitchToLogin();
+      }
+    };
 
-  return (
-    <Form {...form}>
-      <form
-        className="space-y-4"
-        onSubmit={form.handleSubmit(handleRegister)}
-      >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                Full Name
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    {...field}
-                    placeholder="John Doe"
-                    className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    {...field}
-                    type="password"
-                    placeholder="Min. 8 characters"
-                    className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="confirmPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                Confirm Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    {...field}
-                    type="password"
-                    placeholder="Confirm password"
-                    className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button
-          disabled={form.formState.isSubmitting}
-          type="submit"
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
-        >
-          {form.formState.isSubmitting ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Creating account...</span>
-            </div>
-          ) : (
-            "Create Account & Accept"
-          )}
-        </Button>
-      </form>
-    </Form>
-  );
-}
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <Input
+                      placeholder="John Doe"
+                      className="pl-10"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <Input
+                      placeholder="name@company.com"
+                      className="pl-10"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Create Password</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      className="pl-10"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <Button
+            className="w-full h-11"
+            type="submit"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting
+              ? "Creating account..."
+              : "Register & Join"}
+          </Button>
+        </form>
+      </Form>
+    );
+  }
+};
 
 export default AcceptInvitation;

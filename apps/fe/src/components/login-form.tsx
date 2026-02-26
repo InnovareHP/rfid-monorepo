@@ -125,10 +125,7 @@ export function LoginForm({
 
   return (
     <>
-      <div
-        className={cn("flex items-center justify-center gap-0 p-4", className)}
-        {...props}
-      >
+      <div className={cn("gap-0 p-4", className)} {...props}>
         <div className="flex items-stretch w-full overflow-hidden rounded-2xl shadow-xl">
           {/* Left Side - Image background + text */}
           <div className="hidden lg:block relative lg:w-3/5 min-h-[28rem]">
@@ -192,7 +189,7 @@ export function LoginForm({
 
           {/* Right Side - Login Form */}
           <div className="w-full lg:w-2/5">
-            <Card className="border-2 border-l-0 lg:border-l-2 shadow-none rounded-none lg:rounded-r-2xl h-full">
+            <Card className="border-2 border-l-0 lg:border-l-2 shadow-none rounded-none lg:rounded-r-2xl h-full flex flex-col justify-center">
               <CardContent className="p-8">
                 <Form {...form}>
                   <form

@@ -10,6 +10,7 @@ export const CreateRecordSchema = z.object({
 export const UpdateRecordValueSchema = z.object({
   value: z.string(),
   field_id: z.string(),
+  moduleType: z.string().default("LEAD"),
   reason: z.string().optional(),
 });
 

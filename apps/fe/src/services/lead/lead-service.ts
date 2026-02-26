@@ -172,7 +172,7 @@ export const createColumn = async (
 
 export const getLeadHistory = async (filters: any, moduleType?: string) => {
   const response = await axiosClient.get(`/api/boards/history`, {
-    params: { ...filters, moduleType: moduleType },
+    params: { ...filters, moduleType: moduleType || "LEAD" },
   });
 
   if (response.status !== 200) {
@@ -237,7 +237,7 @@ export const createLeadTimeline = async (
 ) => {
   const response = await axiosClient.post(`/api/boards/timeline/${leadId}`, {
     ...data,
-    moduleType: moduleType,
+    moduleType: moduleType || "LEAD",
   });
 
   return response.data;

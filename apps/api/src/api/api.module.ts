@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuthModule } from "./auth/auth.module";
 import { BoardModule } from "./board/board.module";
+import { EmailModule } from "./email/email.module";
 import { ImageModule } from "./image/image.module";
 import { LiasonModule } from "./liason/liason.module";
 import { OptionsModule } from "./options/options.module";
@@ -12,6 +13,7 @@ import { UserModule } from "./user/user.module";
 @Module({
   imports: [
     AuthModule,
+    EmailModule,
     ImageModule,
     UserModule,
     PlanModule,

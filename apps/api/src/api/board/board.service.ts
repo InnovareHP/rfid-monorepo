@@ -1,14 +1,13 @@
-import { normalizeKey, normalizeOptionValue } from "@dashboard/shared";
+import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { BoardFieldType, Field, FieldOption, Prisma } from "@prisma/client";
+import { BoardFieldType, Prisma } from "@prisma/client";
+import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
-import { gemini } from "src/lib/gemini/gemini";
 import { followUpPrompt } from "src/lib/gemini/prompt";
-import { isSelectType } from "src/lib/helper";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
 import { sendEmail } from "src/lib/resend/resend";
 import { ActivityEmail } from "src/react-email/activity-email";
@@ -16,6 +15,7 @@ import { lookupByName } from "zipcodes-perogi";
 import { uuidv4 } from "zod";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { prisma } from "../../lib/prisma/prisma";
+import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardGateway } from "./board.gateway";
 import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
@@ -38,11 +38,23 @@ interface HistoryFilters {
 
 @Injectable()
 export class BoardService {
+  private readonly geminiQueueEvents: QueueEvents;
+
   constructor(
     private readonly boardGateway: BoardGateway,
     private readonly gmailService: GmailService,
-    private readonly outlookService: OutlookService
-  ) {}
+    private readonly outlookService: OutlookService,
+    @InjectQueue(QUEUE_NAMES.BULK_EMAIL)
+    private readonly bulkEmailQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.CSV_IMPORT)
+    private readonly csvImportQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.GEMINI)
+    private readonly geminiQueue: Queue
+  ) {
+    this.geminiQueueEvents = new QueueEvents(QUEUE_NAMES.GEMINI, {
+      connection: { url: appConfig.REDIS_URL },
+    });
+  }
   async getAllBoards(organizationId: string, filters: BoardFilters) {
     const {
       boardDateFrom,
@@ -563,25 +575,19 @@ export class BoardService {
       },
     };
 
-    try {
-      const prompt = followUpPrompt(context);
-      const result = await gemini.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [prompt],
-        config: { responseMimeType: "application/json" },
-      });
+    const prompt = followUpPrompt(context);
+    const job = await this.geminiQueue.add("gemini", {
+      type: "follow-up-suggestions",
+      prompt,
+      cacheKey,
+      cacheTtl: 60 * 10,
+    });
 
-      const raw = result.text ?? "";
-      const parsed = JSON.parse(raw);
-
-      await cacheData(cacheKey, parsed, 60 * 10);
-
-      return parsed;
-    } catch (error) {
-      throw new BadRequestException(
-        "Failed to generate follow-up suggestions: " + error.message
-      );
-    }
+    const result = await job.waitUntilFinished(
+      this.geminiQueueEvents,
+      30000
+    );
+    return result;
   }
 
   async getRecordById(
@@ -1540,128 +1546,13 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
-    const fields = (await prisma.field.findMany({
-      where: { organization_id: organizationId },
-      include: { options: true },
-    })) as (Field & { options: FieldOption[] })[];
-
-    const fieldMap = new Map<string, Field & { options: FieldOption[] }>();
-
-    for (const field of fields) {
-      fieldMap.set(normalizeKey(field.field_name), field);
-    }
-
-    const recordsToCreate: {
-      record_name: string;
-      organization_id: string;
-      module_type: string;
-    }[] = [];
-
-    const recordValueBuffer: {
-      record_index: number;
-      field_id: string;
-      value: string;
-    }[] = [];
-
-    const optionsToCreate = new Map<string, Set<string>>();
-
-    excelData.forEach((row, rowIndex) => {
-      const recordName = resolveRecordName(row);
-
-      recordsToCreate.push({
-        record_name: recordName as string,
-        organization_id: organizationId,
-        module_type: moduleType,
-      });
-
-      for (const [csvFieldName, rawValue] of Object.entries(row)) {
-        if (!rawValue || String(rawValue).trim() === "") continue;
-
-        const field = fieldMap.get(normalizeKey(csvFieldName));
-        if (!field) continue;
-
-        let value = normalizeOptionValue(String(rawValue));
-
-        if (!value) continue;
-
-        if (isSelectType(field.field_type)) {
-          const values =
-            field.field_type === BoardFieldType.MULTISELECT
-              ? value.split(",").map(normalizeOptionValue)
-              : [normalizeOptionValue(value)];
-
-          for (const v of values) {
-            if (!v) continue;
-
-            const exists = field.options.some(
-              (opt) =>
-                normalizeOptionValue(opt.option_name).toLowerCase() ===
-                v.toLowerCase()
-            );
-
-            if (!exists) {
-              if (!optionsToCreate.has(field.id)) {
-                optionsToCreate.set(field.id, new Set());
-              }
-              optionsToCreate.get(field.id)!.add(v);
-            }
-          }
-
-          value = values.join(",");
-        }
-
-        recordValueBuffer.push({
-          record_index: rowIndex,
-          field_id: field.id,
-          value,
-        });
-      }
+    const job = await this.csvImportQueue.add("import", {
+      excelData,
+      organizationId,
+      moduleType,
     });
 
-    await prisma.$transaction(async (tx) => {
-      await tx.board.createMany({
-        data: recordsToCreate,
-      });
-
-      const createdRecords = await tx.board.findMany({
-        where: { organization_id: organizationId },
-        orderBy: { created_at: "desc" },
-        take: recordsToCreate.length,
-      });
-
-      createdRecords.reverse();
-
-      if (optionsToCreate.size > 0) {
-        const optionRows: {
-          option_name: string;
-          field_id: string;
-        }[] = [];
-
-        for (const [fieldId, options] of optionsToCreate.entries()) {
-          for (const opt of options) {
-            optionRows.push({
-              option_name: opt,
-              field_id: fieldId,
-            });
-          }
-        }
-
-        await tx.fieldOption.createMany({
-          data: optionRows,
-          skipDuplicates: true,
-        });
-      }
-      const recordValues = recordValueBuffer.map((lv) => ({
-        record_id: createdRecords[lv.record_index].id,
-        field_id: lv.field_id,
-        value: lv.value,
-      }));
-
-      await tx.fieldValue.createMany({
-        data: recordValues,
-        skipDuplicates: true,
-      });
-    });
+    return { jobId: job.id, message: "CSV import queued" };
   }
 
   async createRecordHistory(
@@ -1840,92 +1731,17 @@ export class BoardService {
     moduleType: string,
     sendVia?: string
   ) {
-    const emailField = await prisma.field.findFirst({
-      where: {
-        organization_id: organizationId,
-        module_type: moduleType,
-        field_type: "EMAIL",
-      },
-      select: { id: true },
+    const job = await this.bulkEmailQueue.add("bulk-send", {
+      recordIds,
+      emailSubject,
+      emailBody,
+      organizationId,
+      userId,
+      moduleType,
+      sendVia,
     });
 
-    if (!emailField) {
-      throw new BadRequestException(
-        "No EMAIL field found for this organization"
-      );
-    }
-
-    const records = await prisma.board.findMany({
-      where: {
-        id: { in: recordIds },
-        organization_id: organizationId,
-        is_deleted: false,
-      },
-      select: {
-        id: true,
-        record_name: true,
-        values: {
-          where: { field_id: emailField.id },
-          select: { value: true },
-        },
-      },
-    });
-
-    const creator = await prisma.user_table.findUniqueOrThrow({
-      where: { id: userId },
-      select: { user_name: true, user_email: true },
-    });
-
-    let sent = 0;
-    let skipped = 0;
-    let errors = 0;
-
-    for (const record of records) {
-      const recipientEmail = record.values[0]?.value;
-
-      if (!recipientEmail) {
-        skipped++;
-        continue;
-      }
-
-      try {
-        const senderEmail = await this.sendEmailWithProvider(
-          userId,
-          recipientEmail,
-          emailSubject,
-          record.record_name,
-          emailBody,
-          creator.user_name,
-          sendVia
-        );
-
-        await prisma.activity.create({
-          data: {
-            title: emailSubject,
-            description: emailBody,
-            activity_type: "EMAIL",
-            status: "COMPLETED",
-            completed_at: new Date(),
-            recipient_email: recipientEmail,
-            email_subject: emailSubject,
-            email_body: emailBody,
-            email_sent_at: new Date(),
-            sender_email: senderEmail,
-            record_id: record.id,
-            created_by: userId,
-            organization_id: organizationId,
-          },
-        });
-
-        sent++;
-      } catch (error) {
-        errors++;
-      }
-    }
-
-    skipped += recordIds.length - records.length;
-
-    return { sent, skipped, errors };
+    return { jobId: job.id, message: "Bulk email queued" };
   }
 
   async getActivities(

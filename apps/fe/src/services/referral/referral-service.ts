@@ -41,7 +41,7 @@ export const getReferralHistory = async (
   skip: number
 ) => {
   const response = await axiosClient.get(
-    `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}`
+    `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}&moduleType=REFERRAL`
   );
 
   if (response.status !== 200) {
@@ -52,7 +52,9 @@ export const getReferralHistory = async (
 };
 
 export const getReferralColumnOptions = async () => {
-  const response = await axiosClient.get("/api/boards/columns");
+  const response = await axiosClient.get("/api/boards/columns", {
+    params: { moduleType: "REFERRAL" },
+  });
 
   if (response.status !== 200) {
     throw new Error("Failed to fetch referrals columns");
@@ -106,6 +108,7 @@ export const updateReferral = async (
     value,
     fieldId,
     reason,
+    moduleType: "REFERRAL",
   });
 
   if (response.status !== 200) {
@@ -118,6 +121,7 @@ export const updateReferral = async (
 export const createReferral = async (data: any) => {
   const response = await axiosClient.post("/api/boards", {
     data,
+    moduleType: "REFERRAL",
   });
 
   return response.data;
@@ -130,6 +134,7 @@ export const createReferralColumn = async (
   const response = await axiosClient.post("/api/boards/column", {
     referral_type,
     column_name,
+    moduleType: "REFERRAL",
   });
 
   return response.data;
@@ -139,6 +144,7 @@ export const deleteReferralColumn = async (columnIds: string[]) => {
   const response = await axiosClient.delete(`/api/boards`, {
     data: {
       column_ids: columnIds,
+      moduleType: "REFERRAL",
     },
   });
 
@@ -151,7 +157,7 @@ export const getReferralTimeline = async (
   skip: number
 ) => {
   const response = await axiosClient.get(
-    `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}`
+    `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}&moduleType=REFERRAL`
   );
 
   if (response.status !== 200) {
@@ -169,6 +175,7 @@ export const createReferralTimeline = async (
     `/api/boards/timeline/${referralId}`,
     {
       ...data,
+      moduleType: "REFERRAL",
     }
   );
 
@@ -176,7 +183,9 @@ export const createReferralTimeline = async (
 };
 
 export const editReferralTimeline = async (id: string) => {
-  const response = await axiosClient.patch(`/api/boards/timeline/${id}`);
+  const response = await axiosClient.patch(`/api/boards/timeline/${id}`, {
+    moduleType: "REFERRAL",
+  });
 
   if (response.status !== 200) {
     throw new Error("Failed to edit referral timeline");
@@ -186,7 +195,9 @@ export const editReferralTimeline = async (id: string) => {
 };
 
 export const deleteReferralTimeline = async (id: string) => {
-  const response = await axiosClient.delete(`/api/boards/timeline/${id}`);
+  const response = await axiosClient.delete(`/api/boards/timeline/${id}`, {
+    data: { moduleType: "REFERRAL" },
+  });
 
   if (response.status !== 200) {
     throw new Error("Failed to delete referral timeline");
@@ -229,6 +240,7 @@ export const deleteReferral = async (columnIds: string[]) => {
   const response = await axiosClient.delete("/api/boards", {
     data: {
       column_ids: columnIds,
+      moduleType: "REFERRAL",
     },
   });
 

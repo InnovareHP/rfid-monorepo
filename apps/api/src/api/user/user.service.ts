@@ -13,7 +13,6 @@ export class UserService {
         id: userId,
       },
       data: {
-        user_image: onboardDto.profilePhoto,
         user_is_onboarded: true,
         user_onboarding_table: {
           upsert: {

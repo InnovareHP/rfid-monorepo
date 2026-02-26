@@ -114,9 +114,7 @@ function SubscriptionCard({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No active subscription
-          </p>
+          <p className="text-sm text-muted-foreground">No active subscription</p>
         </CardContent>
       </Card>
     );
@@ -129,7 +127,9 @@ function SubscriptionCard({
       value: subscription.status ? (
         <Badge
           variant="outline"
-          className={SUBSCRIPTION_COLORS[subscription.status] ?? ""}
+          className={
+            SUBSCRIPTION_COLORS[subscription.status] ?? ""
+          }
         >
           {subscription.status}
         </Badge>
@@ -238,7 +238,9 @@ function MembersCard({
               <TableRow
                 key={m.memberId}
                 className="cursor-pointer hover:bg-blue-50/50"
-                onClick={() => navigate({ to: `/admin/users/${m.user.id}` })}
+                onClick={() =>
+                  navigate({ to: `/admin/users/${m.user.id}` })
+                }
               >
                 <TableCell>
                   <div className="flex items-center gap-2">

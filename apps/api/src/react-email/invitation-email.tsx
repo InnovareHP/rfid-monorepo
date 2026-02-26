@@ -1,3 +1,7 @@
+import { Button, Heading, Link, Section, Text } from "@react-email/components";
+import * as React from "react";
+import { EmailLayout, emailStyles } from "./email-layout";
+
 interface InvitationEmailProps {
   invitation: {
     email: string;
@@ -10,63 +14,44 @@ interface InvitationEmailProps {
 
 export const InvitationEmail = ({ invitation }: InvitationEmailProps) => {
   return (
-    <html>
-      <body style={{ fontFamily: "Arial, sans-serif", color: "#333" }}>
-        <h2>You&apos;re invited to join {invitation.organizationName}!</h2>
-        <p>
-          Hi {invitation.email},<br />
-          {invitation.inviterName} has invited you to join{" "}
-          <strong>{invitation.organizationName}</strong>.
-        </p>
+    <EmailLayout
+      preview={`You're invited to join ${invitation.organizationName}`}
+    >
+      <Heading style={emailStyles.heading}>You&apos;re invited!</Heading>
 
-        <p>Click below to accept or reject this invitation:</p>
+      <Text style={emailStyles.paragraph}>
+        Hi {invitation.email},
+        <br />
+        {invitation.inviterName} has invited you to join{" "}
+        <strong>{invitation.organizationName}</strong>.
+      </Text>
 
-        <div style={{ marginTop: "12px" }}>
-          <a
-            href={invitation.inviteLink}
-            style={{
-              display: "inline-block",
-              padding: "10px 16px",
-              backgroundColor: "#2563eb",
-              color: "#fff",
-              textDecoration: "none",
-              borderRadius: "6px",
-              marginRight: "12px",
-            }}
-          >
-            Accept Invitation
-          </a>
+      <Section style={{ textAlign: "start", margin: "24px 0" }}>
+        <Button href={invitation.inviteLink} style={emailStyles.button}>
+          Accept Invitation
+        </Button>
+      </Section>
 
-          {invitation.rejectLink && (
-            <a
-              href={invitation.rejectLink}
-              style={{
-                display: "inline-block",
-                padding: "10px 16px",
-                backgroundColor: "#dc2626",
-                color: "#fff",
-                textDecoration: "none",
-                borderRadius: "6px",
-              }}
-            >
-              Reject Invitation
-            </a>
-          )}
-        </div>
+      {invitation.rejectLink && (
+        <Text style={emailStyles.paragraph}>
+          Don&apos;t want to join?{" "}
+          <Link href={invitation.rejectLink} style={rejectLink}>
+            Reject this invitation
+          </Link>
+        </Text>
+      )}
 
-        <p style={{ marginTop: "20px", fontSize: "14px", color: "#555" }}>
-          If you did not expect this invitation, you can safely ignore this
-          email.
-        </p>
-
-        <hr style={{ margin: "24px 0" }} />
-        {/* <p style={{ fontSize: "12px", color: "#999" }}>
-          Referral Dashboard ·{" "}
-          <a href="https://referraldashboard.com">referraldashboard.com</a>
-        </p> */}
-      </body>
-    </html>
+      <Text style={emailStyles.paragraph}>
+        If you did not expect this invitation, you can safely ignore this email.
+      </Text>
+    </EmailLayout>
   );
 };
 
 export default InvitationEmail;
+
+const rejectLink: React.CSSProperties = {
+  color: "#414b57",
+  fontWeight: 700,
+  textDecoration: "underline",
+};

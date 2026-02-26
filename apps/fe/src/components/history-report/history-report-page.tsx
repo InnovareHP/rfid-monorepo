@@ -31,7 +31,7 @@ export default function HistoryReportPage() {
     fetchNextPage,
   } = useInfiniteQuery({
     queryKey: ["history-report", appliedFilterMeta],
-    queryFn: () => getLeadHistory(appliedFilterMeta),
+    queryFn: () => getLeadHistory(appliedFilterMeta, "LEAD"),
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
   });

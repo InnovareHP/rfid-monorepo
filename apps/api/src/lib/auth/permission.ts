@@ -1,11 +1,16 @@
 import { createAccessControl } from "better-auth/plugins/access";
-import { adminAc, defaultStatements } from "better-auth/plugins/admin/access";
+import {
+  adminAc as AdminAccess,
+  defaultStatements as AdminStatements,
+} from "better-auth/plugins/admin/access";
+import {
+  defaultStatements as OrgStatements,
+  adminAc as orgAccess,
+} from "better-auth/plugins/organization/access";
 
-export const statement = {
-  ...defaultStatements,
-  organization: ["create", "share", "update", "delete"],
-  project: ["create", "share", "update", "delete"],
-  stripe: ["create", "update", "delete", "view"],
+const statement = {
+  ...AdminStatements,
+  ...OrgStatements,
   billing: ["manage_billing"],
   license: ["manage_licenses"],
   app: [
@@ -15,9 +20,18 @@ export const statement = {
     "configure",
     "manage_app_permissions",
   ],
+  project: ["create", "share", "update", "delete"],
 } as const;
 
 export const ac = createAccessControl(statement);
+
+export const super_admin = ac.newRole({
+  ...AdminAccess.statements, // full admin powers
+});
+
+export const admin = ac.newRole({
+  ...AdminAccess.statements, // limited admin powers, can customize if needed
+});
 
 export const owner = ac.newRole({
   billing: ["manage_billing"],
@@ -29,21 +43,13 @@ export const owner = ac.newRole({
     "configure",
     "manage_app_permissions",
   ],
-  ...adminAc.statements,
+  ...orgAccess.statements,
 });
 
 export const liason = ac.newRole({
-  project: ["create", "update"],
-});
-
-export const admin = ac.newRole({
-  project: ["create", "update"],
+  project: ["create", "update"], // limited operational
 });
 
 export const support = ac.newRole({
-  project: ["create", "update"],
-});
-
-export const super_admin = ac.newRole({
-  ...adminAc.statements,
+  project: ["create", "update"], // limited operational
 });

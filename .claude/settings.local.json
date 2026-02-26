@@ -18,7 +18,11 @@
       "Bash(pnpm --filter fe-support exec tsr generate:*)",
       "Bash(find:*)",
       "Bash(cd:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(find /c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/api/src -type f -name \"*.ts\" | xargs grep -l \"trySendVia\" 2>/dev/null)",
+      "Bash(head:*)",
+      "Bash(cd C:\\\\Users\\\\lhani\\\\OneDrive\\\\Desktop\\\\ivorzero\\\\ivorzero\\\\dashboard:*)",
+      "Bash(find C:\\\\Users\\\\lhani\\\\OneDrive\\\\Desktop\\\\ivorzero\\\\ivorzero\\\\dashboard\\\\apps\\\\api\\\\src:*)"
     ]
   }
 }

@@ -1,10 +1,8 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
-import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { User } from "better-auth";
-import type { Member } from "better-auth/plugins/organization";
 import { Bell, HistoryIcon, SearchIcon } from "lucide-react";
 import { CreateColumnModal } from "../reusable-table/create-column";
 
@@ -24,7 +22,6 @@ type LeadRow = {
 
 export function generateLeadColumns(
   columnsFromApi: ColumnType[],
-  memberData: Member,
   onOpenAnalyzeDialog: (recordId: string) => void,
   onOpenMasterListView: (recordId: string) => void
 ): ColumnDef<LeadRow>[] {
@@ -92,16 +89,15 @@ export function generateLeadColumns(
               <SearchIcon /> Analyze
             </Button>
           </div>
-          {memberData.role === ROLES.OWNER && (
-            <div className="flex opacity-0 group-hover:opacity-100">
-              <Button
-                variant="outline"
-                onClick={() => onOpenMasterListView(row.original.id)}
-              >
-                <HistoryIcon /> History
-              </Button>
-            </div>
-          )}
+
+          <div className="flex opacity-0 group-hover:opacity-100">
+            <Button
+              variant="outline"
+              onClick={() => onOpenMasterListView(row.original.id)}
+            >
+              <HistoryIcon /> History
+            </Button>
+          </div>
         </div>
       </div>
     ),

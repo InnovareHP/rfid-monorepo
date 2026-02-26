@@ -6,12 +6,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import { StripeGuard } from "src/guard/stripe/stripe.guard";
 import { OptionsService } from "./options.service";
 
 @Controller("options")
 @UseGuards(AuthGuard)
-@UseGuards(StripeGuard)
 export class OptionsController {
   constructor(private readonly optionsService: OptionsService) {}
 

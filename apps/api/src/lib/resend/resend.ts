@@ -4,6 +4,12 @@ import { appConfig } from "../../config/app-config";
 
 export const resend = new Resend(appConfig.RESEND_API_KEY);
 
+export const renderEmailHtml = async (
+  reactNode: React.ReactNode
+): Promise<string> => {
+  return await render(reactNode);
+};
+
 export const sendEmail = async (sendEmailDto: {
   to: string;
   subject: string;

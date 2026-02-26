@@ -17,37 +17,42 @@ import {
 export class LiasonService {
   private readonly logger = new Logger(LiasonService.name);
   async createMillage(createMillageDto: CreateMillageDto, memberId: string) {
-    const existingMileageToday = await prisma.mileage.findFirst({
-      where: {
-        memberId,
-        createdAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+    await prisma.$transaction(async (tx) => {
+      const existingMileageToday = await tx.mileage.findFirst({
+        where: {
+          memberId,
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
         },
-      },
-    });
+      });
 
-    if (existingMileageToday) {
-      throw new BadRequestException("You have already created a mileage today");
-    }
+      if (existingMileageToday) {
+        throw new BadRequestException(
+          "You have already created a mileage today"
+        );
+      }
 
-    await prisma.mileage.create({
-      data: {
-        destination: createMillageDto.destination,
-        countiesMarketed: createMillageDto.countiesMarketed,
-        beginningMileage: createMillageDto.beginningMileage,
-        endingMileage: createMillageDto.endingMileage,
-        totalMiles: createMillageDto.totalMiles,
-        rateType: createMillageDto.rateType,
-        ratePerMile: createMillageDto.ratePerMile,
-        reimbursementAmount: createMillageDto.reimbursementAmount,
-        memberId,
-      },
+      await tx.mileage.create({
+        data: {
+          destination: createMillageDto.destination,
+          countiesMarketed: createMillageDto.countiesMarketed,
+          beginningMileage: createMillageDto.beginningMileage,
+          endingMileage: createMillageDto.endingMileage,
+          totalMiles: createMillageDto.totalMiles,
+          rateType: createMillageDto.rateType,
+          ratePerMile: createMillageDto.ratePerMile,
+          reimbursementAmount: createMillageDto.reimbursementAmount,
+          memberId,
+        },
+      });
     });
   }
 
   async getMillage(memberId: string | null, filter: any) {
     const where: Prisma.mileageWhereInput = {
       memberId: memberId ?? undefined,
+      isDeleted: false,
     };
 
     if (filter.mileageDateFrom && filter.mileageDateTo) {
@@ -81,6 +86,7 @@ export class LiasonService {
     const millage = await prisma.mileage.findUniqueOrThrow({
       where: {
         id,
+        isDeleted: false,
       },
     });
     return millage;
@@ -96,9 +102,12 @@ export class LiasonService {
   }
 
   async deleteMillage(id: string) {
-    await prisma.mileage.delete({
+    await prisma.mileage.update({
       where: {
         id,
+      },
+      data: {
+        isDeleted: true,
       },
     });
   }
@@ -156,6 +165,7 @@ export class LiasonService {
   async getMarketing(memberId: string | null, filter: any) {
     const where: Prisma.marketingWhereInput = {
       memberId: memberId ?? undefined,
+      isDeleted: false,
     };
 
     if (filter.filter.marketingDateFrom && filter.filter.marketingDateTo) {
@@ -189,6 +199,7 @@ export class LiasonService {
     const marketing = await prisma.marketing.findUniqueOrThrow({
       where: {
         id,
+        isDeleted: false,
       },
     });
     return marketing;
@@ -212,20 +223,29 @@ export class LiasonService {
   }
 
   async createExpense(dto: CreateExpenseDto, memberId: string) {
-    await prisma.expense.create({
-      data: {
-        amount: dto.amount,
-        imageUrl: dto.image,
-        description: dto.description,
-        notes: dto.notes,
-        memberId,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.expense.create({
+        data: {
+          amount: dto.amount,
+          imageUrl: dto.image,
+          description: dto.description,
+          notes: dto.notes,
+          memberId,
+        },
+      });
     });
   }
 
-  async getExpense(memberId: string | null, filter: any) {
+  async getExpense(
+    memberId: string | null,
+    filter: any,
+    activeOrganizationId: string
+  ) {
     const where: Prisma.expenseWhereInput = {
       memberId: memberId ?? undefined,
+      member: {
+        organizationId: activeOrganizationId,
+      },
     };
 
     if (filter.filter.expenseDateFrom && filter.filter.expenseDateTo) {
@@ -293,9 +313,14 @@ export class LiasonService {
 
   async getExpenseExport(
     memberId: string | null,
-    filter: any
+    filter: any,
+    activeOrganizationId: string
   ): Promise<Buffer> {
-    const { data } = await this.getExpense(memberId, filter);
+    const { data } = await this.getExpense(
+      memberId,
+      filter,
+      activeOrganizationId
+    );
 
     return new Promise(async (resolve, reject) => {
       try {
@@ -530,9 +555,12 @@ export class LiasonService {
   }
 
   async deleteExpense(id: string) {
-    await prisma.expense.delete({
+    await prisma.expense.update({
       where: {
         id,
+      },
+      data: {
+        isDeleted: true,
       },
     });
   }

@@ -7,7 +7,7 @@ let toastCache: any = null;
 // Lazy load sonner toast function using dynamic import
 const loadToast = async () => {
   if (toastCache) return toastCache;
-  
+
   try {
     // Use the same pattern as Toaster component - dynamic import with @vite-ignore
     // Construct module name dynamically so Vite doesn't try to resolve it at build time
@@ -19,9 +19,11 @@ const loadToast = async () => {
     }
   } catch (error) {
     // sonner not available - will use console fallbacks
-    console.warn("sonner package not found. Toast notifications will use console fallbacks.");
+    console.warn(
+      "sonner package not found. Toast notifications will use console fallbacks."
+    );
   }
-  
+
   // Fallback toast implementation
   toastCache = {
     success: (message: string) => {
@@ -45,7 +47,7 @@ const loadToast = async () => {
       }
     },
   };
-  
+
   return toastCache;
 };
 

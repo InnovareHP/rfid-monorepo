@@ -13,7 +13,6 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Response } from "express";
-import { StripeGuard } from "src/guard/stripe/stripe.guard";
 import {
   CreateExpenseDto,
   CreateMarketingDto,
@@ -26,7 +25,6 @@ import { LiasonService } from "./liason.service";
 
 @Controller("liason")
 @UseGuards(AuthGuard)
-@UseGuards(StripeGuard)
 export class LiasonController {
   constructor(private readonly liasonService: LiasonService) {}
 
@@ -208,9 +206,11 @@ export class LiasonController {
 
     try {
       const isOwner = session.session.memberRole === "owner";
+      const organizationId = session.session.activeOrganizationId;
       return await this.liasonService.getExpense(
         isOwner ? null : session.session.memberId,
-        filters
+        filters,
+        organizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -234,9 +234,11 @@ export class LiasonController {
       };
 
       const isOwner = session.session.memberRole === "owner";
+      const organizationId = session.session.activeOrganizationId;
       const pdfBuffer = await this.liasonService.getExpenseExport(
         isOwner ? null : session.session.memberId,
-        filters
+        filters,
+        organizationId
       );
 
       res.set({

@@ -277,24 +277,24 @@ export function RegisterForm({
                 </form>
               </Form>
             </CardContent>
+            <div className="mt-6 text-center text-xs text-gray-500 px-4">
+              By creating an account, you agree to our{" "}
+              <a
+                href="#"
+                className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+              >
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a
+                href="#"
+                className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+              >
+                Privacy Policy
+              </a>
+              .
+            </div>
           </Card>
-          <div className="mt-6 text-center text-xs text-gray-500 px-4">
-            By creating an account, you agree to our{" "}
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
-            >
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
-            >
-              Privacy Policy
-            </a>
-            .
-          </div>
         </div>
       </div>
     </div>

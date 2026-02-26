@@ -1,13 +1,26 @@
 import { LiaisonAnalytics } from "@dashboard/shared";
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { gemini } from "src/lib/gemini/gemini";
+import { Queue, QueueEvents } from "bullmq";
+import { appConfig } from "src/config/app-config";
 import { analyticsPrompt } from "src/lib/gemini/prompt";
 import { redis } from "src/lib/redis/redis";
 import { prisma } from "../../lib/prisma/prisma";
+import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 
 @Injectable()
 export class AnalyticsService {
+  private readonly geminiQueueEvents: QueueEvents;
+
+  constructor(
+    @InjectQueue(QUEUE_NAMES.GEMINI)
+    private readonly geminiQueue: Queue
+  ) {
+    this.geminiQueueEvents = new QueueEvents(QUEUE_NAMES.GEMINI, {
+      connection: { url: appConfig.REDIS_URL },
+    });
+  }
   // 1️⃣ Top 10 Referring Facilities or Organizations
   async getTopFacilities(
     organizationId: string,
@@ -318,22 +331,14 @@ export class AnalyticsService {
   }
 
   async getAnalyticsByGemini(analytics: any) {
-    try {
-      const prompt = analyticsPrompt(analytics);
+    const prompt = analyticsPrompt(analytics);
+    const job = await this.geminiQueue.add("gemini", {
+      type: "analytics-summary",
+      prompt,
+    });
 
-      const result = await gemini.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [prompt],
-        config: {
-          responseMimeType: "application/json",
-        },
-      });
-
-      const raw = result.text ?? ""; // raw JSON output from Gemini
-      return JSON.parse(raw); // ensure consistent strict format
-    } catch (error) {
-      throw new BadRequestException("Gemini Analytics Error: " + error.message);
-    }
+    const result = await job.waitUntilFinished(this.geminiQueueEvents, 30000);
+    return result;
   }
 
   async getAnalyticsMasterMarketingLeads(
@@ -398,6 +403,7 @@ export class AnalyticsService {
           id: { in: memberIds },
         },
       },
+      isDeleted: false,
     };
 
     if (startDate && endDate) {
@@ -556,9 +562,9 @@ export class AnalyticsService {
   async analyzeMarketingAnalytics(analytics: any) {
     const prompt = `
     You are a marketing analytics expert.
-    
+
     Analyze the following data and return ONLY valid JSON with this exact shape:
-    
+
     {
       "keyInsights": string[],
       "strengths": string[],
@@ -566,24 +572,22 @@ export class AnalyticsService {
       "actionableRecommendations": string[],
       "engagementOptimizations": string[]
     }
-    
+
     Rules:
     - No markdown
     - No explanations
     - No extra keys
     - Arrays must contain concise bullet-style strings
-    
+
     DATA:
     ${JSON.stringify(analytics, null, 2)}
     `;
-    const model = await gemini.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [prompt],
-      config: {
-        responseMimeType: "application/json",
-      },
+    const job = await this.geminiQueue.add("gemini", {
+      type: "marketing-analysis",
+      prompt,
     });
-    const raw = model.text ?? "";
-    return JSON.parse(raw);
+
+    const result = await job.waitUntilFinished(this.geminiQueueEvents, 30000);
+    return result;
   }
 }

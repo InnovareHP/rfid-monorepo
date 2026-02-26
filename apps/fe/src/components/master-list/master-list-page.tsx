@@ -1,7 +1,6 @@
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import { exportToCSV } from "@/lib/fe-helpers";
-import { Route } from "@/routes/_team";
 import { createLead, deleteLead, getLeads } from "@/services/lead/lead-service";
 import type { LeadRow, OptionsResponse } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
@@ -15,7 +14,6 @@ import {
   useReactTable,
   type Header,
 } from "@tanstack/react-table";
-import type { Member } from "better-auth/plugins/organization";
 import { Download } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -27,17 +25,10 @@ import { MasterListFilters } from "./master-list-filter";
 import { MasterListView } from "./master-list-view";
 
 export default function MasterListPage() {
-  const { activeOrganizationId } = Route.useRouteContext() as {
-    activeOrganizationId: string;
-  };
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [openAnalyzeDialog, setOpenAnalyzeDialog] = useState(false);
   const [openMasterListView, setOpenMasterListView] = useState(false);
   const queryClient = useQueryClient();
-  const memberData = queryClient.getQueryData([
-    "member-data",
-    activeOrganizationId,
-  ]) as Member;
 
   const [filterMeta, setFilterMeta] = useState({
     BoardDateFrom: null,
@@ -75,7 +66,6 @@ export default function MasterListPage() {
 
   const columns = generateLeadColumns(
     data?.pages[0].columns ?? [],
-    memberData,
     (recordId: string) => {
       setSelectedRecordId(recordId);
       setOpenAnalyzeDialog(true);

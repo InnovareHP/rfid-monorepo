@@ -58,32 +58,6 @@ const StepThree = ({
     </div>
 
     <div className="flex justify-center">
-      <div className="w-64 h-32 opacity-50">
-        <svg
-          viewBox="0 0 200 100"
-          className="w-full h-full"
-          aria-label="Onboarding page"
-        >
-          <path
-            d="M20,50 Q50,20 80,50 T140,50 T200,50"
-            stroke="white"
-            strokeWidth="2"
-            fill="none"
-            opacity="0.3"
-          />
-          <circle cx="30" cy="50" r="20" fill="gray" opacity="0.6" />
-          <circle cx="50" cy="35" r="8" fill="red" />
-          <circle cx="70" cy="45" r="6" fill="blue" />
-          <circle cx="90" cy="55" r="10" fill="yellow" />
-          <circle cx="110" cy="40" r="7" fill="green" />
-          <circle cx="130" cy="50" r="9" fill="orange" />
-          <circle cx="150" cy="45" r="8" fill="purple" />
-          <circle cx="170" cy="55" r="6" fill="pink" />
-        </svg>
-      </div>
-    </div>
-
-    <div className="flex justify-center">
       <Button type="button" variant="secondary" onClick={handleContinue}>
         Continue
       </Button>

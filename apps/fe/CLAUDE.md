@@ -222,6 +222,7 @@ Required:
 - Do not skip query invalidation after mutations
 - Do not create static columns (they are dynamic from API)
 - Do not use generic "edit" actions without specifying field type
+- Do not use many state for form instead use react hook form
 
 ## Development Methodology
 

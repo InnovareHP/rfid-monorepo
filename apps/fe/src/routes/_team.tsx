@@ -1,6 +1,6 @@
 // routes/_team/$team/route.tsx
 
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext } from "react";
 
 import Loader from "@/components/loader";
 import { AppSidebar } from "@/components/side-bar/app-sidebar";
@@ -122,18 +122,18 @@ function TeamLayout() {
     gcTime: 1000 * 60 * 15,
   });
 
-  useEffect(() => {
-    if (subscriptionLoading) return;
-    if (
-      activeSubscription &&
-      activeSubscription.status !== "active" &&
-      activeSubscription.status !== "trialing"
-    ) {
-      window.location.href = "/billing";
-    } else if (!activeSubscription) {
-      window.location.href = "/billing";
-    }
-  }, [subscriptionLoading, activeSubscription]);
+  // useEffect(() => {
+  //   if (subscriptionLoading) return;
+  //   if (
+  //     activeSubscription &&
+  //     activeSubscription.status !== "active" &&
+  //     activeSubscription.status !== "trialing"
+  //   ) {
+  //     window.location.href = "/billing";
+  //   } else if (!activeSubscription) {
+  //     window.location.href = "/billing";
+  //   }
+  // }, [subscriptionLoading, activeSubscription]);
 
   const isLoading =
     orgLoading ||

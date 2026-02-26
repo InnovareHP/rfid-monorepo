@@ -34,12 +34,12 @@ import {
 import {
   ArrowRight,
   Building2,
+  CalendarCheck,
   CheckCircle2,
   Clock,
   FileText,
-  RotateCcw,
-  CalendarCheck,
   Lightbulb,
+  RotateCcw,
 } from "lucide-react";
 import * as React from "react";
 import { useCallback, useMemo } from "react";
@@ -176,7 +176,7 @@ export function MasterListView({
   ) => {
     setIsRestoring(true);
     try {
-      await restoreLeadHistory(leadId, historyId, eventType);
+      await restoreLeadHistory(leadId, historyId, eventType, isReferral ? "REFERRAL" : "LEAD");
       toast.success("History restored successfully");
 
       await queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
@@ -249,7 +249,11 @@ export function MasterListView({
           ) : (
             <Tabs
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as "details" | "history" | "suggestions" | "activities")}
+              onValueChange={(v) =>
+                setActiveTab(
+                  v as "details" | "history" | "suggestions" | "activities"
+                )
+              }
               className="w-full"
             >
               <div className="px-6 border-b bg-gradient-to-r from-gray-50 to-slate-50">

@@ -1,12 +1,11 @@
 import AcceptInvitation from "@/components/invitation/invitation";
-import {
-    createFileRoute,
-    notFound,
-    useParams,
-} from "@tanstack/react-router";
+import { createFileRoute, notFound, useParams } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/invitation/$action")({
   component: RouteComponent,
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: (search.token as string) || undefined,
+  }),
   beforeLoad: async ({ params }) => {
     const { action } = params;
     if (!["accept", "reject"].includes(action)) {

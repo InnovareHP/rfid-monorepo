@@ -4,16 +4,21 @@ import { AuthModule } from "@thallesp/nestjs-better-auth";
 import { ApiModule } from "./api/api.module";
 import { appConfigSchema } from "./config/app-config";
 import { auth } from "./lib/auth/auth";
+import { BullBoardSetupModule } from "./lib/queue/bull-board.module";
+import { QueueModule } from "./lib/queue/queue.module";
 
 @Module({
   imports: [
-    AuthModule.forRoot({ auth }),
+    QueueModule,
+    BullBoardSetupModule,
+
     ConfigModule.forRoot({
       isGlobal: true,
       validate: (env) => {
         return appConfigSchema.parse(env);
       },
     }),
+    AuthModule.forRoot({ auth }),
     ApiModule,
   ],
   controllers: [],

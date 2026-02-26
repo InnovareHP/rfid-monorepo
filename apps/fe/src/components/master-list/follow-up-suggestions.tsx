@@ -119,51 +119,52 @@ export function FollowUpSuggestions({
           </div>
 
           <div className="space-y-3">
-            {data.suggestions.map((suggestion, i) => {
-              const config =
-                priorityConfig[suggestion.priority] || priorityConfig.medium;
+            {data &&
+              data?.suggestions?.map((suggestion, i) => {
+                const config =
+                  priorityConfig[suggestion.priority] || priorityConfig.medium;
 
-              return (
-                <Card
-                  key={i}
-                  className={`border-l-4 ${config.card} shadow-sm hover:shadow-md transition-all`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`h-2.5 w-2.5 rounded-full ${config.dot}`}
-                        />
-                        <p className="text-sm font-bold text-gray-900">
-                          {suggestion.action}
-                        </p>
+                return (
+                  <Card
+                    key={i}
+                    className={`border-l-4 ${config.card} shadow-sm hover:shadow-md transition-all`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`h-2.5 w-2.5 rounded-full ${config.dot}`}
+                          />
+                          <p className="text-sm font-bold text-gray-900">
+                            {suggestion.action}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`${config.badge} text-xs font-semibold shrink-0`}
+                        >
+                          {suggestion.priority.charAt(0).toUpperCase() +
+                            suggestion.priority.slice(1)}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={`${config.badge} text-xs font-semibold shrink-0`}
-                      >
-                        {suggestion.priority.charAt(0).toUpperCase() +
-                          suggestion.priority.slice(1)}
-                      </Badge>
-                    </div>
 
-                    <p className="text-sm text-gray-600 mb-3 pl-[18px]">
-                      {suggestion.reasoning}
-                    </p>
+                      <p className="text-sm text-gray-600 mb-3 pl-[18px]">
+                        {suggestion.reasoning}
+                      </p>
 
-                    <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg font-semibold w-fit ml-[18px]">
-                      <Clock className="h-3.5 w-3.5" />
-                      {suggestion.timing}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg font-semibold w-fit ml-[18px]">
+                        <Clock className="h-3.5 w-3.5" />
+                        {suggestion.timing}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
           </div>
         </div>
 
         {/* Risk Factors */}
-        {data.riskFactors && data.riskFactors.length > 0 && (
+        {data && data.riskFactors && data.riskFactors.length > 0 && (
           <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50/50 to-amber-50/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-bold flex items-center gap-2.5 text-gray-900">
@@ -175,15 +176,18 @@ export function FollowUpSuggestions({
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                {data.riskFactors.map((risk, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 p-3 bg-white rounded-lg border border-orange-200"
-                  >
-                    <ArrowRight className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                    <p className="text-sm text-gray-700 font-medium">{risk}</p>
-                  </div>
-                ))}
+                {data &&
+                  data.riskFactors.map((risk, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-3 bg-white rounded-lg border border-orange-200"
+                    >
+                      <ArrowRight className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                      <p className="text-sm text-gray-700 font-medium">
+                        {risk}
+                      </p>
+                    </div>
+                  ))}
               </div>
             </CardContent>
           </Card>

@@ -1,10 +1,13 @@
 import { authClient, useSession } from "@/lib/auth-client";
 import { pageVariants } from "@/lib/framer";
+import { uploadImage } from "@/services/image/image-service";
+import { onboardUser } from "@/services/user/user-service";
 import { toSlug } from "@dashboard/shared";
 import { useNavigate } from "@tanstack/react-router";
 import type { ErrorContext } from "better-auth/client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowLeft,
   Book,
   Briefcase,
   Building2,
@@ -38,12 +41,15 @@ export type FormValues = {
   organizationName: string;
 };
 
+const TOTAL_STEPS = 4;
+
 const OnBoardingPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedUsage, setSelectedUsage] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
-  const { data: session } = useSession();
+  const { data: session, refetch } = useSession();
 
   const navigate = useNavigate();
 
@@ -168,8 +174,14 @@ const OnBoardingPage = () => {
   ];
 
   const handleContinue = () => {
-    if (currentStep < 4) {
+    if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -196,6 +208,13 @@ const OnBoardingPage = () => {
 
   const onSubmit = async (data: FormValues) => {
     try {
+      let logoUrl: string | undefined;
+
+      if (logoFile) {
+        const uploadRes = await uploadImage(logoFile);
+        logoUrl = uploadRes.url;
+      }
+
       const { data: createRes } = await authClient.organization.create(
         {
           name: data.organizationName.trim(),
@@ -203,13 +222,13 @@ const OnBoardingPage = () => {
           metadata: {
             user_id: session?.user?.id,
           },
-          logo: undefined,
+          logo: logoUrl,
           userId: session?.user?.id,
           keepCurrentActiveOrganization: false,
         },
         {
           onSuccess: () => {
-            navigate({ to: `/${createRes?.id}` });
+            refetch();
           },
           onError: (ctx: ErrorContext) => {
             form.setError("root", {
@@ -220,17 +239,49 @@ const OnBoardingPage = () => {
         }
       );
 
-      navigate({ to: `/${createRes?.id}` });
-    } catch (err: any) {
-      form.setError("root", {
-        message: err?.message ?? "Something went wrong during onboarding.",
-      });
+      if (!createRes?.id) return;
+
+      await onboardUser(data);
+
+      await refetch();
+
+      navigate({ to: `/${createRes.id}` });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Something went wrong during onboarding.";
+      form.setError("root", { message });
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 overflow-hidden">
       <div className="w-full max-w-4xl relative">
+        {/* Progress dots */}
+        <div className="flex justify-center gap-2 mb-8">
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
+            <div
+              key={step}
+              className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                step <= currentStep ? "bg-primary" : "bg-muted-foreground/30"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Back button */}
+        {currentStep > 1 && (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)}>
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
@@ -293,7 +344,12 @@ const OnBoardingPage = () => {
                 animate="animate"
                 exit="exit"
               >
-                <StepFour register={register} isSubmitting={isSubmitting} />
+                <StepFour
+                  register={register}
+                  isSubmitting={isSubmitting}
+                  logoFile={logoFile}
+                  onLogoChange={setLogoFile}
+                />
               </motion.div>
             )}
           </AnimatePresence>

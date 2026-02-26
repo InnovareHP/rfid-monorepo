@@ -14,11 +14,12 @@ import { InvitationEmail } from "../../react-email/invitation-email";
 import { ResetPasswordEmail } from "../../react-email/reset-password-email";
 import { StripeHelper } from "../helper.js";
 import { prisma } from "../prisma/prisma";
+import { emailQueue } from "../queue/email-queue";
 import { redis } from "../redis/redis";
-import { sendEmail } from "../resend/resend";
+import { renderEmailHtml } from "../resend/resend";
 import { stripe as stripeClient } from "../stripe/stripe";
 import { OnboardingSeeding } from "./onboarding";
-import { ac, super_admin, support } from "./permission";
+import { ac, liason, owner, super_admin, support } from "./permission";
 
 export const auth = betterAuth({
   baseURL: appConfig.WEBSITE_URL,
@@ -163,13 +164,16 @@ export const auth = betterAuth({
     expiresIn: 1000 * 60 * 10, // 10 minutes
     sendVerificationEmail: async ({ url, user, token }) => {
       const tokenUrl = `${url}?token=${token}`;
-      await sendEmail({
-        to: user.email,
-        subject: `Verify your ${appConfig.APP_NAME} account`,
-        html: ReferralDashboardEmail({
+      const html = await renderEmailHtml(
+        ReferralDashboardEmail({
           magicLink: tokenUrl,
           name: user.name,
-        }),
+        })
+      );
+      await emailQueue.add("send", {
+        to: user.email,
+        subject: `Verify your ${appConfig.APP_NAME} account`,
+        html,
         from: `${appConfig.APP_EMAIL}`,
       });
     },
@@ -180,18 +184,21 @@ export const auth = betterAuth({
     expiresIn: 1000 * 60 * 10, // 10 minutes
     sendResetPassword: async ({ user, url, token }) => {
       const tokenUrl = `${url}?token=${token}`;
-      await sendEmail({
-        to: user.email,
-        subject: "Reset your password",
-        html: ResetPasswordEmail({
+      const html = await renderEmailHtml(
+        ResetPasswordEmail({
           magicLink: tokenUrl,
           name: user.name,
-        }),
+        })
+      );
+      await emailQueue.add("send", {
+        to: user.email,
+        subject: "Reset your password",
+        html,
         from: `${appConfig.APP_EMAIL}`,
       });
     },
     onPasswordReset: async ({ user }) => {
-      await sendEmail({
+      await emailQueue.add("send", {
         to: user.email,
         subject: "Reset your password",
         html: "password reset",
@@ -208,12 +215,15 @@ export const auth = betterAuth({
       token: string;
     }) => {
       const tokenUrl = `${url}?token=${token}`;
-      await sendEmail({
+      const html = await renderEmailHtml(
+        ReferralDashboardEmail({
+          magicLink: tokenUrl,
+        })
+      );
+      await emailQueue.add("send", {
         to: user.email,
         subject: `Login to your ${appConfig.APP_NAME} account`,
-        html: ReferralDashboardEmail({
-          magicLink: tokenUrl,
-        }),
+        html,
         from: `${appConfig.APP_EMAIL}`,
       });
     },
@@ -237,11 +247,24 @@ export const auth = betterAuth({
       },
     }),
     organization({
+      ac,
+      roles: {
+        owner,
+        liason,
+      },
       organizationHooks: {
         beforeCreateOrganization: async ({ organization, user }) => {
+          const existingMember = await prisma.member_table.findFirstOrThrow({
+            where: {
+              userId: user.id,
+              organizationId: organization.id,
+            },
+            take: 1,
+          });
           return {
             data: {
               ...organization,
+              memberRole: existingMember?.member_role,
               activeOrganizationId: organization.id,
             },
           };
@@ -263,10 +286,8 @@ export const auth = betterAuth({
         },
       },
       sendInvitationEmail: async (data) => {
-        await sendEmail({
-          to: data.email,
-          subject: `Login to your ${appConfig.APP_NAME} account`,
-          html: InvitationEmail({
+        const html = await renderEmailHtml(
+          InvitationEmail({
             invitation: {
               email: data.email,
               organizationName: data.organization.name,
@@ -274,7 +295,12 @@ export const auth = betterAuth({
               inviteLink: `${appConfig.WEBSITE_URL}/invitation/accept?token=${data.invitation.id}`,
               rejectLink: `${appConfig.WEBSITE_URL}/invitation/reject?token=${data.invitation.id}`,
             },
-          }),
+          })
+        );
+        await emailQueue.add("send", {
+          to: data.email,
+          subject: `Login to your ${appConfig.APP_NAME} account`,
+          html,
           from: `${appConfig.APP_EMAIL}`,
         });
       },
