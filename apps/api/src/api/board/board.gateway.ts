@@ -1,4 +1,4 @@
-import { UseGuards } from "@nestjs/common";
+import { Logger, UseGuards } from "@nestjs/common";
 import {
   OnGatewayConnection,
   WebSocketGateway,
@@ -17,12 +17,18 @@ import { auth } from "src/lib/auth/auth";
 })
 @UseGuards(AuthGuard)
 export class BoardGateway implements OnGatewayConnection {
+  private readonly logger = new Logger(BoardGateway.name);
   @WebSocketServer() server: Server;
 
   async getSessionFromSocket(socket: Socket) {
     const cookie = socket.handshake.headers.cookie;
 
-    if (!cookie) return null;
+    if (!cookie) {
+      this.logger.warn(
+        `No cookie in socket handshake from origin: ${socket.handshake.headers.origin}`
+      );
+      return null;
+    }
 
     const session = await auth.api.getSession({
       headers: { cookie },
@@ -44,6 +50,7 @@ export class BoardGateway implements OnGatewayConnection {
 
         next();
       } catch (err) {
+        this.logger.error(`Socket auth error: ${err.message}`);
         next(err);
       }
     });

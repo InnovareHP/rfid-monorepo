@@ -13,12 +13,7 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: [
-      appConfig.WEBSITE_URL,
-      appConfig.SUPPORT_URL,
-      "http://localhost:3000",
-      "http://localhost:3001",
-    ],
+    origin: [appConfig.WEBSITE_URL, appConfig.SUPPORT_URL],
     methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Content-Length"],
@@ -46,8 +41,11 @@ async function bootstrap() {
 
   app.setGlobalPrefix("api");
 
+  const socketAdapter = new SocketIoAdapter(app);
+  await socketAdapter.connectToRedis();
+  app.useWebSocketAdapter(socketAdapter);
+
   await app.listen(appConfig.PORT);
-  app.useWebSocketAdapter(new SocketIoAdapter(app));
 }
 
 bootstrap();
