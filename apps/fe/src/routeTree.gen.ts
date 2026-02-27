@@ -28,6 +28,7 @@ import { Route as TeamTeamProfileRouteImport } from './routes/_team/$team/profil
 import { Route as TeamTeamPlansRouteImport } from './routes/_team/$team/plans'
 import { Route as TeamTeamMasterListAnalyticsRouteImport } from './routes/_team/$team/master-list-analytics'
 import { Route as TeamTeamCountyConfigRouteImport } from './routes/_team/$team/county-config'
+import { Route as TeamTeamCalendarRouteImport } from './routes/_team/$team/calendar'
 import { Route as AuthResetPasswordVerifyRouteImport } from './routes/_auth/reset-password/verify'
 import { Route as AuthEmailVerificationRouteImport } from './routes/_auth/email.verification'
 import { Route as TeamTeamReferralListIndexRouteImport } from './routes/_team/$team/referral-list/index'
@@ -141,6 +142,11 @@ const TeamTeamMasterListAnalyticsRoute =
 const TeamTeamCountyConfigRoute = TeamTeamCountyConfigRouteImport.update({
   id: '/$team/county-config',
   path: '/$team/county-config',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamCalendarRoute = TeamTeamCalendarRouteImport.update({
+  id: '/$team/calendar',
+  path: '/$team/calendar',
   getParentRoute: () => TeamRoute,
 } as any)
 const AuthResetPasswordVerifyRoute = AuthResetPasswordVerifyRouteImport.update({
@@ -261,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/invitation/$action': typeof InvitationActionRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
+  '/$team/calendar': typeof TeamTeamCalendarRoute
   '/$team/county-config': typeof TeamTeamCountyConfigRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/invitation/$action': typeof InvitationActionRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
+  '/$team/calendar': typeof TeamTeamCalendarRoute
   '/$team/county-config': typeof TeamTeamCountyConfigRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/invitation/$action': typeof InvitationActionRoute
   '/_auth/email/verification': typeof AuthEmailVerificationRoute
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
+  '/_team/$team/calendar': typeof TeamTeamCalendarRoute
   '/_team/$team/county-config': typeof TeamTeamCountyConfigRoute
   '/_team/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/_team/$team/plans': typeof TeamTeamPlansRoute
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/invitation/$action'
     | '/email/verification'
     | '/reset-password/verify'
+    | '/$team/calendar'
     | '/$team/county-config'
     | '/$team/master-list-analytics'
     | '/$team/plans'
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/invitation/$action'
     | '/email/verification'
     | '/reset-password/verify'
+    | '/$team/calendar'
     | '/$team/county-config'
     | '/$team/master-list-analytics'
     | '/$team/plans'
@@ -458,6 +469,7 @@ export interface FileRouteTypes {
     | '/invitation/$action'
     | '/_auth/email/verification'
     | '/_auth/reset-password/verify'
+    | '/_team/$team/calendar'
     | '/_team/$team/county-config'
     | '/_team/$team/master-list-analytics'
     | '/_team/$team/plans'
@@ -631,6 +643,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamCountyConfigRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/calendar': {
+      id: '/_team/$team/calendar'
+      path: '/$team/calendar'
+      fullPath: '/$team/calendar'
+      preLoaderRoute: typeof TeamTeamCalendarRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_auth/reset-password/verify': {
       id: '/_auth/reset-password/verify'
       path: '/reset-password/verify'
@@ -799,6 +818,7 @@ const TeamTeamSettingsRouteWithChildren =
   TeamTeamSettingsRoute._addFileChildren(TeamTeamSettingsRouteChildren)
 
 interface TeamRouteChildren {
+  TeamTeamCalendarRoute: typeof TeamTeamCalendarRoute
   TeamTeamCountyConfigRoute: typeof TeamTeamCountyConfigRoute
   TeamTeamMasterListAnalyticsRoute: typeof TeamTeamMasterListAnalyticsRoute
   TeamTeamPlansRoute: typeof TeamTeamPlansRoute
@@ -827,6 +847,7 @@ interface TeamRouteChildren {
 }
 
 const TeamRouteChildren: TeamRouteChildren = {
+  TeamTeamCalendarRoute: TeamTeamCalendarRoute,
   TeamTeamCountyConfigRoute: TeamTeamCountyConfigRoute,
   TeamTeamMasterListAnalyticsRoute: TeamTeamMasterListAnalyticsRoute,
   TeamTeamPlansRoute: TeamTeamPlansRoute,

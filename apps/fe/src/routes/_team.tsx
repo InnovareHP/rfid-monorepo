@@ -4,6 +4,10 @@ import { createContext, useContext } from "react";
 
 import Loader from "@/components/loader";
 import { AppSidebar } from "@/components/side-bar/app-sidebar";
+import {
+  PrimaryBottomBar,
+  PrimarySidebar,
+} from "@/components/side-bar/primary-sidebar";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { authClient } from "@/lib/auth-client";
@@ -158,39 +162,45 @@ function TeamLayout() {
 
   return (
     <TeamLayoutContext.Provider value={ctxValue as TeamLayoutContextValue}>
-      <SidebarProvider>
+      <div className="flex h-dvh w-full overflow-hidden">
         <Loader isLoading={isLoading as boolean} />
 
         {!isLoading && ctxValue && (
           <>
-            <AppSidebar
-              activeOrganizationId={activeOrganizationId}
-              memberData={memberData as Member & { memberRole: string }}
-              organizations={organizations as unknown as Organization[]}
-              user={user}
-            />
+            <PrimarySidebar activeOrganizationId={activeOrganizationId} />
 
-            <SidebarInset>
-              <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-                <div className="flex items-center gap-2 px-4">
-                  <SidebarTrigger className="-ml-1" />
+            <SidebarProvider className="min-h-0! flex-1 min-w-0 h-full">
+              <AppSidebar
+                activeOrganizationId={activeOrganizationId}
+                memberData={memberData as Member & { memberRole: string }}
+                organizations={organizations as unknown as Organization[]}
+                user={user}
+              />
 
-                  <Separator
-                    orientation="vertical"
-                    className="mr-2 data-[orientation=vertical]:h-4"
-                  />
+              <SidebarInset>
+                <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+                  <div className="flex items-center gap-2 px-4">
+                    <SidebarTrigger className="-ml-1" />
 
-                  <DynamicBreadcrumb />
+                    <Separator
+                      orientation="vertical"
+                      className="mr-2 data-[orientation=vertical]:h-4"
+                    />
+
+                    <DynamicBreadcrumb />
+                  </div>
+                </header>
+
+                <div className="flex flex-1 flex-col gap-4 pt-0 overflow-auto pb-14 md:pb-0">
+                  <Outlet />
                 </div>
-              </header>
+              </SidebarInset>
+            </SidebarProvider>
 
-              <div className="flex flex-1 flex-col gap-4 pt-0 overflow-auto">
-                <Outlet />
-              </div>
-            </SidebarInset>
+            <PrimaryBottomBar activeOrganizationId={activeOrganizationId} />
           </>
         )}
-      </SidebarProvider>
+      </div>
     </TeamLayoutContext.Provider>
   );
 }

@@ -257,8 +257,7 @@ export function AppSidebar({
     <Sidebar
       collapsible="icon"
       {...props}
-      // This is the key: it forces the fixed sidebar to move down
-      className="top-[var(--banner-height,0px)] h-[calc(100vh-var(--banner-height,0px))] transition-[top,height] duration-300"
+      className="md:left-16 top-[var(--banner-height,0px)] h-[calc(100vh-var(--banner-height,0px))] transition-[top,height,left] duration-300"
     >
       <SidebarHeader>
         <div className="mb-2 w-full overflow-hidden flex items-center justify-center">
