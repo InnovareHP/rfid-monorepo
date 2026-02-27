@@ -28,14 +28,10 @@ export const auth = betterAuth({
     cookiePrefix: `${appConfig.APP_NAME}-AUTH`,
     useSecureCookies: true,
     defaultCookieAttributes: {
-      sameSite: appConfig.WEBSITE_URL.includes("localhost") ? "lax" : "none",
+      sameSite: "lax", // IMPORTANT
     },
   },
-  crossSubDomainCookies: {
-    domain: appConfig.WEBSITE_URL.includes("localhost")
-      ? ["localhost:3000", "localhost:3001"]
-      : ".up.railway.app",
-  },
+  crossSubDomainCookies: undefined,
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
