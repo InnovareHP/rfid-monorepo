@@ -32,13 +32,15 @@ export const auth = betterAuth({
     },
   },
   crossSubDomainCookies: {
+    enabled: true,
     domain: appConfig.WEBSITE_URL.includes("localhost")
-      ? ["localhost:3000", "localhost:3001"]
+      ? "localhost"
       : ".innovarehp.com",
   },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  trustedOrigins: [appConfig.SUPPORT_URL, appConfig.WEBSITE_URL],
   databaseHooks: {
     session: {
       create: {
