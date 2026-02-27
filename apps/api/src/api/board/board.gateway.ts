@@ -1,79 +1,69 @@
-import { Logger, UseGuards } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import {
-  ConnectedSocket,
-  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayInit,
   WebSocketGateway,
   WebSocketServer,
-  WsResponse,
 } from "@nestjs/websockets";
-import {
-  AuthGuard,
-  OptionalAuth,
-  Session,
-  UserSession,
-} from "@thallesp/nestjs-better-auth";
-import { from, map, Observable } from "rxjs";
 import { Server, Socket } from "socket.io";
+import { auth } from "src/lib/auth/auth";
 
 @WebSocketGateway({
   path: "/ws",
   cors: {
-    origin: "*", // Replace with your production domain (e.g., https://app.yourdomain.com)
-    credentials: true,
+    origin: "*",
   },
 })
-@UseGuards(AuthGuard)
-export class BoardGateway {
+export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
   private readonly logger = new Logger(BoardGateway.name);
+  @WebSocketServer() server: Server;
 
-  @WebSocketServer()
-  server: Server;
+  afterInit(server: Server) {
+    server.use(async (socket, next) => {
+      try {
+        const token = socket.handshake.auth?.token;
 
-  @SubscribeMessage("join_board")
-  async handleJoinBoard(
-    @Session() session: UserSession,
-    @ConnectedSocket() client: Socket
-  ) {
-    const orgId = session.session?.activeOrganizationId;
+        if (!token) {
+          return next(new Error("No token provided"));
+        }
+
+        const verified = await auth.api.verifyOneTimeToken({
+          body: {
+            token: token, // required
+          },
+        });
+        if (!verified?.session) {
+          return next(new Error("Invalid token"));
+        }
+
+        socket.data.session = verified.session;
+        next();
+      } catch (err) {
+        this.logger.error(`Socket auth error: ${err.message}`);
+        next(new Error("Unauthorized"));
+      }
+    });
+  }
+
+  async handleConnection(client: Socket) {
+    const session = client.data?.session;
+
+    if (!session) {
+      client.disconnect();
+      return;
+    }
+
+    const orgId = session.activeOrganizationId;
 
     if (!orgId) {
-      this.logger.warn(
-        `User ${session.user.email} attempted to join without active org`
-      );
-      return { event: "error", data: "No active organization found." };
+      this.logger.warn("No activeOrganizationId in session, disconnecting");
+      client.disconnect();
+      return;
     }
 
     await client.join(`org:${orgId}`);
-    this.logger.log(`User ${session.user.email} joined room: org:${orgId}`);
-
-    return { event: "joined", data: { orgId } };
+    this.logger.log(`Client joined org:${orgId}`);
   }
-
-  /**
-   * PROTECTED: Ping handler using RxJS stream (like your example)
-   */
-  @SubscribeMessage("ping")
-  handlePing(@Session() session: UserSession): Observable<WsResponse<string>> {
-    return from(session.user.name.split("")).pipe(
-      map((char) => ({ event: "pong", data: char }))
-    );
-  }
-
-  /**
-   * OPTIONAL: Example of optional authentication
-   */
-  @OptionalAuth()
-  @SubscribeMessage("get_status")
-  handleStatus(@Session() session: UserSession) {
-    return {
-      event: "status",
-      data: session
-        ? `Authenticated as ${session.user.name}`
-        : "Anonymous user",
-    };
-  }
-
-  // --- BROADCASTING METHODS (Used by Services) ---
 
   emitRecordCreated(orgId: string, record: any, moduleType?: string) {
     this.server.to(`org:${orgId}`).emit("board:record-created", {
@@ -81,7 +71,6 @@ export class BoardGateway {
       moduleType: moduleType ?? record.module_type ?? "LEAD",
     });
   }
-
   emitRecordDeleted(
     orgId: string,
     recordIds: string[],
@@ -91,7 +80,6 @@ export class BoardGateway {
       .to(`org:${orgId}`)
       .emit("board:record-deleted", { recordIds, moduleType });
   }
-
   emitRecordNotificationState(
     orgId: string,
     recordId: string,
@@ -101,7 +89,6 @@ export class BoardGateway {
       .to(`org:${orgId}`)
       .emit("board:record-notification-state", { recordId, moduleType });
   }
-
   emitColumnCreated(
     orgId: string,
     column: string,
@@ -111,7 +98,6 @@ export class BoardGateway {
       .to(`org:${orgId}`)
       .emit("board:column-created", { column, moduleType });
   }
-
   emitRecordValueUpdated(
     orgId: string,
     recordId: string,
@@ -127,7 +113,9 @@ export class BoardGateway {
   emitRecordValueLocation(
     orgId: string,
     recordId: string,
-    data: { [key: string]: any },
+    data: {
+      [key: string]: any;
+    },
     moduleType: string = "LEAD"
   ) {
     this.server

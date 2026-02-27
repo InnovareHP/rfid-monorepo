@@ -1,8 +1,13 @@
-import { useSession } from "@/lib/auth-client";
-import { connectSocket } from "@/lib/socket-io/socket";
+import { authClient } from "@/lib/auth-client";
+import { connectSocket, setTokenGenerator } from "@/lib/socket-io/socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
+
+async function generateToken(): Promise<string | null> {
+  const { data } = await authClient.oneTimeToken.generate();
+  return data?.token ?? null;
+}
 
 function getQueryKey(moduleType?: string): string[] {
   return moduleType === "REFERRAL" ? ["referrals"] : ["leads"];
@@ -10,17 +15,20 @@ function getQueryKey(moduleType?: string): string[] {
 
 export function useBoardSync() {
   const queryClient = useQueryClient();
-  const { data: sessionData } = useSession();
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
+    setTokenGenerator(generateToken);
+
     const connect = async () => {
-      const sock = await connectSocket();
-      sock.emit("join_board");
+      const token = await generateToken();
+      if (!token) return;
+
+      const sock = await connectSocket(token);
       setSocket(sock);
     };
     connect();
-  }, [sessionData?.session?.token]);
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
