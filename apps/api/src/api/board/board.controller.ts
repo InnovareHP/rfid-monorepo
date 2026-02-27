@@ -9,10 +9,14 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Queue } from "bullmq";
+import { memoryStorage } from "multer";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 import {
@@ -29,6 +33,7 @@ import {
   NotificationStateDto,
   RestoreHistoryDto,
   UpdateActivityDto,
+  UpdateContactDto,
   UpdateRecordValueDto,
 } from "./dto/board.schema";
 import { GmailService } from "./gmail.service";
@@ -111,6 +116,32 @@ export class BoardController {
     try {
       await this.outlookService.disconnect(session.user.id);
       return { message: "Outlook disconnected successfully" };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/scan-card")
+  @UseInterceptors(
+    FileInterceptor("image", {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    })
+  )
+  async scanBusinessCard(
+    @UploadedFile() file: Express.Multer.File,
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      if (!file) {
+        throw new BadRequestException("No image file uploaded");
+      }
+      return await this.boardService.scanBusinessCard(
+        file,
+        session.session.activeOrganizationId,
+        moduleType || "LEAD"
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -241,6 +272,18 @@ export class BoardController {
     }
   }
 
+  @Get("/contact-info/:fieldId")
+  async getValueIdContact(
+    @Param("fieldId") fieldId: string,
+    @Query("value") value: string
+  ) {
+    try {
+      return await this.boardService.getValueId(fieldId, value);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/")
   async getAllRecords(
     @Session()
@@ -251,7 +294,9 @@ export class BoardController {
     @Query("page") page = 1,
     @Query("limit") limit = 50,
     @Query("search") search?: string,
-    @Query("moduleType") moduleType?: string
+    @Query("moduleType") moduleType?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "asc" | "desc"
   ) {
     try {
       const organizationId = session.session.activeOrganizationId;
@@ -264,6 +309,8 @@ export class BoardController {
         limit: Number(limit),
         search,
         moduleType,
+        sortBy,
+        sortOrder,
       };
 
       return this.boardService.getAllBoards(organizationId, filters);
@@ -399,7 +446,9 @@ export class BoardController {
         dto.record_name,
         organizationId,
         session.user.id,
-        dto.moduleType || "LEAD"
+        dto.moduleType || "LEAD",
+        dto.initialValues,
+        dto.personContact
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -531,6 +580,18 @@ export class BoardController {
     }
   }
 
+  @Patch("/contact-form/:fieldId")
+  async updateContactValue(
+    @Param("fieldId") fieldId: string,
+    @Body() dto: UpdateContactDto
+  ) {
+    try {
+      return await this.boardService.updateContactValue(fieldId, dto);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Patch("/timeline/:recordId")
   async updateRecordHistory(@Param("recordId") recordId: string) {
     try {
@@ -572,6 +633,23 @@ export class BoardController {
       return await this.boardService.deleteRecord(
         dto.column_ids,
         session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/column/:columnId")
+  async deleteColumn(
+    @Param("columnId") columnId: string,
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      return await this.boardService.deleteColumn(
+        columnId,
+        session.session.activeOrganizationId,
+        moduleType || "LEAD"
       );
     } catch (error) {
       throw new BadRequestException(error.message);

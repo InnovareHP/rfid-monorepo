@@ -14,6 +14,7 @@ import {
   NotificationStateSchema,
   RestoreHistorySchema,
   UpdateActivitySchema,
+  UpdateContactSchema,
   UpdateRecordValueSchema,
 } from "./board.dto";
 
@@ -38,7 +39,6 @@ export class CreateRecordCountyAssignmentDto extends createZodDto(
 ) {}
 export class CreateActivityDto extends createZodDto(CreateActivitySchema) {}
 export class UpdateActivityDto extends createZodDto(UpdateActivitySchema) {}
-export class CompleteActivityDto extends createZodDto(
-  CompleteActivitySchema
-) {}
+export class CompleteActivityDto extends createZodDto(CompleteActivitySchema) {}
 export class BulkEmailDto extends createZodDto(BulkEmailSchema) {}
+export class UpdateContactDto extends createZodDto(UpdateContactSchema) {}

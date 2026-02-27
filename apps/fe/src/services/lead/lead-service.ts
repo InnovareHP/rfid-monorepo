@@ -1,6 +1,25 @@
 import { axiosClient } from "@/lib/axios-client";
 import type { LeadAnalyze, LeadHistoryItem } from "@dashboard/shared";
 
+export interface ScannedCardResult {
+  record_name: string;
+  contactInfo: {
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+  };
+  fields: Record<string, string | null>;
+  columns: { id: string; field_name: string; field_type: string }[];
+}
+
+export const scanBusinessCard = async (file: File): Promise<ScannedCardResult> => {
+  const formData = new FormData();
+  formData.append("image", file);
+  const response = await axiosClient.post("/api/boards/scan-card", formData);
+  return response.data;
+};
+
 export const getLeads = async (filters: any) => {
   const response = await axiosClient.get("/api/boards", {
     params: {
@@ -145,10 +164,45 @@ export const updateLead = async (
   return response.data;
 };
 
-export const createLead = async (data: any, moduleType?: string) => {
+export const updateContactValues = async (
+  fieldId: string,
+  body: {
+    contactNumber: string;
+    email: string;
+    address: string;
+    value: string;
+  }
+) => {
+  const response = await axiosClient.patch(
+    `/api/boards/contact-form/${fieldId}`,
+    body
+  );
+
+  if (response.status !== 200) {
+    throw new Error("Failed to update lead");
+  }
+
+  return response.data;
+};
+
+export const createLead = async (
+  data: any,
+  moduleType?: string,
+  options?: {
+    initialValues?: Record<string, string | null>;
+    personContact?: {
+      fieldId: string;
+      contactNumber?: string;
+      email?: string;
+      address?: string;
+    };
+  }
+) => {
   const response = await axiosClient.post("/api/boards", {
     record_name: data[0].record_name,
     moduleType: moduleType || "LEAD",
+    ...(options?.initialValues && { initialValues: options.initialValues }),
+    ...(options?.personContact && { personContact: options.personContact }),
   });
 
   return response.data;
@@ -170,10 +224,35 @@ export const createColumn = async (
   return response.data;
 };
 
+export const deleteColumnField = async (
+  columnId: string,
+  moduleType?: string
+) => {
+  const response = await axiosClient.delete(`/api/boards/column/${columnId}`, {
+    params: { moduleType: moduleType || "LEAD" },
+  });
+
+  return response.data;
+};
+
 export const getLeadHistory = async (filters: any, moduleType?: string) => {
   const response = await axiosClient.get(`/api/boards/history`, {
     params: { ...filters, moduleType: moduleType || "LEAD" },
   });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch lead history");
+  }
+
+  return response.data;
+};
+export const getleadValueId = async (fieldId: string, value: string) => {
+  const response = await axiosClient.get(
+    `/api/boards/contact-info/${fieldId}`,
+    {
+      params: { value },
+    }
+  );
 
   if (response.status !== 200) {
     throw new Error("Failed to fetch lead history");

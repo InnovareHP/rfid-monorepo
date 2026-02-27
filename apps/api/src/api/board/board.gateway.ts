@@ -98,6 +98,15 @@ export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
       .to(`org:${orgId}`)
       .emit("board:column-created", { column, moduleType });
   }
+  emitColumnDeleted(
+    orgId: string,
+    columnId: string,
+    moduleType: string = "LEAD"
+  ) {
+    this.server
+      .to(`org:${orgId}`)
+      .emit("board:column-deleted", { columnId, moduleType });
+  }
   emitRecordValueUpdated(
     orgId: string,
     recordId: string,

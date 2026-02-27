@@ -161,3 +161,35 @@ export const formatHours = (h: number | null | undefined): string => {
   const rem = Math.round(h % 24);
   return rem > 0 ? `${days}d ${rem}h` : `${days}d`;
 };
+
+export const formatPhoneNumber = (
+  phoneNumberString: string | number
+): string => {
+  if (!phoneNumberString) return "";
+
+  // Remove all non-digit characters
+  const cleaned = ("" + phoneNumberString).replace(/\D/g, "");
+
+  // Match for 11 digits with leading 1: +1 (123) 456-7890
+  const match11 = cleaned.match(/^1(\d{3})(\d{3})(\d{4})$/);
+  if (match11) {
+    return `+1 (${match11[1]}) ${match11[2]}-${match11[3]}`;
+  }
+
+  // Match for 10 digits: (123) 456-7890
+  const match10 = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+  if (match10) {
+    return `(${match10[1]}) ${match10[2]}-${match10[3]}`;
+  }
+
+  // Match for 9 digits: (123) 456-789
+  const match9 = cleaned.match(/^(\d{3})(\d{3})(\d{3})$/);
+  if (match9) {
+    return `(${match9[1]}) ${match9[2]}-${match9[3]}`;
+  }
+
+  // Return cleaned string if no pattern matches (so the UI doesn't blank out)
+  return cleaned;
+};
+
+// Test: 123123123 -> (123) - 123 - 123

@@ -5,6 +5,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   @apply m-0;
   font-family:

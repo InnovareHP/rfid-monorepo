@@ -6,6 +6,7 @@ model Field {
   field_order     Int
   field_type      BoardFieldType
   module_type     String            @default("LEAD")
+  isDeleted       Boolean           @default(false)
 
   organization_id String
   organization    organization_table @relation(fields: [organization_id], references: [id])
@@ -47,6 +48,7 @@ model FieldValue {
   
   field      Field  @relation(fields: [field_id], references: [id])
   record     Board @relation(fields: [record_id], references: [id])
+  contactValue fieldPersonInformation?
 
   @@unique([record_id, field_id])
   @@schema("board_schema")
@@ -74,6 +76,19 @@ model History {
   
   record     Board @relation(fields: [record_id], references: [id])
   user user_table? @relation(fields: [created_by], references: [id])
+
+  @@schema("board_schema")
+}
+
+model fieldPersonInformation {
+  id String @id @default(uuid())
+  contactNumber String
+  email     String
+  address   String
+
+  fieldValueId String @unique
+
+  fieldvalue FieldValue @relation(fields: [fieldValueId], references: [id])
 
   @@schema("board_schema")
 }
@@ -113,6 +128,7 @@ model boardCountyAssignedTo {
   @@schema("board_schema")
   @@index([board_county_id])
 }
+
 
 
 enum ActivityType {
@@ -204,6 +220,7 @@ enum BoardFieldType {
   TIMELINE
   MULTISELECT
   ASSIGNED_TO
+  PERSON
 
   @@schema("board_schema")
 }

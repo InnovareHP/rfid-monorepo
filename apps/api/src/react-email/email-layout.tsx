@@ -3,7 +3,6 @@ import {
   Container,
   Head,
   Html,
-  Link,
   Preview,
   Text,
 } from "@react-email/components";
@@ -32,12 +31,9 @@ export const EmailLayout = ({ preview, children }: EmailLayoutProps) => {
             &copy; {new Date().getFullYear()} {appName}. All rights reserved.
           </Text>
           <Text style={footer}>
-            <Link
-              href={`${process.env.WEBSITE_URL}/report`}
-              style={reportLink}
-            >
+            <a href={"mailto:info@innovarehp.com"} style={reportLink}>
               Report suspicious activity
-            </Link>
+            </a>
           </Text>
         </Container>
       </Body>

@@ -4,32 +4,32 @@ import { prisma } from "src/lib/prisma/prisma";
 export const OnboardingSeeding = async (organization_id: string) => {
   console.log("🌱 Seeding start");
 
-  //
-  // ✅ Seed referral records
-  //
-  await prisma.board.createMany({
-    data: [
-      { record_name: "John Doe", module_type: "REFERRAL", organization_id },
-      { record_name: "Jane Smith", module_type: "REFERRAL", organization_id },
-      {
-        record_name: "Alice Johnson",
-        module_type: "REFERRAL",
-        organization_id,
-      },
-    ],
-    skipDuplicates: true,
-  });
+  // //
+  // // ✅ Seed referral records
+  // //
+  // await prisma.board.createMany({
+  //   data: [
+  //     { record_name: "John Doe", module_type: "REFERRAL", organization_id },
+  //     { record_name: "Jane Smith", module_type: "REFERRAL", organization_id },
+  //     {
+  //       record_name: "Alice Johnson",
+  //       module_type: "REFERRAL",
+  //       organization_id,
+  //     },
+  //   ],
+  //   skipDuplicates: true,
+  // });
 
-  //
-  // ✅ Create referral fields
+  // //
+  // // ✅ Create referral fields
   //
   const referralFieldData = [
     ["Referral Date", BoardFieldType.DATE],
     ["County", BoardFieldType.DROPDOWN],
     ["Facility", BoardFieldType.TEXT],
     ["Contact", BoardFieldType.TEXT],
-    ["Number", BoardFieldType.NUMBER],
-    ["Patient Name", BoardFieldType.TEXT],
+    ["Number", BoardFieldType.PHONE],
+    ["Patient Name", BoardFieldType.PERSON],
     ["Date of Birth", BoardFieldType.DATE],
     ["Payor", BoardFieldType.DROPDOWN],
     ["Remote or Onsite", BoardFieldType.DROPDOWN],
@@ -155,15 +155,13 @@ export const OnboardingSeeding = async (organization_id: string) => {
     ["City", BoardFieldType.TEXT, 7],
     ["State", BoardFieldType.TEXT, 8],
     ["Zip Code", BoardFieldType.TEXT, 9],
-    ["Phone", BoardFieldType.TEXT, 10],
+    ["Phone", BoardFieldType.PHONE, 10],
     ["Fax", BoardFieldType.TEXT, 11],
-    ["Medical Director", BoardFieldType.TEXT, 12],
-    ["Director of Nursing", BoardFieldType.TEXT, 13],
-    ["Admissions/Marketing", BoardFieldType.TEXT, 14],
-    ["Company Name", BoardFieldType.TEXT, 15],
-    ["Psychiatric Services", BoardFieldType.TEXT, 16],
-    ["Notes", BoardFieldType.TEXT, 17],
-    ["History", BoardFieldType.TIMELINE, 1],
+    ["Medical Director", BoardFieldType.PERSON, 12],
+    ["Director of Nursing", BoardFieldType.PERSON, 13],
+    ["Admissions/Marketing", BoardFieldType.PERSON, 14],
+    ["Psychiatric Services", BoardFieldType.TEXT, 15],
+    ["Notes", BoardFieldType.TEXT, 16],
   ].map(([name, type, order]) => ({
     field_name: name,
     field_type: type,
@@ -180,14 +178,14 @@ export const OnboardingSeeding = async (organization_id: string) => {
   //
   // Seed Leads
   //
-  await prisma.board.createMany({
-    data: [
-      { record_name: "John Doe 1", module_type: "LEAD", organization_id },
-      { record_name: "Jane Smith 2", module_type: "LEAD", organization_id },
-      { record_name: "Alice Johnson 3", module_type: "LEAD", organization_id },
-    ],
-    skipDuplicates: true,
-  });
+  // await prisma.board.createMany({
+  //   data: [
+  //     { record_name: "John Doe 1", module_type: "LEAD", organization_id },
+  //     { record_name: "Jane Smith 2", module_type: "LEAD", organization_id },
+  //     { record_name: "Alice Johnson 3", module_type: "LEAD", organization_id },
+  //   ],
+  //   skipDuplicates: true,
+  // });
 
   // ❗ FIX: Fetch only leads for this organization
   const leads = await prisma.board.findMany({

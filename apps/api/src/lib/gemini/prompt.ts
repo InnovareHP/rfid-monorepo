@@ -42,6 +42,54 @@ export function analyticsPrompt(analytics: any) {
   `;
 }
 
+export function businessCardScanPrompt(
+  fields: { name: string; type: string }[]
+) {
+  const fieldDescriptions = fields
+    .map((f) => `- "${f.name}" (type: ${f.type})`)
+    .join("\n");
+
+  return `
+  You are an AI assistant that extracts structured data from business card images.
+
+  Analyze the business card image and extract information into the following JSON structure.
+
+  The user's system has these fields:
+  ${fieldDescriptions}
+
+  You MUST return a JSON object with exactly these keys:
+  {
+    "record_name": "The facility/company name from the business card",
+    "contactInfo": {
+      "phone": "Primary phone number or null",
+      "email": "Email address or null",
+    },
+    "fields": {
+      "<field_name>": "<extracted value or null>"
+    }
+  }
+
+  Rules:
+  - "record_name" is always the facility/company name from the business card
+  - "contactInfo" must ALWAYS be included with whatever contact details are visible on the card (name, phone, email, address). These are used for the person's contact record regardless of field types.
+  - The "fields" object must use the EXACT field names listed above as keys
+  - Match extracted data to the most appropriate field by name and type
+  - For PERSON type fields, use the person's full name as the value
+  - For PHONE type fields, extract the primary phone number
+  - For EMAIL type fields, extract the primary email address
+  - For LOCATION type fields, extract the street address only strictly do not include city, country, county and etc
+  - For TEXT type fields, extract whatever matches the field name best (e.g. "Company" → company name, "Title" → job title)
+  - For fields where no matching data exists on the card, use null
+  - If multiple phone numbers exist, pick the primary/mobile one
+  - Handle partial data gracefully — extract whatever is visible
+  - Handle non-English cards — transliterate names to Latin characters if possible
+  - Do NOT include any fields outside this structure
+  - Do NOT return markdown
+  - Do NOT use backticks
+  - Respond ONLY with valid JSON
+  `;
+}
+
 export function followUpPrompt(context: {
   recordName: string;
   fieldValues: Record<string, string | null>;

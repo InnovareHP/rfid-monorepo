@@ -5,6 +5,15 @@ export const CreateRecordSchema = z.object({
   data: z.array(z.record(z.string(), z.unknown())).optional(),
   record_name: z.string(),
   moduleType: z.string(),
+  initialValues: z.record(z.string(), z.string().nullable()).optional(),
+  personContact: z
+    .object({
+      fieldId: z.string(),
+      contactNumber: z.string().optional(),
+      email: z.string().optional(),
+      address: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const UpdateRecordValueSchema = z.object({
@@ -94,4 +103,11 @@ export const BulkEmailSchema = z.object({
   email_subject: z.string().min(1),
   email_body: z.string().min(1),
   send_via: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
+});
+
+export const UpdateContactSchema = z.object({
+  contactNumber: z.string().min(1, "Phone is required"),
+  email: z.email("Invalid email address").or(z.literal("")),
+  address: z.string(),
+  value: z.string(),
 });

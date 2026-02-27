@@ -1,3 +1,4 @@
+import { formatPhoneNumber } from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
@@ -7,7 +8,8 @@ import {
 import { BoardFieldType, Prisma } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
-import { followUpPrompt } from "src/lib/gemini/prompt";
+import { gemini } from "src/lib/gemini/gemini";
+import { businessCardScanPrompt, followUpPrompt } from "src/lib/gemini/prompt";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
 import { sendEmail } from "src/lib/resend/resend";
 import { ActivityEmail } from "src/react-email/activity-email";
@@ -17,6 +19,7 @@ import { CACHE_PREFIX } from "../../lib/constant";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardGateway } from "./board.gateway";
+import { UpdateContactDto } from "./dto/board.schema";
 import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
@@ -28,6 +31,8 @@ interface BoardFilters {
   limit?: number;
   search?: string;
   moduleType?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 interface HistoryFilters {
@@ -64,10 +69,12 @@ export class BoardService {
       filter,
       search,
       moduleType,
+      sortBy,
+      sortOrder = "asc",
     } = filters;
 
     const cachedData = await getData(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:${boardDateFrom}:${boardDateTo}:${page}:${limit}:${search}:${JSON.stringify(filter)}`
+      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:${boardDateFrom}:${boardDateTo}:${page}:${limit}:${search}:${sortBy}:${sortOrder}:${JSON.stringify(filter)}`
     );
 
     if (cachedData) {
@@ -99,10 +106,24 @@ export class BoardService {
       where.AND = [
         ...(where.AND as Prisma.BoardWhereInput[]),
         {
-          record_name: {
-            contains: search,
-            mode: "insensitive",
-          },
+          OR: [
+            {
+              record_name: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              values: {
+                some: {
+                  value: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+          ],
         },
       ];
     }
@@ -117,6 +138,7 @@ export class BoardService {
           id: { in: filterFieldIds },
           organization_id: organizationId,
           module_type: moduleType,
+          isDeleted: false,
         },
         select: { id: true, field_type: true, field_name: true },
       });
@@ -150,6 +172,15 @@ export class BoardService {
         ];
       }
     }
+    // Determine if sorting by a static Board field or a dynamic field
+    const staticSortFields = ["record_name", "created_at"];
+    const isStaticSort = !sortBy || staticSortFields.includes(sortBy);
+    const order = sortOrder === "desc" ? "desc" : "asc";
+
+    const orderBy: Prisma.BoardOrderByWithRelationInput = isStaticSort
+      ? { [sortBy || "record_name"]: order }
+      : { created_at: "desc" }; // default for dynamic field sort (re-sorted after fetch)
+
     const [boards, count, fields] = await Promise.all([
       prisma.board.findMany({
         where,
@@ -161,6 +192,7 @@ export class BoardService {
               field: {
                 select: {
                   field_name: true,
+                  id: true,
                 },
               },
               value: true,
@@ -170,11 +202,15 @@ export class BoardService {
             take: 1,
           },
         },
-        orderBy: { record_name: "asc" },
+        orderBy,
       }),
       prisma.board.count({ where }),
       prisma.field.findMany({
-        where: { organization_id: organizationId, module_type: moduleType },
+        where: {
+          organization_id: organizationId,
+          module_type: moduleType,
+          isDeleted: false,
+        },
         orderBy: { field_order: "asc" },
       }),
     ]);
@@ -198,6 +234,22 @@ export class BoardService {
       };
     });
 
+    // Sort by dynamic field (field name) within the current page
+    if (sortBy && !isStaticSort) {
+      const sortField = fields.find((f) => f.id === sortBy);
+      if (sortField) {
+        formatted.sort((a, b) => {
+          const valA = (a as Record<string, any>)[sortField.field_name] ?? "";
+          const valB = (b as Record<string, any>)[sortField.field_name] ?? "";
+          const cmp = String(valA).localeCompare(String(valB), undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+          return order === "desc" ? -cmp : cmp;
+        });
+      }
+    }
+
     const data = {
       pagination: {
         page: Number(page),
@@ -213,7 +265,7 @@ export class BoardService {
     };
 
     await cacheData(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:${boardDateFrom}:${boardDateTo}:${page}:${limit}:${search}:${JSON.stringify(filter)}`,
+      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:${boardDateFrom}:${boardDateTo}:${page}:${limit}:${search}:${sortBy}:${sortOrder}:${JSON.stringify(filter)}`,
       data,
       60 * 10
     );
@@ -624,6 +676,7 @@ export class BoardService {
       where: {
         organization_id: organizationId,
         module_type: moduleType,
+        isDeleted: false,
       },
     });
 
@@ -652,6 +705,34 @@ export class BoardService {
       })),
       data: formatted, // 👈 object, not array
     };
+  }
+
+  async getValueId(fieldId: string, value: string) {
+    const data = await prisma.field.findUnique({
+      where: {
+        id: fieldId,
+      },
+      select: {
+        values: {
+          where: {
+            value: decodeURI(value),
+          },
+          select: {
+            contactValue: true,
+          },
+        },
+      },
+    });
+
+    if (!data) {
+      return { contactNumber: "", email: "", address: "" };
+    }
+
+    const valueItem = data.values[0];
+    if (!valueItem || !valueItem.contactValue) {
+      return { contactNumber: "", email: "", address: "" };
+    }
+    return valueItem.contactValue;
   }
 
   async getCountyConfiguration(organizationId: string) {
@@ -722,7 +803,7 @@ export class BoardService {
     }
 
     const field = await prisma.field.findUnique({
-      where: { id: fieldId },
+      where: { id: fieldId, isDeleted: false },
       select: {
         field_name: true,
       },
@@ -923,6 +1004,7 @@ export class BoardService {
               field_name: {
                 in: ["Reason", "Action Date (Accepted / Rejected)"],
               },
+              isDeleted: false,
               organization_id: organizationId,
             },
             select: { id: true, field_name: true },
@@ -1039,36 +1121,159 @@ export class BoardService {
     }
   }
 
+  async scanBusinessCard(
+    file: Express.Multer.File,
+    organizationId: string,
+    moduleType: string
+  ) {
+    const fields = await prisma.field.findMany({
+      where: {
+        organization_id: organizationId,
+        module_type: moduleType,
+        isDeleted: false,
+      },
+      orderBy: { field_order: "asc" },
+      select: { id: true, field_name: true, field_type: true },
+    });
+
+    const fieldDescriptions = fields.map((f) => ({
+      name: f.field_name,
+      type: f.field_type,
+    }));
+
+    const base64Image = file.buffer.toString("base64");
+
+    const result = await gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              inlineData: { mimeType: file.mimetype, data: base64Image },
+            },
+            { text: businessCardScanPrompt(fieldDescriptions) },
+          ],
+        },
+      ],
+      config: { responseMimeType: "application/json" },
+    });
+
+    const parsed = JSON.parse(result.text ?? "{}");
+
+    // Map field names to field IDs
+    const fieldMap = new Map(fields.map((f) => [f.field_name, f.id]));
+    const mappedFields: Record<string, string | null> = {};
+
+    if (parsed.fields) {
+      for (const [fieldName, value] of Object.entries(parsed.fields)) {
+        const fieldId = fieldMap.get(fieldName);
+        if (fieldId) {
+          mappedFields[fieldId] = (value as string) ?? null;
+        }
+      }
+    }
+
+    return {
+      record_name: parsed.record_name ?? "",
+      contactInfo: parsed.contactInfo ?? {
+        name: null,
+        phone: null,
+        email: null,
+        address: null,
+      },
+      fields: mappedFields,
+      columns: fields.map((f) => ({
+        id: f.id,
+        field_name: f.field_name,
+        field_type: f.field_type,
+      })),
+    };
+  }
+
   async createRecord(
     record_name: string,
     organizationId: string,
     memberId: string,
-    moduleType: string
+    moduleType: string,
+    initialValues?: Record<string, string | null>,
+    personContact?: {
+      fieldId: string;
+      contactNumber?: string;
+      email?: string;
+      address?: string;
+    }
   ) {
-    const record = await prisma.board.create({
-      data: {
-        record_name: record_name ?? "",
-        organization_id: organizationId,
-        module_type: moduleType,
-      },
-    });
+    const record = await prisma.$transaction(async (tx) => {
+      const board = await tx.board.create({
+        data: {
+          record_name: record_name ?? "",
+          organization_id: organizationId,
+          module_type: moduleType,
+        },
+      });
 
-    const fields = await prisma.field.findMany({
-      where: { organization_id: organizationId },
-    });
-    await prisma.fieldValue.createMany({
-      data: fields.map((f) => ({
-        record_id: record.id,
+      const fields = await tx.field.findMany({
+        where: {
+          organization_id: organizationId,
+          module_type: moduleType,
+          isDeleted: false,
+        },
+      });
+
+      const fieldValues = fields.map((f) => ({
+        record_id: board.id,
         field_id: f.id,
-        value: null,
-      })),
+        value: initialValues?.[f.id] ?? null,
+      }));
+
+      await tx.fieldValue.createMany({ data: fieldValues });
+
+      if (personContact?.fieldId) {
+        const personFieldValue = await tx.fieldValue.findUnique({
+          where: {
+            record_id_field_id: {
+              record_id: board.id,
+              field_id: personContact.fieldId,
+            },
+          },
+        });
+
+        if (personFieldValue) {
+          await tx.fieldPersonInformation.create({
+            data: {
+              fieldValueId: personFieldValue.id,
+              contactNumber: formatPhoneNumber(
+                personContact.contactNumber ?? ""
+              ),
+              email: personContact.email ?? "",
+              address: personContact.address ?? "",
+            },
+          });
+        }
+      }
+
+      await tx.history.create({
+        data: {
+          record_id: board.id,
+          old_value: "",
+          new_value: record_name,
+          action: "create",
+          created_by: memberId,
+        },
+      });
+
+      await tx.boardNotificationState.create({
+        data: {
+          record_id: board.id,
+          last_seen: new Date(),
+        },
+      });
+
+      return board;
     });
 
-    await Promise.all([
-      this.createRecordHistory(record.id, "", record_name, memberId, "create"),
-      purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`),
-    ]);
-
+    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
     this.boardGateway.emitRecordCreated(organizationId, record, moduleType);
 
     return record;
@@ -1245,6 +1450,7 @@ export class BoardService {
         where: {
           field_name: history.column ?? "",
           organization_id: organizationId,
+          isDeleted: false,
         },
       });
 
@@ -1349,7 +1555,11 @@ export class BoardService {
     organizationId: string
   ) {
     const lastColumn = await prisma.field.findFirst({
-      where: { organization_id: organizationId, module_type: module_type },
+      where: {
+        organization_id: organizationId,
+        module_type: module_type,
+        isDeleted: false,
+      },
       orderBy: { field_order: "desc" },
     });
 
@@ -1374,6 +1584,35 @@ export class BoardService {
     );
   }
 
+  async deleteColumn(
+    columnId: string,
+    organizationId: string,
+    moduleType: string
+  ) {
+    const field = await prisma.field.findFirst({
+      where: {
+        id: columnId,
+        organization_id: organizationId,
+        isDeleted: false,
+      },
+    });
+
+    if (!field) {
+      throw new NotFoundException("Column not found");
+    }
+
+    await prisma.field.update({
+      where: { id: columnId },
+      data: { isDeleted: true },
+    });
+
+    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+    this.boardGateway.emitColumnDeleted(organizationId, columnId, moduleType);
+
+    return { message: "Column deleted successfully" };
+  }
+
   async createLocation(
     location_name: string,
     record_id: string,
@@ -1385,6 +1624,7 @@ export class BoardService {
           field_name: {
             in: ["Address", "City", "State", "Zip Code", "County", "Country"],
           },
+          isDeleted: false,
           organization_id: organizationId,
         },
         select: { id: true, field_name: true },
@@ -1435,7 +1675,7 @@ export class BoardService {
     const props = feature.properties;
 
     const locationData = {
-      address: location_name,
+      address: props.name,
       city: props.locality ? props.locality : null,
       state: props.region_a ? props.region_a : null,
       zip: lookupByName(props.locality, props.region_a)[0].zip,
@@ -1448,6 +1688,7 @@ export class BoardService {
         field_name: {
           in: ["Address", "City", "State", "Zip Code", "County", "Country"],
         },
+        isDeleted: false,
         organization_id: organizationId,
       },
       select: { id: true, field_name: true },
@@ -1621,6 +1862,35 @@ export class BoardService {
     return await prisma.history.updateMany({
       where: { id: recordId },
       data: { created_at: new Date() },
+    });
+  }
+
+  async updateContactValue(fieldId: string, body: UpdateContactDto) {
+    return await prisma.$transaction(async (tx) => {
+      const field = await tx.field.findUniqueOrThrow({
+        where: { id: fieldId },
+        select: {
+          values: {
+            where: { value: body.value },
+            select: { id: true },
+          },
+        },
+      });
+
+      return await tx.fieldPersonInformation.upsert({
+        where: { fieldValueId: field.values[0].id },
+        create: {
+          contactNumber: formatPhoneNumber(body.contactNumber),
+          email: body.email,
+          address: body.address,
+          fieldValueId: field.values[0].id,
+        },
+        update: {
+          contactNumber: formatPhoneNumber(body.contactNumber),
+          email: body.email,
+          address: body.address,
+        },
+      });
     });
   }
 

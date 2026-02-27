@@ -33,7 +33,14 @@ export default function ReferralListPage() {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [openMasterListView, setOpenMasterListView] = useState(false);
   const queryClient = useQueryClient();
-  const [filterMeta, setFilterMeta] = useState({
+  const [filterMeta, setFilterMeta] = useState<{
+    dateFrom: null | string;
+    dateTo: null | string;
+    filter: Record<string, string>;
+    limit: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }>({
     dateFrom: null,
     dateTo: null,
     filter: {},
@@ -58,12 +65,22 @@ export default function ReferralListPage() {
 
   const rows = data?.pages.flatMap((p) => p.data) ?? [];
 
+  const handleSort = (columnId: string, order: "asc" | "desc" | null) => {
+    setFilterMeta((prev) => ({
+      ...prev,
+      sortBy: order ? columnId : undefined,
+      sortOrder: order ?? undefined,
+    }));
+  };
+
   const columns = generateReferralColumns(
     data?.pages[0].columns ?? [],
     (recordId: string) => {
       setSelectedRecordId(recordId);
       setOpenMasterListView(true);
-    }
+    },
+    { sortBy: filterMeta.sortBy, sortOrder: filterMeta.sortOrder },
+    handleSort
   ) as {
     id: string;
     name: string;

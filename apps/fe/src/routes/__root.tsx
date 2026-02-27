@@ -15,7 +15,7 @@ function App() {
   };
   return (
     <QueryClientProvider client={queryClient}>
-      <main>
+      <main className="h-full">
         {session?.impersonatedBy && <ImpersonationBanner />}
         <Outlet />
       </main>

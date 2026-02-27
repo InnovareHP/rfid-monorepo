@@ -14,7 +14,7 @@ import {
   useReactTable,
   type Header,
 } from "@tanstack/react-table";
-import { Download } from "lucide-react";
+import { Download, ScanLine } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
@@ -23,14 +23,23 @@ import { AnalyzeLeadDialog } from "./analyze-cell";
 import ColumnFilter from "./column-filter";
 import { MasterListFilters } from "./master-list-filter";
 import { MasterListView } from "./master-list-view";
+import { SmartScanDialog } from "./smart-scan-dialog";
 
 export default function MasterListPage() {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [openAnalyzeDialog, setOpenAnalyzeDialog] = useState(false);
   const [openMasterListView, setOpenMasterListView] = useState(false);
+  const [openSmartScan, setOpenSmartScan] = useState(false);
   const queryClient = useQueryClient();
 
-  const [filterMeta, setFilterMeta] = useState({
+  const [filterMeta, setFilterMeta] = useState<{
+    BoardDateFrom: null | string;
+    BoardDateTo: null | string;
+    filter: Record<string, string>;
+    limit: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }>({
     BoardDateFrom: null,
     BoardDateTo: null,
     filter: {},
@@ -64,6 +73,14 @@ export default function MasterListPage() {
 
   const rows = data?.pages.flatMap((p) => p.data) ?? [];
 
+  const handleSort = (columnId: string, order: "asc" | "desc" | null) => {
+    setFilterMeta((prev) => ({
+      ...prev,
+      sortBy: order ? columnId : undefined,
+      sortOrder: order ?? undefined,
+    }));
+  };
+
   const columns = generateLeadColumns(
     data?.pages[0].columns ?? [],
     (recordId: string) => {
@@ -73,7 +90,9 @@ export default function MasterListPage() {
     (recordId: string) => {
       setSelectedRecordId(recordId);
       setOpenMasterListView(true);
-    }
+    },
+    { sortBy: filterMeta.sortBy, sortOrder: filterMeta.sortOrder },
+    handleSort
   ) as {
     id: string;
     name: string;
@@ -126,7 +145,6 @@ export default function MasterListPage() {
     },
   });
 
-  // --- Handlers ---
   const handleAddNewLead = (value: string) => {
     const newLead = [
       {
@@ -190,9 +208,13 @@ export default function MasterListPage() {
   const tableColumns = useMemo(() => {
     return table
       .getAllColumns()
-      .filter((column: any) => column.id !== "create_column")
+      .filter(
+        (column: any) =>
+          column.columnDef.accessorKey !== "create_column" &&
+          column.id !== "assigned_to"
+      )
       .map((column: any) => {
-        const header = column.columnDef.header;
+        const header = column.columnDef.accessorKey;
         let columnLabel = column.id || "Unnamed Column"; // Default to column id
 
         if (typeof header === "string") {
@@ -232,7 +254,7 @@ export default function MasterListPage() {
   }, [table]);
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-8 bg-gray-50 min-h-full">
       <div className="space-y-6">
         {/* Header Section */}
         <AnalyzeLeadDialog
@@ -240,6 +262,8 @@ export default function MasterListPage() {
           open={openAnalyzeDialog}
           setOpen={setOpenAnalyzeDialog}
         />
+
+        <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
 
         <MasterListView
           open={openMasterListView}
@@ -274,6 +298,14 @@ export default function MasterListPage() {
               <Download className="h-4 w-4" />
               Export CSV
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpenSmartScan(true)}
+              className="flex items-center gap-2 border-gray-300 bg-white"
+            >
+              <ScanLine className="h-4 w-4" />
+              Smart Scan
+            </Button>
             <AddRow isReferral={false} onAdd={handleAddNewLead} />
             <ColumnFilter tableColumns={tableColumns as any} />
           </div>
@@ -289,7 +321,7 @@ export default function MasterListPage() {
         </div>
 
         {/* Table Wrapper */}
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border shadow-sm">
           <ReusableTable
             table={table}
             columns={columns}

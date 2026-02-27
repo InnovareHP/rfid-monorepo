@@ -4,6 +4,7 @@ import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { User } from "better-auth";
 import { Bell, HistoryIcon, SearchIcon } from "lucide-react";
+import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
 
 type ColumnType = {
@@ -20,10 +21,17 @@ type LeadRow = {
   [key: string]: any;
 };
 
+type SortState = {
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+};
+
 export function generateLeadColumns(
   columnsFromApi: ColumnType[],
   onOpenAnalyzeDialog: (recordId: string) => void,
-  onOpenMasterListView: (recordId: string) => void
+  onOpenMasterListView: (recordId: string) => void,
+  sortState?: SortState,
+  onSort?: (columnId: string, order: "asc" | "desc" | null) => void
 ): ColumnDef<LeadRow>[] {
   const filteredApiColumns = columnsFromApi.filter(
     (col) => col.name !== "History" && col.type !== "TIMELINE"
@@ -31,7 +39,18 @@ export function generateLeadColumns(
   const dynamicColumns: ColumnDef<LeadRow>[] = filteredApiColumns.map(
     (col) => ({
       id: col.id,
-      header: col.name,
+      header: () =>
+        onSort ? (
+          <ColumnHeader
+            columnId={col.id}
+            columnName={col.name}
+            sortBy={sortState?.sortBy}
+            sortOrder={sortState?.sortOrder}
+            onSort={onSort}
+          />
+        ) : (
+          col.name
+        ),
       accessorKey: col.name,
       cell: ({ row }) => (
         <EditableCell
@@ -60,8 +79,20 @@ export function generateLeadColumns(
   };
 
   const OrganizerColumn: ColumnDef<LeadRow> = {
-    header: "Organization",
-    accessorKey: "Organization",
+    header: () =>
+      onSort ? (
+        <ColumnHeader
+          columnId="record_name"
+          columnName="Facility"
+          sortBy={sortState?.sortBy}
+          sortOrder={sortState?.sortOrder}
+          onSort={onSort}
+          canDelete={false}
+        />
+      ) : (
+        "Facility"
+      ),
+    accessorKey: "Facility",
     cell: ({ row }) => (
       <div className="group flex items-center gap-2 w-full min-w-0">
         {row.original.has_notification && (
@@ -104,7 +135,19 @@ export function generateLeadColumns(
   };
 
   const AssignedToColumn: ColumnDef<LeadRow> = {
-    header: "Account Manager",
+    header: () =>
+      onSort ? (
+        <ColumnHeader
+          columnId="assigned_to"
+          columnName="Account Manager"
+          sortBy={sortState?.sortBy}
+          sortOrder={sortState?.sortOrder}
+          onSort={onSort}
+          canDelete={false}
+        />
+      ) : (
+        "Account Manager"
+      ),
     accessorKey: "assigned_to",
     cell: ({ row }) => (
       <EditableCell

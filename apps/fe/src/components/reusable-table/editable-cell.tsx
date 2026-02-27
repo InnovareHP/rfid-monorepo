@@ -8,7 +8,11 @@ import {
   getReferralDropdownOptions,
   updateReferral,
 } from "@/services/referral/referral-service";
-import type { LeadRow, OptionsResponse } from "@dashboard/shared";
+import {
+  formatPhoneNumber,
+  type LeadRow,
+  type OptionsResponse,
+} from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
@@ -39,6 +43,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
+import { ContactTooltipForm } from "../master-list/person-cell";
 import LocationCell from "./location-cell";
 import { StatusSelect } from "./status-action";
 
@@ -60,16 +65,6 @@ const validateEmail = (email: string): boolean => {
 const validatePhone = (phone: string): boolean => {
   const phoneRegex = /^[\d\s\-\+\(\)]+$/;
   return phone.length >= 10 && phoneRegex.test(phone);
-};
-
-const formatPhoneNumber = (phone: string): string => {
-  const cleaned = phone.replace(/\D/g, "");
-  if (cleaned.length === 10) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(
-      6
-    )}`;
-  }
-  return phone;
 };
 
 const normalizeBoolean = (value: string): boolean => {
@@ -281,6 +276,16 @@ export function EditableCell({
         val={val}
         isReferral={isReferral}
         handleUpdate={(v, reason) => handleUpdate(v, undefined, reason)}
+      />
+    );
+  }
+
+  if (type === "PERSON") {
+    return (
+      <ContactTooltipForm
+        entityId={fieldKey}
+        initialValue={val}
+        fieldName={fieldName}
       />
     );
   }
@@ -887,7 +892,7 @@ export function EditableCell({
     return editing ? (
       <div className="relative">
         <Input
-          type="number"
+          type="text"
           value={val}
           onChange={(e) => {
             setVal(e.target.value);
@@ -972,15 +977,29 @@ export function EditableCell({
 
   // ---- PHONE ----
   if (type === "PHONE") {
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const input = e.target.value;
+      // Strip to digits only
+      const digits = input.replace(/\D/g, "").slice(0, 10);
+      // Auto-format as user types: (555) 123-4567
+      let formatted = digits;
+      if (digits.length > 6) {
+        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      } else if (digits.length > 3) {
+        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+      } else if (digits.length > 0) {
+        formatted = `(${digits}`;
+      }
+      setVal(formatted);
+      setValidationError("");
+    };
+
     return editing ? (
-      <div className="relative">
+      <div className="relative w-40">
         <Input
-          type="tel"
+          type="text"
           value={val}
-          onChange={(e) => {
-            setVal(e.target.value);
-            setValidationError("");
-          }}
+          onChange={handlePhoneChange}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           className={cn(

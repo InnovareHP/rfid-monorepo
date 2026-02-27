@@ -158,7 +158,7 @@ function TeamLayout() {
 
   return (
     <TeamLayoutContext.Provider value={ctxValue as TeamLayoutContextValue}>
-      <SidebarProvider>
+      <SidebarProvider className="h-full !min-h-0">
         <Loader isLoading={isLoading as boolean} />
 
         {!isLoading && ctxValue && (
@@ -170,7 +170,7 @@ function TeamLayout() {
               user={user}
             />
 
-            <SidebarInset>
+            <SidebarInset className="min-h-0 overflow-hidden">
               <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
                 <div className="flex items-center gap-2 px-4">
                   <SidebarTrigger className="-ml-1" />
@@ -184,7 +184,7 @@ function TeamLayout() {
                 </div>
               </header>
 
-              <div className="flex flex-1 flex-col gap-4 pt-0 overflow-auto">
+              <div className="flex-1 overflow-auto">
                 <Outlet />
               </div>
             </SidebarInset>

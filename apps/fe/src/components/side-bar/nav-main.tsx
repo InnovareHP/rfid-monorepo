@@ -12,6 +12,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@dashboard/ui/components/sidebar";
 import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronRight, type LucideIcon } from "lucide-react";
@@ -32,6 +33,7 @@ export const NavMain = React.memo(function NavMain({
   }[];
 }) {
   const location = useLocation();
+  const { setOpen } = useSidebar();
   const pathname = React.useMemo(() => location.pathname, [location.pathname]);
 
   return (
@@ -46,6 +48,7 @@ export const NavMain = React.memo(function NavMain({
                 <SidebarMenuButton
                   tooltip={item.title}
                   isActive={item.url === pathname}
+                  onClick={() => setOpen(true)}
                   asChild
                 >
                   <Link preload={false} to={item.url || "#"}>

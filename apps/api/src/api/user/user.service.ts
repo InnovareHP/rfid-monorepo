@@ -19,13 +19,13 @@ export class UserService {
             create: {
               user_onboarding_id: uuidv4(),
               user_onboarding_hear_about: onboardDto.foundUsOn,
-              user_onboarding_how_to_use: onboardDto.purpose,
-              user_onboarding_what_to_expect: onboardDto.interests.join(","),
+              user_onboarding_how_to_use: "",
+              user_onboarding_what_to_expect: "",
             },
             update: {
               user_onboarding_hear_about: onboardDto.foundUsOn,
-              user_onboarding_how_to_use: onboardDto.purpose,
-              user_onboarding_what_to_expect: onboardDto.interests.join(","),
+              user_onboarding_how_to_use: "",
+              user_onboarding_what_to_expect: "",
             },
           },
         },

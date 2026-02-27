@@ -3,6 +3,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 import * as React from "react";
 
+import { useIsMobile } from "@dashboard/ui/hooks/use-mobile";
+import { cn } from "@dashboard/ui/lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Separator } from "./separator";
@@ -20,8 +22,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./tooltip";
-import { useIsMobile } from "@dashboard/ui/hooks/use-mobile";
-import { cn } from "@dashboard/ui/lib/utils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -507,7 +507,7 @@ function SidebarMenuButton({
   tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot : "button";
-  const { isMobile, state } = useSidebar();
+  const { isMobile, state, setOpen } = useSidebar();
 
   const button = (
     <Comp
@@ -532,7 +532,9 @@ function SidebarMenuButton({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipTrigger onClick={() => setOpen(true)} asChild>
+        {button}
+      </TooltipTrigger>
       <TooltipContent
         side="right"
         align="center"

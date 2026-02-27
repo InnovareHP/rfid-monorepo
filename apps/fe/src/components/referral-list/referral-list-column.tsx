@@ -3,6 +3,7 @@ import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Bell, HistoryIcon } from "lucide-react";
+import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
 
 type ColumnType = {
@@ -17,14 +18,33 @@ type ReferralRow = {
   [key: string]: any;
 };
 
+type SortState = {
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+};
+
 export function generateReferralColumns(
   columnsFromApi: ColumnType[],
-  onOpenMasterListView: (id: string) => void
+  onOpenMasterListView: (id: string) => void,
+  sortState?: SortState,
+  onSort?: (columnId: string, order: "asc" | "desc" | null) => void
 ): ColumnDef<ReferralRow>[] {
   const dynamicColumns: ColumnDef<ReferralRow>[] = columnsFromApi.map(
     (col) => ({
       id: col.id,
-      header: col.name,
+      header: () =>
+        onSort ? (
+          <ColumnHeader
+            columnId={col.id}
+            columnName={col.name}
+            sortBy={sortState?.sortBy}
+            sortOrder={sortState?.sortOrder}
+            onSort={onSort}
+            moduleType="REFERRAL"
+          />
+        ) : (
+          col.name
+        ),
       accessorKey: col.name,
       cell: ({ row }) => {
         return (
@@ -56,7 +76,19 @@ export function generateReferralColumns(
   };
 
   const referralNameColumn: ColumnDef<ReferralRow> = {
-    header: "Referral Name",
+    header: () =>
+      onSort ? (
+        <ColumnHeader
+          columnId="record_name"
+          columnName="Referral Name"
+          sortBy={sortState?.sortBy}
+          sortOrder={sortState?.sortOrder}
+          onSort={onSort}
+          moduleType="REFERRAL"
+        />
+      ) : (
+        "Referral Name"
+      ),
     accessorKey: "record_name",
     cell: ({ row }) => (
       <div className="group flex items-center gap-2 w-full min-w-0">
