@@ -79,8 +79,27 @@ export const auth = betterAuth({
         },
       },
       update: {
-        before: async (session, ctx) => {
-          return { data: session };
+        before: async (session: MemberSession["session"]) => {
+          const member = await prisma.member_table.findFirst({
+            where: {
+              id: session.userId,
+              organizationId: session.activeOrganizationId,
+            },
+
+            select: {
+              organizationId: true,
+              member_role: true,
+              id: true,
+            },
+          });
+
+          return {
+            data: {
+              ...session,
+              memberRole: member?.member_role,
+              memberId: member?.id,
+            },
+          };
         },
       },
     },
