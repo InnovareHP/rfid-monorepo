@@ -29,11 +29,14 @@ export const auth = betterAuth({
     defaultCookieAttributes: {
       sameSite: appConfig.WEBSITE_URL.includes("localhost") ? "lax" : "none",
     },
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: appConfig.WEBSITE_URL.includes("localhost")
+        ? "localhost"
+        : ".innovarehp.com",
+    },
   },
-  crossSubDomainCookies: {
-    enabled: true,
-    domain: "innovarehp.com",
-  },
+
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
