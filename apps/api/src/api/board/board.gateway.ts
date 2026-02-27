@@ -31,7 +31,7 @@ export class BoardGateway implements OnGatewayConnection {
     }
 
     const session = await auth.api.getSession({
-      headers: { cookie },
+      headers: socket.handshake.headers as Record<string, string>,
     });
 
     return session?.session;
