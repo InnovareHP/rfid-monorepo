@@ -33,7 +33,7 @@ export const auth = betterAuth({
       enabled: true,
       domain: appConfig.WEBSITE_URL.includes("localhost")
         ? "localhost"
-        : ".innovarehp.com",
+        : "innovarehp.com",
     },
   },
 
