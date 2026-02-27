@@ -9,12 +9,10 @@ import {
   Patch,
   Post,
   Query,
-  Res,
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Queue } from "bullmq";
-import type { Response } from "express";
 import { appConfig } from "src/config/app-config";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
@@ -67,22 +65,6 @@ export class BoardController {
     }
   }
 
-  @Get("/gmail/callback")
-  async handleGmailCallback(
-    @Query("code") code: string,
-    @Query("state") state: string,
-    @Res() res: Response
-  ) {
-    try {
-      const { userId, orgId } = JSON.parse(state);
-      await this.gmailService.handleCallback(code, userId);
-      res.redirect(`${appConfig.WEBSITE_URL}/${orgId}/profile?gmail=connected`);
-    } catch (error) {
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/profile?gmail=error&message=${encodeURIComponent(error.message)}`
-      );
-    }
-  }
 
   @Get("/gmail/status")
   async getGmailStatus(@Session() session: AuthenticatedSession) {
@@ -117,24 +99,6 @@ export class BoardController {
     }
   }
 
-  @Get("/outlook/callback")
-  async handleOutlookCallback(
-    @Query("code") code: string,
-    @Query("state") state: string,
-    @Res() res: Response
-  ) {
-    try {
-      const { userId, orgId } = JSON.parse(state);
-      await this.outlookService.handleCallback(code, userId);
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/${orgId}/profile?outlook=connected`
-      );
-    } catch (error) {
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/profile?outlook=error&message=${encodeURIComponent(error.message)}`
-      );
-    }
-  }
 
   @Get("/outlook/status")
   async getOutlookStatus(@Session() session: AuthenticatedSession) {
