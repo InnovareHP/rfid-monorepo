@@ -10,7 +10,10 @@ import { appConfig } from "src/config/app-config";
 import { auth } from "src/lib/auth/auth";
 
 @WebSocketGateway({
-  cors: { origin: appConfig.WEBSITE_URL, credentials: true },
+  cors: {
+    origin: [appConfig.WEBSITE_URL, appConfig.SUPPORT_URL],
+    credentials: true,
+  },
 })
 @UseGuards(AuthGuard)
 export class BoardGateway implements OnGatewayConnection {
@@ -65,18 +68,37 @@ export class BoardGateway implements OnGatewayConnection {
   }
 
   emitRecordCreated(orgId: string, record: any, moduleType?: string) {
-    this.server.to(`org:${orgId}`).emit("board:record-created", { record, moduleType: moduleType ?? record.module_type ?? "LEAD" });
+    this.server.to(`org:${orgId}`).emit("board:record-created", {
+      record,
+      moduleType: moduleType ?? record.module_type ?? "LEAD",
+    });
   }
-  emitRecordDeleted(orgId: string, recordIds: string[], moduleType: string = "LEAD") {
-    this.server.to(`org:${orgId}`).emit("board:record-deleted", { recordIds, moduleType });
+  emitRecordDeleted(
+    orgId: string,
+    recordIds: string[],
+    moduleType: string = "LEAD"
+  ) {
+    this.server
+      .to(`org:${orgId}`)
+      .emit("board:record-deleted", { recordIds, moduleType });
   }
-  emitRecordNotificationState(orgId: string, recordId: string, moduleType: string = "LEAD") {
+  emitRecordNotificationState(
+    orgId: string,
+    recordId: string,
+    moduleType: string = "LEAD"
+  ) {
     this.server
       .to(`org:${orgId}`)
       .emit("board:record-notification-state", { recordId, moduleType });
   }
-  emitColumnCreated(orgId: string, column: string, moduleType: string = "LEAD") {
-    this.server.to(`org:${orgId}`).emit("board:column-created", { column, moduleType });
+  emitColumnCreated(
+    orgId: string,
+    column: string,
+    moduleType: string = "LEAD"
+  ) {
+    this.server
+      .to(`org:${orgId}`)
+      .emit("board:column-created", { column, moduleType });
   }
   emitRecordValueUpdated(
     orgId: string,
