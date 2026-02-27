@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       port: 3001,
       allowedHosts: [
         "support-frontend-production.up.railway.app",
-        "dash.innovarehp.com",
+        "support.innovarehp.com",
       ],
       proxy: {
         "/api": {
