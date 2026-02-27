@@ -22,7 +22,6 @@ import { OnboardingSeeding } from "./onboarding";
 import { ac, liason, owner, super_admin, support } from "./permission";
 
 export const auth = betterAuth({
-  baseURL: appConfig.WEBSITE_URL,
   appName: appConfig.APP_NAME,
   advanced: {
     cookiePrefix: `${appConfig.APP_NAME}-AUTH`,
