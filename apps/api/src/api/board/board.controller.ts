@@ -13,7 +13,6 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Queue } from "bullmq";
-import { appConfig } from "src/config/app-config";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 import {
@@ -65,7 +64,6 @@ export class BoardController {
     }
   }
 
-
   @Get("/gmail/status")
   async getGmailStatus(@Session() session: AuthenticatedSession) {
     try {
@@ -98,7 +96,6 @@ export class BoardController {
       throw new BadRequestException(error.message);
     }
   }
-
 
   @Get("/outlook/status")
   async getOutlookStatus(@Session() session: AuthenticatedSession) {

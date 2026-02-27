@@ -1,10 +1,12 @@
 import { Controller, Get, Query, Res } from "@nestjs/common";
+import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import type { Response } from "express";
 import { appConfig } from "src/config/app-config";
 import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
 @Controller("boards")
+@AllowAnonymous()
 export class BoardOAuthCallbackController {
   constructor(
     private readonly gmailService: GmailService,
@@ -20,9 +22,7 @@ export class BoardOAuthCallbackController {
     try {
       const { userId, orgId } = JSON.parse(state);
       await this.gmailService.handleCallback(code, userId);
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/${orgId}/profile?gmail=connected`
-      );
+      res.redirect(`${appConfig.WEBSITE_URL}/${orgId}/profile?gmail=connected`);
     } catch (error) {
       res.redirect(
         `${appConfig.WEBSITE_URL}/profile?gmail=error&message=${encodeURIComponent(error.message)}`
