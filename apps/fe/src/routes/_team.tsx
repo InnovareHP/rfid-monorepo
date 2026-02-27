@@ -4,6 +4,7 @@ import { createContext, useContext } from "react";
 
 import Loader from "@/components/loader";
 import { AppSidebar } from "@/components/side-bar/app-sidebar";
+import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { authClient } from "@/lib/auth-client";
@@ -158,11 +159,12 @@ function TeamLayout() {
 
   return (
     <TeamLayoutContext.Provider value={ctxValue as TeamLayoutContextValue}>
-      <SidebarProvider className="h-full !min-h-0">
+      <SidebarProvider className="h-full">
         <Loader isLoading={isLoading as boolean} />
 
         {!isLoading && ctxValue && (
           <>
+            <PrimarySidebar activeOrganizationId={activeOrganizationId} />
             <AppSidebar
               activeOrganizationId={activeOrganizationId}
               memberData={memberData as Member & { memberRole: string }}

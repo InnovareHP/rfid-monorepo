@@ -140,3 +140,48 @@ code {
     @apply bg-background text-foreground;
   }
 }
+
+@property --primary-rgb-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes primary-rgb-spin {
+  to {
+    --primary-rgb-angle: 1turn;
+  }
+}
+
+@layer utilities {
+  .primary-active-border {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .primary-active-border::before {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 0.65rem;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--primary-rgb-angle),
+      #ff3b3b 0deg,
+      #ffd93b 72deg,
+      #34d399 144deg,
+      #60a5fa 216deg,
+      #a78bfa 288deg,
+      #ff3b3b 360deg
+    );
+    animation: primary-rgb-spin 3.2s linear infinite;
+    will-change: --primary-rgb-angle;
+    pointer-events: none;
+
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+}
