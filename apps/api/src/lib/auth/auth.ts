@@ -26,9 +26,9 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: `${appConfig.APP_NAME}-AUTH`,
     useSecureCookies: true,
-    // defaultCookieAttributes: {
-    //   sameSite: appConfig.WEBSITE_URL.includes("localhost") ? "lax" : "none",
-    // },
+    defaultCookieAttributes: {
+      sameSite: appConfig.WEBSITE_URL.includes("localhost") ? "lax" : "none",
+    },
     crossSubDomainCookies: {
       enabled: true,
       domain: appConfig.WEBSITE_URL.includes("localhost")

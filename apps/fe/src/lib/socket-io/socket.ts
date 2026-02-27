@@ -6,9 +6,8 @@ export async function connectSocket(): Promise<Socket> {
   if (socket) return socket;
 
   socket = io(import.meta.env.VITE_API_URL, {
-    withCredentials: true,
-    transports: ["polling", "websocket"],
-    upgrade: true,
+    path: "/ws/socket.io",
+    transports: ["websocket"],
   });
 
   socket.on("connect_error", (err) => {

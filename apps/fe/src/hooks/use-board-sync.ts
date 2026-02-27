@@ -1,3 +1,4 @@
+import { useSession } from "@/lib/auth-client";
 import { connectSocket } from "@/lib/socket-io/socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -9,15 +10,17 @@ function getQueryKey(moduleType?: string): string[] {
 
 export function useBoardSync() {
   const queryClient = useQueryClient();
+  const { data: sessionData } = useSession();
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     const connect = async () => {
-      const socket = await connectSocket();
-      setSocket(socket);
+      const sock = await connectSocket();
+      sock.emit("join_board");
+      setSocket(sock);
     };
     connect();
-  }, []);
+  }, [sessionData?.session?.token]);
 
   useEffect(() => {
     if (!socket) return;
@@ -50,9 +53,7 @@ export function useBoardSync() {
           return {
             ...old,
             pages: old.pages.map((page: any, index: number) =>
-              index === 0
-                ? { ...page, data: [record, ...page.data] }
-                : page
+              index === 0 ? { ...page, data: [record, ...page.data] } : page
             ),
           };
         }
