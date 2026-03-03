@@ -14,6 +14,7 @@ export const appConfigSchema = z.object({
 
   DEBUG: z.coerce.boolean().default(false),
   WEBSITE_URL: z.url(),
+  EMAIL_LOGO_URL: z.url().optional(),
   SUPPORT_URL: z.url(),
   API_URL: z.url(),
 

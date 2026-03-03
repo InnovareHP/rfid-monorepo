@@ -557,7 +557,7 @@ const TeamPage = () => {
                 <CardHeader>
                   <div className="flex flex-wrap gap-2 items-center justify-between">
                     <CardTitle className="text-xl font-bold text-gray-900">
-                      Employees
+                      Team Members
                     </CardTitle>
                     <div className="flex items-center space-x-3">
                       <div className="relative">

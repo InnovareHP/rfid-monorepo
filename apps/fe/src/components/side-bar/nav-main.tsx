@@ -4,6 +4,14 @@ import {
   CollapsibleTrigger,
 } from "@dashboard/ui/components/collapsible";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@dashboard/ui/components/dropdown-menu";
+import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
@@ -14,6 +22,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
+import { cn } from "@dashboard/ui/lib/utils";
 import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import * as React from "react";
@@ -29,12 +38,42 @@ export const NavMain = React.memo(function NavMain({
     items?: {
       title: string;
       url: string;
+      icon?: LucideIcon;
     }[];
   }[];
 }) {
   const location = useLocation();
   const { setOpen } = useSidebar();
   const pathname = React.useMemo(() => location.pathname, [location.pathname]);
+  const { state, isMobile } = useSidebar();
+  const [hoveredMenu, setHoveredMenu] = React.useState<string | null>(null);
+  const closeTimerRef = React.useRef<number | null>(null);
+
+  const clearCloseTimer = React.useCallback(() => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const openHoverMenu = React.useCallback(
+    (title: string) => {
+      clearCloseTimer();
+      setHoveredMenu(title);
+    },
+    [clearCloseTimer]
+  );
+
+  const closeHoverMenu = React.useCallback(() => {
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      setHoveredMenu(null);
+    }, 120);
+  }, [clearCloseTimer]);
+
+  React.useEffect(() => {
+    return () => clearCloseTimer();
+  }, [clearCloseTimer]);
 
   return (
     <SidebarGroup>
@@ -61,6 +100,50 @@ export const NavMain = React.memo(function NavMain({
           }
 
           // If item has submenu items, render as collapsible
+          if (state === "collapsed" && !isMobile) {
+            return (
+              <SidebarMenuItem key={item.title}>
+                <DropdownMenu open={hoveredMenu === item.title} modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      onPointerEnter={() => openHoverMenu(item.title)}
+                      onPointerLeave={closeHoverMenu}
+                    >
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="right"
+                    align="start"
+                    className="min-w-44"
+                    onPointerEnter={() => openHoverMenu(item.title)}
+                    onPointerLeave={closeHoverMenu}
+                  >
+                    <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {item.items?.map((subItem) => (
+                      <DropdownMenuItem
+                        key={subItem.title}
+                        asChild
+                        className={cn(
+                          "border border-transparent transition-all duration-150 ease-out hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground hover:border-border/80",
+                          subItem.url === pathname &&
+                            "bg-accent text-accent-foreground border-border/80"
+                        )}
+                      >
+                        <Link preload={false} to={subItem.url}>
+                          {subItem.icon && <subItem.icon />}
+                          {subItem.title}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            );
+          }
+
           return (
             <Collapsible
               key={item.title}
@@ -85,6 +168,7 @@ export const NavMain = React.memo(function NavMain({
                           asChild
                         >
                           <Link preload={false} to={subItem.url}>
+                            {subItem.icon && <subItem.icon />}
                             <span>{subItem.title}</span>
                           </Link>
                         </SidebarMenuSubButton>
