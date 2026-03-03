@@ -17,22 +17,22 @@ START 1;
 -- update every table in the schema when needed
 CREATE PUBLICATION my_publication_sg FOR TABLE
   -- auth_schema
-  auth_schema.user_table,
-  auth_schema.user_account_table,
-  auth_schema.user_onboarding_table,
-  auth_schema.verification_table,
-  auth_schema.organization_table,
-  auth_schema.member_table,
-  auth_schema.invitation_table,
+  auth_schema."User",
+  auth_schema."UserAccount",
+  auth_schema."UserOnboarding",
+  auth_schema."Verification",
+  auth_schema."Organization",
+  auth_schema."Member",
+  auth_schema."Invitation",
 
   -- stripe_schema
-  stripe_schema.subscription,
-  stripe_schema.plan_table,
+  stripe_schema."Subscription",
+  stripe_schema."Plan",
 
   -- liason_schema
-  liason_schema.marketing,
-  liason_schema.expense,
-  liason_schema.mileage,
+  liason_schema."Marketing",
+  liason_schema."Expense",
+  liason_schema."Mileage",
 
   -- board_schema
   board_schema."Field",
@@ -41,14 +41,14 @@ CREATE PUBLICATION my_publication_sg FOR TABLE
   board_schema."FieldOption",
   board_schema."History",
   board_schema."BoardNotificationState",
-  board_schema."boardCounty",
-  board_schema."boardCountyAssignedTo",
+  board_schema."BoardCounty",
+  board_schema."BoardCountyAssignedTo",
   board_schema."Activity",
   board_schema."GmailToken",
   board_schema."OutlookToken",
 
   -- auth_schema (additional)
-  auth_schema.admin_activity_log,
+  auth_schema."AdminActivityLog",
 
   -- support_schema
   support_schema."SupportTicket",
@@ -65,7 +65,7 @@ ALTER PUBLICATION my_publication_sg ADD TABLE
   board_schema."Activity",
   board_schema."GmailToken",
   board_schema."OutlookToken",
-  auth_schema.admin_activity_log;
+  auth_schema."AdminActivityLog";
 
   -- to connect to the subscription
 

@@ -71,16 +71,16 @@ export class SupportService {
         updatedAt: true,
         ...(user.role === ROLES.SUPPORT && {
           assignedToUser: {
-            select: { id: true, user_name: true, user_image: true },
+            select: { id: true, name: true, image: true },
           },
         }),
         createByUser: {
-          select: { id: true, user_name: true, user_image: true },
+          select: { id: true, name: true, image: true },
         },
         _count: {
           select: {
             SupportTicketMessage: {
-              where: { senderUser: { user_role: ROLES.SUPPORT } },
+              where: { senderUser: { role: ROLES.SUPPORT } },
             },
           },
         },
@@ -100,15 +100,15 @@ export class SupportService {
       where: { ticketNumber: ticketId },
       include: {
         assignedToUser: {
-          select: { id: true, user_name: true, user_image: true },
+          select: { id: true, name: true, image: true },
         },
         createByUser: {
-          select: { id: true, user_name: true, user_image: true },
+          select: { id: true, name: true, image: true },
         },
         SupportTicketMessage: {
           include: {
             senderUser: {
-              select: { id: true, user_name: true, user_image: true },
+              select: { id: true, name: true, image: true },
             },
             SupportTicketAttachment: { orderBy: { createdAt: "desc" } },
           },
@@ -129,15 +129,15 @@ export class SupportService {
   }
 
   async getSupportAgents() {
-    return prisma.user_table.findMany({
-      where: { user_role: ROLES.SUPPORT },
-      select: { id: true, user_name: true, user_image: true },
+    return prisma.user.findMany({
+      where: { role: ROLES.SUPPORT },
+      select: { id: true, name: true, image: true },
     });
   }
 
   async getNextSupportAgent(): Promise<string> {
-    const supportUsers = await prisma.user_table.findMany({
-      where: { user_role: ROLES.SUPPORT },
+    const supportUsers = await prisma.user.findMany({
+      where: { role: ROLES.SUPPORT },
       select: {
         id: true,
         _count: {
@@ -272,7 +272,7 @@ export class SupportService {
     return prisma.supportLiveChat.findMany({
       where: { sender: userId },
       include: {
-        senderUser: { select: { id: true, user_name: true, user_image: true } },
+        senderUser: { select: { id: true, name: true, image: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -282,11 +282,11 @@ export class SupportService {
     const chat = await prisma.supportLiveChat.findFirst({
       where: { id: chatId, sender: userId },
       include: {
-        senderUser: { select: { id: true, user_name: true, user_image: true } },
+        senderUser: { select: { id: true, name: true, image: true } },
         messages: {
           include: {
             senderUser: {
-              select: { id: true, user_name: true, user_image: true },
+              select: { id: true, name: true, image: true },
             },
           },
           orderBy: { createdAt: "asc" },
@@ -400,7 +400,7 @@ export class SupportService {
     return prisma.supportHistory.findMany({
       where: { supportTicketId: ticket.id },
       include: {
-        senderUser: { select: { id: true, user_name: true, user_image: true } },
+        senderUser: { select: { id: true, name: true, image: true } },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -521,13 +521,13 @@ export class SupportService {
         where: {
           ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
           SupportTicketMessage: {
-            some: { senderUser: { user_role: ROLES.SUPPORT } },
+            some: { senderUser: { role: ROLES.SUPPORT } },
           },
         },
         select: {
           createdAt: true,
           SupportTicketMessage: {
-            where: { senderUser: { user_role: ROLES.SUPPORT } },
+            where: { senderUser: { role: ROLES.SUPPORT } },
             orderBy: { createdAt: "asc" },
             take: 1,
             select: { createdAt: true },
@@ -612,7 +612,7 @@ export class SupportService {
             select: { ticketNumber: true, title: true, subject: true },
           },
           createdByUser: {
-            select: { id: true, user_name: true, user_image: true },
+            select: { id: true, name: true, image: true },
           },
         },
       }),

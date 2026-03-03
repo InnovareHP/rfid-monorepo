@@ -148,9 +148,9 @@ const ReusableTable = <T extends { id: string }>({
     setIsSendingEmail(true);
     try {
       const result = await sendBulkEmail({
-        record_ids: selectedIds,
-        email_subject: emailSubject,
-        email_body: emailBody,
+        recordIds: selectedIds,
+        emailSubject: emailSubject,
+        emailBody: emailBody,
         moduleType: isReferral ? "REFERRAL" : "LEAD",
         send_via: sendVia as "AUTO" | "GMAIL" | "OUTLOOK",
       });

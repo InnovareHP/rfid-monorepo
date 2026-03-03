@@ -161,9 +161,9 @@ export function ActivityTab({
     }: {
       activityId: string;
       data?: {
-        email_body?: string;
-        email_subject?: string;
-        recipient_email?: string;
+        emailBody?: string;
+        emailSubject?: string;
+        recipientEmail?: string;
         send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
       };
     }) => completeActivity(activityId, data),
@@ -208,20 +208,20 @@ export function ActivityTab({
     if (!data.title.trim()) return;
 
     createMutation.mutate({
-      record_id: recordId,
+      recordId: recordId,
       title: data.title.trim(),
       description: data.description?.trim() || undefined,
-      activity_type: data.activityType,
-      due_date: data.dueDate?.toISOString(),
-      recipient_email:
+      activityType: data.activityType,
+      dueDate: data.dueDate?.toISOString(),
+      recipientEmail:
         data.activityType === "EMAIL"
           ? data.recipientEmail || undefined
           : undefined,
-      email_subject:
+      emailSubject:
         data.activityType === "EMAIL"
           ? data.emailSubject || undefined
           : undefined,
-      email_body:
+      emailBody:
         data.activityType === "EMAIL" ? data.emailBody || undefined : undefined,
       send_via: data.activityType === "EMAIL" ? data.sendVia : undefined,
     });
@@ -473,9 +473,9 @@ export function ActivityTab({
                     completeMutation.mutate({
                       activityId: id,
                       data: data as {
-                        email_body?: string;
-                        email_subject?: string;
-                        recipient_email?: string;
+                        emailBody?: string;
+                        emailSubject?: string;
+                        recipientEmail?: string;
                         send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
                       },
                     })
@@ -516,9 +516,9 @@ function ActivityCard({
   onComplete: (
     id: string,
     data?: {
-      email_body?: string;
-      email_subject?: string;
-      recipient_email?: string;
+      emailBody?: string;
+      emailSubject?: string;
+      recipientEmail?: string;
       send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
     }
   ) => void;
@@ -526,7 +526,7 @@ function ActivityCard({
   isCompleting: boolean;
   isDeleting: boolean;
 }) {
-  const typeConfig = activityTypeConfig[activity.activity_type];
+  const typeConfig = activityTypeConfig[activity.activityType];
   const status = statusConfig[activity.status];
   const Icon = typeConfig.icon;
   const isPending = activity.status === "PENDING";
@@ -585,12 +585,12 @@ function ActivityCard({
                 className="h-7 gap-1.5 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300 font-semibold"
                 onClick={() =>
                   onComplete(activity.id, {
-                    email_body: activity.email_body ?? undefined,
-                    email_subject: activity.email_subject || undefined,
-                    recipient_email: activity.recipient_email || undefined,
+                    emailBody: activity.emailBody ?? undefined,
+                    emailSubject: activity.emailSubject || undefined,
+                    recipientEmail: activity.recipientEmail || undefined,
                     send_via:
-                      activity.activity_type === "EMAIL"
-                        ? activity.sender_email?.includes("@gmail.com")
+                      activity.activityType === "EMAIL"
+                        ? activity.senderEmail?.includes("@gmail.com")
                           ? "GMAIL"
                           : "OUTLOOK"
                         : "AUTO",
@@ -598,7 +598,7 @@ function ActivityCard({
                 }
                 disabled={isCompleting}
               >
-                {activity.activity_type === "EMAIL" ? (
+                {activity.activityType === "EMAIL" ? (
                   <>
                     <Send className="h-3 w-3" />
                     Send
@@ -626,36 +626,36 @@ function ActivityCard({
         {/* Meta info */}
         <div className="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100">
           <span className="text-xs text-gray-500 font-medium">
-            {activity.created_by}
+            {activity.createdBy}
           </span>
           <span className="text-xs text-gray-400">
-            {formatDateTime(activity.created_at)}
+            {formatDateTime(activity.createdAt)}
           </span>
 
-          {activity.due_date && (
+          {activity.dueDate && (
             <span
               className={`text-xs font-medium flex items-center gap-1 px-2 py-0.5 rounded-md ${
-                isPending && new Date(activity.due_date) < new Date()
+                isPending && new Date(activity.dueDate) < new Date()
                   ? "bg-red-50 text-red-600"
                   : "bg-gray-100 text-gray-600"
               }`}
             >
               <CalendarIcon className="h-3 w-3" />
-              Due {new Date(activity.due_date).toLocaleDateString()}
+              Due {new Date(activity.dueDate).toLocaleDateString()}
             </span>
           )}
 
-          {activity.activity_type === "EMAIL" && activity.recipient_email && (
+          {activity.activityType === "EMAIL" && activity.recipientEmail && (
             <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
               <Mail className="h-3 w-3" />
-              {activity.recipient_email}
+              {activity.recipientEmail}
             </span>
           )}
 
-          {activity.email_sent_at && (
+          {activity.emailSentAt && (
             <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
               <Check className="h-3 w-3" />
-              Sent{activity.sender_email ? ` via ${activity.sender_email}` : ""}
+              Sent{activity.senderEmail ? ` via ${activity.senderEmail}` : ""}
             </span>
           )}
         </div>

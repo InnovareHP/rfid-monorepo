@@ -55,19 +55,19 @@ export class GmailService {
     const gmailAddress = userInfo.data.email!;
 
     await prisma.gmailToken.upsert({
-      where: { user_id: userId },
+      where: { userId: userId },
       update: {
-        access_token: tokens.access_token!,
-        refresh_token: tokens.refresh_token,
-        token_expiry: new Date(tokens.expiry_date!),
-        gmail_address: gmailAddress,
+        accessToken: tokens.access_token!,
+        refreshToken: tokens.refresh_token,
+        tokenExpiry: new Date(tokens.expiry_date!),
+        gmailAddress: gmailAddress,
       },
       create: {
-        user_id: userId,
-        access_token: tokens.access_token!,
-        refresh_token: tokens.refresh_token,
-        token_expiry: new Date(tokens.expiry_date!),
-        gmail_address: gmailAddress,
+        userId: userId,
+        accessToken: tokens.access_token!,
+        refreshToken: tokens.refresh_token,
+        tokenExpiry: new Date(tokens.expiry_date!),
+        gmailAddress: gmailAddress,
       },
     });
   }
@@ -76,32 +76,32 @@ export class GmailService {
     userId: string
   ): Promise<{ connected: boolean; email: string | null }> {
     const token = await prisma.gmailToken.findUnique({
-      where: { user_id: userId },
-      select: { gmail_address: true },
+      where: { userId: userId },
+      select: { gmailAddress: true },
     });
 
     return {
       connected: !!token,
-      email: token?.gmail_address ?? null,
+      email: token?.gmailAddress ?? null,
     };
   }
 
   async disconnect(userId: string): Promise<void> {
     const token = await prisma.gmailToken.findUnique({
-      where: { user_id: userId },
+      where: { userId: userId },
     });
 
     if (!token) return;
 
     try {
       const oauth2Client = this.createOAuth2Client();
-      oauth2Client.setCredentials({ access_token: token.access_token });
-      await oauth2Client.revokeToken(token.access_token);
+      oauth2Client.setCredentials({ access_token: token.accessToken });
+      await oauth2Client.revokeToken(token.accessToken);
     } catch {
       this.logger.warn(`Failed to revoke Google token for user ${userId}`);
     }
 
-    await prisma.gmailToken.delete({ where: { user_id: userId } });
+    await prisma.gmailToken.delete({ where: { userId: userId } });
   }
 
   async trySendViaGmail(
@@ -113,7 +113,7 @@ export class GmailService {
     senderName: string
   ): Promise<boolean> {
     const token = await prisma.gmailToken.findUnique({
-      where: { user_id: userId },
+      where: { userId: userId },
     });
 
     if (!token) return false;
@@ -121,20 +121,20 @@ export class GmailService {
     try {
       const oauth2Client = this.createOAuth2Client();
       oauth2Client.setCredentials({
-        access_token: token.access_token,
-        refresh_token: token.refresh_token,
-        expiry_date: token.token_expiry.getTime(),
+        access_token: token.accessToken,
+        refresh_token: token.refreshToken,
+        expiry_date: token.tokenExpiry.getTime(),
       });
 
       oauth2Client.on("tokens", async (newTokens) => {
         try {
           await prisma.gmailToken.update({
-            where: { user_id: userId },
+            where: { userId: userId },
             data: {
-              access_token: newTokens.access_token!,
-              token_expiry: new Date(newTokens.expiry_date!),
+              accessToken: newTokens.access_token!,
+              tokenExpiry: new Date(newTokens.expiry_date!),
               ...(newTokens.refresh_token && {
-                refresh_token: newTokens.refresh_token,
+                refreshToken: newTokens.refresh_token,
               }),
             },
           });
@@ -146,7 +146,7 @@ export class GmailService {
       const htmlContent = await render(ActivityEmail({ recipientName, body }));
 
       const rawMessage = this.buildRawEmail(
-        `${senderName} <${token.gmail_address}>`,
+        `${senderName} <${token.gmailAddress}>`,
         to,
         subject,
         htmlContent
@@ -169,7 +169,7 @@ export class GmailService {
 
       if (error?.response?.status === 401 || error?.code === "invalid_grant") {
         await prisma.gmailToken
-          .delete({ where: { user_id: userId } })
+          .delete({ where: { userId: userId } })
           .catch(() => {});
       }
 

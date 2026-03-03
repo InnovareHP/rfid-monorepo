@@ -25,7 +25,9 @@
       "Bash(find C:\\\\Users\\\\lhani\\\\OneDrive\\\\Desktop\\\\ivorzero\\\\ivorzero\\\\dashboard\\\\apps\\\\api\\\\src:*)",
       "Bash(sed:*)",
       "Bash(cat:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(pnpm build:shared:*)"
     ]
   }
 }

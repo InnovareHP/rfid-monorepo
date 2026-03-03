@@ -8,33 +8,33 @@ import { OnboardingDto } from "./dto/user.schema";
 @Injectable()
 export class UserService {
   async onboarding(onboardDto: OnboardingDto, userId: string) {
-    const user = await prisma.user_table.update({
+    const user = await prisma.user.update({
       where: {
         id: userId,
       },
       data: {
-        user_is_onboarded: true,
-        user_onboarding_table: {
+        isOnboarded: true,
+        onboarding: {
           upsert: {
             create: {
-              user_onboarding_id: uuidv4(),
-              user_onboarding_hear_about: onboardDto.foundUsOn,
-              user_onboarding_how_to_use: "",
-              user_onboarding_what_to_expect: "",
+              id: uuidv4(),
+              hearAbout: onboardDto.foundUsOn,
+              howToUse: "",
+              whatToExpect: "",
             },
             update: {
-              user_onboarding_hear_about: onboardDto.foundUsOn,
-              user_onboarding_how_to_use: "",
-              user_onboarding_what_to_expect: "",
+              hearAbout: onboardDto.foundUsOn,
+              howToUse: "",
+              whatToExpect: "",
             },
           },
         },
       },
       select: {
-        user_account_tables: {
+        accounts: {
           select: {
-            user_account_account_id: true,
-            user_account_provider_id: true,
+            accountId: true,
+            providerId: true,
           },
         },
       },
@@ -52,76 +52,76 @@ export class UserService {
     const { page, take, search, roleFilter } = params;
     const skip = (page - 1) * take;
 
-    const where: Prisma.user_tableWhereInput = {
+    const where: Prisma.UserWhereInput = {
       ...(search
         ? {
             OR: [
-              { user_name: { contains: search, mode: "insensitive" as const } },
+              { name: { contains: search, mode: "insensitive" as const } },
               {
-                user_email: { contains: search, mode: "insensitive" as const },
+                email: { contains: search, mode: "insensitive" as const },
               },
             ],
           }
         : {}),
-      ...(roleFilter ? { user_role: roleFilter } : {}),
+      ...(roleFilter ? { role: roleFilter } : {}),
     };
 
     const [users, total] = await Promise.all([
-      prisma.user_table.findMany({
+      prisma.user.findMany({
         where,
         skip,
         take,
-        orderBy: { user_created_at: "desc" },
+        orderBy: { createdAt: "desc" },
         select: {
           id: true,
-          user_name: true,
-          user_email: true,
-          user_image: true,
-          user_role: true,
-          user_is_banned: true,
-          user_ban_reason: true,
-          user_ban_expires: true,
-          user_email_verified: true,
-          user_created_at: true,
-          member_tables: {
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          banned: true,
+          banReason: true,
+          banExpires: true,
+          emailVerified: true,
+          createdAt: true,
+          members: {
             select: {
               id: true,
-              member_role: true,
-              member_created_at: true,
-              organization_table: {
+              role: true,
+              createdAt: true,
+              organization: {
                 select: {
                   id: true,
-                  organization_name: true,
-                  organization_slug: true,
-                  organization_logo: true,
+                  name: true,
+                  slug: true,
+                  logo: true,
                 },
               },
             },
           },
         },
       }),
-      prisma.user_table.count({ where }),
+      prisma.user.count({ where }),
     ]);
 
     return {
       users: users.map((u) => ({
         id: u.id,
-        name: u.user_name,
-        email: u.user_email,
-        image: u.user_image,
-        role: u.user_role,
-        banned: u.user_is_banned,
-        banReason: u.user_ban_reason,
-        banExpires: u.user_ban_expires ? u.user_ban_expires.getTime() : null,
-        emailVerified: u.user_email_verified,
-        createdAt: u.user_created_at.toISOString(),
-        organizations: u.member_tables.map((m) => ({
-          id: m.organization_table.id,
-          name: m.organization_table.organization_name,
-          slug: m.organization_table.organization_slug,
-          logo: m.organization_table.organization_logo,
-          memberRole: m.member_role,
-          memberSince: m.member_created_at.toISOString(),
+        name: u.name,
+        email: u.email,
+        image: u.image,
+        role: u.role,
+        banned: u.banned,
+        banReason: u.banReason,
+        banExpires: u.banExpires ? u.banExpires.getTime() : null,
+        emailVerified: u.emailVerified,
+        createdAt: u.createdAt.toISOString(),
+        organizations: u.members.map((m) => ({
+          id: m.organization.id,
+          name: m.organization.name,
+          slug: m.organization.slug,
+          logo: m.organization.logo,
+          memberRole: m.role,
+          memberSince: m.createdAt.toISOString(),
         })),
       })),
       total,
@@ -129,30 +129,30 @@ export class UserService {
   }
 
   async getAdminUserById(userId: string) {
-    const u = await prisma.user_table.findUnique({
+    const u = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
-        user_name: true,
-        user_email: true,
-        user_image: true,
-        user_role: true,
-        user_is_banned: true,
-        user_ban_reason: true,
-        user_ban_expires: true,
-        user_email_verified: true,
-        user_created_at: true,
-        member_tables: {
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        banned: true,
+        banReason: true,
+        banExpires: true,
+        emailVerified: true,
+        createdAt: true,
+        members: {
           select: {
             id: true,
-            member_role: true,
-            member_created_at: true,
-            organization_table: {
+            role: true,
+            createdAt: true,
+            organization: {
               select: {
                 id: true,
-                organization_name: true,
-                organization_slug: true,
-                organization_logo: true,
+                name: true,
+                slug: true,
+                logo: true,
               },
             },
           },
@@ -164,22 +164,22 @@ export class UserService {
 
     return {
       id: u.id,
-      name: u.user_name,
-      email: u.user_email,
-      image: u.user_image,
-      role: u.user_role,
-      banned: u.user_is_banned,
-      banReason: u.user_ban_reason,
-      banExpires: u.user_ban_expires ? u.user_ban_expires.getTime() : null,
-      emailVerified: u.user_email_verified,
-      createdAt: u.user_created_at.toISOString(),
-      organizations: u.member_tables.map((m) => ({
-        id: m.organization_table.id,
-        name: m.organization_table.organization_name,
-        slug: m.organization_table.organization_slug,
-        logo: m.organization_table.organization_logo,
-        memberRole: m.member_role,
-        memberSince: m.member_created_at.toISOString(),
+      name: u.name,
+      email: u.email,
+      image: u.image,
+      role: u.role,
+      banned: u.banned,
+      banReason: u.banReason,
+      banExpires: u.banExpires ? u.banExpires.getTime() : null,
+      emailVerified: u.emailVerified,
+      createdAt: u.createdAt.toISOString(),
+      organizations: u.members.map((m) => ({
+        id: m.organization.id,
+        name: m.organization.name,
+        slug: m.organization.slug,
+        logo: m.organization.logo,
+        memberRole: m.role,
+        memberSince: m.createdAt.toISOString(),
       })),
     };
   }
@@ -194,14 +194,14 @@ export class UserService {
     details?: string;
     ipAddress?: string;
   }) {
-    return prisma.admin_activity_log.create({
+    return prisma.adminActivityLog.create({
       data: {
-        admin_id: params.adminId,
+        adminId: params.adminId,
         action: params.action,
-        target_user_id: params.targetUserId,
-        target_org_id: params.targetOrgId,
+        targetUserId: params.targetUserId,
+        targetOrgId: params.targetOrgId,
         details: params.details,
-        ip_address: params.ipAddress,
+        ipAddress: params.ipAddress,
       },
     });
   }
@@ -216,11 +216,11 @@ export class UserService {
     const { page, take, actionFilter, startDate, endDate } = params;
     const skip = (page - 1) * take;
 
-    const where: Prisma.admin_activity_logWhereInput = {
+    const where: Prisma.AdminActivityLogWhereInput = {
       ...(actionFilter ? { action: actionFilter as AdminAction } : {}),
       ...(startDate || endDate
         ? {
-            created_at: {
+            createdAt: {
               ...(startDate ? { gte: new Date(startDate) } : {}),
               ...(endDate ? { lte: new Date(endDate + "T23:59:59.999Z") } : {}),
             },
@@ -229,40 +229,40 @@ export class UserService {
     };
 
     const [logs, total] = await Promise.all([
-      prisma.admin_activity_log.findMany({
+      prisma.adminActivityLog.findMany({
         where,
         skip,
         take,
-        orderBy: { created_at: "desc" },
+        orderBy: { createdAt: "desc" },
         include: {
-          admin_user: {
-            select: { id: true, user_name: true, user_image: true },
+          adminUser: {
+            select: { id: true, name: true, image: true },
           },
-          target_user: {
-            select: { id: true, user_name: true, user_image: true },
+          targetUser: {
+            select: { id: true, name: true, image: true },
           },
         },
       }),
-      prisma.admin_activity_log.count({ where }),
+      prisma.adminActivityLog.count({ where }),
     ]);
 
     return {
       logs: logs.map((l) => ({
         id: l.id,
-        createdAt: l.created_at.toISOString(),
+        createdAt: l.createdAt.toISOString(),
         action: l.action,
         details: l.details,
-        targetOrgId: l.target_org_id,
+        targetOrgId: l.targetOrgId,
         admin: {
-          id: l.admin_user.id,
-          name: l.admin_user.user_name,
-          image: l.admin_user.user_image,
+          id: l.adminUser.id,
+          name: l.adminUser.name,
+          image: l.adminUser.image,
         },
-        targetUser: l.target_user
+        targetUser: l.targetUser
           ? {
-              id: l.target_user.id,
-              name: l.target_user.user_name,
-              image: l.target_user.user_image,
+              id: l.targetUser.id,
+              name: l.targetUser.name,
+              image: l.targetUser.image,
             }
           : null,
       })),
@@ -334,17 +334,17 @@ export class UserService {
     const { page, take, search } = params;
     const skip = (page - 1) * take;
 
-    const where: Prisma.organization_tableWhereInput = search
+    const where: Prisma.OrganizationWhereInput = search
       ? {
           OR: [
             {
-              organization_name: {
+              name: {
                 contains: search,
                 mode: "insensitive" as const,
               },
             },
             {
-              organization_slug: {
+              slug: {
                 contains: search,
                 mode: "insensitive" as const,
               },
@@ -354,51 +354,49 @@ export class UserService {
       : {};
 
     const [orgs, total] = await Promise.all([
-      prisma.organization_table.findMany({
+      prisma.organization.findMany({
         where,
         skip,
         take,
-        orderBy: { organization_created_at: "desc" },
+        orderBy: { createdAt: "desc" },
         select: {
           id: true,
-          organization_name: true,
-          organization_slug: true,
-          organization_logo: true,
-          organization_created_at: true,
-          organization_metadata: true,
-          _count: { select: { member_tables: true } },
+          name: true,
+          slug: true,
+          logo: true,
+          createdAt: true,
+          metadata: true,
+          _count: { select: { members: true } },
         },
       }),
-      prisma.organization_table.count({ where }),
+      prisma.organization.count({ where }),
     ]);
 
     // Look up subscriptions for these orgs
     const orgIds = orgs.map((o) => o.id);
-    const subscriptions = await prisma.subscription_table.findMany({
-      where: { subscription_reference_id: { in: orgIds } },
+    const subscriptions = await prisma.subscription.findMany({
+      where: { referenceId: { in: orgIds } },
       select: {
-        subscription_reference_id: true,
-        subscription_plan: true,
-        subscription_status: true,
+        referenceId: true,
+        plan: true,
+        status: true,
       },
     });
-    const subMap = new Map(
-      subscriptions.map((s) => [s.subscription_reference_id, s])
-    );
+    const subMap = new Map(subscriptions.map((s) => [s.referenceId, s]));
 
     return {
       organizations: orgs.map((o) => {
         const sub = subMap.get(o.id);
         return {
           id: o.id,
-          name: o.organization_name,
-          slug: o.organization_slug,
-          logo: o.organization_logo,
-          createdAt: o.organization_created_at.toISOString(),
-          metadata: o.organization_metadata,
-          memberCount: o._count.member_tables,
-          subscriptionStatus: sub?.subscription_status ?? null,
-          subscriptionPlan: sub?.subscription_plan ?? null,
+          name: o.name,
+          slug: o.slug,
+          logo: o.logo,
+          createdAt: o.createdAt.toISOString(),
+          metadata: o.metadata,
+          memberCount: o._count.members,
+          subscriptionStatus: sub?.status ?? null,
+          subscriptionPlan: sub?.plan ?? null,
         };
       }),
       total,
@@ -406,77 +404,72 @@ export class UserService {
   }
 
   async getAdminOrganizationById(orgId: string) {
-    const org = await prisma.organization_table.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: orgId },
       select: {
         id: true,
-        organization_name: true,
-        organization_slug: true,
-        organization_logo: true,
-        organization_created_at: true,
-        organization_metadata: true,
-        member_tables: {
+        name: true,
+        slug: true,
+        logo: true,
+        createdAt: true,
+        metadata: true,
+        members: {
           select: {
             id: true,
-            member_role: true,
-            member_created_at: true,
-            user_table: {
+            role: true,
+            createdAt: true,
+            user: {
               select: {
                 id: true,
-                user_name: true,
-                user_email: true,
-                user_image: true,
-                user_is_banned: true,
+                name: true,
+                email: true,
+                image: true,
+                banned: true,
               },
             },
           },
-          orderBy: { member_created_at: "asc" },
+          orderBy: { createdAt: "asc" },
         },
       },
     });
 
     if (!org) throw new NotFoundException("Organization not found");
 
-    const subscription = await prisma.subscription_table.findFirst({
-      where: { subscription_reference_id: orgId },
+    const subscription = await prisma.subscription.findFirst({
+      where: { referenceId: orgId },
     });
 
     return {
       id: org.id,
-      name: org.organization_name,
-      slug: org.organization_slug,
-      logo: org.organization_logo,
-      createdAt: org.organization_created_at.toISOString(),
-      metadata: org.organization_metadata,
-      members: org.member_tables.map((m) => ({
+      name: org.name,
+      slug: org.slug,
+      logo: org.logo,
+      createdAt: org.createdAt.toISOString(),
+      metadata: org.metadata,
+      members: org.members.map((m) => ({
         memberId: m.id,
-        role: m.member_role,
-        joinedAt: m.member_created_at.toISOString(),
+        role: m.role,
+        joinedAt: m.createdAt.toISOString(),
         user: {
-          id: m.user_table.id,
-          name: m.user_table.user_name,
-          email: m.user_table.user_email,
-          image: m.user_table.user_image,
-          banned: m.user_table.user_is_banned,
+          id: m.user.id,
+          name: m.user.name,
+          email: m.user.email,
+          image: m.user.image,
+          banned: m.user.banned,
         },
       })),
       subscription: subscription
         ? {
             id: subscription.id,
-            plan: subscription.subscription_plan,
-            status: subscription.subscription_status,
-            periodStart:
-              subscription.subscription_period_start?.toISOString() ?? null,
-            periodEnd:
-              subscription.subscription_period_end?.toISOString() ?? null,
-            cancelAtPeriodEnd: subscription.subscription_cancel_at_period_end,
-            seats: subscription.subscription_seats,
-            trialStart:
-              subscription.subscription_trial_start?.toISOString() ?? null,
-            trialEnd:
-              subscription.subscription_trial_end?.toISOString() ?? null,
-            cancelAt:
-              subscription.subscription_cancel_at?.toISOString() ?? null,
+            plan: subscription.plan,
+            status: subscription.status,
+            periodStart: subscription.periodStart?.toISOString() ?? null,
+            periodEnd: subscription.periodEnd?.toISOString() ?? null,
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            seats: subscription.seats,
+            trialStart: subscription.trialStart?.toISOString() ?? null,
+            trialEnd: subscription.trialEnd?.toISOString() ?? null,
+            cancelAt: subscription.cancelAt?.toISOString() ?? null,
           }
         : null,
     };

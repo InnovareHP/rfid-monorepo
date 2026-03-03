@@ -13,7 +13,7 @@ export const ReferralDashboardEmail = ({
 }: ReferralDashboardEmailProps) => {
   return (
     <EmailLayout preview="Verify your account">
-      <Heading style={emailStyles.heading}>Verify your account!</Heading>
+      <Heading style={emailStyles.heading}>Please, verify your account!</Heading>
 
       <Text style={emailStyles.paragraph}>Hi {name},</Text>
 

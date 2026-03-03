@@ -155,9 +155,9 @@ export class BoardController {
   ) {
     try {
       return await this.boardService.sendBulkEmail(
-        dto.record_ids,
-        dto.email_subject,
-        dto.email_body,
+        dto.recordIds,
+        dto.emailSubject,
+        dto.emailBody,
         session.session.activeOrganizationId,
         session.user.id,
         moduleType || "LEAD",
@@ -443,7 +443,7 @@ export class BoardController {
         );
       }
       return this.boardService.createRecord(
-        dto.record_name,
+        dto.recordName,
         organizationId,
         session.user.id,
         dto.moduleType || "LEAD",
@@ -463,7 +463,7 @@ export class BoardController {
   ) {
     try {
       return this.boardService.restoreRecord(
-        dto.record_id,
+        dto.recordId,
         dto.history_id,
         session.session.activeOrganizationId,
         dto.event_type,
@@ -482,7 +482,7 @@ export class BoardController {
   ) {
     try {
       return this.boardService.setRecordNotificationState(
-        dto.record_id,
+        dto.recordId,
         session.session.activeOrganizationId
       );
     } catch (error) {
@@ -501,7 +501,7 @@ export class BoardController {
       return await this.boardService.createCountyAssignment(
         dto.name,
         organizationId,
-        dto.assigned_to
+        dto.assignedTo
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -536,8 +536,8 @@ export class BoardController {
     try {
       return await this.boardService.createColumn(
         dto.column_name,
-        dto.field_type,
-        dto.module_type,
+        dto.fieldType,
+        dto.moduleType,
         organizationId
       );
     } catch (error) {
@@ -553,7 +553,7 @@ export class BoardController {
     try {
       return await this.boardService.createRecordFieldOption(
         fieldId,
-        dto.option_name
+        dto.optionName
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -570,9 +570,9 @@ export class BoardController {
     try {
       return await this.boardService.createRecordHistory(
         recordId,
-        dto.old_value,
-        dto.new_value,
-        dto.created_by,
+        dto.oldValue,
+        dto.newValue,
+        dto.createdBy,
         session.session.memberId
       );
     } catch (error) {
@@ -601,9 +601,9 @@ export class BoardController {
     }
   }
 
-  @Patch("/:record_id")
+  @Patch("/:recordId")
   async updateRecordValue(
-    @Param("record_id") record_id: string,
+    @Param("recordId") recordId: string,
     @Body() dto: UpdateRecordValueDto,
     @Session()
     session: AuthenticatedSession
@@ -611,8 +611,8 @@ export class BoardController {
     const organizationId = session.session.activeOrganizationId;
     try {
       return this.boardService.updateRecordValue(
-        record_id,
-        dto.field_id,
+        recordId,
+        dto.fieldId,
         dto.value,
         organizationId,
         session.session.userId,

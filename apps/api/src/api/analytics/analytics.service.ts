@@ -28,12 +28,12 @@ export class AnalyticsService {
     endDate: Date
   ) {
     const whereClause: Prisma.FieldValueWhereInput = {
-      field: { field_name: "Facility" },
+      field: { fieldName: "Facility" },
       record: {
-        organization_id: organizationId,
-        module_type: "REFERRAL",
+        organizationId: organizationId,
+        moduleType: "REFERRAL",
         ...(startDate &&
-          endDate && { created_at: { gte: startDate, lte: endDate } }),
+          endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
     };
 
@@ -52,12 +52,12 @@ export class AnalyticsService {
     endDate: Date
   ) {
     const whereClause: Prisma.FieldValueWhereInput = {
-      field: { field_name: "Contact" },
+      field: { fieldName: "Contact" },
       record: {
-        module_type: "REFERRAL",
-        organization_id: organizationId,
+        moduleType: "REFERRAL",
+        organizationId: organizationId,
         ...(startDate &&
-          endDate && { created_at: { gte: startDate, lte: endDate } }),
+          endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
     };
     return await prisma.fieldValue.groupBy({
@@ -71,12 +71,12 @@ export class AnalyticsService {
 
   async getTopCounties(organizationId: string, startDate: Date, endDate: Date) {
     const whereClause: Prisma.FieldValueWhereInput = {
-      field: { field_name: "County" },
+      field: { fieldName: "County" },
       record: {
-        module_type: "REFERRAL",
-        organization_id: organizationId,
+        moduleType: "REFERRAL",
+        organizationId: organizationId,
         ...(startDate &&
-          endDate && { created_at: { gte: startDate, lte: endDate } }),
+          endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
     };
     return await prisma.fieldValue.groupBy({
@@ -93,12 +93,12 @@ export class AnalyticsService {
     endDate: Date
   ) {
     const whereClause: Prisma.FieldValueWhereInput = {
-      field: { field_name: "Referral Source Type" },
+      field: { fieldName: "Referral Source Type" },
       record: {
-        module_type: "REFERRAL",
-        organization_id: organizationId,
+        moduleType: "REFERRAL",
+        organizationId: organizationId,
         ...(startDate &&
-          endDate && { created_at: { gte: startDate, lte: endDate } }),
+          endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
     };
     return await prisma.fieldValue.groupBy({
@@ -115,13 +115,13 @@ export class AnalyticsService {
     endDate: Date
   ) {
     const whereClause: Prisma.FieldValueWhereInput = {
-      field: { field_name: "Status" },
+      field: { fieldName: "Status" },
       value: "Admitted",
       record: {
-        module_type: "REFERRAL",
-        organization_id: organizationId,
+        moduleType: "REFERRAL",
+        organizationId: organizationId,
         ...(startDate &&
-          endDate && { created_at: { gte: startDate, lte: endDate } }),
+          endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
     };
     const totalReferrals = await prisma.board.count({
@@ -147,18 +147,18 @@ export class AnalyticsService {
     endDate: Date
   ) {
     const whereClause: Prisma.BoardWhereInput = {
-      organization_id: organizationId,
-      module_type: "REFERRAL",
+      organizationId: organizationId,
+      moduleType: "REFERRAL",
       ...(startDate &&
-        endDate && { created_at: { gte: startDate, lte: endDate } }),
+        endDate && { createdAt: { gte: startDate, lte: endDate } }),
     };
     const referrals = await prisma.board.findMany({
       where: whereClause,
       select: {
         id: true,
-        created_at: true,
+        createdAt: true,
         values: {
-          where: { field: { field_name: "Admission Date" } },
+          where: { field: { fieldName: "Admission Date" } },
           select: { value: true },
         },
       },
@@ -170,7 +170,7 @@ export class AnalyticsService {
         if (!admissionDateStr) return null;
         const admissionDate = new Date(admissionDateStr);
         return (
-          (admissionDate.getTime() - r.created_at.getTime()) /
+          (admissionDate.getTime() - r.createdAt.getTime()) /
           (1000 * 60 * 60 * 24)
         );
       })
@@ -185,12 +185,12 @@ export class AnalyticsService {
   // 7️⃣ Payer Source Mix
   async getPayerMix(organizationId: string, startDate: Date, endDate: Date) {
     const whereClause: Prisma.FieldValueWhereInput = {
-      field: { field_name: "Payor" },
+      field: { fieldName: "Payor" },
       record: {
-        module_type: "REFERRAL",
-        organization_id: organizationId,
+        moduleType: "REFERRAL",
+        organizationId: organizationId,
         ...(startDate &&
-          endDate && { created_at: { gte: startDate, lte: endDate } }),
+          endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
     };
     return await prisma.fieldValue.groupBy({
@@ -204,7 +204,7 @@ export class AnalyticsService {
   //   async getDischargeDisposition() {
   //     return await prisma.referralValue.groupBy({
   //       by: ["value"],
-  //       where: { Field: { field_name: "Discharge Disposition" } },
+  //       where: { Field: { fieldName: "Discharge Disposition" } },
   //       _count: { value: true },
   //       orderBy: { _count: { value: "desc" } },
   //     });
@@ -217,21 +217,24 @@ export class AnalyticsService {
     endDate: Date
   ) {
     const whereClause: Prisma.BoardWhereInput = {
-      organization_id: organizationId,
+      organizationId: organizationId,
       ...(startDate &&
-        endDate && { created_at: { gte: startDate, lte: endDate } }),
+        endDate && { createdAt: { gte: startDate, lte: endDate } }),
     };
     // If you have outreach events table, join with referrals created around event dates.
     // Placeholder: show referrals by month as a trend.
     const results = await prisma.$queryRaw<{ month: string; total: number }[]>`
-      SELECT TO_CHAR(r.created_at, 'YYYY-MM') AS month, COUNT(*)::int AS total
-      FROM board_schema."Board" r
-      WHERE r.organization_id = ${organizationId}
-      ${startDate && endDate ? Prisma.sql`AND r.created_at >= ${startDate} AND r.created_at <= ${endDate}` : Prisma.empty}
-      GROUP BY month
-      ORDER BY month ASC;
-    `;
-    return results;
+    SELECT TO_CHAR(r."createdAt", 'YYYY-MM') AS month, COUNT(*)::int AS total
+    FROM board_schema."Board" r
+    WHERE r."organizationId" = ${organizationId}
+    ${
+      startDate && endDate
+        ? Prisma.sql`AND r."createdAt" >= ${startDate} AND r."createdAt" <= ${endDate}`
+        : Prisma.empty
+    }
+    GROUP BY month
+    ORDER BY month ASC;
+  `;
   }
 
   // 🔟 Emerging Referral Sources (new/low frequency)
@@ -241,29 +244,48 @@ export class AnalyticsService {
     endDate: Date
   ) {
     const whereClause: Prisma.FieldValueWhereInput = {
-      field: { field_name: "Referral Source Type" },
+      field: { fieldName: "Referral Source Type" },
       record: {
-        module_type: "REFERRAL",
-        organization_id: organizationId,
+        moduleType: "REFERRAL",
+        organizationId: organizationId,
         ...(startDate &&
-          endDate && { created_at: { gte: startDate, lte: endDate } }),
+          endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
     };
-    const results = await prisma.$queryRaw<
-      { facility: string; recent_referrals: number }[]
-    >`
-      SELECT v.value AS facility, COUNT(*)::int AS recent_referrals
-      FROM board_schema."FieldValue" v
-      JOIN board_schema."Board" r ON v.record_id = r.id
-      JOIN board_schema."Field" f ON v.field_id = f.id
-      WHERE f.field_name = 'Facility'
-        AND r.organization_id = ${organizationId}
-        AND r.created_at >= ${startDate} AND r.created_at <= ${endDate}
-      GROUP BY facility
-      HAVING COUNT(*) < 5
-      ORDER BY recent_referrals ASC;
-    `;
-    return results;
+    const results = await prisma.fieldValue.groupBy({
+      by: ["value"],
+      where: {
+        field: {
+          fieldName: "Facility", // Prisma handles the mapping to f.field_name
+        },
+        record: {
+          organizationId: organizationId,
+          ...(startDate &&
+            endDate && { createdAt: { gte: startDate, lte: endDate } }),
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      having: {
+        value: {
+          _count: {
+            lt: 5,
+          },
+        },
+      },
+      orderBy: {
+        _count: {
+          value: "asc",
+        },
+      },
+    });
+
+    // Map to your desired output format
+    return results.map((r) => ({
+      facility: r.value,
+      recent_referrals: r._count?._all ?? 0,
+    }));
   }
 
   // 🔹 Combine All Metrics
@@ -348,26 +370,26 @@ export class AnalyticsService {
     userId?: string | null
   ) {
     const whereClause: Prisma.BoardWhereInput = {
-      organization_id: organizationId,
+      organizationId: organizationId,
     };
 
     if (startDate && endDate) {
-      whereClause.created_at = {
+      whereClause.createdAt = {
         gte: startDate,
         lte: endDate,
       };
     }
 
     if (userId) {
-      whereClause.assigned_to = userId;
+      whereClause.assignedTo = userId;
     }
 
     return prisma.board.findMany({
       where: whereClause,
       select: {
         id: true,
-        assigned_to: true,
-        created_at: true,
+        assignedTo: true,
+        createdAt: true,
         values: true,
       },
     });
@@ -394,12 +416,12 @@ export class AnalyticsService {
     );
 
     const memberIds = [
-      ...new Set(boards.map((board) => board.assigned_to).filter(Boolean)),
+      ...new Set(boards.map((board) => board.assignedTo).filter(Boolean)),
     ] as string[];
 
-    let whereClause: Prisma.marketingWhereInput = {
+    let whereClause: Prisma.MarketingWhereInput = {
       member: {
-        user_table: {
+        user: {
           id: { in: memberIds },
         },
       },
@@ -415,7 +437,7 @@ export class AnalyticsService {
 
     if (userId) {
       whereClause.member = {
-        user_table: {
+        user: {
           id: userId,
         },
       };
@@ -430,10 +452,10 @@ export class AnalyticsService {
         talkedTo: true,
         member: {
           select: {
-            user_table: {
+            user: {
               select: {
                 id: true,
-                user_name: true,
+                name: true,
               },
             },
           },
@@ -461,7 +483,7 @@ export class AnalyticsService {
       if (!analyticsMap.has(log.memberId)) {
         analyticsMap.set(log.memberId, {
           memberId: log.memberId,
-          memberName: log.member.user_table.user_name,
+          memberName: log.member.user.name,
           totalLeads: 0,
           newLeads: 0,
           totalInteractions: 0,
@@ -480,9 +502,9 @@ export class AnalyticsService {
 
     // 5. Apply lead-based metrics (SAFE)
     for (const board of boards) {
-      if (!board.assigned_to) continue;
+      if (!board.assignedTo) continue;
 
-      const analytics = analyticsMap.get(board.assigned_to);
+      const analytics = analyticsMap.get(board.assignedTo);
       if (!analytics) continue;
 
       analytics.totalLeads += 1;
@@ -490,9 +512,9 @@ export class AnalyticsService {
       if (
         startDate &&
         endDate &&
-        board.created_at &&
-        board.created_at >= startDate &&
-        board.created_at <= endDate
+        board.createdAt &&
+        board.createdAt >= startDate &&
+        board.createdAt <= endDate
       ) {
         analytics.newLeads += 1;
       }

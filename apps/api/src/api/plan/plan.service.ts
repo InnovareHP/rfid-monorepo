@@ -10,14 +10,14 @@ export class PlanService {
 
     const offset = Number(page - 1) * Number(skip);
 
-    let where: Prisma.plan_tableWhereInput = { plan_is_active: true };
+    let where: Prisma.PlanWhereInput = { isActive: true };
 
-    const filterMap: Record<string, () => Prisma.plan_tableWhereInput> = {
+    const filterMap: Record<string, () => Prisma.PlanWhereInput> = {
       type: () => ({
-        plan_type: type,
+        type: type,
       }),
       role: () => ({
-        plan_role_available: role,
+        roleAvailable: role,
       }),
     };
 
@@ -31,7 +31,7 @@ export class PlanService {
     });
 
     const [data, total] = await Promise.all([
-      prisma.plan_table.findMany({
+      prisma.plan.findMany({
         skip: offset,
         take: Number(skip),
         where,
@@ -39,7 +39,7 @@ export class PlanService {
           [orderBy]: sortBy,
         },
       }),
-      prisma.plan_table.count({ where }),
+      prisma.plan.count({ where }),
     ]);
 
     return { data, total };

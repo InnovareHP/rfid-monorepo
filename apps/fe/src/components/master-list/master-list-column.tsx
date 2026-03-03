@@ -15,8 +15,8 @@ type ColumnType = {
 
 type LeadRow = {
   id: string;
-  record_name: string;
-  assigned_to: string;
+  recordName: string;
+  assignedTo: string;
   user: User;
   [key: string]: any;
 };
@@ -82,7 +82,7 @@ export function generateLeadColumns(
     header: () =>
       onSort ? (
         <ColumnHeader
-          columnId="record_name"
+          columnId="recordName"
           columnName="Facility"
           sortBy={sortState?.sortBy}
           sortOrder={sortState?.sortOrder}
@@ -110,7 +110,7 @@ export function generateLeadColumns(
             id={row.original.id}
             fieldName="Organization"
             fieldKey="Lead"
-            value={row.original.record_name}
+            value={row.original.recordName}
             type="TEXT"
           />
         </div>

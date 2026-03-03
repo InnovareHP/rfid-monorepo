@@ -40,24 +40,24 @@ export class CsvImportProcessor extends WorkerHost {
     );
 
     const fields = (await prisma.field.findMany({
-      where: { organization_id: organizationId, module_type: moduleType },
+      where: { organizationId: organizationId, moduleType: moduleType },
       include: { options: true },
     })) as (Field & { options: FieldOption[] })[];
 
     const fieldMap = new Map<string, Field & { options: FieldOption[] }>();
     for (const field of fields) {
-      fieldMap.set(normalizeKey(field.field_name), field);
+      fieldMap.set(normalizeKey(field.fieldName), field);
     }
 
     const recordsToCreate: {
-      record_name: string;
-      organization_id: string;
-      module_type: string;
+      recordName: string;
+      organizationId: string;
+      moduleType: string;
     }[] = [];
 
     const recordValueBuffer: {
       record_index: number;
-      field_id: string;
+      fieldId: string;
       value: string;
     }[] = [];
 
@@ -67,9 +67,9 @@ export class CsvImportProcessor extends WorkerHost {
       const recordName = resolveRecordName(row);
 
       recordsToCreate.push({
-        record_name: recordName,
-        organization_id: organizationId,
-        module_type: moduleType,
+        recordName: recordName,
+        organizationId: organizationId,
+        moduleType: moduleType,
       });
 
       for (const [csvFieldName, rawValue] of Object.entries(row)) {
@@ -81,9 +81,9 @@ export class CsvImportProcessor extends WorkerHost {
         let value = normalizeOptionValue(String(rawValue));
         if (!value) continue;
 
-        if (isSelectType(field.field_type)) {
+        if (isSelectType(field.fieldType)) {
           const values =
-            field.field_type === BoardFieldType.MULTISELECT
+            field.fieldType === BoardFieldType.MULTISELECT
               ? value.split(",").map(normalizeOptionValue)
               : [normalizeOptionValue(value)];
 
@@ -92,7 +92,7 @@ export class CsvImportProcessor extends WorkerHost {
 
             const exists = field.options.some(
               (opt) =>
-                normalizeOptionValue(opt.option_name).toLowerCase() ===
+                normalizeOptionValue(opt.optionName).toLowerCase() ===
                 v.toLowerCase()
             );
 
@@ -109,7 +109,7 @@ export class CsvImportProcessor extends WorkerHost {
 
         recordValueBuffer.push({
           record_index: rowIndex,
-          field_id: field.id,
+          fieldId: field.id,
           value,
         });
       }
@@ -129,8 +129,8 @@ export class CsvImportProcessor extends WorkerHost {
       });
 
       const createdRecords = await tx.board.findMany({
-        where: { organization_id: organizationId },
-        orderBy: { created_at: "desc" },
+        where: { organizationId: organizationId },
+        orderBy: { createdAt: "desc" },
         take: recordsToCreate.length,
       });
 
@@ -138,15 +138,15 @@ export class CsvImportProcessor extends WorkerHost {
 
       if (optionsToCreate.size > 0) {
         const optionRows: {
-          option_name: string;
-          field_id: string;
+          optionName: string;
+          fieldId: string;
         }[] = [];
 
         for (const [fieldId, options] of optionsToCreate.entries()) {
           for (const opt of options) {
             optionRows.push({
-              option_name: opt,
-              field_id: fieldId,
+              optionName: opt,
+              fieldId: fieldId,
             });
           }
         }
@@ -158,8 +158,8 @@ export class CsvImportProcessor extends WorkerHost {
       }
 
       const recordValues = recordValueBuffer.map((lv) => ({
-        record_id: createdRecords[lv.record_index].id,
-        field_id: lv.field_id,
+        recordId: createdRecords[lv.record_index].id,
+        fieldId: lv.fieldId,
         value: lv.value,
       }));
 

@@ -84,9 +84,9 @@ export class BoardService {
     const offset = (page - 1) * Number(limit);
 
     const where: Prisma.BoardWhereInput = {
-      organization_id: organizationId,
-      is_deleted: false,
-      module_type: moduleType,
+      organizationId: organizationId,
+      isDeleted: false,
+      moduleType: moduleType,
       AND: [],
     };
 
@@ -94,7 +94,7 @@ export class BoardService {
       where.AND = [
         ...(where.AND as Prisma.BoardWhereInput[]),
         {
-          created_at: {
+          createdAt: {
             ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
             ...(boardDateTo && { lte: new Date(boardDateTo) }),
           },
@@ -108,7 +108,7 @@ export class BoardService {
         {
           OR: [
             {
-              record_name: {
+              recordName: {
                 contains: search,
                 mode: "insensitive",
               },
@@ -136,15 +136,15 @@ export class BoardService {
       const filterFields = await prisma.field.findMany({
         where: {
           id: { in: filterFieldIds },
-          organization_id: organizationId,
-          module_type: moduleType,
+          organizationId: organizationId,
+          moduleType: moduleType,
           isDeleted: false,
         },
-        select: { id: true, field_type: true, field_name: true },
+        select: { id: true, fieldType: true, fieldName: true },
       });
 
       const fieldTypeMap = new Map(
-        filterFields.map((f) => [f.id, f.field_type])
+        filterFields.map((f) => [f.id, f.fieldType])
       );
 
       for (const [id, val] of Object.entries(filter)) {
@@ -162,7 +162,7 @@ export class BoardService {
           {
             values: {
               some: {
-                field_id: id,
+                fieldId: id,
                 value: useExactMatch
                   ? { equals: String(val), mode: "insensitive" }
                   : { contains: String(val), mode: "insensitive" },
@@ -173,13 +173,13 @@ export class BoardService {
       }
     }
     // Determine if sorting by a static Board field or a dynamic field
-    const staticSortFields = ["record_name", "created_at"];
+    const staticSortFields = ["recordName", "createdAt"];
     const isStaticSort = !sortBy || staticSortFields.includes(sortBy);
     const order = sortOrder === "desc" ? "desc" : "asc";
 
     const orderBy: Prisma.BoardOrderByWithRelationInput = isStaticSort
-      ? { [sortBy || "record_name"]: order }
-      : { created_at: "desc" }; // default for dynamic field sort (re-sorted after fetch)
+      ? { [sortBy || "recordName"]: order }
+      : { createdAt: "desc" }; // default for dynamic field sort (re-sorted after fetch)
 
     const [boards, count, fields] = await Promise.all([
       prisma.board.findMany({
@@ -191,7 +191,7 @@ export class BoardService {
             select: {
               field: {
                 select: {
-                  field_name: true,
+                  fieldName: true,
                   id: true,
                 },
               },
@@ -207,18 +207,18 @@ export class BoardService {
       prisma.board.count({ where }),
       prisma.field.findMany({
         where: {
-          organization_id: organizationId,
-          module_type: moduleType,
+          organizationId: organizationId,
+          moduleType: moduleType,
           isDeleted: false,
         },
-        orderBy: { field_order: "asc" },
+        orderBy: { fieldOrder: "asc" },
       }),
     ]);
 
     const formatted = boards.map((b) => {
       const dynamicData = b.values.reduce(
         (acc, curr) => {
-          acc[curr.field.field_name] = curr.value;
+          acc[curr.field.fieldName] = curr.value;
           return acc;
         },
         {} as Record<string, string | null>
@@ -226,9 +226,9 @@ export class BoardService {
 
       return {
         id: b.id,
-        record_name: b.record_name,
-        assigned_to: b.assigned_to,
-        created_at: b.created_at,
+        recordName: b.recordName,
+        assignedTo: b.assignedTo,
+        createdAt: b.createdAt,
         has_notification: b.notifications.length > 0,
         ...dynamicData,
       };
@@ -239,8 +239,8 @@ export class BoardService {
       const sortField = fields.find((f) => f.id === sortBy);
       if (sortField) {
         formatted.sort((a, b) => {
-          const valA = (a as Record<string, any>)[sortField.field_name] ?? "";
-          const valB = (b as Record<string, any>)[sortField.field_name] ?? "";
+          const valA = (a as Record<string, any>)[sortField.fieldName] ?? "";
+          const valB = (b as Record<string, any>)[sortField.fieldName] ?? "";
           const cmp = String(valA).localeCompare(String(valB), undefined, {
             numeric: true,
             sensitivity: "base",
@@ -258,8 +258,8 @@ export class BoardService {
       },
       columns: fields.map((f) => ({
         id: f.id,
-        name: f.field_name,
-        type: f.field_type,
+        name: f.fieldName,
+        type: f.fieldType,
       })),
       data: formatted,
     };
@@ -278,26 +278,26 @@ export class BoardService {
     const offset = (page - 1) * Number(limit);
     const where: Prisma.HistoryWhereInput = {
       record: {
-        organization_id: organizationId,
-        module_type: moduleType,
+        organizationId: organizationId,
+        moduleType: moduleType,
       },
       action: { in: ["delete", "update", "restore"] },
     };
     const [history, total] = await Promise.all([
       prisma.history.findMany({
         where: where,
-        orderBy: { created_at: "desc" },
+        orderBy: { createdAt: "desc" },
         take: Number(limit),
         skip: offset,
         include: {
           user: {
             select: {
-              user_name: true,
+              name: true,
             },
           },
           record: {
             select: {
-              record_name: true,
+              recordName: true,
             },
           },
         },
@@ -307,12 +307,12 @@ export class BoardService {
     const formatted = history.map((h) => {
       return {
         id: h.id,
-        created_at: h.created_at,
-        created_by: h.user?.user_name,
+        createdAt: h.createdAt,
+        createdBy: h.user?.name,
         action: h.action,
-        record_name: h.record?.record_name,
-        old_value: h.old_value,
-        new_value: h.new_value,
+        recordName: h.record?.recordName,
+        oldValue: h.oldValue,
+        newValue: h.newValue,
         column: h.column,
       };
     });
@@ -325,31 +325,31 @@ export class BoardService {
   async getHistory(recordId: string, take: number, offset: number) {
     const [history, total] = await Promise.all([
       prisma.history.findMany({
-        where: { record_id: recordId },
+        where: { recordId: recordId },
         include: {
           user: {
             select: {
-              user_name: true,
+              name: true,
             },
           },
         },
-        orderBy: { created_at: "desc" },
+        orderBy: { createdAt: "desc" },
         take: take,
         skip: offset,
       }),
       prisma.history.count({
-        where: { record_id: recordId },
+        where: { recordId: recordId },
       }),
     ]);
 
     const formatted = history.map((h) => {
       return {
         id: h.id,
-        created_at: h.created_at,
-        created_by: h.user?.user_name,
+        createdAt: h.createdAt,
+        createdBy: h.user?.name,
         action: h.action,
-        old_value: h.old_value,
-        new_value: h.new_value,
+        oldValue: h.oldValue,
+        newValue: h.newValue,
         column: h.column,
       };
     });
@@ -368,33 +368,33 @@ export class BoardService {
     const record = await prisma.board.findFirstOrThrow({
       where: { id: recordId },
       select: {
-        record_name: true,
-        assigned_user: {
+        recordName: true,
+        assignedUser: {
           select: {
             id: true,
-            user_name: true,
+            name: true,
           },
         },
       },
     });
 
-    if (!record.assigned_user) {
+    if (!record.assignedUser) {
       return {
         recordId,
-        recordName: record.record_name,
+        recordName: record.recordName,
         assignedTo: null,
         summary: null,
         message: "Lead is not yet assigned to a marketing member.",
       };
     }
 
-    const where: Prisma.marketingWhereInput = {
+    const where: Prisma.MarketingWhereInput = {
       member: {
-        user_table: {
-          id: record.assigned_user.id,
+        user: {
+          id: record.assignedUser.id,
         },
       },
-    } as Prisma.marketingWhereInput;
+    } as Prisma.MarketingWhereInput;
 
     if (dateStartDate && dateEndDate) {
       where.createdAt = {
@@ -403,9 +403,9 @@ export class BoardService {
       };
     }
 
-    if (record.record_name) {
+    if (record.recordName) {
       where.facility = {
-        contains: record.record_name,
+        contains: record.recordName,
         mode: "insensitive",
       };
     }
@@ -479,8 +479,8 @@ export class BoardService {
 
     return {
       recordId,
-      recordName: record.record_name,
-      assignedTo: record.assigned_user?.user_name ?? "Unknown",
+      recordName: record.recordName,
+      assignedTo: record.assignedUser?.name ?? "Unknown",
       summary: {
         totalInteractions,
         facilitiesCovered,
@@ -498,19 +498,19 @@ export class BoardService {
     if (cached) return cached;
 
     const record = await prisma.board.findFirstOrThrow({
-      where: { id: recordId, organization_id: organizationId },
+      where: { id: recordId, organizationId: organizationId },
       select: {
         id: true,
-        record_name: true,
-        created_at: true,
-        updated_at: true,
-        assigned_user: {
-          select: { id: true, user_name: true },
+        recordName: true,
+        createdAt: true,
+        updatedAt: true,
+        assignedUser: {
+          select: { id: true, name: true },
         },
         values: {
           select: {
             value: true,
-            field: { select: { field_name: true } },
+            field: { select: { fieldName: true } },
           },
         },
       },
@@ -518,28 +518,28 @@ export class BoardService {
 
     const fieldValues = record.values.reduce(
       (acc, v) => {
-        acc[v.field.field_name] = v.value;
+        acc[v.field.fieldName] = v.value;
         return acc;
       },
       {} as Record<string, string | null>
     );
 
     const recentHistory = await prisma.history.findMany({
-      where: { record_id: recordId },
-      orderBy: { created_at: "desc" },
+      where: { recordId: recordId },
+      orderBy: { createdAt: "desc" },
       take: 20,
       select: {
         action: true,
         column: true,
-        old_value: true,
-        new_value: true,
-        created_at: true,
-        user: { select: { user_name: true } },
+        oldValue: true,
+        newValue: true,
+        createdAt: true,
+        user: { select: { name: true } },
       },
     });
 
     const totalHistoryEvents = await prisma.history.count({
-      where: { record_id: recordId },
+      where: { recordId: recordId },
     });
 
     // Fetch marketing engagement if lead has an assigned user
@@ -550,13 +550,13 @@ export class BoardService {
       engagementLevel: string;
     } | null = null;
 
-    if (record.assigned_user) {
-      const where: Prisma.marketingWhereInput = {
-        member: { user_table: { id: record.assigned_user.id } },
-      } as Prisma.marketingWhereInput;
+    if (record.assignedUser) {
+      const where: Prisma.MarketingWhereInput = {
+        member: { user: { id: record.assignedUser.id } },
+      } as Prisma.MarketingWhereInput;
 
-      if (record.record_name) {
-        where.facility = { contains: record.record_name, mode: "insensitive" };
+      if (record.recordName) {
+        where.facility = { contains: record.recordName, mode: "insensitive" };
       }
 
       const marketingLogs = await prisma.marketing.findMany({
@@ -597,26 +597,24 @@ export class BoardService {
 
     const now = new Date();
     const daysSinceCreation = Math.floor(
-      (now.getTime() - record.created_at.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - record.createdAt.getTime()) / (1000 * 60 * 60 * 24)
     );
     const lastUpdate =
-      recentHistory.length > 0
-        ? recentHistory[0].created_at
-        : record.updated_at;
+      recentHistory.length > 0 ? recentHistory[0].createdAt : record.updatedAt;
     const daysSinceLastUpdate = Math.floor(
       (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     const context = {
-      recordName: record.record_name,
+      recordName: record.recordName,
       fieldValues,
       recentHistory: recentHistory.map((h) => ({
         action: h.action,
         column: h.column,
-        old_value: h.old_value,
-        new_value: h.new_value,
-        created_at: h.created_at,
-        created_by: h.user?.user_name ?? null,
+        oldValue: h.oldValue,
+        newValue: h.newValue,
+        createdAt: h.createdAt,
+        createdBy: h.user?.name ?? null,
       })),
       engagementSummary,
       metadata: {
@@ -647,22 +645,22 @@ export class BoardService {
     const record = await prisma.board.findUniqueOrThrow({
       where: {
         id: recordId,
-        organization_id: organizationId,
-        module_type: moduleType,
+        organizationId: organizationId,
+        moduleType: moduleType,
       },
       select: {
         id: true,
-        record_name: true,
-        assigned_user: {
+        recordName: true,
+        assignedUser: {
           select: {
-            user_name: true,
+            name: true,
           },
         },
         values: {
           select: {
             field: {
               select: {
-                field_name: true,
+                fieldName: true,
               },
             },
             value: true,
@@ -672,10 +670,10 @@ export class BoardService {
     });
 
     const fields = await prisma.field.findMany({
-      orderBy: { field_order: "asc" },
+      orderBy: { fieldOrder: "asc" },
       where: {
-        organization_id: organizationId,
-        module_type: moduleType,
+        organizationId: organizationId,
+        moduleType: moduleType,
         isDeleted: false,
       },
     });
@@ -683,7 +681,7 @@ export class BoardService {
     // ✅ Build dynamic fields ONCE
     const dynamicData = record.values.reduce(
       (acc, curr) => {
-        acc[curr.field.field_name] = curr.value;
+        acc[curr.field.fieldName] = curr.value;
         return acc;
       },
       {} as Record<string, string | null>
@@ -692,16 +690,16 @@ export class BoardService {
     // ✅ Single formatted record
     const formatted = {
       id: record.id,
-      record_name: record.record_name,
-      assigned_to: record.assigned_user?.user_name ?? null,
+      recordName: record.recordName,
+      assignedTo: record.assignedUser?.name ?? null,
       ...dynamicData,
     };
 
     return {
       columns: fields.map((f) => ({
         id: f.id,
-        name: f.field_name,
-        type: f.field_type,
+        name: f.fieldName,
+        type: f.fieldType,
       })),
       data: formatted, // 👈 object, not array
     };
@@ -737,13 +735,13 @@ export class BoardService {
 
   async getCountyConfiguration(organizationId: string) {
     const counties = await prisma.boardCounty.findMany({
-      where: { organization_id: organizationId },
+      where: { organizationId: organizationId },
       select: {
         id: true,
-        county_name: true,
+        countyName: true,
         boardCountyAssignedTo: {
           select: {
-            assigned_to: true,
+            assignedTo: true,
           },
         },
       },
@@ -751,8 +749,8 @@ export class BoardService {
 
     return counties.map((c) => ({
       id: c.id,
-      name: c.county_name,
-      assigned_to: c.boardCountyAssignedTo.map((a) => a.assigned_to),
+      name: c.countyName,
+      assignedTo: c.boardCountyAssignedTo.map((a) => a.assignedTo),
     }));
   }
 
@@ -763,34 +761,34 @@ export class BoardService {
     limit: number | null
   ) {
     if (fieldId === BoardFieldType.ASSIGNED_TO) {
-      const assignedTo = await prisma.member_table.findMany({
+      const assignedTo = await prisma.member.findMany({
         where: {
           organizationId: organizationId,
         },
         select: {
-          user_table: {
+          user: {
             select: {
               id: true,
-              user_name: true,
+              name: true,
             },
           },
         },
       });
 
       return assignedTo.map((a) => ({
-        id: a.user_table.id,
-        value: a.user_table.user_name,
+        id: a.user.id,
+        value: a.user.name,
       }));
     }
 
     let where: Prisma.FieldOptionFindManyArgs = {
-      where: { field_id: fieldId, is_deleted: false },
+      where: { fieldId: fieldId, isDeleted: false },
     };
 
     if (page && limit) {
       where.skip = (page - 1) * limit;
       where.take = Number(limit);
-      where.orderBy = { option_name: "asc" };
+      where.orderBy = { optionName: "asc" };
     }
 
     const options = await prisma.fieldOption.findMany(where);
@@ -798,14 +796,14 @@ export class BoardService {
     if (!page && !limit) {
       return options.map((o) => ({
         id: o.id,
-        value: o.option_name,
+        value: o.optionName,
       }));
     }
 
     const field = await prisma.field.findUnique({
       where: { id: fieldId, isDeleted: false },
       select: {
-        field_name: true,
+        fieldName: true,
       },
     });
 
@@ -814,17 +812,17 @@ export class BoardService {
     });
 
     return {
-      field: field?.field_name,
+      field: field?.fieldName,
       data: options.map((o) => ({
         id: o.id,
-        value: o.option_name,
+        value: o.optionName,
       })),
       total: total,
     };
   }
 
   async updateRecordValue(
-    record_id: string,
+    recordId: string,
     fieldId: string,
     value: string,
     organizationId: string,
@@ -835,12 +833,12 @@ export class BoardService {
     try {
       const recordValue = await prisma.$transaction(async (tx) => {
         if (fieldId === BoardFieldType.ASSIGNED_TO) {
-          await this.updateAssignedTo(tx, record_id, value, memberId);
+          await this.updateAssignedTo(tx, recordId, value, memberId);
           await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
           this.boardGateway.emitRecordValueUpdated(
             organizationId,
-            record_id,
+            recordId,
             "Assigned To",
             value,
             moduleType
@@ -852,13 +850,13 @@ export class BoardService {
         }
 
         if (fieldId === "Record") {
-          await this.updateRecordName(tx, record_id, value, memberId);
+          await this.updateRecordName(tx, recordId, value, memberId);
 
           await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
           this.boardGateway.emitRecordValueUpdated(
             organizationId,
-            record_id,
+            recordId,
             "Record",
             value,
             moduleType
@@ -870,27 +868,27 @@ export class BoardService {
         }
 
         const field = await tx.field.findUnique({
-          where: { id: fieldId, organization_id: organizationId },
+          where: { id: fieldId, organizationId: organizationId },
           select: {
-            field_type: true,
+            fieldType: true,
             id: true,
-            field_name: true,
+            fieldName: true,
           },
         });
 
         if (!field) throw new NotFoundException("Field not found");
 
-        if (field.field_type === BoardFieldType.LOCATION) {
+        if (field.fieldType === BoardFieldType.LOCATION) {
           const locationData = await this.createLocation(
             value,
-            record_id,
+            recordId,
             organizationId
           );
           await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
           this.boardGateway.emitRecordValueLocation(
             organizationId,
-            record_id,
+            recordId,
             {
               ...locationData,
             },
@@ -901,7 +899,7 @@ export class BoardService {
           };
         }
 
-        if (field.field_type === BoardFieldType.MULTISELECT) {
+        if (field.fieldType === BoardFieldType.MULTISELECT) {
           // Normalize value into an array of clean strings
           const normalizedValue = Array.isArray(value)
             ? value
@@ -915,33 +913,33 @@ export class BoardService {
 
           return await tx.fieldValue.upsert({
             where: {
-              record_id_field_id: {
-                record_id: record_id,
-                field_id: field.id,
+              recordId_fieldId: {
+                recordId: recordId,
+                fieldId: field.id,
               },
             },
             update: {
               value: JSON.stringify(normalizedValue),
             },
             create: {
-              record_id: record_id,
-              field_id: field.id,
+              recordId: recordId,
+              fieldId: field.id,
               value: JSON.stringify(normalizedValue),
             },
           });
         }
 
-        if (field.field_name === "County" && moduleType === "REFERRAL") {
+        if (field.fieldName === "County" && moduleType === "REFERRAL") {
           const [assignedTo, facilityField] = await Promise.all([
             tx.boardCounty.findFirstOrThrow({
               where: {
-                county_name: value,
-                organization_id: organizationId,
+                countyName: value,
+                organizationId: organizationId,
               },
               include: {
                 boardCountyAssignedTo: {
                   select: {
-                    assigned_to: true,
+                    assignedTo: true,
                   },
                   take: 1,
                 },
@@ -949,8 +947,8 @@ export class BoardService {
             }),
             tx.field.findFirstOrThrow({
               where: {
-                field_name: "Facility",
-                organization_id: organizationId,
+                fieldName: "Facility",
+                organizationId: organizationId,
               },
               select: {
                 id: true,
@@ -961,15 +959,15 @@ export class BoardService {
           // Save County value
           await tx.fieldValue.upsert({
             where: {
-              record_id_field_id: {
-                record_id: record_id,
-                field_id: field.id,
+              recordId_fieldId: {
+                recordId: recordId,
+                fieldId: field.id,
               },
             },
             update: { value },
             create: {
-              record_id: record_id,
-              field_id: field.id,
+              recordId: recordId,
+              fieldId: field.id,
               value,
             },
           });
@@ -977,18 +975,18 @@ export class BoardService {
           // Save Facility value
           await tx.fieldValue.upsert({
             where: {
-              record_id_field_id: {
-                record_id: record_id,
-                field_id: facilityField.id,
+              recordId_fieldId: {
+                recordId: recordId,
+                fieldId: facilityField.id,
               },
             },
             update: {
-              value: assignedTo.boardCountyAssignedTo[0].assigned_to,
+              value: assignedTo.boardCountyAssignedTo[0].assignedTo,
             },
             create: {
-              record_id: record_id,
-              field_id: facilityField.id,
-              value: assignedTo.boardCountyAssignedTo[0].assigned_to,
+              recordId: recordId,
+              fieldId: facilityField.id,
+              value: assignedTo.boardCountyAssignedTo[0].assignedTo,
             },
           });
 
@@ -997,38 +995,38 @@ export class BoardService {
           };
         }
 
-        if (field.field_name === "Status") {
+        if (field.fieldName === "Status") {
           // Find the related "Reason" and "Action Date" fields
           const statusFields = await prisma.field.findMany({
             where: {
-              field_name: {
+              fieldName: {
                 in: ["Reason", "Action Date (Accepted / Rejected)"],
               },
               isDeleted: false,
-              organization_id: organizationId,
+              organizationId: organizationId,
             },
-            select: { id: true, field_name: true },
+            select: { id: true, fieldName: true },
           });
 
           const reasonField = statusFields.find(
-            (f) => f.field_name === "Reason"
+            (f) => f.fieldName === "Reason"
           );
           const actionDateField = statusFields.find(
-            (f) => f.field_name === "Action Date (Accepted / Rejected)"
+            (f) => f.fieldName === "Action Date (Accepted / Rejected)"
           );
 
           await prisma.$transaction(async (tx) => {
             await tx.fieldValue.upsert({
               where: {
-                record_id_field_id: {
-                  record_id: record_id,
-                  field_id: field.id,
+                recordId_fieldId: {
+                  recordId: recordId,
+                  fieldId: field.id,
                 },
               },
               update: { value },
               create: {
-                record_id: record_id,
-                field_id: field.id,
+                recordId: recordId,
+                fieldId: field.id,
                 value,
               },
             });
@@ -1036,15 +1034,15 @@ export class BoardService {
             if (reason && reasonField) {
               await tx.fieldValue.upsert({
                 where: {
-                  record_id_field_id: {
-                    record_id: record_id,
-                    field_id: reasonField.id,
+                  recordId_fieldId: {
+                    recordId: recordId,
+                    fieldId: reasonField.id,
                   },
                 },
                 update: { value: reason },
                 create: {
-                  record_id: record_id,
-                  field_id: reasonField.id,
+                  recordId: recordId,
+                  fieldId: reasonField.id,
                   value: reason,
                 },
               });
@@ -1056,15 +1054,15 @@ export class BoardService {
 
               await tx.fieldValue.upsert({
                 where: {
-                  record_id_field_id: {
-                    record_id: record_id,
-                    field_id: actionDateField.id,
+                  recordId_fieldId: {
+                    recordId: recordId,
+                    fieldId: actionDateField.id,
                   },
                 },
                 update: { value: now },
                 create: {
-                  record_id: record_id,
-                  field_id: actionDateField.id,
+                  recordId: recordId,
+                  fieldId: actionDateField.id,
                   value: now,
                 },
               });
@@ -1078,34 +1076,34 @@ export class BoardService {
 
         const existingRecordValue = await prisma.fieldValue.findUnique({
           where: {
-            record_id_field_id: { record_id: record_id, field_id: field.id },
+            recordId_fieldId: { recordId: recordId, fieldId: field.id },
           },
           select: { value: true },
         });
 
         const recordValue = await tx.fieldValue.upsert({
           where: {
-            record_id_field_id: { record_id: record_id, field_id: field.id },
+            recordId_fieldId: { recordId: recordId, fieldId: field.id },
           },
           update: { value },
-          create: { record_id: record_id, field_id: field.id, value },
+          create: { recordId: recordId, fieldId: field.id, value },
         });
 
         await this.createRecordHistory(
-          record_id,
+          recordId,
           existingRecordValue?.value ?? "",
           value,
           memberId,
           "update",
-          field.field_name
+          field.fieldName
         );
 
         await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
         this.boardGateway.emitRecordValueUpdated(
           organizationId,
-          record_id,
-          field.field_name,
+          recordId,
+          field.fieldName,
           value,
           moduleType
         );
@@ -1128,17 +1126,17 @@ export class BoardService {
   ) {
     const fields = await prisma.field.findMany({
       where: {
-        organization_id: organizationId,
-        module_type: moduleType,
+        organizationId: organizationId,
+        moduleType: moduleType,
         isDeleted: false,
       },
-      orderBy: { field_order: "asc" },
-      select: { id: true, field_name: true, field_type: true },
+      orderBy: { fieldOrder: "asc" },
+      select: { id: true, fieldName: true, fieldType: true },
     });
 
     const fieldDescriptions = fields.map((f) => ({
-      name: f.field_name,
-      type: f.field_type,
+      name: f.fieldName,
+      type: f.fieldType,
     }));
 
     const base64Image = file.buffer.toString("base64");
@@ -1162,7 +1160,7 @@ export class BoardService {
     const parsed = JSON.parse(result.text ?? "{}");
 
     // Map field names to field IDs
-    const fieldMap = new Map(fields.map((f) => [f.field_name, f.id]));
+    const fieldMap = new Map(fields.map((f) => [f.fieldName, f.id]));
     const mappedFields: Record<string, string | null> = {};
 
     if (parsed.fields) {
@@ -1175,7 +1173,7 @@ export class BoardService {
     }
 
     return {
-      record_name: parsed.record_name ?? "",
+      recordName: parsed.recordName ?? "",
       contactInfo: parsed.contactInfo ?? {
         name: null,
         phone: null,
@@ -1185,14 +1183,14 @@ export class BoardService {
       fields: mappedFields,
       columns: fields.map((f) => ({
         id: f.id,
-        field_name: f.field_name,
-        field_type: f.field_type,
+        fieldName: f.fieldName,
+        fieldType: f.fieldType,
       })),
     };
   }
 
   async createRecord(
-    record_name: string,
+    recordName: string,
     organizationId: string,
     memberId: string,
     moduleType: string,
@@ -1207,23 +1205,23 @@ export class BoardService {
     const record = await prisma.$transaction(async (tx) => {
       const board = await tx.board.create({
         data: {
-          record_name: record_name ?? "",
-          organization_id: organizationId,
-          module_type: moduleType,
+          recordName: recordName ?? "",
+          organizationId: organizationId,
+          moduleType: moduleType,
         },
       });
 
       const fields = await tx.field.findMany({
         where: {
-          organization_id: organizationId,
-          module_type: moduleType,
+          organizationId: organizationId,
+          moduleType: moduleType,
           isDeleted: false,
         },
       });
 
       const fieldValues = fields.map((f) => ({
-        record_id: board.id,
-        field_id: f.id,
+        recordId: board.id,
+        fieldId: f.id,
         value: initialValues?.[f.id] ?? null,
       }));
 
@@ -1232,9 +1230,9 @@ export class BoardService {
       if (personContact?.fieldId) {
         const personFieldValue = await tx.fieldValue.findUnique({
           where: {
-            record_id_field_id: {
-              record_id: board.id,
-              field_id: personContact.fieldId,
+            recordId_fieldId: {
+              recordId: board.id,
+              fieldId: personContact.fieldId,
             },
           },
         });
@@ -1255,18 +1253,18 @@ export class BoardService {
 
       await tx.history.create({
         data: {
-          record_id: board.id,
-          old_value: "",
-          new_value: record_name,
+          recordId: board.id,
+          oldValue: "",
+          newValue: recordName,
           action: "create",
-          created_by: memberId,
+          createdBy: memberId,
         },
       });
 
       await tx.boardNotificationState.create({
         data: {
-          record_id: board.id,
-          last_seen: new Date(),
+          recordId: board.id,
+          lastSeen: new Date(),
         },
       });
 
@@ -1287,8 +1285,8 @@ export class BoardService {
   ) {
     const result = await prisma.$transaction(async (tx) => {
       const fields = await tx.field.findMany({
-        where: { organization_id: organizationId, module_type: moduleType },
-        orderBy: { field_order: "asc" },
+        where: { organizationId: organizationId, moduleType: moduleType },
+        orderBy: { fieldOrder: "asc" },
       });
 
       const createdReferrals: any = [];
@@ -1299,9 +1297,9 @@ export class BoardService {
       for (const referralData of referralItems) {
         const referral = await tx.board.create({
           data: {
-            record_name: referralData.referral_name ?? "",
-            module_type: moduleType,
-            organization_id: organizationId,
+            recordName: referralData.referral_name ?? "",
+            moduleType: moduleType,
+            organizationId: organizationId,
           },
         });
 
@@ -1309,13 +1307,13 @@ export class BoardService {
 
         for (const field of fields) {
           const customValue =
-            referralData[field.field_name] ??
-            referralData[field.field_name.toLowerCase()];
+            referralData[field.fieldName] ??
+            referralData[field.fieldName.toLowerCase()];
           let value: string | null = null;
 
           if (customValue !== undefined && customValue !== null) {
             // Handle MULTISELECT type
-            if (field.field_type === BoardFieldType.MULTISELECT) {
+            if (field.fieldType === BoardFieldType.MULTISELECT) {
               const normalizedValue = Array.isArray(customValue)
                 ? customValue
                 : typeof customValue === "string"
@@ -1332,8 +1330,8 @@ export class BoardService {
 
           allReferralValues.push({
             id: uuidv4(),
-            record_id: referral.id,
-            field_id: field.id,
+            recordId: referral.id,
+            fieldId: field.id,
             value: value,
             moduleType: moduleType,
           });
@@ -1342,20 +1340,20 @@ export class BoardService {
         // Prepare history entry
         allHistoryEntries.push({
           id: uuidv4(),
-          created_at: new Date(),
-          record_id: referral.id,
-          old_value: null,
-          new_value: referralData.referral_name,
+          createdAt: new Date(),
+          recordId: referral.id,
+          oldValue: null,
+          newValue: referralData.referral_name,
           action: "create",
-          created_by: memberId,
+          createdBy: memberId,
           column: "Referral Name",
         });
 
         allNotificationStates.push({
           id: uuidv4(),
           updated_at: new Date(),
-          record_id: referral.id,
-          last_seen: new Date(),
+          recordId: referral.id,
+          lastSeen: new Date(),
         });
       }
 
@@ -1399,15 +1397,15 @@ export class BoardService {
   async createCountyAssignment(
     name: string,
     organizationId: string,
-    assigned_to: string
+    assignedTo: string
   ) {
     await prisma.boardCounty.create({
       data: {
-        county_name: name,
-        organization_id: organizationId,
+        countyName: name,
+        organizationId: organizationId,
         boardCountyAssignedTo: {
           create: {
-            assigned_to: assigned_to,
+            assignedTo: assignedTo,
           },
         },
       },
@@ -1419,7 +1417,7 @@ export class BoardService {
   }
 
   async restoreRecord(
-    record_id: string,
+    recordId: string,
     history_id: string,
     organizationId: string,
     event_type: string,
@@ -1430,26 +1428,26 @@ export class BoardService {
       where: { id: history_id },
       select: {
         column: true,
-        old_value: true,
-        new_value: true,
-        record_id: true,
+        oldValue: true,
+        newValue: true,
+        recordId: true,
       },
     });
 
     if (event_type === "update") {
       const record = await prisma.board.findUniqueOrThrow({
-        where: { id: history.record_id },
-        select: { is_deleted: true },
+        where: { id: history.recordId },
+        select: { isDeleted: true },
       });
 
-      if (record.is_deleted) {
+      if (record.isDeleted) {
         throw new NotFoundException("Record is deleted");
       }
 
       const field = await prisma.field.findFirstOrThrow({
         where: {
-          field_name: history.column ?? "",
-          organization_id: organizationId,
+          fieldName: history.column ?? "",
+          organizationId: organizationId,
           isDeleted: false,
         },
       });
@@ -1457,21 +1455,21 @@ export class BoardService {
       await prisma.$transaction(async (tx) => {
         await tx.fieldValue.update({
           where: {
-            record_id_field_id: {
-              record_id: history.record_id,
-              field_id: field.id,
+            recordId_fieldId: {
+              recordId: history.recordId,
+              fieldId: field.id,
             },
           },
-          data: { value: history.old_value },
+          data: { value: history.oldValue },
         });
         await tx.history.create({
           data: {
-            record_id: history.record_id,
-            old_value: history.new_value,
-            new_value: history.old_value,
+            recordId: history.recordId,
+            oldValue: history.newValue,
+            newValue: history.oldValue,
             action: "restore",
             column: history.column,
-            created_by: userId,
+            createdBy: userId,
           },
         });
       });
@@ -1480,9 +1478,9 @@ export class BoardService {
 
       this.boardGateway.emitRecordValueUpdated(
         organizationId,
-        history.record_id,
+        history.recordId,
         history.column ?? "",
-        history.old_value ?? "",
+        history.oldValue ?? "",
         moduleType
       );
       return {
@@ -1493,17 +1491,17 @@ export class BoardService {
     if (event_type === "delete") {
       await prisma.$transaction(async (tx) => {
         await tx.board.update({
-          where: { id: history.record_id },
-          data: { is_deleted: Boolean(history.old_value) },
+          where: { id: history.recordId },
+          data: { isDeleted: Boolean(history.oldValue) },
         });
         await tx.history.create({
           data: {
-            record_id: history.record_id,
-            old_value: history.new_value,
-            new_value: history.old_value,
+            recordId: history.recordId,
+            oldValue: history.newValue,
+            newValue: history.oldValue,
             action: "restore",
             column: history.column,
-            created_by: userId,
+            createdBy: userId,
           },
         });
       });
@@ -1512,9 +1510,9 @@ export class BoardService {
 
       this.boardGateway.emitRecordValueUpdated(
         organizationId,
-        history.record_id,
+        history.recordId,
         history.column ?? "",
-        history.old_value ?? "",
+        history.oldValue ?? "",
         moduleType
       );
       return {
@@ -1523,14 +1521,14 @@ export class BoardService {
     }
   }
 
-  async setRecordNotificationState(record_id: string, organizationId: string) {
+  async setRecordNotificationState(recordId: string, organizationId: string) {
     const [deleted, record] = await Promise.all([
       prisma.boardNotificationState.deleteMany({
-        where: { record_id: record_id },
+        where: { recordId: recordId },
       }),
       prisma.board.findUnique({
-        where: { id: record_id },
-        select: { module_type: true },
+        where: { id: recordId },
+        select: { moduleType: true },
       }),
     ]);
 
@@ -1538,8 +1536,8 @@ export class BoardService {
 
     this.boardGateway.emitRecordNotificationState(
       organizationId,
-      record_id,
-      record?.module_type ?? "LEAD"
+      recordId,
+      record?.moduleType ?? "LEAD"
     );
 
     return {
@@ -1550,28 +1548,28 @@ export class BoardService {
 
   async createColumn(
     column_name: string,
-    field_type: BoardFieldType,
-    module_type: string,
+    fieldType: BoardFieldType,
+    moduleType: string,
     organizationId: string
   ) {
     const lastColumn = await prisma.field.findFirst({
       where: {
-        organization_id: organizationId,
-        module_type: module_type,
+        organizationId: organizationId,
+        moduleType: moduleType,
         isDeleted: false,
       },
-      orderBy: { field_order: "desc" },
+      orderBy: { fieldOrder: "desc" },
     });
 
-    const newOrder = lastColumn ? lastColumn.field_order + 1 : 1;
+    const newOrder = lastColumn ? lastColumn.fieldOrder + 1 : 1;
 
     await prisma.field.create({
       data: {
-        field_name: column_name,
-        field_type: field_type,
-        field_order: newOrder,
-        organization_id: organizationId,
-        module_type: module_type,
+        fieldName: column_name,
+        fieldType: fieldType,
+        fieldOrder: newOrder,
+        organizationId: organizationId,
+        moduleType: moduleType,
       },
     });
 
@@ -1580,7 +1578,7 @@ export class BoardService {
     this.boardGateway.emitColumnCreated(
       organizationId,
       column_name,
-      module_type
+      moduleType
     );
   }
 
@@ -1592,7 +1590,7 @@ export class BoardService {
     const field = await prisma.field.findFirst({
       where: {
         id: columnId,
-        organization_id: organizationId,
+        organizationId: organizationId,
         isDeleted: false,
       },
     });
@@ -1615,24 +1613,24 @@ export class BoardService {
 
   async createLocation(
     location_name: string,
-    record_id: string,
+    recordId: string,
     organizationId: string
   ) {
     if (location_name === "") {
       const fields = await prisma.field.findMany({
         where: {
-          field_name: {
+          fieldName: {
             in: ["Address", "City", "State", "Zip Code", "County", "Country"],
           },
           isDeleted: false,
-          organization_id: organizationId,
+          organizationId: organizationId,
         },
-        select: { id: true, field_name: true },
+        select: { id: true, fieldName: true },
       });
       await prisma.fieldValue.updateMany({
         where: {
-          record_id: record_id,
-          field_id: { in: fields.map((f) => f.id) },
+          recordId: recordId,
+          fieldId: { in: fields.map((f) => f.id) },
         },
         data: { value: null },
       });
@@ -1644,7 +1642,7 @@ export class BoardService {
     }
 
     const existing = await prisma.fieldValue.findFirst({
-      where: { record_id: record_id },
+      where: { recordId: recordId },
       select: { value: true },
     });
 
@@ -1685,13 +1683,13 @@ export class BoardService {
 
     const fields = await prisma.field.findMany({
       where: {
-        field_name: {
+        fieldName: {
           in: ["Address", "City", "State", "Zip Code", "County", "Country"],
         },
         isDeleted: false,
-        organization_id: organizationId,
+        organizationId: organizationId,
       },
-      select: { id: true, field_name: true },
+      select: { id: true, fieldName: true },
     });
 
     const mapper: Record<string, string | null> = {
@@ -1705,22 +1703,22 @@ export class BoardService {
 
     const upserts = fields
       .map((field) => {
-        const key = field.field_name.toLowerCase().replace(/\s+/g, "");
+        const key = field.fieldName.toLowerCase().replace(/\s+/g, "");
 
         const value = mapper[key];
         if (!value) return null;
 
         return prisma.fieldValue.upsert({
           where: {
-            record_id_field_id: {
-              record_id: record_id,
-              field_id: field.id,
+            recordId_fieldId: {
+              recordId: recordId,
+              fieldId: field.id,
             },
           },
           update: { value },
           create: {
-            record_id: record_id,
-            field_id: field.id,
+            recordId: recordId,
+            fieldId: field.id,
             value,
           },
         });
@@ -1741,40 +1739,40 @@ export class BoardService {
 
   async updateAssignedTo(
     tx: Prisma.TransactionClient,
-    record_id: string,
+    recordId: string,
     value: string,
     memberId: string
   ) {
     const existingRecord = await tx.board.findUnique({
-      where: { id: record_id },
+      where: { id: recordId },
       select: {
-        assigned_to: true,
-        assigned_user: {
+        assignedTo: true,
+        assignedUser: {
           select: {
-            user_name: true,
+            name: true,
           },
         },
       },
     });
 
     await tx.board.update({
-      where: { id: record_id },
-      data: { assigned_to: value },
+      where: { id: recordId },
+      data: { assignedTo: value },
     });
 
-    const newAssignedUser = await tx.user_table.findUniqueOrThrow({
+    const newAssignedUser = await tx.user.findUniqueOrThrow({
       where: {
         id: value,
       },
       select: {
-        user_name: true,
+        name: true,
       },
     });
 
     await this.createRecordHistory(
-      record_id,
-      existingRecord?.assigned_user?.user_name ?? "",
-      newAssignedUser.user_name ?? "",
+      recordId,
+      existingRecord?.assignedUser?.name ?? "",
+      newAssignedUser.name ?? "",
       memberId,
       "update",
       "Assigned To"
@@ -1783,22 +1781,22 @@ export class BoardService {
 
   async updateRecordName(
     tx: Prisma.TransactionClient,
-    record_id: string,
+    recordId: string,
     value: string,
     memberId: string
   ) {
     const existingRecord = await prisma.board.findUnique({
-      where: { id: record_id },
-      select: { record_name: true },
+      where: { id: recordId },
+      select: { recordName: true },
     });
 
     await tx.board.update({
-      where: { id: record_id },
-      data: { record_name: value },
+      where: { id: recordId },
+      data: { recordName: value },
     });
     await this.createRecordHistory(
-      record_id,
-      existingRecord?.record_name ?? "",
+      recordId,
+      existingRecord?.recordName ?? "",
       value,
       memberId,
       "update",
@@ -1806,11 +1804,11 @@ export class BoardService {
     );
   }
 
-  async createRecordFieldOption(fieldId: string, option_name: string) {
+  async createRecordFieldOption(fieldId: string, optionName: string) {
     return await prisma.fieldOption.create({
       data: {
-        option_name: option_name,
-        field_id: fieldId,
+        optionName: optionName,
+        fieldId: fieldId,
       },
     });
   }
@@ -1833,27 +1831,27 @@ export class BoardService {
     recordId: string,
     oldValue: string,
     newValue: string,
-    created_by: string,
+    createdBy: string,
     action?: string,
     column?: string
   ) {
     return await prisma.$transaction(async (tx) => {
       await tx.history.create({
         data: {
-          record_id: recordId,
-          old_value: oldValue,
-          new_value: newValue,
+          recordId: recordId,
+          oldValue: oldValue,
+          newValue: newValue,
           action: action ?? "create",
-          created_by: created_by,
+          createdBy: createdBy,
           column: column,
         },
       });
       await tx.boardNotificationState.upsert({
         where: {
-          record_id: recordId,
+          recordId: recordId,
         },
-        update: { last_seen: new Date() },
-        create: { record_id: recordId, last_seen: new Date() },
+        update: { lastSeen: new Date() },
+        create: { recordId: recordId, lastSeen: new Date() },
       });
     });
   }
@@ -1861,7 +1859,7 @@ export class BoardService {
   async updateRecordHistory(recordId: string) {
     return await prisma.history.updateMany({
       where: { id: recordId },
-      data: { created_at: new Date() },
+      data: { createdAt: new Date() },
     });
   }
 
@@ -1915,7 +1913,7 @@ export class BoardService {
 
     await prisma.$transaction(async (tx) => {
       await tx.boardCountyAssignedTo.deleteMany({
-        where: { board_county_id: countyId },
+        where: { boardCountyId: countyId },
       });
       await tx.boardCounty.delete({ where: { id: countyId } });
     });
@@ -1927,7 +1925,7 @@ export class BoardService {
   async deleteRecordFieldOption(optionId: string) {
     return await prisma.fieldOption.update({
       where: { id: optionId },
-      data: { is_deleted: true },
+      data: { isDeleted: true },
     });
   }
 
@@ -1939,7 +1937,7 @@ export class BoardService {
     await prisma.$transaction(async (tx) => {
       await tx.board.updateMany({
         where: { id: { in: record.map((r) => r.id) } },
-        data: { is_deleted: true },
+        data: { isDeleted: true },
       });
     });
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
@@ -2058,22 +2056,22 @@ export class BoardService {
     const [activities, total] = await Promise.all([
       prisma.activity.findMany({
         where: {
-          record_id: recordId,
-          organization_id: organizationId,
+          recordId: recordId,
+          organizationId: organizationId,
         },
         include: {
           creator: {
-            select: { user_name: true, user_email: true },
+            select: { name: true, email: true },
           },
         },
-        orderBy: { created_at: "desc" },
+        orderBy: { createdAt: "desc" },
         take: limit,
         skip: offset,
       }),
       prisma.activity.count({
         where: {
-          record_id: recordId,
-          organization_id: organizationId,
+          recordId: recordId,
+          organizationId: organizationId,
         },
       }),
     ]);
@@ -2083,18 +2081,18 @@ export class BoardService {
         id: a.id,
         title: a.title,
         description: a.description,
-        activity_type: a.activity_type,
+        activityType: a.activityType,
         status: a.status,
-        due_date: a.due_date,
-        completed_at: a.completed_at,
-        recipient_email: a.recipient_email,
-        email_subject: a.email_subject,
-        email_body: a.email_body,
-        email_sent_at: a.email_sent_at,
-        sender_email: a.sender_email,
-        created_at: a.created_at,
-        created_by: a.creator.user_name,
-        creator_email: a.creator.user_email,
+        dueDate: a.dueDate,
+        completedAt: a.completedAt,
+        recipientEmail: a.recipientEmail,
+        emailSubject: a.emailSubject,
+        emailBody: a.emailBody,
+        emailSentAt: a.emailSentAt,
+        senderEmail: a.senderEmail,
+        createdAt: a.createdAt,
+        createdBy: a.creator.name,
+        creator_email: a.creator.email,
       })),
       total,
     };
@@ -2102,70 +2100,70 @@ export class BoardService {
 
   async createActivity(
     data: {
-      record_id?: string;
+      recordId?: string;
       title?: string;
       description?: string;
-      activity_type?: string;
-      due_date?: string;
-      recipient_email?: string;
-      email_subject?: string;
-      email_body?: string;
+      activityType?: string;
+      dueDate?: string;
+      recipientEmail?: string;
+      emailSubject?: string;
+      emailBody?: string;
       send_via?: string;
     },
     organizationId: string,
     userId: string
   ) {
-    const recordId = data.record_id!;
+    const recordId = data.recordId!;
     const title = data.title!;
-    const activityType = data.activity_type!;
+    const activityType = data.activityType!;
 
     await prisma.board.findFirstOrThrow({
-      where: { id: recordId, organization_id: organizationId },
+      where: { id: recordId, organizationId: organizationId },
     });
 
     const activity = await prisma.activity.create({
       data: {
         title: title,
         description: data.description,
-        activity_type: activityType as any,
-        due_date: data.due_date ? new Date(data.due_date) : null,
-        recipient_email: data.recipient_email,
-        email_subject: data.email_subject,
-        email_body: data.email_body,
-        record_id: recordId,
-        created_by: userId,
-        organization_id: organizationId,
+        activityType: activityType as any,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        recipientEmail: data.recipientEmail,
+        emailSubject: data.emailSubject,
+        emailBody: data.emailBody,
+        recordId: recordId,
+        createdBy: userId,
+        organizationId: organizationId,
       },
     });
 
-    const creator = await prisma.user_table.findUniqueOrThrow({
+    const creator = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { user_name: true, user_email: true },
+      select: { name: true, email: true },
     });
 
     this.boardGateway.emitActivityCreated(organizationId, recordId, {
       id: activity.id,
       title: activity.title,
-      activity_type: activity.activity_type,
+      activityType: activity.activityType,
       status: activity.status,
-      created_by: creator.user_name,
-      created_at: activity.created_at,
+      createdBy: creator.name,
+      createdAt: activity.createdAt,
     });
 
     return {
       id: activity.id,
       title: activity.title,
       description: activity.description,
-      activity_type: activity.activity_type,
+      activityType: activity.activityType,
       status: activity.status,
-      due_date: activity.due_date,
-      recipient_email: activity.recipient_email,
-      email_subject: activity.email_subject,
-      email_body: activity.email_body,
-      sender_email: activity.sender_email,
-      created_at: activity.created_at,
-      created_by: creator.user_name,
-      creator_email: creator.user_email,
+      dueDate: activity.dueDate,
+      recipientEmail: activity.recipientEmail,
+      emailSubject: activity.emailSubject,
+      emailBody: activity.emailBody,
+      senderEmail: activity.senderEmail,
+      createdAt: activity.createdAt,
+      createdBy: creator.name,
+      creator_email: creator.email,
     };
   }
 
@@ -2174,17 +2172,17 @@ export class BoardService {
     organizationId: string,
     userId: string,
     emailOverrides?: {
-      email_body?: string;
-      email_subject?: string;
-      recipient_email?: string;
+      emailBody?: string;
+      emailSubject?: string;
+      recipientEmail?: string;
       send_via?: string;
     }
   ) {
     const activity = await prisma.activity.findFirstOrThrow({
-      where: { id: activityId, organization_id: organizationId },
+      where: { id: activityId, organizationId: organizationId },
       include: {
-        record: { select: { record_name: true } },
-        creator: { select: { user_name: true, user_email: true } },
+        record: { select: { recordName: true } },
+        creator: { select: { name: true, email: true } },
       },
     });
 
@@ -2194,19 +2192,17 @@ export class BoardService {
 
     const updateData: Prisma.ActivityUpdateInput = {
       status: "COMPLETED",
-      completed_at: new Date(),
+      completedAt: new Date(),
     };
 
-    if (activity.activity_type === "EMAIL") {
+    if (activity.activityType === "EMAIL") {
       const recipientEmail =
-        emailOverrides?.recipient_email || activity.recipient_email;
+        emailOverrides?.recipientEmail || activity.recipientEmail;
       const subject =
-        emailOverrides?.email_subject ||
-        activity.email_subject ||
-        activity.title;
+        emailOverrides?.emailSubject || activity.emailSubject || activity.title;
       const body =
-        emailOverrides?.email_body ||
-        activity.email_body ||
+        emailOverrides?.emailBody ||
+        activity.emailBody ||
         activity.description ||
         "";
 
@@ -2220,17 +2216,17 @@ export class BoardService {
         userId,
         recipientEmail,
         subject,
-        activity.record.record_name,
+        activity.record.recordName,
         body,
-        activity.creator.user_name,
+        activity.creator.name,
         emailOverrides?.send_via
       );
 
-      updateData.email_sent_at = new Date();
-      updateData.recipient_email = recipientEmail;
-      updateData.email_subject = subject;
-      updateData.email_body = body;
-      updateData.sender_email = senderEmail;
+      updateData.emailSentAt = new Date();
+      updateData.recipientEmail = recipientEmail;
+      updateData.emailSubject = subject;
+      updateData.emailBody = body;
+      updateData.senderEmail = senderEmail;
     }
 
     const updated = await prisma.activity.update({
@@ -2240,7 +2236,7 @@ export class BoardService {
 
     this.boardGateway.emitActivityUpdated(
       organizationId,
-      activity.record_id,
+      activity.recordId,
       activityId,
       "COMPLETED"
     );
@@ -2255,14 +2251,14 @@ export class BoardService {
       title?: string;
       description?: string;
       status?: string;
-      due_date?: string;
-      recipient_email?: string;
-      email_subject?: string;
-      email_body?: string;
+      dueDate?: string;
+      recipientEmail?: string;
+      emailSubject?: string;
+      emailBody?: string;
     }
   ) {
     await prisma.activity.findFirstOrThrow({
-      where: { id: activityId, organization_id: organizationId },
+      where: { id: activityId, organizationId: organizationId },
     });
 
     const updateData: Prisma.ActivityUpdateInput = {};
@@ -2270,19 +2266,19 @@ export class BoardService {
     if (data.description !== undefined)
       updateData.description = data.description;
     if (data.status !== undefined) updateData.status = data.status as any;
-    if (data.due_date !== undefined)
-      updateData.due_date = data.due_date ? new Date(data.due_date) : null;
-    if (data.recipient_email !== undefined)
-      updateData.recipient_email = data.recipient_email;
-    if (data.email_subject !== undefined)
-      updateData.email_subject = data.email_subject;
-    if (data.email_body !== undefined) updateData.email_body = data.email_body;
+    if (data.dueDate !== undefined)
+      updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+    if (data.recipientEmail !== undefined)
+      updateData.recipientEmail = data.recipientEmail;
+    if (data.emailSubject !== undefined)
+      updateData.emailSubject = data.emailSubject;
+    if (data.emailBody !== undefined) updateData.emailBody = data.emailBody;
 
     if (data.status === "COMPLETED") {
-      updateData.completed_at = new Date();
+      updateData.completedAt = new Date();
     }
     if (data.status === "CANCELLED") {
-      updateData.completed_at = null;
+      updateData.completedAt = null;
     }
 
     return await prisma.activity.update({
@@ -2293,7 +2289,7 @@ export class BoardService {
 
   async deleteActivity(activityId: string, organizationId: string) {
     await prisma.activity.findFirstOrThrow({
-      where: { id: activityId, organization_id: organizationId },
+      where: { id: activityId, organizationId: organizationId },
     });
 
     await prisma.activity.delete({ where: { id: activityId } });

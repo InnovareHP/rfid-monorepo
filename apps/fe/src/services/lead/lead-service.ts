@@ -2,7 +2,7 @@ import { axiosClient } from "@/lib/axios-client";
 import type { LeadAnalyze, LeadHistoryItem } from "@dashboard/shared";
 
 export interface ScannedCardResult {
-  record_name: string;
+  recordName: string;
   contactInfo: {
     name: string | null;
     phone: string | null;
@@ -10,10 +10,12 @@ export interface ScannedCardResult {
     address: string | null;
   };
   fields: Record<string, string | null>;
-  columns: { id: string; field_name: string; field_type: string }[];
+  columns: { id: string; fieldName: string; fieldType: string }[];
 }
 
-export const scanBusinessCard = async (file: File): Promise<ScannedCardResult> => {
+export const scanBusinessCard = async (
+  file: File
+): Promise<ScannedCardResult> => {
   const formData = new FormData();
   formData.append("image", file);
   const response = await axiosClient.post("/api/boards/scan-card", formData);
@@ -112,7 +114,7 @@ export const createDropdownOption = async (
   const response = await axiosClient.post(
     `/api/boards/field/${fieldKey}/options`,
     {
-      option_name: option,
+      optionName: option,
     }
   );
 
@@ -121,7 +123,7 @@ export const createDropdownOption = async (
 
 export const seenLeads = async (recordId: string) => {
   const response = await axiosClient.post("/api/boards/notification-state", {
-    record_id: recordId,
+    recordId: recordId,
   });
 
   if (response.status !== 200) {
@@ -153,7 +155,7 @@ export const updateLead = async (
 ) => {
   const response = await axiosClient.patch(`/api/boards/${recordId}`, {
     value,
-    field_id: fieldId,
+    fieldId: fieldId,
     moduleType: moduleType || "LEAD",
   });
 
@@ -199,7 +201,7 @@ export const createLead = async (
   }
 ) => {
   const response = await axiosClient.post("/api/boards", {
-    record_name: data[0].record_name,
+    recordName: data[0].recordName,
     moduleType: moduleType || "LEAD",
     ...(options?.initialValues && { initialValues: options.initialValues }),
     ...(options?.personContact && { personContact: options.personContact }),
@@ -210,14 +212,13 @@ export const createLead = async (
 
 export const createColumn = async (
   isReferral: boolean,
-  column: string,
-  name: string,
+  fieldType: string,
+  columnName: string,
   moduleType?: string
 ) => {
   const response = await axiosClient.post("/api/boards/column", {
-    isReferral: isReferral,
-    column: column,
-    name: name,
+    column_name: columnName,
+    fieldType: fieldType,
     moduleType: moduleType || "LEAD",
   });
 
@@ -262,15 +263,15 @@ export const getleadValueId = async (fieldId: string, value: string) => {
 };
 
 export const restoreLeadHistory = async (
-  lead_id: string | undefined,
-  history_id: string,
-  event_type: string,
+  leadId: string | undefined,
+  historyId: string,
+  eventType: string,
   moduleType?: string
 ) => {
   const response = await axiosClient.post(`/api/boards/restore-history`, {
-    lead_id: lead_id,
-    history_id: history_id,
-    event_type: event_type,
+    recordId: leadId,
+    history_id: historyId,
+    event_type: eventType,
     moduleType: moduleType || "LEAD",
   });
 
@@ -364,9 +365,9 @@ export const importLeads = async (data: any, moduleType: string = "LEAD") => {
 };
 
 export const sendBulkEmail = async (data: {
-  record_ids: string[];
-  email_subject: string;
-  email_body: string;
+  recordIds: string[];
+  emailSubject: string;
+  emailBody: string;
   moduleType?: string;
   send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
 }) => {
@@ -382,17 +383,17 @@ export interface Activity {
   id: string;
   title: string;
   description: string | null;
-  activity_type: "CALL" | "EMAIL" | "MEETING" | "NOTE";
+  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE";
   status: "PENDING" | "COMPLETED" | "CANCELLED";
-  due_date: string | null;
-  completed_at: string | null;
-  recipient_email: string | null;
-  email_subject: string | null;
-  email_body: string | null;
-  email_sent_at: string | null;
-  sender_email: string | null;
-  created_at: string;
-  created_by: string;
+  dueDate: string | null;
+  completedAt: string | null;
+  recipientEmail: string | null;
+  emailSubject: string | null;
+  emailBody: string | null;
+  emailSentAt: string | null;
+  senderEmail: string | null;
+  createdAt: string;
+  createdBy: string;
   creator_email: string;
 }
 
@@ -413,14 +414,14 @@ export const getActivities = async (
 };
 
 export const createActivity = async (data: {
-  record_id: string;
+  recordId: string;
   title: string;
   description?: string;
-  activity_type: "CALL" | "EMAIL" | "MEETING" | "NOTE";
-  due_date?: string;
-  recipient_email?: string;
-  email_subject?: string;
-  email_body?: string;
+  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE";
+  dueDate?: string;
+  recipientEmail?: string;
+  emailSubject?: string;
+  emailBody?: string;
   send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
 }) => {
   const response = await axiosClient.post("/api/boards/activities", data);
@@ -430,9 +431,9 @@ export const createActivity = async (data: {
 export const completeActivity = async (
   activityId: string,
   data?: {
-    email_body?: string;
-    email_subject?: string;
-    recipient_email?: string;
+    emailBody?: string;
+    emailSubject?: string;
+    recipientEmail?: string;
     send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
   }
 ) => {
@@ -449,7 +450,7 @@ export const updateActivity = async (
     title?: string;
     description?: string;
     status?: string;
-    due_date?: string;
+    dueDate?: string;
   }
 ) => {
   const response = await axiosClient.patch(
