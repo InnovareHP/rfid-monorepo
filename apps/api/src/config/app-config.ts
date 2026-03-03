@@ -6,7 +6,7 @@ export const appConfigSchema = z.object({
   DATABASE_URL: z.url(),
   APP_NAME: z.string().default("auth-service"),
   APP_EMAIL: z.string(),
-  REDIS_URL: z.string().url(),
+  REDIS_URL: z.url(),
   RESEND_API_KEY: z.string().min(1),
 
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
@@ -14,6 +14,7 @@ export const appConfigSchema = z.object({
 
   DEBUG: z.coerce.boolean().default(false),
   WEBSITE_URL: z.url(),
+  EMAIL_LOGO_URL: z.url().optional(),
   SUPPORT_URL: z.url(),
   API_URL: z.url(),
 

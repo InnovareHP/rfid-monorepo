@@ -27,7 +27,10 @@
       "Bash(cat:*)",
       "Bash(npx tsc:*)",
       "Bash(grep:*)",
-      "Bash(pnpm build:shared:*)"
+      "Bash(pnpm build:shared:*)",
+      "Bash(pnpm:*)",
+      "Bash(node:*)",
+      "Bash(npm view:*)"
     ]
   }
 }

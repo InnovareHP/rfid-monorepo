@@ -22,7 +22,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import type { User as BetterAuthUser } from "better-auth";
-import { ChevronsUpDown, CreditCard, LogOut, User } from "lucide-react";
+import { ChevronsUpDown, LogOut, User } from "lucide-react";
 
 type NavUserProps = {
   user: BetterAuthUser;
@@ -113,12 +113,12 @@ export function NavUser({ user, activeOrganizationId }: NavUserProps) {
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <CreditCard />
                 <Link to={`/${activeOrganizationId}/settings/billing` as any}>
                   Billing
                 </Link>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

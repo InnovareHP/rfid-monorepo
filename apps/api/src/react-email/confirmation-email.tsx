@@ -1,19 +1,31 @@
-import { Button, Heading, Section, Text } from "@react-email/components";
+import { Button, Heading, Img, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { EmailLayout, emailStyles } from "./email-layout";
 
 type ReferralDashboardEmailProps = {
   magicLink: string;
   name?: string;
+  logoUrl: string;
 };
 
 export const ReferralDashboardEmail = ({
   magicLink,
   name = "there",
+  logoUrl,
 }: ReferralDashboardEmailProps) => {
   return (
     <EmailLayout preview="Verify your account">
-      <Heading style={emailStyles.heading}>Please, verify your account!</Heading>
+      <Section style={heroSection}>
+        <Img
+          src={logoUrl}
+          alt="Innovare HP Referral Intelligence Dashboard"
+          style={logo}
+        />
+      </Section>
+
+      <Heading style={emailStyles.heading}>
+        Innovare HP Referral Intelligence Dashboard
+      </Heading>
 
       <Text style={emailStyles.paragraph}>Hi {name},</Text>
 
@@ -22,8 +34,8 @@ export const ReferralDashboardEmail = ({
         please click the button below:
       </Text>
 
-      <Section style={{ textAlign: "start", margin: "24px 0" }}>
-        <Button href={magicLink} style={emailStyles.button}>
+      <Section style={buttonSection}>
+        <Button href={magicLink} style={verifyButton}>
           Verify Email
         </Button>
       </Section>
@@ -36,3 +48,25 @@ export const ReferralDashboardEmail = ({
 };
 
 export default ReferralDashboardEmail;
+
+const heroSection: React.CSSProperties = {
+  textAlign: "center",
+  marginBottom: "8px",
+};
+
+const logo: React.CSSProperties = {
+  width: "100%",
+  maxWidth: "340px",
+  height: "auto",
+  margin: "0 auto",
+};
+
+const buttonSection: React.CSSProperties = {
+  textAlign: "start",
+  margin: "24px 0",
+};
+
+const verifyButton: React.CSSProperties = {
+  ...emailStyles.button,
+  backgroundColor: "#155dfc",
+};

@@ -7,8 +7,10 @@ import {
   Text,
 } from "@react-email/components";
 import * as React from "react";
+import { appConfig } from "../config/app-config";
 
-const appName = process.env.APP_NAME ?? "Dashboard";
+const appName = appConfig.APP_NAME;
+const websiteUrl = appConfig.WEBSITE_URL;
 
 type EmailLayoutProps = {
   preview: string;

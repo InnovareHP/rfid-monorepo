@@ -211,7 +211,6 @@ export const createLead = async (
 };
 
 export const createColumn = async (
-  isReferral: boolean,
   fieldType: string,
   columnName: string,
   moduleType?: string

@@ -15,10 +15,16 @@ import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
   CircuitBoard,
+  DollarSign,
   FileText,
   Folder,
-  Settings2,
+  HistoryIcon,
+  Route,
+  Settings,
   SquareTerminal,
+  Target,
+  Upload,
+  Users,
 } from "lucide-react";
 import * as React from "react";
 
@@ -48,10 +54,12 @@ export function AppSidebar({
             {
               title: "Master List",
               url: `/${activeOrganizationId}`,
+              icon: FileText,
             },
             {
               title: "Referral",
               url: `/${activeOrganizationId}/referral-analytics`,
+              icon: Users,
             },
           ],
         },
@@ -62,16 +70,19 @@ export function AppSidebar({
             {
               title: "Master List",
               url: `/${activeOrganizationId}/master-list`,
+              icon: FileText,
             },
             {
               title: "Referral",
               url: `/${activeOrganizationId}/referral-list`,
+              icon: Users,
             },
             ...(memberData?.role !== ROLES.LIASON
               ? [
                   {
                     title: "History Check",
                     url: `/${activeOrganizationId}/master-list/history`,
+                    icon: HistoryIcon,
                   },
                 ]
               : []),
@@ -80,14 +91,17 @@ export function AppSidebar({
                   {
                     title: "Mileage Log",
                     url: `/${activeOrganizationId}/log/mileage`,
+                    icon: Route,
                   },
                   {
                     title: "Marketing Log",
                     url: `/${activeOrganizationId}/log/marketing`,
+                    icon: Target,
                   },
                   {
                     title: "Expense Log",
                     url: `/${activeOrganizationId}/log/expense`,
+                    icon: DollarSign,
                   },
                 ]
               : []),
@@ -102,14 +116,17 @@ export function AppSidebar({
                   {
                     title: "Mileage Report",
                     url: `/${activeOrganizationId}/report/mileage`,
+                    icon: Route,
                   },
                   {
                     title: "Marketing Report",
                     url: `/${activeOrganizationId}/report/marketing`,
+                    icon: Target,
                   },
                   {
                     title: "Expense Report",
                     url: `/${activeOrganizationId}/report/expense`,
+                    icon: DollarSign,
                   },
                 ],
               },
@@ -124,6 +141,7 @@ export function AppSidebar({
                   {
                     title: "Master List",
                     url: `/${activeOrganizationId}/import/master-list`,
+                    icon: Upload,
                   },
                 ],
               },
@@ -132,26 +150,30 @@ export function AppSidebar({
         {
           title: "Settings",
           url: `/${activeOrganizationId}/settings`,
-          icon: Settings2,
+          icon: Settings,
           items: [
             {
               title: "Team",
               url: `/${activeOrganizationId}/team`,
+              icon: Users,
             },
             {
-              title: "County Config",
+              title: "County Configuration",
               url: `/${activeOrganizationId}/county-config`,
+              icon: Settings,
             },
             ...(memberData?.role === ROLES.OWNER
               ? [
-                  {
-                    title: "Plans",
-                    url: `/${activeOrganizationId}/plans`,
-                  },
-                  {
-                    title: "Billing",
-                    url: `/${activeOrganizationId}/settings/billing`,
-                  },
+                  // {
+                  //   title: "Plans",
+                  //   url: `/${activeOrganizationId}/plans`,
+                  //   icon: Sparkles,
+                  // },
+                  // {
+                  //   title: "Billing",
+                  //   url: `/${activeOrganizationId}/settings/billing`,
+                  //   icon: CreditCard,
+                  // },
                 ]
               : []),
           ],
@@ -199,7 +221,7 @@ export function AppSidebar({
     <Sidebar
       collapsible="icon"
       {...props}
-      className="md:left-16 top-[var(--banner-height,0px)] h-[calc(100vh-var(--banner-height,0px))] transition-[top,height,left] duration-300"
+      className="md:left-16 top-(--banner-height,0px) h-[calc(100vh-var(--banner-height,0px))] transition-[top,height,left] duration-300"
     >
       <SidebarHeader>
         <div className="mb-2 w-full overflow-hidden flex items-center justify-center">
@@ -207,7 +229,7 @@ export function AppSidebar({
             to="/$team"
             params={{ team: activeOrganizationId }}
             preload={false}
-            className="block w-full h-full flex items-center justify-center"
+            className="w-full h-full flex items-center justify-center"
           >
             <img
               src={logoSrc}

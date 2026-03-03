@@ -137,7 +137,11 @@ export function LoginForm({
             />
             {/* Gradient overlay: lighter at top so image shows, darker at bottom for text readability */}
             <div
-              className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/75"
+              className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/30 to-black/75"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute top-10 left-1/2 h-64 w-[32rem] -translate-x-1/2 rounded-full bg-white/30 blur-3xl"
               aria-hidden
             />
             {/* Content */}
@@ -147,7 +151,7 @@ export function LoginForm({
                   <img
                     src="/login-page/rfid.png"
                     alt="Innovare HP Referral Intelligence"
-                    className="w-full h-auto object-contain max-h-52 invert brightness-0 drop-shadow-md"
+                    className="w-full h-auto object-contain max-h-52 brightness-110 contrast-125 saturate-125 drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
                   />
                   <p className="text-xl text-white leading-relaxed mt-4">
                     Streamline your healthcare marketing and analytics
