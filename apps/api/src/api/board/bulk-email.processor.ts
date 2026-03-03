@@ -49,9 +49,9 @@ export class BulkEmailProcessor extends WorkerHost {
 
     const emailField = await prisma.field.findFirst({
       where: {
-        organization_id: organizationId,
-        module_type: moduleType,
-        field_type: "EMAIL",
+        organizationId: organizationId,
+        moduleType: moduleType,
+        fieldType: "EMAIL",
       },
       select: { id: true },
     });
@@ -63,23 +63,23 @@ export class BulkEmailProcessor extends WorkerHost {
     const records = await prisma.board.findMany({
       where: {
         id: { in: recordIds },
-        organization_id: organizationId,
-        module_type: moduleType,
-        is_deleted: false,
+        organizationId: organizationId,
+        moduleType: moduleType,
+        isDeleted: false,
       },
       select: {
         id: true,
-        record_name: true,
+        recordName: true,
         values: {
-          where: { field_id: emailField.id },
+          where: { fieldId: emailField.id },
           select: { value: true },
         },
       },
     });
 
-    const creator = await prisma.user_table.findUniqueOrThrow({
+    const creator = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { user_name: true, user_email: true },
+      select: { name: true, email: true },
     });
 
     let sent = 0;
@@ -99,9 +99,9 @@ export class BulkEmailProcessor extends WorkerHost {
           userId,
           recipientEmail,
           emailSubject,
-          record.record_name,
+          record.recordName,
           emailBody,
-          creator.user_name,
+          creator.name,
           sendVia
         );
 
@@ -109,17 +109,17 @@ export class BulkEmailProcessor extends WorkerHost {
           data: {
             title: emailSubject,
             description: emailBody,
-            activity_type: "EMAIL",
+            activityType: "EMAIL",
             status: "COMPLETED",
-            completed_at: new Date(),
-            recipient_email: recipientEmail,
-            email_subject: emailSubject,
-            email_body: emailBody,
-            email_sent_at: new Date(),
-            sender_email: senderEmail,
-            record_id: record.id,
-            created_by: userId,
-            organization_id: organizationId,
+            completedAt: new Date(),
+            recipientEmail: recipientEmail,
+            emailSubject: emailSubject,
+            emailBody: emailBody,
+            emailSentAt: new Date(),
+            senderEmail: senderEmail,
+            recordId: record.id,
+            createdBy: userId,
+            organizationId: organizationId,
           },
         });
 

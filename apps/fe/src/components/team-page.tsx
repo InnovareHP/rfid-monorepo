@@ -583,7 +583,7 @@ const TeamPage = () => {
                       {
                         key: "user_name",
                         header: "Name",
-                        render: (row) => (
+                        render: (row: any) => (
                           <div className="flex items-center space-x-2">
                             <Avatar>
                               <AvatarImage src={row?.user.image ?? undefined} />
@@ -598,7 +598,7 @@ const TeamPage = () => {
                       {
                         key: "user_email",
                         header: "Email",
-                        render: (row) => row?.user.email,
+                        render: (row: any) => row?.user.email,
                       },
                       {
                         key: "member_position",
@@ -608,7 +608,7 @@ const TeamPage = () => {
                       {
                         key: "member_created_at",
                         header: "Joined Date",
-                        render: (row) =>
+                        render: (row: any) =>
                           formatDate(
                             new Date(row?.createdAt ?? ""),
                             "MM/dd/yyyy"
@@ -617,7 +617,7 @@ const TeamPage = () => {
                       {
                         key: "action",
                         header: "Action",
-                        render: (row) => (
+                        render: (row: any) => (
                           <>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -732,7 +732,7 @@ const TeamPage = () => {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {invitations?.map((invitation) => (
+                        {invitations?.map((invitation: any) => (
                           <div
                             key={invitation.id}
                             className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"

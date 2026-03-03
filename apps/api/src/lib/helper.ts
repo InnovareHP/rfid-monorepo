@@ -9,14 +9,14 @@ export const StripeHelper = async (event: Stripe.Event) => {
     // case "product.created": {
     //   const product = event.data.object;
 
-    //   await prisma.plan_table.create({
+    //   await prisma.plan.create({
     //     data: {
     //       plan_id: product.id,
-    //       plan_name: product.name,
+    //       name: product.name,
     //       plan_photo: product.images[0],
     //       plan_description: product.description,
-    //       plan_is_active: true,
-    //       plan_created_at: new Date(),
+    //       isActive: true,
+    //       plan_createdAt: new Date(),
     //     },
     //   });
     //   break;
@@ -30,11 +30,11 @@ export const StripeHelper = async (event: Stripe.Event) => {
     //   const updateData: any = {};
 
     //   if (previous.name !== undefined) {
-    //     updateData.plan_name = product.name;
+    //     updateData.name = product.name;
     //   }
 
     //   if (previous.default_price !== undefined) {
-    //     updateData.plan_price_id = product.default_price;
+    //     updateData.priceId = product.default_price;
     //   }
 
     //   if (previous.description !== undefined) {
@@ -42,24 +42,24 @@ export const StripeHelper = async (event: Stripe.Event) => {
     //   }
 
     //   // Always sync metadata
-    //   updateData.plan_role_available = metadata.plan_role_available;
-    //   updateData.plan_type = metadata.plan_type;
+    //   updateData.roleAvailable = metadata.roleAvailable;
+    //   updateData.type = metadata.type;
     //   updateData.plan_limit = metadata.plan_limit;
 
-    //   await prisma.plan_table.upsert({
+    //   await prisma.plan.upsert({
     //     where: { plan_id: product.id },
     //     update: updateData,
     //     create: {
     //       plan_id: product.id,
-    //       plan_name: product.name,
+    //       name: product.name,
     //       plan_photo: product.images[0],
     //       plan_description: product.description,
-    //       plan_price_id: product.default_price as string,
-    //       plan_role_available: metadata.plan_role_available,
-    //       plan_type: metadata.plan_type,
+    //       priceId: product.default_price as string,
+    //       roleAvailable: metadata.roleAvailable,
+    //       type: metadata.type,
     //       plan_limit: metadata.plan_limit,
-    //       plan_is_active: true,
-    //       plan_created_at: new Date(product.created * 1000),
+    //       isActive: true,
+    //       plan_createdAt: new Date(product.created * 1000),
     //     },
     //   });
 
@@ -69,10 +69,10 @@ export const StripeHelper = async (event: Stripe.Event) => {
     // case "product.deleted": {
     //   const product = event.data.object;
 
-    //   await prisma.plan_table.update({
+    //   await prisma.plan.update({
     //     where: { plan_id: product.id },
     //     data: {
-    //       plan_is_active: false,
+    //       isActive: false,
     //     },
     //   });
 
@@ -84,18 +84,18 @@ export const StripeHelper = async (event: Stripe.Event) => {
 
       const payment = event.data.object as unknown as any;
 
-      await prisma.subscription_table.update({
+      await prisma.subscription.update({
         where: {
-          subscription_stripe_customer_id: payment.customer as string,
+          stripeCustomerId: payment.customer as string,
         },
         data: {
-          subscription_status: payment.status,
-          subscription_cancel_at_period_end: payment.cancel_at_period_end,
-          subscription_seats: payment.items.data[0]?.quantity ?? 1,
-          subscription_trial_start: new Date(
+          status: payment.status,
+          cancelAtPeriodEnd: payment.cancel_at_period_end,
+          seats: payment.items.data[0]?.quantity ?? 1,
+          trialStart: new Date(
             (payment.period_start ?? 0) * 1000
           ),
-          subscription_trial_end: new Date((payment.period_end ?? 0) * 1000),
+          trialEnd: new Date((payment.period_end ?? 0) * 1000),
         },
       });
 
@@ -107,29 +107,29 @@ export const StripeHelper = async (event: Stripe.Event) => {
 
       const subscription = event.data.object as unknown as any;
 
-      await prisma.subscription_table.upsert({
+      await prisma.subscription.upsert({
         where: {
-          subscription_stripe_customer_id: subscription.customer as string,
+          stripeCustomerId: subscription.customer as string,
         },
         update: {
-          subscription_plan: "dashboard",
-          subscription_reference_id: subscription.metadata.referenceId ?? "",
-          subscription_stripe_customer_id: subscription.customer as string,
-          subscription_stripe_subscription_id: subscription.id,
-          subscription_status: subscription.status,
-          subscription_period_start: new Date(),
-          subscription_cancel_at_period_end: false,
-          subscription_seats: subscription.items.data[0]?.quantity ?? 1,
+          plan: "dashboard",
+          referenceId: subscription.metadata.referenceId ?? "",
+          stripeCustomerId: subscription.customer as string,
+          stripeSubscriptionId: subscription.id,
+          status: subscription.status,
+          periodStart: new Date(),
+          cancelAtPeriodEnd: false,
+          seats: subscription.items.data[0]?.quantity ?? 1,
         },
         create: {
-          subscription_plan: "dashboard",
-          subscription_reference_id: subscription.metadata.referenceId ?? "",
-          subscription_stripe_customer_id: subscription.customer as string,
-          subscription_stripe_subscription_id: subscription.id,
-          subscription_status: subscription.status,
-          subscription_period_start: new Date(),
-          subscription_cancel_at_period_end: false,
-          subscription_seats: subscription.items.data[0]?.quantity ?? 1,
+          plan: "dashboard",
+          referenceId: subscription.metadata.referenceId ?? "",
+          stripeCustomerId: subscription.customer as string,
+          stripeSubscriptionId: subscription.id,
+          status: subscription.status,
+          periodStart: new Date(),
+          cancelAtPeriodEnd: false,
+          seats: subscription.items.data[0]?.quantity ?? 1,
         },
       });
       break;
@@ -137,20 +137,20 @@ export const StripeHelper = async (event: Stripe.Event) => {
     case "customer.subscription.updated": {
       const sub = event.data.object as unknown as any;
 
-      await prisma.subscription_table.update({
+      await prisma.subscription.update({
         where: {
-          subscription_stripe_customer_id: sub.customer as string,
+          stripeCustomerId: sub.customer as string,
         },
 
         data: {
-          subscription_status: sub.cancel_at !== null ? "canceled" : sub.status,
-          subscription_cancel_at_period_end: sub.cancel_at_period_end ?? false,
-          subscription_seats: sub.items.data[0]?.quantity ?? 1,
-          subscription_trial_start: sub.trial_start
+          status: sub.cancel_at !== null ? "canceled" : sub.status,
+          cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+          seats: sub.items.data[0]?.quantity ?? 1,
+          trialStart: sub.trial_start
             ? new Date(sub.trial_start * 1000)
             : null,
 
-          subscription_trial_end: sub.trial_end
+          trialEnd: sub.trial_end
             ? new Date(sub.trial_end * 1000)
             : null,
         },
@@ -168,18 +168,18 @@ export const StripeHelper = async (event: Stripe.Event) => {
         subscription.trial_end &&
         subscription.canceled_at === subscription.trial_end;
 
-      await prisma.subscription_table.update({
+      await prisma.subscription.update({
         where: {
-          subscription_stripe_customer_id: subscription.customer as string,
+          stripeCustomerId: subscription.customer as string,
         },
         data: {
-          subscription_status: "canceled",
+          status: "canceled",
 
-          subscription_period_end: subscription.ended_at
+          periodEnd: subscription.ended_at
             ? new Date(subscription.ended_at * 1000)
             : null,
 
-          subscription_cancel_at_period_end: canceledAtTrialEnd ? true : false,
+          cancelAtPeriodEnd: canceledAtTrialEnd ? true : false,
         },
       });
 
@@ -203,7 +203,7 @@ export const findLeadFieldFromCSV = (
 
   const foundField = fields.find(
     (field: Field & { FieldOption: FieldOption[] }) =>
-      normalizeFieldName(field.field_name) === header
+      normalizeFieldName(field.fieldName) === header
   );
 
   if (!foundField) {

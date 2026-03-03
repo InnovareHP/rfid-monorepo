@@ -48,12 +48,7 @@ export function CreateColumnModal({
 
     setLoading(true);
     try {
-      await createColumn(
-        isReferral,
-        type,
-        name,
-        isReferral ? "REFERRAL" : "LEAD"
-      );
+      await createColumn(type, name, isReferral ? "REFERRAL" : "LEAD");
 
       queryClient.invalidateQueries({
         queryKey: isReferral ? ["referrals"] : ["leads"],

@@ -104,11 +104,11 @@ export type ReferralResponse = {
 
 export type ReferralHistoryRow = {
   id: string;
-  created_at: string;
-  created_by: string;
+  createdAt: string;
+  createdBy: string;
   action: string;
-  old_value: string | null;
-  new_value: string | null;
+  oldValue: string | null;
+  newValue: string | null;
 };
 
 export type ReferralHistoryResponse = {
@@ -129,27 +129,27 @@ export type ReferralOptions = {
 
 export type ReferralHistoryItem = {
   id: string;
-  lead_id: string;
-  created_at: string;
-  created_by: string;
+  recordId: string;
+  createdAt: string;
+  createdBy: string;
   action: string;
-  old_value: string | null;
-  new_value: string | null;
-  field_name?: string;
-  field_id?: string;
+  oldValue: string | null;
+  newValue: string | null;
+  column?: string;
+  fieldId?: string;
   message?: string;
 };
 
 export type LeadHistoryItem = {
   id: string;
-  lead_id: string;
-  created_at: string;
-  created_by: string;
+  recordId: string;
+  createdAt: string;
+  createdBy: string;
   action: string;
-  old_value: string | null;
-  new_value: string | null;
-  field_name?: string;
-  field_id?: string;
+  oldValue: string | null;
+  newValue: string | null;
+  column?: string;
+  fieldId?: string;
   message?: string;
 };
 

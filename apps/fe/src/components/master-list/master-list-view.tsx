@@ -161,10 +161,10 @@ export function MasterListView({
       leadId: leadId,
       action: historyItem.action,
       entityType: isReferral ? "Referral" : "Lead",
-      old_value: historyItem.old_value,
-      new_value: historyItem.new_value,
-      created_at: historyItem.created_at,
-      created_by: historyItem.created_by,
+      oldValue: historyItem.oldValue,
+      newValue: historyItem.newValue,
+      createdAt: historyItem.createdAt,
+      createdBy: historyItem.createdBy,
     });
     setRestoreModalOpen(true);
   };
@@ -400,7 +400,7 @@ export function MasterListView({
                                       <div
                                         className={`w-10 h-10 rounded-full bg-gradient-to-br ${actionColor} text-white flex items-center justify-center text-sm font-bold shadow-md`}
                                       >
-                                        {item.created_by
+                                        {item.createdBy
                                           .split(" ")
                                           .map((n: string) => n[0])
                                           .join("")
@@ -409,7 +409,7 @@ export function MasterListView({
 
                                       <div>
                                         <p className="text-sm font-bold text-gray-900">
-                                          {item.created_by}
+                                          {item.createdBy}
                                         </p>
                                         <Badge
                                           variant="outline"
@@ -432,7 +432,7 @@ export function MasterListView({
                                     <div className="flex items-center gap-3">
                                       <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg font-medium">
                                         <Clock className="h-3.5 w-3.5" />
-                                        {formatDateTime(item.created_at)}
+                                        {formatDateTime(item.createdAt)}
                                       </div>
 
                                       {(item.action.toLowerCase() ===
@@ -464,20 +464,20 @@ export function MasterListView({
                                       </p>
                                     </div>
 
-                                    {item.old_value && item.new_value ? (
+                                    {item.oldValue && item.newValue ? (
                                       <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
                                         <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-sm font-semibold border border-red-300">
-                                          {item.old_value}
+                                          {item.oldValue}
                                         </span>
                                         <ArrowRight className="h-4 w-4 text-indigo-600 flex-shrink-0" />
                                         <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm font-semibold border border-green-300">
-                                          {item.new_value}
+                                          {item.newValue}
                                         </span>
                                       </div>
                                     ) : (
                                       <p className="text-sm text-gray-700 bg-gray-100 rounded-lg p-3 font-medium border border-gray-300">
-                                        {item.old_value ||
-                                          item.new_value ||
+                                        {item.oldValue ||
+                                          item.newValue ||
                                           "No value"}
                                       </p>
                                     )}

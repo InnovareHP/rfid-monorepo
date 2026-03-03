@@ -6,17 +6,17 @@ export class OptionsService {
   async getCounties(organizationId: string) {
     return await prisma.boardCounty
       .findMany({
-        where: { organization_id: organizationId },
+        where: { organizationId: organizationId },
         select: {
           id: true,
-          county_name: true,
+          countyName: true,
         },
-        orderBy: { county_name: "asc" },
+        orderBy: { countyName: "asc" },
       })
       .then((counties) =>
         counties.map((c) => ({
           id: c.id,
-          value: c.county_name,
+          value: c.countyName,
         }))
       );
   }
@@ -24,52 +24,52 @@ export class OptionsService {
   async getFieldOptions(organizationId: string, assignedTo: string) {
     const leads = await prisma.board.findMany({
       where: {
-        organization_id: organizationId,
-        module_type: "LEAD",
-        assigned_to: assignedTo ? assignedTo : undefined,
+        organizationId: organizationId,
+        moduleType: "LEAD",
+        assignedTo: assignedTo ? assignedTo : undefined,
       },
       select: {
         id: true,
-        record_name: true,
+        recordName: true,
       },
     });
 
     return leads.map((l) => ({
       id: l.id,
-      value: l.record_name,
+      value: l.recordName,
     }));
   }
 
   async getMemberOptions(organizationId: string, isLiason: boolean) {
     if (isLiason) {
-      return await prisma.member_table
+      return await prisma.member
         .findMany({
-          where: { organizationId: organizationId, member_role: "liason" },
+          where: { organizationId: organizationId, role: "liason" },
           select: {
             id: true,
-            user_table: {
+            user: {
               select: {
                 id: true,
-                user_name: true,
+                name: true,
               },
             },
           },
         })
         .then((members) =>
           members.map((m) => ({
-            id: m.user_table.id,
-            value: m.user_table.user_name,
+            id: m.user.id,
+            value: m.user.name,
           }))
         );
     }
-    return await prisma.member_table
+    return await prisma.member
       .findMany({
         where: { organizationId: organizationId },
         select: {
           id: true,
-          user_table: {
+          user: {
             select: {
-              user_name: true,
+              name: true,
             },
           },
         },
@@ -77,7 +77,7 @@ export class OptionsService {
       .then((members) =>
         members.map((m) => ({
           id: m.id,
-          value: m.user_table.user_name,
+          value: m.user.name,
         }))
       );
   }

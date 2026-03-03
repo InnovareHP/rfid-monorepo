@@ -149,7 +149,7 @@ export default function MasterListPage() {
     const newLead = [
       {
         id: uuidv4(),
-        record_name: value,
+        recordName: value,
         status: "",
         activities_time: 0,
         create_contact: "",

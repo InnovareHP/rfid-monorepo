@@ -59,18 +59,18 @@ export function businessCardScanPrompt(
 
   You MUST return a JSON object with exactly these keys:
   {
-    "record_name": "The facility/company name from the business card",
+    "recordName": "The facility/company name from the business card",
     "contactInfo": {
       "phone": "Primary phone number or null",
       "email": "Email address or null",
     },
     "fields": {
-      "<field_name>": "<extracted value or null>"
+      "<fieldName>": "<extracted value or null>"
     }
   }
 
   Rules:
-  - "record_name" is always the facility/company name from the business card
+  - "recordName" is always the facility/company name from the business card
   - "contactInfo" must ALWAYS be included with whatever contact details are visible on the card (name, phone, email, address). These are used for the person's contact record regardless of field types.
   - The "fields" object must use the EXACT field names listed above as keys
   - Match extracted data to the most appropriate field by name and type
@@ -96,10 +96,10 @@ export function followUpPrompt(context: {
   recentHistory: {
     action: string;
     column: string | null;
-    old_value: string | null;
-    new_value: string | null;
-    created_at: Date;
-    created_by: string | null;
+    oldValue: string | null;
+    newValue: string | null;
+    createdAt: Date;
+    createdBy: string | null;
   }[];
   engagementSummary: {
     totalInteractions: number;

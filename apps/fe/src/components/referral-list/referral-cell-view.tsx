@@ -231,7 +231,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
-                                      {item.created_by
+                                      {item.createdBy
                                         .split(" ")
                                         .map((n: string) => n[0])
                                         .join("")}
@@ -239,7 +239,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
 
                                     <div>
                                       <p className="text-sm font-semibold">
-                                        {item.created_by}
+                                        {item.createdBy}
                                       </p>
                                       <p className="text-xs text-gray-500">
                                         {item.action.charAt(0).toUpperCase() +
@@ -250,14 +250,14 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
 
                                   <div className="flex items-center gap-1 text-xs text-gray-500">
                                     <Clock className="h-3 w-3" />
-                                    {formatDateTime(item.created_at)}
+                                    {formatDateTime(item.createdAt)}
                                   </div>
                                 </div>
 
-                                {item.old_value && item.new_value && (
+                                {item.oldValue && item.newValue && (
                                   <div className="mt-3 pt-3 border-t">
                                     <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2.5">
-                                      {item.old_value} → {item.new_value}
+                                      {item.oldValue} → {item.newValue}
                                     </p>
                                   </div>
                                 )}

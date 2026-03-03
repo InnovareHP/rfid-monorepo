@@ -30,7 +30,7 @@ import * as z from "zod";
 type Step = "upload" | "processing" | "review";
 
 const reviewSchema = z.object({
-  record_name: z.string().min(1, "Name is required"),
+  recordName: z.string().min(1, "Name is required"),
   fields: z.record(z.string(), z.string().optional()),
 });
 
@@ -61,7 +61,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
 
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),
-    defaultValues: { record_name: "", fields: {} },
+    defaultValues: { recordName: "", fields: {} },
   });
 
   const reset = () => {
@@ -69,7 +69,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
     setPreview(null);
     setScanResult(null);
     setIsDragging(false);
-    form.reset({ record_name: "", fields: {} });
+    form.reset({ recordName: "", fields: {} });
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -113,7 +113,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
         }
 
         form.reset({
-          record_name: result.record_name || "",
+          recordName: result.recordName || "",
           fields: initialFields,
         });
         setStep("review");
@@ -157,7 +157,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
         | undefined;
 
       const personCol = scanResult.columns.find(
-        (c) => c.field_type === "PERSON"
+        (c) => c.fieldType === "PERSON"
       );
       if (personCol && data.fields[personCol.id]?.trim()) {
         const { contactInfo } = scanResult;
@@ -169,7 +169,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
         };
       }
 
-      await createLead([{ record_name: data.record_name.trim() }], "LEAD", {
+      await createLead([{ recordName: data.recordName.trim() }], "LEAD", {
         initialValues,
         personContact,
       });
@@ -285,7 +285,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
 
                 <FormField
                   control={form.control}
-                  name="record_name"
+                  name="recordName"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
                       <FormLabel className="text-xs font-semibold">
@@ -299,7 +299,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
                 />
 
                 {scanResult.columns
-                  .filter((col) => EDITABLE_FIELD_TYPES.has(col.field_type))
+                  .filter((col) => EDITABLE_FIELD_TYPES.has(col.fieldType))
                   .map((col) => (
                     <FormField
                       key={col.id}
@@ -308,13 +308,13 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
                       render={({ field }) => (
                         <FormItem className="space-y-1">
                           <FormLabel className="text-xs font-semibold">
-                            {col.field_name}
+                            {col.fieldName}
                           </FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               value={field.value || ""}
-                              placeholder={col.field_name}
+                              placeholder={col.fieldName}
                             />
                           </FormControl>
                         </FormItem>

@@ -128,12 +128,12 @@ export default function LeadHistoryTimeline() {
 
     const newItem: LeadHistoryItem = {
       id: crypto.randomUUID(),
-      lead_id: lead,
-      created_at: new Date().toISOString(),
-      created_by: user?.id,
+      recordId: lead,
+      createdAt: new Date().toISOString(),
+      createdBy: user?.id,
       action: "create",
-      old_value: "",
-      new_value: newActivity,
+      oldValue: "",
+      newValue: newActivity,
     };
 
     addMutation.mutate(newItem);
@@ -206,30 +206,30 @@ export default function LeadHistoryTimeline() {
             <div className="bg-card border border-border rounded-lg p-4 flex-1 hover:bg-muted transition-colors">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-semibold text-sm">{item.created_by}</p>
+                  <p className="font-semibold text-sm">{item.createdBy}</p>
 
                   {item.action === "update" && (
                     <p className="text-sm text-muted-foreground mt-1">
                       Updated from{" "}
                       <span className="text-destructive">
-                        "{item.old_value}"
+                        "{item.oldValue}"
                       </span>{" "}
                       →{" "}
-                      <span className="text-green-500">"{item.new_value}"</span>
+                      <span className="text-green-500">"{item.newValue}"</span>
                     </p>
                   )}
 
                   {item.action === "create" && (
                     <p className="text-sm text-muted-foreground mt-1">
                       Created with value{" "}
-                      <span className="text-green-500">"{item.new_value}"</span>
+                      <span className="text-green-500">"{item.newValue}"</span>
                     </p>
                   )}
                 </div>
 
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-muted-foreground">
-                    {formatDateTime(item.created_at)}
+                    {formatDateTime(item.createdAt)}
                   </span>
                   <ActivityAction
                     handleEditActivity={() => handleEditActivity(item.id)}

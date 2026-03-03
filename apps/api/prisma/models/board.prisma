@@ -1,35 +1,35 @@
 model Field {
   id              String            @id @default(uuid())
-  created_at      DateTime          @default(now())
-  updated_at      DateTime          @updatedAt
-  field_name      String
-  field_order     Int
-  field_type      BoardFieldType
-  module_type     String            @default("LEAD")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  fieldName       String
+  fieldOrder      Int
+  fieldType       BoardFieldType
+  moduleType      String            @default("LEAD")
   isDeleted       Boolean           @default(false)
 
-  organization_id String
-  organization    organization_table @relation(fields: [organization_id], references: [id])
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id])
 
   options         FieldOption[]
   values          FieldValue[]
 
   @@schema("board_schema")
-  @@index([field_name])
+  @@index([fieldName])
 }
 
 model Board {
   id              String            @id @default(uuid())
-  created_at      DateTime          @default(now())
-  updated_at      DateTime          @updatedAt
-  record_name     String
-  assigned_to     String?
-  is_deleted      Boolean           @default(false)
-  module_type     String            @default("LEAD")
-  
-  organization_id String
-  organization    organization_table @relation(fields: [organization_id], references: [id])
-  assigned_user   user_table?        @relation(fields: [assigned_to], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  recordName      String
+  assignedTo      String?
+  isDeleted       Boolean           @default(false)
+  moduleType      String            @default("LEAD")
+
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id])
+  assignedUser    User?             @relation(fields: [assignedTo], references: [id])
 
   values          FieldValue[]
   history         History[]
@@ -37,50 +37,50 @@ model Board {
   activities      Activity[]
 
   @@schema("board_schema")
-  @@index([organization_id, record_name])
+  @@index([organizationId, recordName])
 }
 
 model FieldValue {
   id         String       @id @default(uuid())
-  record_id  String
-  field_id   String
-  value      String?      // Stored as string, casted based on field_type
-  
-  field      Field  @relation(fields: [field_id], references: [id])
-  record     Board @relation(fields: [record_id], references: [id])
-  contactValue fieldPersonInformation?
+  recordId   String
+  fieldId    String
+  value      String?
 
-  @@unique([record_id, field_id])
+  field      Field  @relation(fields: [fieldId], references: [id])
+  record     Board @relation(fields: [recordId], references: [id])
+  contactValue FieldPersonInformation?
+
+  @@unique([recordId, fieldId])
   @@schema("board_schema")
 }
 
 model FieldOption {
   id             String      @id @default(uuid())
-  option_name    String
-  is_deleted     Boolean     @default(false)
-  field_id       String
-  field          Field @relation(fields: [field_id], references: [id])
+  optionName     String
+  isDeleted      Boolean     @default(false)
+  fieldId        String
+  field          Field @relation(fields: [fieldId], references: [id])
 
   @@schema("board_schema")
 }
 
 model History {
   id         String       @id @default(uuid())
-  record_id  String
-  old_value  String?
-  new_value  String?
+  recordId   String
+  oldValue   String?
+  newValue   String?
   column     String?
   action     String
-  created_at DateTime     @default(now())
-  created_by String?
-  
-  record     Board @relation(fields: [record_id], references: [id])
-  user user_table? @relation(fields: [created_by], references: [id])
+  createdAt  DateTime     @default(now())
+  createdBy  String?
+
+  record     Board @relation(fields: [recordId], references: [id])
+  user       User? @relation(fields: [createdBy], references: [id])
 
   @@schema("board_schema")
 }
 
-model fieldPersonInformation {
+model FieldPersonInformation {
   id String @id @default(uuid())
   contactNumber String
   email     String
@@ -95,38 +95,36 @@ model fieldPersonInformation {
 
 model BoardNotificationState {
   id         String   @id @default(uuid())
-  record_id    String   @unique
-  last_seen  DateTime
-  updated_at DateTime @updatedAt
+  recordId   String   @unique
+  lastSeen   DateTime
+  updatedAt  DateTime @updatedAt
 
-
-  record Board       @relation(fields: [record_id], references: [id])
+  record Board       @relation(fields: [recordId], references: [id])
 
   @@schema("board_schema")
 }
 
-model boardCounty {
+model BoardCounty {
   id String @id @default(uuid())
-  created_at DateTime @default(now())
-  county_name String
-  organization_id String
-  boardCountyAssignedTo boardCountyAssignedTo[]
+  createdAt DateTime @default(now())
+  countyName String
+  organizationId String
+  boardCountyAssignedTo BoardCountyAssignedTo[]
 
-
-  organization_table organization_table @relation(fields: [organization_id], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
   @@schema("board_schema")
-  @@index([organization_id])
+  @@index([organizationId])
 }
 
-model boardCountyAssignedTo {
+model BoardCountyAssignedTo {
   id String @id @default(uuid())
-  created_at DateTime @default(now())
-  assigned_to String
+  createdAt DateTime @default(now())
+  assignedTo String
 
-  board_county_id String
-  board_county boardCounty @relation(fields: [board_county_id], references: [id])
+  boardCountyId String
+  boardCounty BoardCounty @relation(fields: [boardCountyId], references: [id])
   @@schema("board_schema")
-  @@index([board_county_id])
+  @@index([boardCountyId])
 }
 
 
@@ -150,59 +148,59 @@ enum ActivityStatus {
 
 model Activity {
   id              String             @id @default(uuid())
-  created_at      DateTime           @default(now())
-  updated_at      DateTime           @updatedAt
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
   title           String
   description     String?
-  activity_type   ActivityType
+  activityType    ActivityType
   status          ActivityStatus     @default(PENDING)
-  due_date        DateTime?
-  completed_at    DateTime?
-  recipient_email String?
-  email_subject   String?
-  email_body      String?
-  email_sent_at   DateTime?
-  sender_email    String?
+  dueDate         DateTime?
+  completedAt     DateTime?
+  recipientEmail  String?
+  emailSubject    String?
+  emailBody       String?
+  emailSentAt     DateTime?
+  senderEmail     String?
 
-  record_id       String
-  record          Board              @relation(fields: [record_id], references: [id])
+  recordId        String
+  record          Board              @relation(fields: [recordId], references: [id])
 
-  created_by      String
-  creator         user_table         @relation(fields: [created_by], references: [id])
+  createdBy       String
+  creator         User               @relation(fields: [createdBy], references: [id])
 
-  organization_id String
-  organization    organization_table @relation(fields: [organization_id], references: [id])
+  organizationId  String
+  organization    Organization       @relation(fields: [organizationId], references: [id])
 
   @@schema("board_schema")
-  @@index([record_id])
-  @@index([organization_id])
-  @@index([due_date])
+  @@index([recordId])
+  @@index([organizationId])
+  @@index([dueDate])
 }
 
 model GmailToken {
   id              String     @id @default(uuid())
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
-  user_id         String     @unique
-  user            user_table @relation(fields: [user_id], references: [id])
-  access_token    String
-  refresh_token   String
-  token_expiry    DateTime
-  gmail_address   String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id])
+  accessToken     String
+  refreshToken    String
+  tokenExpiry     DateTime
+  gmailAddress    String
 
   @@schema("board_schema")
 }
 
 model OutlookToken {
   id              String     @id @default(uuid())
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
-  user_id         String     @unique
-  user            user_table @relation(fields: [user_id], references: [id])
-  access_token    String
-  refresh_token   String
-  token_expiry    DateTime
-  outlook_email   String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id])
+  accessToken     String
+  refreshToken    String
+  tokenExpiry     DateTime
+  outlookEmail    String
 
   @@schema("board_schema")
 }

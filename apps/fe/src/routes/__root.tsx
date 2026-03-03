@@ -28,7 +28,7 @@ export const Route = createRootRoute({
   beforeLoad: async () => {
     const data = await queryClient.fetchQuery({
       queryKey: ["session"],
-      queryFn: () => authClient.getSession().then((r) => r.data),
+      queryFn: () => authClient.getSession().then((r: any) => r.data),
     });
 
     return {

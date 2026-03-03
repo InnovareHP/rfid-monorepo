@@ -1,4 +1,4 @@
-model marketing {
+model Marketing {
     id String @id @default(uuid())
     facility String
     touchpoints TouchpointType[]
@@ -10,32 +10,32 @@ model marketing {
     updatedAt DateTime? @updatedAt
     isDeleted Boolean @default(false)
 
-    member member_table @relation(fields: [memberId], references: [id])
+    member Member @relation(fields: [memberId], references: [id])
 
     @@schema("liason_schema")
     @@index([memberId])
 }
 
-model expense {
+model Expense {
     id String @id @default(uuid())
     amount Float
     description String
     notes String
     memberId String
-    
+
     createdAt DateTime @default(now())
     updatedAt DateTime? @updatedAt
     isDeleted Boolean @default(false)
 
 
     imageUrl String
-    member member_table @relation(fields: [memberId], references: [id])
+    member Member @relation(fields: [memberId], references: [id])
 
     @@schema("liason_schema")
     @@index([memberId])
 }
 
-model mileage {
+model Mileage {
     id String @id @default(uuid())
 
     destination String
@@ -55,7 +55,7 @@ model mileage {
     createdAt DateTime @default(now())
     updatedAt DateTime? @updatedAt
 
-    member member_table @relation(fields: [memberId], references: [id])
+    member Member @relation(fields: [memberId], references: [id])
 
     @@schema("liason_schema")
     @@index([memberId])

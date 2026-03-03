@@ -70,7 +70,7 @@ export class OutlookService {
 
     const tokens = await tokenResponse.json();
 
-    if (!tokens.refresh_token) {
+    if (!tokens.refreshToken) {
       throw new Error(
         "No refresh token received. Please try connecting again."
       );
@@ -78,7 +78,7 @@ export class OutlookService {
 
     // Fetch user email via Graph API
     const meResponse = await fetch(`${GRAPH_API_URL}/me`, {
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
+      headers: { Authorization: `Bearer ${tokens.accessToken}` },
     });
 
     if (!meResponse.ok) {
@@ -89,19 +89,19 @@ export class OutlookService {
     const outlookEmail = profile.mail || profile.userPrincipalName;
 
     await prisma.outlookToken.upsert({
-      where: { user_id: userId },
+      where: { userId: userId },
       update: {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        token_expiry: new Date(Date.now() + tokens.expires_in * 1000),
-        outlook_email: outlookEmail,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
+        outlookEmail: outlookEmail,
       },
       create: {
-        user_id: userId,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        token_expiry: new Date(Date.now() + tokens.expires_in * 1000),
-        outlook_email: outlookEmail,
+        userId: userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
+        outlookEmail: outlookEmail,
       },
     });
   }
@@ -110,24 +110,24 @@ export class OutlookService {
     userId: string
   ): Promise<{ connected: boolean; email: string | null }> {
     const token = await prisma.outlookToken.findUnique({
-      where: { user_id: userId },
-      select: { outlook_email: true },
+      where: { userId: userId },
+      select: { outlookEmail: true },
     });
 
     return {
       connected: !!token,
-      email: token?.outlook_email ?? null,
+      email: token?.outlookEmail ?? null,
     };
   }
 
   async disconnect(userId: string): Promise<void> {
     const token = await prisma.outlookToken.findUnique({
-      where: { user_id: userId },
+      where: { userId: userId },
     });
 
     if (!token) return;
 
-    await prisma.outlookToken.delete({ where: { user_id: userId } });
+    await prisma.outlookToken.delete({ where: { userId: userId } });
   }
 
   async trySendViaOutlook(
@@ -139,18 +139,18 @@ export class OutlookService {
     senderName: string
   ): Promise<boolean> {
     const token = await prisma.outlookToken.findUnique({
-      where: { user_id: userId },
+      where: { userId: userId },
     });
 
     if (!token) return false;
 
     try {
-      let accessToken = token.access_token;
+      let accessToken = token.accessToken;
 
-      if (new Date() >= token.token_expiry) {
+      if (new Date() >= token.tokenExpiry) {
         accessToken = await this.refreshAccessToken(
           userId,
-          token.refresh_token
+          token.refreshToken
         );
       }
 
@@ -186,7 +186,7 @@ export class OutlookService {
 
         if (sendMailResponse.status === 401) {
           await prisma.outlookToken
-            .delete({ where: { user_id: userId } })
+            .delete({ where: { userId: userId } })
             .catch(() => {});
         }
 
@@ -217,8 +217,8 @@ export class OutlookService {
       body: new URLSearchParams({
         client_id: this.clientId,
         client_secret: this.clientSecret,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
+        refreshToken: refreshToken,
+        grant_type: "refreshToken",
         scope: SCOPES.join(" "),
       }),
     });
@@ -226,7 +226,7 @@ export class OutlookService {
     if (!response.ok) {
       // Refresh failed — token is invalid, clean up
       await prisma.outlookToken
-        .delete({ where: { user_id: userId } })
+        .delete({ where: { userId: userId } })
         .catch(() => {});
       throw new Error("Failed to refresh Outlook token");
     }
@@ -234,14 +234,14 @@ export class OutlookService {
     const tokens = await response.json();
 
     await prisma.outlookToken.update({
-      where: { user_id: userId },
+      where: { userId: userId },
       data: {
-        access_token: tokens.access_token,
-        token_expiry: new Date(Date.now() + tokens.expires_in * 1000),
-        ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
+        accessToken: tokens.accessToken,
+        tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
+        ...(tokens.refreshToken && { refreshToken: tokens.refreshToken }),
       },
     });
 
-    return tokens.access_token;
+    return tokens.accessToken;
   }
 }

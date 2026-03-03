@@ -11,7 +11,7 @@ export class OnboardingGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (user.user_is_onboarded) {
+    if (user.isOnboarded) {
       throw new UnauthorizedException("User is already onboarded");
     }
     return true;

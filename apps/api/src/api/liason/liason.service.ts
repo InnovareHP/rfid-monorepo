@@ -50,7 +50,7 @@ export class LiasonService {
   }
 
   async getMillage(memberId: string | null, filter: any) {
-    const where: Prisma.mileageWhereInput = {
+    const where: Prisma.MileageWhereInput = {
       memberId: memberId ?? undefined,
       isDeleted: false,
     };
@@ -119,8 +119,8 @@ export class LiasonService {
   ) {
     const findLeadNameViaName = await prisma.board.findFirst({
       where: {
-        record_name: createMarketingDto.facility,
-        module_type: "LEAD",
+        recordName: createMarketingDto.facility,
+        moduleType: "LEAD",
       },
     });
 
@@ -142,9 +142,9 @@ export class LiasonService {
 
       tx.history.create({
         data: {
-          record_id: findLeadNameViaName.id,
+          recordId: findLeadNameViaName.id,
           column: "marketing",
-          new_value:
+          newValue:
             "Created a milestone for the organization" +
             createMarketingDto.facility +
             " with the following touchpoints: " +
@@ -155,7 +155,7 @@ export class LiasonService {
             createMarketingDto.notes +
             " on " +
             new Date().toISOString(),
-          created_by: userId,
+          createdBy: userId,
           action: "milestone_created",
         },
       });
@@ -163,7 +163,7 @@ export class LiasonService {
   }
 
   async getMarketing(memberId: string | null, filter: any) {
-    const where: Prisma.marketingWhereInput = {
+    const where: Prisma.MarketingWhereInput = {
       memberId: memberId ?? undefined,
       isDeleted: false,
     };
@@ -241,7 +241,7 @@ export class LiasonService {
     filter: any,
     activeOrganizationId: string
   ) {
-    const where: Prisma.expenseWhereInput = {
+    const where: Prisma.ExpenseWhereInput = {
       memberId: memberId ?? undefined,
       member: {
         organizationId: activeOrganizationId,

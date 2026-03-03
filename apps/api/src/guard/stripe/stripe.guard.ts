@@ -23,31 +23,31 @@ export class StripeGuard implements CanActivate {
       throw new ForbiddenException("No active organization");
     }
 
-    const subscription = await prisma.subscription_table.findFirstOrThrow({
+    const subscription = await prisma.subscription.findFirstOrThrow({
       where: {
-        subscription_reference_id: organizationId,
+        referenceId: organizationId,
       },
       select: {
-        subscription_status: true,
-        subscription_trial_start: true,
-        subscription_trial_end: true,
+        status: true,
+        trialStart: true,
+        trialEnd: true,
       },
       take: 1,
     });
 
     // Pick the org’s active subscription
     const activeSubscription =
-      subscription.subscription_status === "active" ||
-      subscription.subscription_status === "trialing";
+      subscription.status === "active" ||
+      subscription.status === "trialing";
 
     if (!activeSubscription) {
       throw new ForbiddenException("Subscription inactive or expired.");
     }
 
     const isTrial =
-      subscription.subscription_trial_start &&
-      subscription.subscription_trial_end &&
-      new Date(subscription.subscription_trial_end) > new Date();
+      subscription.trialStart &&
+      subscription.trialEnd &&
+      new Date(subscription.trialEnd) > new Date();
 
     request.subscription = {
       isTrial,

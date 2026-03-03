@@ -94,22 +94,22 @@ export default function HistoryReportPage() {
               {
                 key: "changedBy",
                 header: "Changed By",
-                render: (row: any) => row.created_by,
+                render: (row: any) => row.createdBy,
               },
               {
                 key: "createdAt",
                 header: "Created At",
-                render: (row: any) => formatDateTime(row.created_at),
+                render: (row: any) => formatDateTime(row.createdAt),
               },
               {
                 key: "oldValue",
                 header: "Old Value",
-                render: (row: any) => row.old_value || "-",
+                render: (row: any) => row.oldValue || "-",
               },
               {
                 key: "newValue",
                 header: "New Value",
-                render: (row: any) => row.new_value || "-",
+                render: (row: any) => row.newValue || "-",
               },
               {
                 key: "revert",

@@ -74,7 +74,7 @@ export function ResetPasswordVerifyForm({
             toast.success("Password reset successfully");
             navigate.navigate({ to: "/login" });
           },
-          onError: (error) => {
+          onError: (error: any) => {
             toast.error(error.error.message);
           },
         }

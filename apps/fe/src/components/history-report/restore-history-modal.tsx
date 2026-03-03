@@ -17,10 +17,10 @@ interface RestoreHistoryModalProps {
     leadId: string;
     action: string;
     entityType: string;
-    old_value?: string;
-    new_value?: string;
-    created_at: string;
-    created_by: string;
+    oldValue?: string;
+    newValue?: string;
+    createdAt: string;
+    createdBy: string;
   } | null;
   onConfirm: (
     leadId: string,
@@ -111,7 +111,7 @@ export function RestoreHistoryModal({
                   Changed By
                 </p>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {historyItem.created_by}
+                  {historyItem.createdBy}
                 </p>
               </div>
               <div>
@@ -119,7 +119,7 @@ export function RestoreHistoryModal({
                   Changed At
                 </p>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {formatDateTime(historyItem.created_at)}
+                  {formatDateTime(historyItem.createdAt)}
                 </p>
               </div>
             </div>
@@ -131,17 +131,17 @@ export function RestoreHistoryModal({
                 </p>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded font-mono">
-                    {historyItem.old_value || "(empty)"}
+                    {historyItem.oldValue || "(empty)"}
                   </span>
                   <ArrowRight className="w-4 h-4 text-gray-400" />
                   <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded font-mono">
-                    {historyItem.new_value || "(empty)"}
+                    {historyItem.newValue || "(empty)"}
                   </span>
                 </div>
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                   Restoring will change it back to:{" "}
                   <span className="font-semibold">
-                    {historyItem.old_value || "(empty)"}
+                    {historyItem.oldValue || "(empty)"}
                   </span>
                 </p>
               </div>

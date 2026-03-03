@@ -1,7 +1,7 @@
 import { BoardFieldType, Prisma } from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
 
-export const OnboardingSeeding = async (organization_id: string) => {
+export const OnboardingSeeding = async (organizationId: string) => {
   console.log("🌱 Seeding start");
 
   // //
@@ -9,12 +9,12 @@ export const OnboardingSeeding = async (organization_id: string) => {
   // //
   // await prisma.board.createMany({
   //   data: [
-  //     { record_name: "John Doe", module_type: "REFERRAL", organization_id },
-  //     { record_name: "Jane Smith", module_type: "REFERRAL", organization_id },
+  //     { recordName: "John Doe", moduleType: "REFERRAL", organizationId },
+  //     { recordName: "Jane Smith", moduleType: "REFERRAL", organizationId },
   //     {
-  //       record_name: "Alice Johnson",
-  //       module_type: "REFERRAL",
-  //       organization_id,
+  //       recordName: "Alice Johnson",
+  //       moduleType: "REFERRAL",
+  //       organizationId,
   //     },
   //   ],
   //   skipDuplicates: true,
@@ -48,11 +48,11 @@ export const OnboardingSeeding = async (organization_id: string) => {
     ["Additional Notes", BoardFieldType.TEXT],
     ["Referred Out To", BoardFieldType.TEXT],
   ].map(([name, type], index) => ({
-    field_name: name,
-    field_type: type,
-    field_order: index + 1,
-    organization_id,
-    module_type: "REFERRAL",
+    fieldName: name,
+    fieldType: type,
+    fieldOrder: index + 1,
+    organizationId,
+    moduleType: "REFERRAL",
   }));
 
   await prisma.field.createMany({
@@ -61,7 +61,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
   });
 
   const referralFields = await prisma.field.findMany({
-    where: { organization_id, module_type: "REFERRAL" },
+    where: { organizationId, moduleType: "REFERRAL" },
   });
 
   //
@@ -74,12 +74,12 @@ export const OnboardingSeeding = async (organization_id: string) => {
   };
 
   const referralFieldOptions = referralFields
-    .filter((f) => f.field_type === BoardFieldType.DROPDOWN)
+    .filter((f) => f.fieldType === BoardFieldType.DROPDOWN)
     .flatMap(
       (field) =>
-        dropdownMap[field.field_name]?.map((option) => ({
-          field_id: field.id,
-          option_name: option,
+        dropdownMap[field.fieldName]?.map((option) => ({
+          fieldId: field.id,
+          optionName: option,
         })) ?? []
     );
 
@@ -91,7 +91,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
   }
 
   const referrals = await prisma.board.findMany({
-    where: { organization_id, module_type: "REFERRAL" },
+    where: { organizationId, moduleType: "REFERRAL" },
   });
 
   const allReferralOptions = await prisma.fieldOption.findMany();
@@ -102,7 +102,7 @@ export const OnboardingSeeding = async (organization_id: string) => {
     for (const field of referralFields) {
       let value: string | null = null;
 
-      switch (field.field_type) {
+      switch (field.fieldType) {
         case "TEXT":
           value = "";
           break;
@@ -123,14 +123,14 @@ export const OnboardingSeeding = async (organization_id: string) => {
           break;
         case "DROPDOWN":
           value =
-            allReferralOptions.find((o) => o.field_id === field.id)
-              ?.option_name ?? null;
+            allReferralOptions.find((o) => o.fieldId === field.id)
+              ?.optionName ?? null;
           break;
       }
 
       referralValues.push({
-        record_id: referral.id,
-        field_id: field.id,
+        recordId: referral.id,
+        fieldId: field.id,
         value,
       });
     }
@@ -163,11 +163,11 @@ export const OnboardingSeeding = async (organization_id: string) => {
     ["Psychiatric Services", BoardFieldType.TEXT, 15],
     ["Notes", BoardFieldType.TEXT, 16],
   ].map(([name, type, order]) => ({
-    field_name: name,
-    field_type: type,
-    field_order: order,
-    organization_id,
-    module_type: "LEAD",
+    fieldName: name,
+    fieldType: type,
+    fieldOrder: order,
+    organizationId,
+    moduleType: "LEAD",
   }));
 
   await prisma.field.createMany({
@@ -180,21 +180,21 @@ export const OnboardingSeeding = async (organization_id: string) => {
   //
   // await prisma.board.createMany({
   //   data: [
-  //     { record_name: "John Doe 1", module_type: "LEAD", organization_id },
-  //     { record_name: "Jane Smith 2", module_type: "LEAD", organization_id },
-  //     { record_name: "Alice Johnson 3", module_type: "LEAD", organization_id },
+  //     { recordName: "John Doe 1", moduleType: "LEAD", organizationId },
+  //     { recordName: "Jane Smith 2", moduleType: "LEAD", organizationId },
+  //     { recordName: "Alice Johnson 3", moduleType: "LEAD", organizationId },
   //   ],
   //   skipDuplicates: true,
   // });
 
   // ❗ FIX: Fetch only leads for this organization
   const leads = await prisma.board.findMany({
-    where: { organization_id, module_type: "LEAD" },
+    where: { organizationId, moduleType: "LEAD" },
   });
 
   // ❗ FIX: Fetch only lead fields for this org
   const dbLeadFields = await prisma.field.findMany({
-    where: { organization_id, module_type: "LEAD" },
+    where: { organizationId, moduleType: "LEAD" },
   });
 
   //
@@ -206,13 +206,13 @@ export const OnboardingSeeding = async (organization_id: string) => {
     for (const field of dbLeadFields) {
       let value: string | null = null;
 
-      switch (field.field_type) {
+      switch (field.fieldType) {
         case "TEXT":
           value = "Test Text";
           break;
         case "EMAIL":
           value =
-            lead.record_name.toLowerCase().replace(" ", ".") + "@example.com";
+            lead.recordName.toLowerCase().replace(" ", ".") + "@example.com";
           break;
         case "PHONE":
           value = "09171234567";
@@ -229,9 +229,9 @@ export const OnboardingSeeding = async (organization_id: string) => {
       }
 
       leadValues.push({
-        record_id: lead.id,
-        field_id: field.id,
-        value: field.field_name === "County" ? "" : value,
+        recordId: lead.id,
+        fieldId: field.id,
+        value: field.fieldName === "County" ? "" : value,
       });
     }
   }

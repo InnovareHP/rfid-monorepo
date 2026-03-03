@@ -10,10 +10,10 @@ model SupportTicket {
   status TicketStatus @default(OPEN)
   priority Priority @default(MEDIUM)
   assignedTo String
-  assignedToUser user_table @relation("SupportTicketAssignedTo", fields: [assignedTo], references: [id])
+  assignedToUser User @relation("SupportTicketAssignedTo", fields: [assignedTo], references: [id])
 
   createBy String
-  createByUser user_table @relation("SupportTicketCreateBy", fields: [createBy], references: [id])
+  createByUser User @relation("SupportTicketCreateBy", fields: [createBy], references: [id])
 
   SupportTicketMessage SupportTicketMessage[] @relation("SupportTicketMessage")
   SupportHistory SupportHistory[] @relation("SupportTicketHistory")
@@ -28,7 +28,7 @@ model SupportHistory {
   message String
   changeType HistoryChangeType @default(MESSAGE_SENT)
   sender String
-  senderUser user_table @relation("SupportHistorySender", fields: [sender], references: [id])
+  senderUser User @relation("SupportHistorySender", fields: [sender], references: [id])
 
   supportTicketId String
   supportTicket SupportTicket @relation("SupportTicketHistory", fields: [supportTicketId], references: [id])
@@ -46,7 +46,7 @@ model SupportTicketRating {
   supportTicket SupportTicket @relation("SupportTicketRating", fields: [supportTicketId], references: [id], onDelete: Cascade)
 
   createdBy String
-  createdByUser user_table @relation("SupportTicketRatingCreatedBy", fields: [createdBy], references: [id])
+  createdByUser User @relation("SupportTicketRatingCreatedBy", fields: [createdBy], references: [id])
 
   @@schema("support_schema")
 }
@@ -58,7 +58,7 @@ model SupportTicketMessage {
   updatedAt DateTime @updatedAt
   message String
   sender String
-  senderUser user_table @relation("SupportTicketMessageSender", fields: [sender], references: [id])
+  senderUser User @relation("SupportTicketMessageSender", fields: [sender], references: [id])
   supportTicketId String
   supportTicket SupportTicket @relation("SupportTicketMessage", fields: [supportTicketId], references: [id])
   SupportTicketAttachment SupportTicketAttachment[] @relation("SupportTicketAttachment")
@@ -83,7 +83,7 @@ model SupportLiveChat {
   updatedAt DateTime @updatedAt
   message String
   sender String
-  senderUser user_table @relation("SupportLiveChatSender", fields: [sender], references: [id])
+  senderUser User @relation("SupportLiveChatSender", fields: [sender], references: [id])
 
   messages SupportLiveChatMessage[] @relation("SupportLiveChatMessage")
   attachments SupportLiveChatAttachment[] @relation("SupportLiveChatAttachment")
@@ -97,7 +97,7 @@ model SupportLiveChatMessage {
   updatedAt DateTime @updatedAt
   message String
   sender String
-  senderUser user_table @relation("SupportLiveChatMessageSender", fields: [sender], references: [id])
+  senderUser User @relation("SupportLiveChatMessageSender", fields: [sender], references: [id])
   supportLiveChatId String
   supportLiveChat SupportLiveChat @relation("SupportLiveChatMessage", fields: [supportLiveChatId], references: [id])
 
@@ -110,7 +110,7 @@ model SupportLiveChatAttachment {
   updatedAt DateTime @updatedAt
   imageUrl String
   sender String
-  senderUser user_table @relation("SupportLiveChatAttachmentSender", fields: [sender], references: [id])
+  senderUser User @relation("SupportLiveChatAttachmentSender", fields: [sender], references: [id])
   supportLiveChatId String
   supportLiveChat SupportLiveChat @relation("SupportLiveChatAttachment", fields: [supportLiveChatId], references: [id])
 

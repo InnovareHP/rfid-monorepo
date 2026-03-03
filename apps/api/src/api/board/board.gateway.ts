@@ -68,7 +68,7 @@ export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
   emitRecordCreated(orgId: string, record: any, moduleType?: string) {
     this.server.to(`org:${orgId}`).emit("board:record-created", {
       record,
-      moduleType: moduleType ?? record.module_type ?? "LEAD",
+      moduleType: moduleType ?? record.moduleType ?? "LEAD",
     });
   }
   emitRecordDeleted(

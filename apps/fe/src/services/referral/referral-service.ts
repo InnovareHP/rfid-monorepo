@@ -91,7 +91,7 @@ export const createReferralDropdownOption = async (
   const response = await axiosClient.post(
     `/api/boards/field/${fieldKey}/options`,
     {
-      option_name: option,
+      optionName: option,
     }
   );
 
@@ -128,12 +128,12 @@ export const createReferral = async (data: any) => {
 };
 
 export const createReferralColumn = async (
-  referral_type: string,
-  column_name: string
+  fieldType: string,
+  columnName: string
 ) => {
   const response = await axiosClient.post("/api/boards/column", {
-    referral_type,
-    column_name,
+    fieldType,
+    column_name: columnName,
     moduleType: "REFERRAL",
   });
 
@@ -249,7 +249,7 @@ export const deleteReferral = async (columnIds: string[]) => {
 
 export const seenReferrals = async (referralId: string) => {
   const response = await axiosClient.post("/api/boards/notification-state", {
-    referral_id: referralId,
+    recordId: referralId,
   });
 
   if (response.status !== 200) {

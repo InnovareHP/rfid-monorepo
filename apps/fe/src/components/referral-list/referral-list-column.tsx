@@ -14,7 +14,7 @@ type ColumnType = {
 
 type ReferralRow = {
   id: string;
-  referral_name: string;
+  recordName: string;
   [key: string]: any;
 };
 
@@ -79,7 +79,7 @@ export function generateReferralColumns(
     header: () =>
       onSort ? (
         <ColumnHeader
-          columnId="record_name"
+          columnId="recordName"
           columnName="Referral Name"
           sortBy={sortState?.sortBy}
           sortOrder={sortState?.sortOrder}
@@ -108,7 +108,7 @@ export function generateReferralColumns(
             id={row.original.id}
             fieldName="Referral Name"
             fieldKey="Referral Name"
-            value={row.original.record_name}
+            value={row.original.recordName}
             type="TEXT"
           />
         </div>
