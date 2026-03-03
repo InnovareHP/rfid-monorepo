@@ -179,7 +179,7 @@ export function ProfilePage({
           onSuccess: () => {
             toast.success("Profile picture updated!");
           },
-          onError: (error) => {
+          onError: (error: any) => {
             toast.error(error.error.message);
           },
         }
@@ -215,7 +215,7 @@ export function ProfilePage({
             passwordForm.reset();
             setShowPasswordForm(false);
           },
-          onError: (error) => {
+          onError: (error: any) => {
             toast.error(error.error.message);
           },
         }

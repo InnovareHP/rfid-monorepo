@@ -65,7 +65,7 @@ export function PlansPage({
       });
 
       const activeSubscription = subscriptions?.find(
-        (sub) => sub.status === "active" || sub.status === "trialing"
+        (sub: any) => sub.status === "active" || sub.status === "trialing"
       );
 
       return activeSubscription ? "active" : "none";

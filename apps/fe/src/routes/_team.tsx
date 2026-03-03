@@ -116,7 +116,7 @@ function TeamLayout() {
         query: { referenceId: activeOrganizationId },
       });
       return (res.data?.find(
-        (s) => s.status === "active" || s.status === "trialing"
+        (s: any) => s.status === "active" || s.status === "trialing"
       ) ?? null) as Subscription | null;
     },
     staleTime: 1000 * 60 * 15,
