@@ -1,6 +1,6 @@
 import { stripe } from "@better-auth/stripe";
-import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { betterAuth } from "better-auth/minimal";
 import {
   admin,
   haveIBeenPwned,
@@ -49,7 +49,6 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  experimental: { joins: true },
   advanced: {
     cookiePrefix: `${appConfig.APP_NAME}-AUTH`,
     useSecureCookies: true,
@@ -93,7 +92,6 @@ export const auth = betterAuth({
       banReason: "banReason",
       banExpires: "banExpires",
       stripeCustomerId: "stripeCustomerId",
-      accounts: "accounts",
     },
     additionalFields: {
       isOnboarded: {
@@ -103,7 +101,7 @@ export const auth = betterAuth({
     },
   },
   account: {
-    modelName: "userAccount",
+    modelName: "UserAccount",
     fields: {
       id: "id",
       accountId: "accountId",
