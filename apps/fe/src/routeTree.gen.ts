@@ -27,6 +27,8 @@ import { Route as TeamTeamReferralAnalyticsRouteImport } from './routes/_team/$t
 import { Route as TeamTeamProfileRouteImport } from './routes/_team/$team/profile'
 import { Route as TeamTeamPlansRouteImport } from './routes/_team/$team/plans'
 import { Route as TeamTeamMasterListAnalyticsRouteImport } from './routes/_team/$team/master-list-analytics'
+import { Route as TeamTeamIntegrationsRouteImport } from './routes/_team/$team/integrations'
+import { Route as TeamTeamHelpRouteImport } from './routes/_team/$team/help'
 import { Route as TeamTeamCountyConfigRouteImport } from './routes/_team/$team/county-config'
 import { Route as TeamTeamCalendarRouteImport } from './routes/_team/$team/calendar'
 import { Route as AuthResetPasswordVerifyRouteImport } from './routes/_auth/reset-password/verify'
@@ -139,6 +141,16 @@ const TeamTeamMasterListAnalyticsRoute =
     path: '/$team/master-list-analytics',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamIntegrationsRoute = TeamTeamIntegrationsRouteImport.update({
+  id: '/$team/integrations',
+  path: '/$team/integrations',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamHelpRoute = TeamTeamHelpRouteImport.update({
+  id: '/$team/help',
+  path: '/$team/help',
+  getParentRoute: () => TeamRoute,
+} as any)
 const TeamTeamCountyConfigRoute = TeamTeamCountyConfigRouteImport.update({
   id: '/$team/county-config',
   path: '/$team/county-config',
@@ -269,6 +281,8 @@ export interface FileRoutesByFullPath {
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
   '/$team/county-config': typeof TeamTeamCountyConfigRoute
+  '/$team/help': typeof TeamTeamHelpRoute
+  '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
   '/$team/profile': typeof TeamTeamProfileRoute
@@ -308,6 +322,8 @@ export interface FileRoutesByTo {
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
   '/$team/county-config': typeof TeamTeamCountyConfigRoute
+  '/$team/help': typeof TeamTeamHelpRoute
+  '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
   '/$team/profile': typeof TeamTeamProfileRoute
@@ -350,6 +366,8 @@ export interface FileRoutesById {
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/_team/$team/calendar': typeof TeamTeamCalendarRoute
   '/_team/$team/county-config': typeof TeamTeamCountyConfigRoute
+  '/_team/$team/help': typeof TeamTeamHelpRoute
+  '/_team/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/_team/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/_team/$team/plans': typeof TeamTeamPlansRoute
   '/_team/$team/profile': typeof TeamTeamProfileRoute
@@ -391,6 +409,8 @@ export interface FileRouteTypes {
     | '/reset-password/verify'
     | '/$team/calendar'
     | '/$team/county-config'
+    | '/$team/help'
+    | '/$team/integrations'
     | '/$team/master-list-analytics'
     | '/$team/plans'
     | '/$team/profile'
@@ -430,6 +450,8 @@ export interface FileRouteTypes {
     | '/reset-password/verify'
     | '/$team/calendar'
     | '/$team/county-config'
+    | '/$team/help'
+    | '/$team/integrations'
     | '/$team/master-list-analytics'
     | '/$team/plans'
     | '/$team/profile'
@@ -471,6 +493,8 @@ export interface FileRouteTypes {
     | '/_auth/reset-password/verify'
     | '/_team/$team/calendar'
     | '/_team/$team/county-config'
+    | '/_team/$team/help'
+    | '/_team/$team/integrations'
     | '/_team/$team/master-list-analytics'
     | '/_team/$team/plans'
     | '/_team/$team/profile'
@@ -634,6 +658,20 @@ declare module '@tanstack/react-router' {
       path: '/$team/master-list-analytics'
       fullPath: '/$team/master-list-analytics'
       preLoaderRoute: typeof TeamTeamMasterListAnalyticsRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/integrations': {
+      id: '/_team/$team/integrations'
+      path: '/$team/integrations'
+      fullPath: '/$team/integrations'
+      preLoaderRoute: typeof TeamTeamIntegrationsRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/help': {
+      id: '/_team/$team/help'
+      path: '/$team/help'
+      fullPath: '/$team/help'
+      preLoaderRoute: typeof TeamTeamHelpRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/county-config': {
@@ -820,6 +858,8 @@ const TeamTeamSettingsRouteWithChildren =
 interface TeamRouteChildren {
   TeamTeamCalendarRoute: typeof TeamTeamCalendarRoute
   TeamTeamCountyConfigRoute: typeof TeamTeamCountyConfigRoute
+  TeamTeamHelpRoute: typeof TeamTeamHelpRoute
+  TeamTeamIntegrationsRoute: typeof TeamTeamIntegrationsRoute
   TeamTeamMasterListAnalyticsRoute: typeof TeamTeamMasterListAnalyticsRoute
   TeamTeamPlansRoute: typeof TeamTeamPlansRoute
   TeamTeamProfileRoute: typeof TeamTeamProfileRoute
@@ -849,6 +889,8 @@ interface TeamRouteChildren {
 const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamCalendarRoute: TeamTeamCalendarRoute,
   TeamTeamCountyConfigRoute: TeamTeamCountyConfigRoute,
+  TeamTeamHelpRoute: TeamTeamHelpRoute,
+  TeamTeamIntegrationsRoute: TeamTeamIntegrationsRoute,
   TeamTeamMasterListAnalyticsRoute: TeamTeamMasterListAnalyticsRoute,
   TeamTeamPlansRoute: TeamTeamPlansRoute,
   TeamTeamProfileRoute: TeamTeamProfileRoute,
