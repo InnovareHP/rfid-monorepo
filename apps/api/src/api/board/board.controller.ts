@@ -610,7 +610,7 @@ export class BoardController {
   ) {
     const organizationId = session.session.activeOrganizationId;
     try {
-      return this.boardService.updateRecordValue(
+      return await this.boardService.updateRecordValue(
         recordId,
         dto.fieldId,
         dto.value,

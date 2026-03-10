@@ -8,10 +8,6 @@ export const getMileageLogs = async (filters?: any) => {
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch mileage logs");
-  }
-
   // Return response data directly - API should handle pagination and return { data, columns, nextPage }
   // If API doesn't return columns, provide empty array for compatibility
   const data = response.data;
@@ -25,10 +21,6 @@ export const getMileageLogs = async (filters?: any) => {
 export const createMileageLog = async (data: any) => {
   const response = await axiosClient.post("/api/liason/mileage", data);
 
-  if (response.status !== 200 && response.status !== 201) {
-    throw new Error("Failed to create mileage log");
-  }
-
   return response.data;
 };
 
@@ -36,10 +28,6 @@ export const updateMileageLog = async (id: string, data: any) => {
   const response = await axiosClient.patch(`/api/liason/mileage/${id}`, {
     ...data,
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to update mileage log");
-  }
 
   return response.data;
 };
@@ -54,21 +42,11 @@ export const deleteMileageLog = async (id: string | string[]) => {
       )
     );
 
-    // Check if all deletions were successful
-    const failed = results.some((r) => r.status !== 200);
-    if (failed) {
-      throw new Error("Failed to delete some mileage logs");
-    }
-
     return results.map((r) => r.data);
   }
 
   // Single delete
   const response = await axiosClient.delete(`/api/liason/mileage/${id}`);
-
-  if (response.status !== 200) {
-    throw new Error("Failed to delete mileage log");
-  }
 
   return response.data;
 };
