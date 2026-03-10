@@ -30,7 +30,9 @@
       "Bash(pnpm build:shared:*)",
       "Bash(pnpm:*)",
       "Bash(node:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)"
     ]
   }
 }

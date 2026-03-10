@@ -6,6 +6,13 @@ import {
   getOutlookAuthUrl,
   getOutlookStatus,
 } from "@/services/lead/lead-service";
+import {
+  disconnectGoogleCalendar,
+  disconnectOutlookCalendar,
+  getCalendarConnectionStatus,
+  getGoogleCalendarAuthUrl,
+  getOutlookCalendarAuthUrl,
+} from "@/services/calendar/calendar-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -27,6 +34,7 @@ export default function IntegrationPage() {
   const queryClient = useQueryClient();
   const search = useSearch({ strict: false }) as Record<string, string>;
 
+  // ---- Email: Gmail ----
   const gmailStatusQuery = useQuery({
     queryKey: ["gmail-status"],
     queryFn: getGmailStatus,
@@ -53,6 +61,7 @@ export default function IntegrationPage() {
     },
   });
 
+  // ---- Email: Outlook ----
   const outlookStatusQuery = useQuery({
     queryKey: ["outlook-status"],
     queryFn: getOutlookStatus,
@@ -79,6 +88,57 @@ export default function IntegrationPage() {
     },
   });
 
+  // ---- Calendar ----
+  const calendarStatusQuery = useQuery({
+    queryKey: ["calendar-status"],
+    queryFn: getCalendarConnectionStatus,
+  });
+
+  const connectGoogleCalendarMutation = useMutation({
+    mutationFn: getGoogleCalendarAuthUrl,
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: () => {
+      toast.error("Failed to start Google Calendar connection");
+    },
+  });
+
+  const disconnectGoogleCalendarMutation = useMutation({
+    mutationFn: disconnectGoogleCalendar,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+      toast.success("Google Calendar disconnected");
+    },
+    onError: () => {
+      toast.error("Failed to disconnect Google Calendar");
+    },
+  });
+
+  const connectOutlookCalendarMutation = useMutation({
+    mutationFn: getOutlookCalendarAuthUrl,
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: () => {
+      toast.error("Failed to start Outlook Calendar connection");
+    },
+  });
+
+  const disconnectOutlookCalendarMutation = useMutation({
+    mutationFn: disconnectOutlookCalendar,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+      toast.success("Outlook Calendar disconnected");
+    },
+    onError: () => {
+      toast.error("Failed to disconnect Outlook Calendar");
+    },
+  });
+
+  // ---- Toast on redirect ----
   useEffect(() => {
     if (search?.gmail === "connected") {
       toast.success("Gmail connected successfully!");
@@ -96,6 +156,24 @@ export default function IntegrationPage() {
       toast.error(search?.message || "Failed to connect Outlook");
     }
   }, [queryClient, search?.outlook, search?.message]);
+
+  useEffect(() => {
+    if (search?.google_calendar === "connected") {
+      toast.success("Google Calendar connected successfully!");
+      queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
+    } else if (search?.google_calendar === "error") {
+      toast.error(search?.message || "Failed to connect Google Calendar");
+    }
+  }, [queryClient, search?.google_calendar, search?.message]);
+
+  useEffect(() => {
+    if (search?.outlook_calendar === "connected") {
+      toast.success("Outlook Calendar connected successfully!");
+      queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
+    } else if (search?.outlook_calendar === "error") {
+      toast.error(search?.message || "Failed to connect Outlook Calendar");
+    }
+  }, [queryClient, search?.outlook_calendar, search?.message]);
 
   return (
     <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-blue-50/20 to-gray-50">
@@ -124,6 +202,7 @@ export default function IntegrationPage() {
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
           </TabsList>
 
+          {/* ---- Email Tab ---- */}
           <TabsContent value="email" className="mt-0">
             <Card className="border-2 border-gray-300 shadow-sm">
               <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
@@ -272,6 +351,7 @@ export default function IntegrationPage() {
             </Card>
           </TabsContent>
 
+          {/* ---- Calendar Tab ---- */}
           <TabsContent value="calendar" className="mt-0">
             <Card className="border-2 border-gray-300 shadow-sm">
               <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
@@ -282,29 +362,146 @@ export default function IntegrationPage() {
                       Calendar Integrations
                     </CardTitle>
                     <CardDescription>
-                      Calendar providers will appear here next
+                      Connect calendar accounts to view and manage events from your dashboard
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 p-6">
-                <div className="flex items-center justify-between rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">Google Calendar</p>
-                    <p className="text-sm text-gray-600">
-                      Sync appointments and follow-up schedules
-                    </p>
+                {/* Google Calendar */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50">
+                      <Calendar className="h-6 w-6 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Google Calendar</p>
+                      {calendarStatusQuery.data?.google.connected ? (
+                        <p className="text-sm text-gray-600">
+                          Connected as{" "}
+                          <span className="font-medium text-blue-600">
+                            {calendarStatusQuery.data.google.email}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Sync appointments and follow-up schedules
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant="secondary">Coming soon</Badge>
+
+                  <div className="flex items-center gap-2">
+                    {calendarStatusQuery.data?.google.connected && (
+                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
+                        Connected
+                      </Badge>
+                    )}
+
+                    {calendarStatusQuery.data?.google.connected ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => disconnectGoogleCalendarMutation.mutate()}
+                        disabled={disconnectGoogleCalendarMutation.isPending}
+                      >
+                        {disconnectGoogleCalendarMutation.isPending ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Unlink className="mr-1 h-4 w-4" />
+                        )}
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-blue-300 hover:bg-blue-50"
+                        onClick={() => connectGoogleCalendarMutation.mutate()}
+                        disabled={
+                          connectGoogleCalendarMutation.isPending ||
+                          calendarStatusQuery.isLoading
+                        }
+                      >
+                        {connectGoogleCalendarMutation.isPending ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Link className="mr-1 h-4 w-4" />
+                        )}
+                        Connect Google
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">Outlook Calendar</p>
-                    <p className="text-sm text-gray-600">
-                      Manage schedule sync across Microsoft accounts
-                    </p>
+
+                <Separator className="bg-gray-300" />
+
+                {/* Outlook Calendar */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50">
+                      <Calendar className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Outlook Calendar</p>
+                      {calendarStatusQuery.data?.outlook.connected ? (
+                        <p className="text-sm text-gray-600">
+                          Connected as{" "}
+                          <span className="font-medium text-blue-600">
+                            {calendarStatusQuery.data.outlook.email}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Manage schedule sync across Microsoft accounts
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant="secondary">Coming soon</Badge>
+
+                  <div className="flex items-center gap-2">
+                    {calendarStatusQuery.data?.outlook.connected && (
+                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
+                        Connected
+                      </Badge>
+                    )}
+
+                    {calendarStatusQuery.data?.outlook.connected ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => disconnectOutlookCalendarMutation.mutate()}
+                        disabled={disconnectOutlookCalendarMutation.isPending}
+                      >
+                        {disconnectOutlookCalendarMutation.isPending ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Unlink className="mr-1 h-4 w-4" />
+                        )}
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-blue-300 hover:bg-blue-50"
+                        onClick={() => connectOutlookCalendarMutation.mutate()}
+                        disabled={
+                          connectOutlookCalendarMutation.isPending ||
+                          calendarStatusQuery.isLoading
+                        }
+                      >
+                        {connectOutlookCalendarMutation.isPending ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Link className="mr-1 h-4 w-4" />
+                        )}
+                        Connect Outlook
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

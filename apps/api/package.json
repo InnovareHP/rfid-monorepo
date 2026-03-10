@@ -17,6 +17,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
+    "prisma:seed-manual": "ts-node prisma/seed-manual.ts",
     "prisma:push": "prisma db push",
     "prisma:pull": "prisma db pull",
     "prisma:reset": "prisma db reset",

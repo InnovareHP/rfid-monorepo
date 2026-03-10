@@ -31,6 +31,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
   BarChart3,
+  BookOpen,
   Building2,
   ChevronsUpDown,
   ClipboardList,
@@ -143,6 +144,12 @@ export function AdminSidebar() {
                         icon: BarChart3,
                         path: "/support/kpi/team",
                       },
+                      {
+                        id: "manual",
+                        title: "User Manual",
+                        icon: BookOpen,
+                        path: "/support/manual",
+                      },
                     ]
                   : role === ROLES.SUPPORT
                     ? [
@@ -169,6 +176,12 @@ export function AdminSidebar() {
                           title: "My KPIs",
                           icon: BarChart3,
                           path: "/support/kpi/my",
+                        },
+                        {
+                          id: "manual",
+                          title: "User Manual",
+                          icon: BookOpen,
+                          path: "/support/manual",
                         },
                       ]
                     : [];

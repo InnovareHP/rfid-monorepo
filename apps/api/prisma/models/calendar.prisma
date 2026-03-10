@@ -1,0 +1,27 @@
+model GoogleCalendarToken {
+  id              String     @id @default(uuid())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id])
+  accessToken     String
+  refreshToken    String
+  tokenExpiry     DateTime
+  email           String
+
+  @@schema("calendar_schema")
+}
+
+model OutlookCalendarToken {
+  id              String     @id @default(uuid())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id])
+  accessToken     String
+  refreshToken    String
+  tokenExpiry     DateTime
+  email           String
+
+  @@schema("calendar_schema")
+}

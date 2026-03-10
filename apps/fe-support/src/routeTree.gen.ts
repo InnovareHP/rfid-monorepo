@@ -21,6 +21,7 @@ import { Route as LangLangAccountRouteImport } from './routes/_lang/$lang/accoun
 import { Route as AdminAdminActivityLogRouteImport } from './routes/_admin/admin/activity-log'
 import { Route as SupportSupportTicketsIndexRouteImport } from './routes/_support/support/tickets/index'
 import { Route as SupportSupportRatingsIndexRouteImport } from './routes/_support/support/ratings/index'
+import { Route as SupportSupportManualIndexRouteImport } from './routes/_support/support/manual/index'
 import { Route as LangLangRequestIndexRouteImport } from './routes/_lang/$lang/request/index'
 import { Route as AdminAdminUsersIndexRouteImport } from './routes/_admin/admin/users/index'
 import { Route as AdminAdminOrganizationsIndexRouteImport } from './routes/_admin/admin/organizations/index'
@@ -90,6 +91,12 @@ const SupportSupportRatingsIndexRoute =
     path: '/support/ratings/',
     getParentRoute: () => SupportRoute,
   } as any)
+const SupportSupportManualIndexRoute =
+  SupportSupportManualIndexRouteImport.update({
+    id: '/support/manual/',
+    path: '/support/manual/',
+    getParentRoute: () => SupportRoute,
+  } as any)
 const LangLangRequestIndexRoute = LangLangRequestIndexRouteImport.update({
   id: '/$lang/request/',
   path: '/$lang/request/',
@@ -154,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/admin/organizations/': typeof AdminAdminOrganizationsIndexRoute
   '/admin/users/': typeof AdminAdminUsersIndexRoute
   '/$lang/request/': typeof LangLangRequestIndexRoute
+  '/support/manual/': typeof SupportSupportManualIndexRoute
   '/support/ratings/': typeof SupportSupportRatingsIndexRoute
   '/support/tickets/': typeof SupportSupportTicketsIndexRoute
   '/admin/organizations/$orgId/': typeof AdminAdminOrganizationsOrgIdIndexRoute
@@ -174,6 +182,7 @@ export interface FileRoutesByTo {
   '/admin/organizations': typeof AdminAdminOrganizationsIndexRoute
   '/admin/users': typeof AdminAdminUsersIndexRoute
   '/$lang/request': typeof LangLangRequestIndexRoute
+  '/support/manual': typeof SupportSupportManualIndexRoute
   '/support/ratings': typeof SupportSupportRatingsIndexRoute
   '/support/tickets': typeof SupportSupportTicketsIndexRoute
   '/admin/organizations/$orgId': typeof AdminAdminOrganizationsOrgIdIndexRoute
@@ -198,6 +207,7 @@ export interface FileRoutesById {
   '/_admin/admin/organizations/': typeof AdminAdminOrganizationsIndexRoute
   '/_admin/admin/users/': typeof AdminAdminUsersIndexRoute
   '/_lang/$lang/request/': typeof LangLangRequestIndexRoute
+  '/_support/support/manual/': typeof SupportSupportManualIndexRoute
   '/_support/support/ratings/': typeof SupportSupportRatingsIndexRoute
   '/_support/support/tickets/': typeof SupportSupportTicketsIndexRoute
   '/_admin/admin/organizations/$orgId/': typeof AdminAdminOrganizationsOrgIdIndexRoute
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/admin/organizations/'
     | '/admin/users/'
     | '/$lang/request/'
+    | '/support/manual/'
     | '/support/ratings/'
     | '/support/tickets/'
     | '/admin/organizations/$orgId/'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/admin/organizations'
     | '/admin/users'
     | '/$lang/request'
+    | '/support/manual'
     | '/support/ratings'
     | '/support/tickets'
     | '/admin/organizations/$orgId'
@@ -263,6 +275,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/organizations/'
     | '/_admin/admin/users/'
     | '/_lang/$lang/request/'
+    | '/_support/support/manual/'
     | '/_support/support/ratings/'
     | '/_support/support/tickets/'
     | '/_admin/admin/organizations/$orgId/'
@@ -362,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/support/ratings'
       fullPath: '/support/ratings/'
       preLoaderRoute: typeof SupportSupportRatingsIndexRouteImport
+      parentRoute: typeof SupportRoute
+    }
+    '/_support/support/manual/': {
+      id: '/_support/support/manual/'
+      path: '/support/manual'
+      fullPath: '/support/manual/'
+      preLoaderRoute: typeof SupportSupportManualIndexRouteImport
       parentRoute: typeof SupportRoute
     }
     '/_lang/$lang/request/': {
@@ -473,6 +493,7 @@ interface SupportRouteChildren {
   SupportSupportIndexRoute: typeof SupportSupportIndexRoute
   SupportSupportKpiMyRoute: typeof SupportSupportKpiMyRoute
   SupportSupportKpiTeamRoute: typeof SupportSupportKpiTeamRoute
+  SupportSupportManualIndexRoute: typeof SupportSupportManualIndexRoute
   SupportSupportRatingsIndexRoute: typeof SupportSupportRatingsIndexRoute
   SupportSupportTicketsIndexRoute: typeof SupportSupportTicketsIndexRoute
   SupportSupportTicketsTicketNumberIndexRoute: typeof SupportSupportTicketsTicketNumberIndexRoute
@@ -482,6 +503,7 @@ const SupportRouteChildren: SupportRouteChildren = {
   SupportSupportIndexRoute: SupportSupportIndexRoute,
   SupportSupportKpiMyRoute: SupportSupportKpiMyRoute,
   SupportSupportKpiTeamRoute: SupportSupportKpiTeamRoute,
+  SupportSupportManualIndexRoute: SupportSupportManualIndexRoute,
   SupportSupportRatingsIndexRoute: SupportSupportRatingsIndexRoute,
   SupportSupportTicketsIndexRoute: SupportSupportTicketsIndexRoute,
   SupportSupportTicketsTicketNumberIndexRoute:
