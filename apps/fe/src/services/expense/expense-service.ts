@@ -8,10 +8,6 @@ export const getExpenseLogs = async (filters?: any) => {
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch expense logs");
-  }
-
   // Return response data directly - API should handle pagination and return { data, columns, nextPage }
   // If API doesn't return columns, provide empty array for compatibility
   const data = response.data;
@@ -30,10 +26,6 @@ export const exportExpenseLogs = async (filters?: any) => {
     },
     responseType: "blob", // ✅ REQUIRED
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to export expense logs");
-  }
 
   const blob = new Blob([response.data], {
     type: "application/pdf",
@@ -56,10 +48,6 @@ export const createExpenseLog = async (data: any) => {
     ...data,
   });
 
-  if (response.status !== 200 && response.status !== 201) {
-    throw new Error("Failed to create expense log");
-  }
-
   return response.data;
 };
 
@@ -69,19 +57,11 @@ export const updateExpenseLog = async (id: string, data: any) => {
     ...data,
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to update expense log");
-  }
-
   return response.data;
 };
 
 export const deleteExpenseLog = async (id: string) => {
   const response = await axiosClient.delete(`/api/liason/expense/${id}`);
-
-  if (response.status !== 200) {
-    throw new Error("Failed to delete expense log");
-  }
 
   return response.data;
 };

@@ -13,10 +13,6 @@ export const getReferral = async (filterMeta: any) => {
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch referrals");
-  }
-
   return response.data;
 };
 
@@ -27,10 +23,6 @@ export const getSpecificReferral = async (
   const response = await axiosClient.get(
     `/api/boards/${referralId}?moduleType=${moduleType || "REFERRAL"}`
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch specific referral");
-  }
 
   return response.data;
 };
@@ -44,10 +36,6 @@ export const getReferralHistory = async (
     `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}&moduleType=REFERRAL`
   );
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch referral history");
-  }
-
   return response.data as ReferralHistoryResponse;
 };
 
@@ -55,10 +43,6 @@ export const getReferralColumnOptions = async () => {
   const response = await axiosClient.get("/api/boards/columns", {
     params: { moduleType: "REFERRAL" },
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch referrals columns");
-  }
 
   return response.data;
 };
@@ -77,9 +61,6 @@ export const getReferralDropdownOptions = async (
       },
     }
   );
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch referrals dropdown options");
-  }
 
   return response.data as any;
 };
@@ -110,10 +91,6 @@ export const updateReferral = async (
     reason,
     moduleType: "REFERRAL",
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to update referral");
-  }
 
   return response.data;
 };
@@ -160,10 +137,6 @@ export const getReferralTimeline = async (
     `/api/boards/timeline/${referralId}?take=${take}&skip=${skip}&moduleType=REFERRAL`
   );
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch referral timeline");
-  }
-
   return response.data;
 };
 
@@ -187,10 +160,6 @@ export const editReferralTimeline = async (id: string) => {
     moduleType: "REFERRAL",
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to edit referral timeline");
-  }
-
   return response.data;
 };
 
@@ -199,19 +168,11 @@ export const deleteReferralTimeline = async (id: string) => {
     data: { moduleType: "REFERRAL" },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to delete referral timeline");
-  }
-
   return response.data;
 };
 
 export const getCounties = async () => {
   const response = await axiosClient.get("/api/boards/county/configuration");
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch referral counties");
-  }
 
   return response.data;
 };
@@ -228,10 +189,6 @@ export const deleteCounty = async (id: string) => {
   const response = await axiosClient.delete(
     `/api/boards/county/assignment/${id}`
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to delete county");
-  }
 
   return response.data;
 };
@@ -252,10 +209,6 @@ export const seenReferrals = async (referralId: string) => {
     recordId: referralId,
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to seen referrals");
-  }
-
   return response.data;
 };
 
@@ -263,10 +216,6 @@ export const deleteReferralDropdownOption = async (optionId: string) => {
   const response = await axiosClient.delete(
     `/api/boards/field/options/${optionId}`
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to delete referral dropdown option");
-  }
 
   return response.data;
 };

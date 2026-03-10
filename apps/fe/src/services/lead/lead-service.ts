@@ -31,10 +31,6 @@ export const getLeads = async (filters: any) => {
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch leads");
-  }
-
   return response.data;
 };
 
@@ -45,19 +41,11 @@ export const getColumnOptions = async (moduleType?: string) => {
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch leads meta");
-  }
-
   return response.data;
 };
 
 export const getFollowUpSuggestions = async (recordId: string) => {
   const response = await axiosClient.get(`/api/boards/${recordId}/suggestions`);
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch follow-up suggestions");
-  }
 
   return response.data as {
     suggestions: {
@@ -78,10 +66,6 @@ export const getLeadAnalysis = async (leadId: string, moduleType?: string) => {
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch lead analysis");
-  }
-
   return response.data as LeadAnalyze;
 };
 
@@ -99,10 +83,6 @@ export const getDropdownOptions = async (
       },
     }
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch dropdown options");
-  }
 
   return response.data as any;
 };
@@ -126,10 +106,6 @@ export const seenLeads = async (recordId: string) => {
     recordId: recordId,
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to seen leads");
-  }
-
   return response.data;
 };
 
@@ -139,10 +115,6 @@ export const getSpecificLead = async (leadId: string, moduleType?: string) => {
       moduleType: moduleType || "LEAD",
     },
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch specific lead");
-  }
 
   return response.data;
 };
@@ -158,10 +130,6 @@ export const updateLead = async (
     fieldId: fieldId,
     moduleType: moduleType || "LEAD",
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to update lead");
-  }
 
   return response.data;
 };
@@ -179,10 +147,6 @@ export const updateContactValues = async (
     `/api/boards/contact-form/${fieldId}`,
     body
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to update lead");
-  }
 
   return response.data;
 };
@@ -240,10 +204,6 @@ export const getLeadHistory = async (filters: any, moduleType?: string) => {
     params: { ...filters, moduleType: moduleType || "LEAD" },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch lead history");
-  }
-
   return response.data;
 };
 export const getleadValueId = async (fieldId: string, value: string) => {
@@ -253,10 +213,6 @@ export const getleadValueId = async (fieldId: string, value: string) => {
       params: { value },
     }
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch lead history");
-  }
 
   return response.data;
 };
@@ -285,10 +241,6 @@ export const deleteLead = async (columnIds: string[], moduleType?: string) => {
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to delete leads");
-  }
-
   return response.data;
 };
 
@@ -301,10 +253,6 @@ export const getLeadTimeline = async (
   const response = await axiosClient.get(
     `/api/boards/timeline/${leadId}?take=${limit}&page=${page}&moduleType=${moduleType || "LEAD"}`
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch lead timeline");
-  }
 
   return response.data;
 };
@@ -330,10 +278,6 @@ export const editLeadTimeline = async (
     moduleType: moduleType,
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to edit lead timeline");
-  }
-
   return response.data;
 };
 
@@ -346,10 +290,6 @@ export const deleteLeadTimeline = async (
       moduleType: moduleType,
     },
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to delete lead timeline");
-  }
 
   return response.data;
 };
@@ -405,10 +345,6 @@ export const getActivities = async (
     params: { page, limit },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch activities");
-  }
-
   return response.data as { data: Activity[]; total: number };
 };
 
@@ -463,10 +399,6 @@ export const deleteActivity = async (activityId: string) => {
   const response = await axiosClient.delete(
     `/api/boards/activities/${activityId}`
   );
-
-  if (response.status !== 200) {
-    throw new Error("Failed to delete activity");
-  }
 
   return response.data;
 };

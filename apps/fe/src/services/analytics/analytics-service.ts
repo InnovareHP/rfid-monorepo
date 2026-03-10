@@ -12,10 +12,6 @@ export const getAnalytics = async (
     },
   });
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch analytics");
-  }
-
   return response.data;
 };
 
@@ -25,10 +21,6 @@ export const getAnalyticsSummary = async (analytics: AnalyticsResponse) => {
       analytics,
     },
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch analytics summary");
-  }
 
   return response.data;
 };
@@ -45,10 +37,6 @@ export const getMarketingList = async (
       userId,
     },
   });
-
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch marketing list");
-  }
 
   return response.data;
 };

@@ -20,6 +20,7 @@ declare global {
       activeOrganizationId: string;
       memberId: string;
       memberRole: string;
+      userId: string;
     };
   };
 

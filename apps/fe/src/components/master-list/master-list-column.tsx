@@ -154,7 +154,7 @@ export function generateLeadColumns(
         id={row.original.id}
         fieldName="Account Manager"
         fieldKey="ASSIGNED_TO"
-        value={row.original.assigned_to}
+        value={row.original.assignedTo}
         type="ASSIGNED_TO"
       />
     ),
