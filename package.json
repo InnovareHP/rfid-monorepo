@@ -18,7 +18,8 @@
     "prisma:generate": "pnpm --filter api prisma:generate",
     "prisma:migrate": "pnpm --filter api prisma:migrate",
     "prisma:push": "pnpm --filter api prisma:push",
-    "prisma:studio": "pnpm --filter api prisma:studio"
+    "prisma:studio": "pnpm --filter api prisma:studio",
+    "prisma:seed-manual": "pnpm --filter api prisma:seed-manual"
   },
   "engines": {
     "node": ">=18"

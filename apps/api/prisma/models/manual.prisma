@@ -1,0 +1,56 @@
+// ---------------------------------------------------------------------------
+// User Manual / Help Center Knowledge Base
+// ---------------------------------------------------------------------------
+
+model ManualCategory {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt
+  name        String // e.g. "Master List", "Referral List", "Integrations"
+  slug        String   @unique
+  description String?
+  icon        String? // icon identifier for frontend rendering
+  order       Int      @default(0)
+
+  articles ManualArticle[] @relation("ManualCategoryArticles")
+
+  @@schema("support_schema")
+}
+
+model ManualArticle {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt
+  title     String
+  slug      String   @unique
+  summary   String // short description shown in search results / cards
+  published Boolean  @default(false)
+  order     Int      @default(0)
+
+  categoryId String
+  category   ManualCategory @relation("ManualCategoryArticles", fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdBy     String
+  createdByUser User @relation("ManualArticleCreatedBy", fields: [createdBy], references: [id])
+
+  steps ManualStep[] @relation("ManualArticleSteps")
+
+  @@index([categoryId])
+  @@schema("support_schema")
+}
+
+model ManualStep {
+  id       String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt
+  title    String? // optional step heading
+  content  String // text explaining what to do in this step
+  imageUrl String? // screenshot or illustration for the step
+  order    Int      @default(0)
+
+  articleId String
+  article   ManualArticle @relation("ManualArticleSteps", fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@schema("support_schema")
+}

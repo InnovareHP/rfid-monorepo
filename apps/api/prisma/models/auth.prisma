@@ -34,6 +34,9 @@ model User {
   Activity                Activity[]
   GmailToken              GmailToken?
   OutlookToken            OutlookToken?
+  GoogleCalendarToken     GoogleCalendarToken?
+  OutlookCalendarToken    OutlookCalendarToken?
+  ManualArticle           ManualArticle[] @relation("ManualArticleCreatedBy")
 
   @@schema("auth_schema")
 }
