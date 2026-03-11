@@ -73,15 +73,40 @@ export const OnboardingSeeding = async (organizationId: string) => {
     "Admission Type": ["Emergency", "Routine", "Transfer"],
   };
 
+  const statusOptionsMap: Record<
+    string,
+    { name: string; color: string }[]
+  > = {
+    Status: [
+      { name: "Pending", color: "#eab308" },
+      { name: "Admitted", color: "#22c55e" },
+      { name: "Rejected", color: "#ef4444" },
+    ],
+  };
+
   const referralFieldOptions = referralFields
-    .filter((f) => f.fieldType === BoardFieldType.DROPDOWN)
-    .flatMap(
-      (field) =>
+    .filter(
+      (f) =>
+        f.fieldType === BoardFieldType.DROPDOWN ||
+        f.fieldType === BoardFieldType.STATUS
+    )
+    .flatMap((field) => {
+      if (field.fieldType === BoardFieldType.STATUS) {
+        return (
+          statusOptionsMap[field.fieldName]?.map((opt) => ({
+            fieldId: field.id,
+            optionName: opt.name,
+            color: opt.color,
+          })) ?? []
+        );
+      }
+      return (
         dropdownMap[field.fieldName]?.map((option) => ({
           fieldId: field.id,
           optionName: option,
         })) ?? []
-    );
+      );
+    });
 
   if (referralFieldOptions.length > 0) {
     await prisma.fieldOption.createMany({

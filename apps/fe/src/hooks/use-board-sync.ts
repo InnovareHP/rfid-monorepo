@@ -40,14 +40,11 @@ export function useBoardSync() {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page: any) => ({
-              ...page,
-              data: page.data.map((r: any) =>
-                r.id === recordId
-                  ? { ...r, [fieldName]: value, has_notification: true }
-                  : r
-              ),
-            })),
+            data: old.data.map((r: any) =>
+              r.id === recordId
+                ? { ...r, [fieldName]: value, has_notification: true }
+                : r
+            ),
           };
         }
       );
@@ -60,8 +57,8 @@ export function useBoardSync() {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page: any, index: number) =>
-              index === 0 ? { ...page, data: [record, ...page.data] } : page
+            data: old.data.map((r: any, index: number) =>
+              index === 0 ? { ...r, ...record } : r
             ),
           };
         }
@@ -75,10 +72,9 @@ export function useBoardSync() {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page: any) => ({
-              ...page,
-              data: page.data.filter((r: any) => !recordIds.includes(r.id)),
-            })),
+            data: old.data.map((r: any) =>
+              r.id === recordIds ? { ...r, has_notification: true } : r
+            ),
           };
         }
       );
@@ -91,14 +87,11 @@ export function useBoardSync() {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page: any) => ({
-              ...page,
-              data: page.data.map((r: any) =>
-                r.id === recordId
-                  ? { ...r, [data.key]: data.value, has_notification: true }
-                  : r
-              ),
-            })),
+            data: old.data.map((r: any) =>
+              r.id === recordId
+                ? { ...r, [data.key]: data.value, has_notification: true }
+                : r
+            ),
           };
         }
       );
@@ -111,12 +104,39 @@ export function useBoardSync() {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page: any) => ({
-              ...page,
-              data: page.data.map((r: any) =>
-                r.id === recordId ? { ...r, has_notification: false } : r
-              ),
-            })),
+            data: old.data.map((r: any) =>
+              r.id === recordId ? { ...r, has_notification: false } : r
+            ),
+          };
+        }
+      );
+    };
+
+    const handleUpdateStatus = ({
+      recordId,
+      fieldId,
+      value,
+      moduleType,
+      reason,
+      actionDate,
+    }: any) => {
+      queryClient.setQueriesData(
+        { queryKey: getQueryKey(moduleType), exact: false },
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((r: any) =>
+              r.id === recordId
+                ? {
+                    ...r,
+                    [fieldId]: value,
+                    [reason.id]: reason.value,
+                    [actionDate.id]: actionDate.value,
+                    has_notification: true,
+                  }
+                : r
+            ),
           };
         }
       );
@@ -128,6 +148,7 @@ export function useBoardSync() {
     socket.on("board:record-deleted", handleDelete);
     socket.on("board:record-notification-state", handleUpdateNotificationState);
     socket.on("board:update-location", handleUpdateLocation);
+    socket.on("board:update-status", handleUpdateStatus);
 
     return () => {
       socket.off("board:update", handleUpdate);
@@ -138,6 +159,7 @@ export function useBoardSync() {
         handleUpdateNotificationState
       );
       socket.off("board:update-location", handleUpdateLocation);
+      socket.off("board:update-status", handleUpdateStatus);
     };
   }, [queryClient, socket]);
 }

@@ -32,6 +32,7 @@ export class AnalyticsService {
       record: {
         organizationId: organizationId,
         moduleType: "REFERRAL",
+        isDeleted: false,
         ...(startDate &&
           endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
@@ -56,6 +57,7 @@ export class AnalyticsService {
       record: {
         moduleType: "REFERRAL",
         organizationId: organizationId,
+        isDeleted: false,
         ...(startDate &&
           endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
@@ -75,6 +77,7 @@ export class AnalyticsService {
       record: {
         moduleType: "REFERRAL",
         organizationId: organizationId,
+        isDeleted: false,
         ...(startDate &&
           endDate && { createdAt: { gte: startDate, lte: endDate } }),
       },
@@ -96,6 +99,7 @@ export class AnalyticsService {
       field: { fieldName: "Referral Source Type" },
       record: {
         moduleType: "REFERRAL",
+        isDeleted: false,
         organizationId: organizationId,
         ...(startDate &&
           endDate && { createdAt: { gte: startDate, lte: endDate } }),
@@ -119,6 +123,7 @@ export class AnalyticsService {
       value: "Admitted",
       record: {
         moduleType: "REFERRAL",
+        isDeleted: false,
         organizationId: organizationId,
         ...(startDate &&
           endDate && { createdAt: { gte: startDate, lte: endDate } }),
@@ -140,46 +145,164 @@ export class AnalyticsService {
     };
   }
 
-  // 6️⃣ Average Time from Referral to Admission
-  async getAverageTimeToAdmission(
+  // 6️⃣ Average Time per Status (how long it took to reach each status)
+  async getAverageTimeByStatus(
     organizationId: string,
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.BoardWhereInput = {
-      organizationId: organizationId,
-      moduleType: "REFERRAL",
-      ...(startDate &&
-        endDate && { createdAt: { gte: startDate, lte: endDate } }),
-    };
-    const referrals = await prisma.board.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        createdAt: true,
-        values: {
-          where: { field: { fieldName: "Admission Date" } },
-          select: { value: true },
+    const dateFilter =
+      startDate && endDate
+        ? Prisma.sql`AND b."createdAt" >= ${startDate} AND b."createdAt" <= ${endDate}`
+        : Prisma.empty;
+
+    // Use History table: find when each referral's status was changed to each value
+    // Calculate the time from referral creation to that status change
+    const results = await prisma.$queryRaw<
+      { status: string; avg_days: number; count: number }[]
+    >`
+      SELECT
+        h."newValue" AS status,
+        ROUND(AVG(EXTRACT(EPOCH FROM (h."createdAt" - b."createdAt")) / 86400)::numeric, 1) AS avg_days,
+        COUNT(*)::int AS count
+      FROM board_schema."History" h
+      JOIN board_schema."Board" b ON b."id" = h."recordId"
+      WHERE b."organizationId" = ${organizationId}
+        AND b."moduleType" = 'REFERRAL'
+        AND b."isDeleted" = false
+        AND h."column" = 'Status'
+        AND h."action" = 'update'
+        AND h."newValue" IS NOT NULL
+        AND h."newValue" != ''
+        ${dateFilter}
+      GROUP BY h."newValue"
+      ORDER BY avg_days ASC;
+    `;
+
+    return results.map((r) => ({
+      status: r.status,
+      averageDays: String(r.avg_days),
+      count: Number(r.count),
+    }));
+  }
+
+  // Total counts for referrals and leads
+  async getTotalCounts(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const dateFilter =
+      startDate && endDate
+        ? { createdAt: { gte: startDate, lte: endDate } }
+        : {};
+
+    const [totalReferrals, totalLeads, referralsThisPeriod, leadsThisPeriod] =
+      await Promise.all([
+        prisma.board.count({
+          where: {
+            organizationId,
+            moduleType: "REFERRAL",
+            isDeleted: false,
+          },
+        }),
+        prisma.board.count({
+          where: {
+            organizationId,
+            moduleType: "LEAD",
+            isDeleted: false,
+          },
+        }),
+        prisma.board.count({
+          where: {
+            organizationId,
+            moduleType: "REFERRAL",
+            isDeleted: false,
+            ...dateFilter,
+          },
+        }),
+        prisma.board.count({
+          where: {
+            organizationId,
+            moduleType: "LEAD",
+            isDeleted: false,
+            ...dateFilter,
+          },
+        }),
+      ]);
+
+    return { totalReferrals, totalLeads, referralsThisPeriod, leadsThisPeriod };
+  }
+
+  // Status breakdown with colors
+  async getStatusBreakdown(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const dateFilter =
+      startDate && endDate
+        ? { createdAt: { gte: startDate, lte: endDate } }
+        : {};
+
+    const statusCounts = await prisma.fieldValue.groupBy({
+      by: ["value"],
+      where: {
+        field: { fieldName: "Status", moduleType: "REFERRAL" },
+        record: {
+          organizationId,
+          moduleType: "REFERRAL",
+          isDeleted: false,
+          ...dateFilter,
         },
       },
+      _count: { value: true },
+      orderBy: { _count: { value: "desc" } },
     });
 
-    const differences = referrals
-      .map((r) => {
-        const admissionDateStr = r.values[0]?.value;
-        if (!admissionDateStr) return null;
-        const admissionDate = new Date(admissionDateStr);
-        return (
-          (admissionDate.getTime() - r.createdAt.getTime()) /
-          (1000 * 60 * 60 * 24)
-        );
-      })
-      .filter((d): d is number => d !== null && d > 0);
+    // Fetch status field options for colors
+    const statusField = await prisma.field.findFirst({
+      where: {
+        fieldName: "Status",
+        moduleType: "REFERRAL",
+        organizationId,
+        isDeleted: false,
+      },
+      include: { options: { where: { isDeleted: false } } },
+    });
 
-    const avgDays =
-      differences.reduce((sum, d) => sum + d, 0) / (differences.length || 1);
+    const colorMap = new Map(
+      statusField?.options?.map((o) => [o.optionName, o.color]) ?? []
+    );
 
-    return { averageDays: avgDays.toFixed(1) };
+    return statusCounts.map((s) => ({
+      status: s.value ?? "Unknown",
+      count: s._count.value,
+      color: colorMap.get(s.value ?? "") ?? null,
+    }));
+  }
+
+  // Admission type breakdown (Emergency, Routine, Transfer)
+  async getAdmissionTypeBreakdown(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    return await prisma.fieldValue.groupBy({
+      by: ["value"],
+      where: {
+        field: { fieldName: "Admission Type" },
+        record: {
+          organizationId,
+          moduleType: "REFERRAL",
+          isDeleted: false,
+          ...(startDate &&
+            endDate && { createdAt: { gte: startDate, lte: endDate } }),
+        },
+      },
+      _count: { value: true },
+      orderBy: { _count: { value: "desc" } },
+    });
   }
 
   // 7️⃣ Payer Source Mix
@@ -188,6 +311,7 @@ export class AnalyticsService {
       field: { fieldName: "Payor" },
       record: {
         moduleType: "REFERRAL",
+        isDeleted: false,
         organizationId: organizationId,
         ...(startDate &&
           endDate && { createdAt: { gte: startDate, lte: endDate } }),
@@ -201,32 +325,18 @@ export class AnalyticsService {
     });
   }
 
-  //   async getDischargeDisposition() {
-  //     return await prisma.referralValue.groupBy({
-  //       by: ["value"],
-  //       where: { Field: { fieldName: "Discharge Disposition" } },
-  //       _count: { value: true },
-  //       orderBy: { _count: { value: "desc" } },
-  //     });
-  //   }
-
-  // 9️⃣ Outreach Activity Impact (Correlation Placeholder)
+  // 9️⃣ Outreach Activity Impact — monthly referral trend
   async getOutreachImpact(
     organizationId: string,
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.BoardWhereInput = {
-      organizationId: organizationId,
-      ...(startDate &&
-        endDate && { createdAt: { gte: startDate, lte: endDate } }),
-    };
-    // If you have outreach events table, join with referrals created around event dates.
-    // Placeholder: show referrals by month as a trend.
     const results = await prisma.$queryRaw<{ month: string; total: number }[]>`
     SELECT TO_CHAR(r."createdAt", 'YYYY-MM') AS month, COUNT(*)::int AS total
     FROM board_schema."Board" r
     WHERE r."organizationId" = ${organizationId}
+    AND r."moduleType" = 'REFERRAL'
+    AND r."isDeleted" = false
     ${
       startDate && endDate
         ? Prisma.sql`AND r."createdAt" >= ${startDate} AND r."createdAt" <= ${endDate}`
@@ -235,31 +345,23 @@ export class AnalyticsService {
     GROUP BY month
     ORDER BY month ASC;
   `;
+    return results;
   }
 
-  // 🔟 Emerging Referral Sources (new/low frequency)
+  // 🔟 Emerging Referral Sources (new/low frequency facilities)
   async getEmergingSources(
     organizationId: string,
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.FieldValueWhereInput = {
-      field: { fieldName: "Referral Source Type" },
-      record: {
-        moduleType: "REFERRAL",
-        organizationId: organizationId,
-        ...(startDate &&
-          endDate && { createdAt: { gte: startDate, lte: endDate } }),
-      },
-    };
     const results = await prisma.fieldValue.groupBy({
       by: ["value"],
       where: {
-        field: {
-          fieldName: "Facility", // Prisma handles the mapping to f.field_name
-        },
+        field: { fieldName: "Facility" },
         record: {
+          moduleType: "REFERRAL",
           organizationId: organizationId,
+          isDeleted: false,
           ...(startDate &&
             endDate && { createdAt: { gte: startDate, lte: endDate } }),
         },
@@ -281,7 +383,6 @@ export class AnalyticsService {
       },
     });
 
-    // Map to your desired output format
     return results.map((r) => ({
       facility: r.value,
       recent_referrals: r._count?._all ?? 0,
@@ -301,55 +402,56 @@ export class AnalyticsService {
       return JSON.parse(cachedData);
     }
     const [
+      totalCounts,
+      statusBreakdown,
+      avgTimeByStatus,
+      admissionTypes,
       facilities,
       clinicians,
       counties,
       sources,
       conversion,
-      avgTime,
       payers,
       discharge,
       outreach,
     ] = await Promise.all([
+      this.getTotalCounts(organizationId, startDate, endDate),
+      this.getStatusBreakdown(organizationId, startDate, endDate),
+      this.getAverageTimeByStatus(organizationId, startDate, endDate),
+      this.getAdmissionTypeBreakdown(organizationId, startDate, endDate),
       this.getTopFacilities(organizationId, startDate, endDate),
       this.getTopClinicians(organizationId, startDate, endDate),
       this.getTopCounties(organizationId, startDate, endDate),
       this.getReferralSourceBreakdown(organizationId, startDate, endDate),
       this.getConversionRate(organizationId, startDate, endDate),
-      this.getAverageTimeToAdmission(organizationId, startDate, endDate),
       this.getPayerMix(organizationId, startDate, endDate),
       this.getOutreachImpact(organizationId, startDate, endDate),
       this.getEmergingSources(organizationId, startDate, endDate),
     ]);
 
-    redis.set(
-      `analytics:${organizationId}:${startDate}:${endDate}`,
-      JSON.stringify({
-        facilities,
-        clinicians,
-        counties,
-        sources,
-        conversion,
-        avgTime,
-        payers,
-        discharge,
-        outreach,
-      }),
-      "EX",
-      60 * 5
-    );
-
-    return {
+    const result = {
+      totalCounts,
+      statusBreakdown,
+      avgTimeByStatus,
+      admissionTypes,
       facilities,
       clinicians,
       counties,
       sources,
       conversion,
-      avgTime,
       payers,
       discharge,
       outreach,
     };
+
+    redis.set(
+      `analytics:${organizationId}:${startDate}:${endDate}`,
+      JSON.stringify(result),
+      "EX",
+      60 * 5
+    );
+
+    return result;
   }
 
   async getAnalyticsByGemini(analytics: any) {
@@ -420,12 +522,12 @@ export class AnalyticsService {
     ] as string[];
 
     let whereClause: Prisma.MarketingWhereInput = {
+      isDeleted: false,
       member: {
         user: {
           id: { in: memberIds },
         },
       },
-      isDeleted: false,
     };
 
     if (startDate && endDate) {
@@ -572,7 +674,7 @@ export class AnalyticsService {
     };
 
     redis.set(
-      `marketing_analytics:${organizationId}`,
+      `marketing_analytics:${organizationId}:${startDate}:${endDate}:${userId}`,
       JSON.stringify(data),
       "EX",
       60 * 5

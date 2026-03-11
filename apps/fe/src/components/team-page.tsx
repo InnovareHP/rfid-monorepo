@@ -13,7 +13,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
@@ -306,6 +306,49 @@ const TeamPage = () => {
     }
   };
 
+  const currentMetadata = useMemo(() => {
+    try {
+      return organizationData?.metadata
+        ? JSON.parse(organizationData.metadata)
+        : {};
+    } catch {
+      return {};
+    }
+  }, [organizationData?.metadata]);
+
+  const [brandColor, setBrandColor] = useState("#3b82f6");
+
+  // Sync brandColor when org data loads
+  useEffect(() => {
+    if (currentMetadata.brandColor) {
+      setBrandColor(currentMetadata.brandColor);
+    }
+  }, [currentMetadata.brandColor]);
+
+  const saveBrandColor = useCallback(
+    debounce(async (color: string) => {
+      try {
+        const metadata = JSON.stringify({
+          ...currentMetadata,
+          brandColor: color,
+        });
+        await authClient.organization.update({
+          organizationId: organizationData?.id,
+          data: { metadata },
+        });
+        queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      } catch {
+        toast.error("Failed to save brand color");
+      }
+    }, 500),
+    [organizationData?.id, currentMetadata]
+  );
+
+  const handleBrandColorChange = (color: string) => {
+    setBrandColor(color);
+    saveBrandColor(color);
+  };
+
   const teamStats = useMemo(() => {
     return {
       totalMembers: employees?.data?.total,
@@ -482,6 +525,63 @@ const TeamPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {memberData?.role === ROLES.OWNER && (
+          <Card className="shadow-lg border-0">
+            <CardHeader>
+              <CardTitle className="text-lg">Branding</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Brand Color
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={brandColor}
+                      onChange={(e) => handleBrandColorChange(e.target.value)}
+                      className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
+                    />
+                    <Input
+                      value={brandColor}
+                      onChange={(e) => handleBrandColorChange(e.target.value)}
+                      className="w-28 font-mono text-sm"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Preview
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-10 px-4 rounded-md text-white text-sm font-medium flex items-center"
+                      style={{ backgroundColor: brandColor }}
+                    >
+                      Primary Button
+                    </div>
+                    <div
+                      className="h-10 px-4 rounded-md border-2 text-sm font-medium flex items-center"
+                      style={{
+                        borderColor: brandColor,
+                        color: brandColor,
+                      }}
+                    >
+                      Outline Button
+                    </div>
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: brandColor }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="shadow-lg border-0">

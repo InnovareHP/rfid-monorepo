@@ -183,6 +183,9 @@ export function AppSidebar({
     [activeOrganizationId, memberData?.role]
   );
 
+  const activeOrg = organizations.find((o) => o.id === activeOrganizationId);
+  const orgLogo = activeOrg?.logo;
+
   // Preload both images for smooth switching (only once on mount)
   React.useEffect(() => {
     const rfidImage = new Image();
@@ -197,24 +200,37 @@ export function AppSidebar({
     };
   }, []);
 
-  // Memoize image source to prevent unnecessary recalculations
+  // Use org logo if uploaded, otherwise fall back to default
   const logoSrc = React.useMemo(
     () =>
-      state === "collapsed"
-        ? "/login-page/tarsier.png"
-        : "/login-page/rfid.png",
-    [state]
+      orgLogo
+        ? orgLogo
+        : state === "collapsed"
+          ? "/login-page/tarsier.png"
+          : "/login-page/rfid.png",
+    [state, orgLogo]
   );
 
   // Memoize image style to prevent object recreation
   const imageStyle = React.useMemo(
     () => ({
-      height: state === "collapsed" ? "3rem" : "auto",
-      width: state === "collapsed" ? "2rem" : "70%",
+      height: orgLogo
+        ? state === "collapsed"
+          ? "2.5rem"
+          : "3.5rem"
+        : state === "collapsed"
+          ? "3rem"
+          : "auto",
+      width: orgLogo
+        ? "auto"
+        : state === "collapsed"
+          ? "2rem"
+          : "70%",
+      maxWidth: "100%",
       objectFit: "contain" as const,
       objectPosition: "center" as const,
     }),
-    [state]
+    [state, orgLogo]
   );
 
   return (

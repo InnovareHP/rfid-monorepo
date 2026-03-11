@@ -52,6 +52,7 @@ export const CreateLocationSchema = z.object({
 
 export const CreateFieldOptionSchema = z.object({
   optionName: z.string(),
+  color: z.string().optional(),
 });
 
 export const CreateHistorySchema = z.object({

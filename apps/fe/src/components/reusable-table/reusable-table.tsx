@@ -17,6 +17,13 @@ import {
 } from "@dashboard/ui/components/dropdown-menu";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+} from "@dashboard/ui/components/pagination";
 import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 import {
   Select,
@@ -51,8 +58,11 @@ import {
   Trash2Icon,
   X,
 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 import {
   getGmailStatus,
   getOutlookStatus,
@@ -74,6 +84,9 @@ type Props<T> = {
   emptyMessage?: string;
   errorMessage?: string;
   isError?: boolean;
+  totalPages: number;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
 };
 
 const ReusableTable = <T extends { id: string }>({
@@ -88,15 +101,25 @@ const ReusableTable = <T extends { id: string }>({
   emptyMessage = "No data found.",
   errorMessage = "Failed to load data. Please try again.",
   isError = false,
+  totalPages,
+  currentPage,
+  setCurrentPage,
 }: Props<T>) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [emailSubject, setEmailSubject] = useState("");
-  const [emailBody, setEmailBody] = useState("");
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
-  const [sendVia, setSendVia] = useState<string>("AUTO");
+
+  const emailSchema = z.object({
+    subject: z.string().min(1, "Subject is required"),
+    body: z.string().min(1, "Body is required"),
+    sendVia: z.enum(["AUTO", "GMAIL", "OUTLOOK"]),
+  });
+
+  const emailForm = useForm<z.infer<typeof emailSchema>>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { subject: "", body: "", sendVia: "AUTO" },
+  });
 
   const { data: gmailStatus } = useQuery({
     queryKey: ["gmail-status"],
@@ -142,17 +165,14 @@ const ReusableTable = <T extends { id: string }>({
     }
   };
 
-  const handleSendEmail = async () => {
-    if (!emailSubject.trim() || !emailBody.trim()) return;
-
-    setIsSendingEmail(true);
+  const handleSendEmail = async (values: z.infer<typeof emailSchema>) => {
     try {
       const result = await sendBulkEmail({
         recordIds: selectedIds,
-        emailSubject: emailSubject,
-        emailBody: emailBody,
+        emailSubject: values.subject,
+        emailBody: values.body,
         moduleType: isReferral ? "REFERRAL" : "LEAD",
-        send_via: sendVia as "AUTO" | "GMAIL" | "OUTLOOK",
+        send_via: values.sendVia,
       });
 
       const parts: string[] = [];
@@ -162,14 +182,10 @@ const ReusableTable = <T extends { id: string }>({
 
       toast.success(parts.join(", "));
       setEmailDialogOpen(false);
-      setEmailSubject("");
-      setEmailBody("");
-      setSendVia("AUTO");
+      emailForm.reset();
       table.resetRowSelection();
     } catch {
       toast.error("Failed to send emails. Please try again.");
-    } finally {
-      setIsSendingEmail(false);
     }
   };
 
@@ -178,6 +194,10 @@ const ReusableTable = <T extends { id: string }>({
     toast.info("Selection cleared.");
   };
 
+  const visiblePages = Array.from(
+    { length: Math.min(10, totalPages - currentPage + 1) },
+    (_, i) => currentPage + i
+  );
   return (
     <>
       {hasSelected && (
@@ -239,7 +259,10 @@ const ReusableTable = <T extends { id: string }>({
               text="Loading data..."
             />
 
-            <Table className="border border-gray-300">
+            <Table
+              className="border border-gray-300 table-fixed"
+              style={{ width: table.getCenterTotalSize() }}
+            >
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
@@ -248,15 +271,35 @@ const ReusableTable = <T extends { id: string }>({
                   >
                     {headerGroup.headers.map((header) => (
                       <TableHead
-                        className="text-blue-900 text-center font-semibold border-r border-gray-300 last:border-r-0 py-4 text-sm tracking-wide"
+                        className="text-blue-900 text-center font-semibold border-r border-gray-300 last:border-r-0 py-4 text-sm tracking-wide relative group/header overflow-visible"
                         key={header.id}
+                        style={{
+                          width: header.getSize(),
+                          maxWidth: header.getSize(),
+                        }}
                       >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
+                        <div className="overflow-hidden text-ellipsis">
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </div>
+                        {header.column.getCanResize() && (
+                          <div
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
+                            onDoubleClick={() => header.column.resetSize()}
+                            className={cn(
+                              "absolute -right-1 top-0 h-full w-2 cursor-col-resize select-none touch-none z-50",
+                              header.column.getIsResizing()
+                                ? "bg-blue-600"
+                                : "opacity-0 group-hover/header:opacity-100 bg-gray-400"
                             )}
+                            style={{ touchAction: "none" }}
+                          />
+                        )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -288,7 +331,7 @@ const ReusableTable = <T extends { id: string }>({
                   table.getRowModel().rows.map((row, index) => (
                     <TableRow
                       className={cn(
-                        "border-b border-gray-300 hover:bg-blue-50/50 transition-all duration-150 group",
+                        "border-b border-gray-300 hover:bg-blue-50/50 transition-all duration-150 group w-full",
                         index % 2 === 0 ? "bg-white" : "bg-gray-50",
                         row.getIsSelected() &&
                           "bg-blue-100 hover:bg-blue-100 border-blue-400"
@@ -299,8 +342,12 @@ const ReusableTable = <T extends { id: string }>({
                       {row.getVisibleCells().map((cell, cellIndex) => (
                         <TableCell
                           key={cell.id}
+                          style={{
+                            width: cell.column.getSize(),
+                            maxWidth: cell.column.getSize(),
+                          }}
                           className={cn(
-                            "border-r border-gray-300 last:border-r-0 px-6 py-4 text-sm",
+                            "border-r border-gray-300 last:border-r-0 px-6 py-4 text-sm overflow-hidden text-ellipsis",
                             cellIndex === 0 && "font-medium text-gray-900"
                           )}
                         >
@@ -382,20 +429,39 @@ const ReusableTable = <T extends { id: string }>({
             </div>
 
             <div className="flex items-center gap-2 text-sm">
-              {isFetchingList && totalRows === 0 ? (
-                <div className="flex items-center gap-2 text-blue-700">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="font-medium">Loading...</span>
-                </div>
-              ) : (
-                <div className="px-3 py-1.5 bg-white rounded-md border-2 border-blue-300 shadow-sm">
-                  <span className="font-semibold text-blue-900">
-                    {totalRows}
-                  </span>
-                  <span className="text-gray-700 ml-1">
-                    {totalRows === 1 ? "entry" : "entries"}
-                  </span>
-                </div>
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    {currentPage > 1 && (
+                      <PaginationItem>
+                        <PaginationEllipsis
+                          onClick={() =>
+                            setCurrentPage(Math.max(1, currentPage - 10))
+                          }
+                        />
+                      </PaginationItem>
+                    )}
+
+                    {visiblePages.map((page) => (
+                      <PaginationItem
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        <PaginationLink isActive={page === currentPage}>
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    {currentPage + 10 <= totalPages && (
+                      <PaginationItem>
+                        <PaginationEllipsis
+                          onClick={() => setCurrentPage(currentPage + 10)}
+                        />
+                      </PaginationItem>
+                    )}
+                  </PaginationContent>
+                </Pagination>
               )}
             </div>
           </div>
@@ -453,11 +519,7 @@ const ReusableTable = <T extends { id: string }>({
             open={emailDialogOpen}
             onOpenChange={(open) => {
               setEmailDialogOpen(open);
-              if (!open) {
-                setEmailSubject("");
-                setEmailBody("");
-                setSendVia("AUTO");
-              }
+              if (!open) emailForm.reset();
             }}
           >
             <DialogContent className="max-w-lg">
@@ -474,15 +536,17 @@ const ReusableTable = <T extends { id: string }>({
                   Records without an email address will be skipped.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-2">
+              <form
+                onSubmit={emailForm.handleSubmit(handleSendEmail)}
+                className="space-y-4 py-2"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="email-subject">Subject</Label>
                   <Input
                     id="email-subject"
                     placeholder="Enter email subject..."
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    disabled={isSendingEmail}
+                    {...emailForm.register("subject")}
+                    disabled={emailForm.formState.isSubmitting}
                   />
                 </div>
                 <div className="space-y-2">
@@ -490,18 +554,19 @@ const ReusableTable = <T extends { id: string }>({
                   <Textarea
                     id="email-body"
                     placeholder="Enter email body..."
-                    value={emailBody}
-                    onChange={(e) => setEmailBody(e.target.value)}
-                    disabled={isSendingEmail}
+                    {...emailForm.register("body")}
+                    disabled={emailForm.formState.isSubmitting}
                     rows={6}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Send via</Label>
                   <Select
-                    value={sendVia}
-                    onValueChange={setSendVia}
-                    disabled={isSendingEmail}
+                    value={emailForm.watch("sendVia")}
+                    onValueChange={(val) =>
+                      emailForm.setValue("sendVia", val as "AUTO" | "GMAIL" | "OUTLOOK")
+                    }
+                    disabled={emailForm.formState.isSubmitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Send via" />
@@ -521,37 +586,36 @@ const ReusableTable = <T extends { id: string }>({
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  variant="outline"
-                  onClick={() => setEmailDialogOpen(false)}
-                  disabled={isSendingEmail}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSendEmail}
-                  disabled={
-                    isSendingEmail || !emailSubject.trim() || !emailBody.trim()
-                  }
-                  className="flex-1"
-                >
-                  {isSendingEmail ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <SendIcon className="w-4 h-4 mr-2" />
-                      Send to {selectedIds.length}{" "}
-                      {selectedIds.length === 1 ? "recipient" : "recipients"}
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEmailDialogOpen(false)}
+                    disabled={emailForm.formState.isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={emailForm.formState.isSubmitting}
+                    className="flex-1"
+                  >
+                    {emailForm.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <SendIcon className="w-4 h-4 mr-2" />
+                        Send to {selectedIds.length}{" "}
+                        {selectedIds.length === 1 ? "recipient" : "recipients"}
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </CardContent>

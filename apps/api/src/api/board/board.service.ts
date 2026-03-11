@@ -227,7 +227,7 @@ export class BoardService {
       return {
         id: b.id,
         recordName: b.recordName,
-        assignedTo: b.assignedTo,
+        assignedTo: b.assignedTo ?? "",
         createdAt: b.createdAt,
         has_notification: b.notifications.length > 0,
         ...dynamicData,
@@ -705,6 +705,28 @@ export class BoardService {
     };
   }
 
+  async getColumns(organizationId: string, moduleType: string) {
+    const columns = await prisma.field.findMany({
+      where: {
+        organizationId: organizationId,
+        moduleType: moduleType,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        fieldName: true,
+        fieldType: true,
+      },
+    });
+
+    const formattedColumns = columns.map((c) => ({
+      id: c.id,
+      name: c.fieldName,
+      type: c.fieldType,
+    }));
+    return formattedColumns;
+  }
+
   async getValueId(fieldId: string, value: string) {
     const data = await prisma.field.findUnique({
       where: {
@@ -797,6 +819,7 @@ export class BoardService {
       return options.map((o) => ({
         id: o.id,
         value: o.optionName,
+        color: o.color,
       }));
     }
 
@@ -816,6 +839,7 @@ export class BoardService {
       data: options.map((o) => ({
         id: o.id,
         value: o.optionName,
+        color: o.color,
       })),
       total: total,
     };
@@ -831,10 +855,50 @@ export class BoardService {
     reason?: string
   ) {
     try {
+      // Handle LOCATION separately: geocode BEFORE the transaction so the
+      // external HTTP call doesn't hold the transaction open and cause timeouts.
+      if (fieldId !== BoardFieldType.ASSIGNED_TO && fieldId !== "Record") {
+        const field = await prisma.field.findUnique({
+          where: { id: fieldId, organizationId: organizationId },
+          select: { fieldType: true, id: true, fieldName: true },
+        });
+
+        if (!field) throw new NotFoundException("Field not found");
+
+        if (field.fieldType === BoardFieldType.LOCATION) {
+          const geocodeResult = await this.geocodeLocation(value, recordId);
+
+          const locationData = await prisma.$transaction(async (tx) => {
+            return this.saveLocationFields(
+              geocodeResult,
+              value,
+              recordId,
+              organizationId,
+              tx
+            );
+          });
+
+          await purgeAllCacheKeys(
+            `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+          );
+
+          this.boardGateway.emitRecordValueLocation(
+            organizationId,
+            recordId,
+            { ...locationData },
+            moduleType
+          );
+
+          return { message: "Location updated successfully" };
+        }
+      }
+
       const recordValue = await prisma.$transaction(async (tx) => {
         if (fieldId === BoardFieldType.ASSIGNED_TO) {
           await this.updateAssignedTo(tx, recordId, value, memberId);
-          await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+          await purgeAllCacheKeys(
+            `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+          );
 
           this.boardGateway.emitRecordValueUpdated(
             organizationId,
@@ -852,7 +916,9 @@ export class BoardService {
         if (fieldId === "Record") {
           await this.updateRecordName(tx, recordId, value, memberId);
 
-          await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+          await purgeAllCacheKeys(
+            `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+          );
 
           this.boardGateway.emitRecordValueUpdated(
             organizationId,
@@ -868,7 +934,12 @@ export class BoardService {
         }
 
         const field = await tx.field.findUnique({
-          where: { id: fieldId, organizationId: organizationId },
+          where: {
+            id: fieldId,
+            organizationId: organizationId,
+            isDeleted: false,
+            moduleType: moduleType,
+          },
           select: {
             fieldType: true,
             id: true,
@@ -877,27 +948,6 @@ export class BoardService {
         });
 
         if (!field) throw new NotFoundException("Field not found");
-
-        if (field.fieldType === BoardFieldType.LOCATION) {
-          const locationData = await this.createLocation(
-            value,
-            recordId,
-            organizationId
-          );
-          await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
-
-          this.boardGateway.emitRecordValueLocation(
-            organizationId,
-            recordId,
-            {
-              ...locationData,
-            },
-            moduleType
-          );
-          return {
-            message: "Location updated successfully",
-          };
-        }
 
         if (field.fieldType === BoardFieldType.MULTISELECT) {
           // Normalize value into an array of clean strings
@@ -911,7 +961,7 @@ export class BoardService {
                   .filter(Boolean)
               : [];
 
-          return await tx.fieldValue.upsert({
+          await tx.fieldValue.upsert({
             where: {
               recordId_fieldId: {
                 recordId: recordId,
@@ -927,6 +977,14 @@ export class BoardService {
               value: JSON.stringify(normalizedValue),
             },
           });
+
+          await purgeAllCacheKeys(
+            `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+          );
+
+          return {
+            message: "Multiselect updated successfully",
+          };
         }
 
         if (field.fieldName === "County" && moduleType === "REFERRAL") {
@@ -972,7 +1030,6 @@ export class BoardService {
             },
           });
 
-          // Save Facility value
           await tx.fieldValue.upsert({
             where: {
               recordId_fieldId: {
@@ -990,20 +1047,24 @@ export class BoardService {
             },
           });
 
+          await purgeAllCacheKeys(
+            `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+          );
+
           return {
             message: "County assigned successfully",
           };
         }
 
-        if (field.fieldName === "Status") {
-          // Find the related "Reason" and "Action Date" fields
-          const statusFields = await prisma.field.findMany({
+        if (field.fieldType === BoardFieldType.STATUS) {
+          const statusFields = await tx.field.findMany({
             where: {
               fieldName: {
                 in: ["Reason", "Action Date (Accepted / Rejected)"],
               },
               isDeleted: false,
               organizationId: organizationId,
+              moduleType: moduleType,
             },
             select: { id: true, fieldName: true },
           });
@@ -1015,66 +1076,83 @@ export class BoardService {
             (f) => f.fieldName === "Action Date (Accepted / Rejected)"
           );
 
-          await prisma.$transaction(async (tx) => {
+          await tx.fieldValue.upsert({
+            where: {
+              recordId_fieldId: {
+                recordId: recordId,
+                fieldId: field.id,
+              },
+            },
+            update: { value },
+            create: {
+              recordId: recordId,
+              fieldId: field.id,
+              value,
+            },
+          });
+
+          if (reason && reasonField) {
             await tx.fieldValue.upsert({
               where: {
                 recordId_fieldId: {
                   recordId: recordId,
-                  fieldId: field.id,
+                  fieldId: reasonField.id,
                 },
               },
-              update: { value },
+              update: { value: reason },
               create: {
                 recordId: recordId,
-                fieldId: field.id,
-                value,
+                fieldId: reasonField.id,
+                value: reason,
               },
             });
+          }
 
-            if (reason && reasonField) {
-              await tx.fieldValue.upsert({
-                where: {
-                  recordId_fieldId: {
-                    recordId: recordId,
-                    fieldId: reasonField.id,
-                  },
-                },
-                update: { value: reason },
-                create: {
-                  recordId: recordId,
-                  fieldId: reasonField.id,
-                  value: reason,
-                },
-              });
-            }
+          const now = new Date().toISOString();
 
-            // 3️⃣ Update Action Date (set to current timestamp)
-            if (actionDateField) {
-              const now = new Date().toISOString();
-
-              await tx.fieldValue.upsert({
-                where: {
-                  recordId_fieldId: {
-                    recordId: recordId,
-                    fieldId: actionDateField.id,
-                  },
-                },
-                update: { value: now },
-                create: {
+          if (actionDateField) {
+            await tx.fieldValue.upsert({
+              where: {
+                recordId_fieldId: {
                   recordId: recordId,
                   fieldId: actionDateField.id,
-                  value: now,
                 },
-              });
-            }
-          });
+              },
+              update: { value: now },
+              create: {
+                recordId: recordId,
+                fieldId: actionDateField.id,
+                value: now,
+              },
+            });
+          }
 
+          const reasonData = { id: reasonField?.id ?? "", value: reason ?? "" };
+
+          const actionDateData = {
+            id: actionDateField?.id ?? "",
+            value: now ?? "",
+          };
+
+          await purgeAllCacheKeys(
+            `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+          );
+
+          this.boardGateway.emitRecordValueStatusUpdated(
+            organizationId,
+            recordId,
+            field.id,
+            value,
+            moduleType,
+            reasonData,
+            actionDateData
+          );
           return {
             message: "Status updated successfully",
           };
         }
 
-        const existingRecordValue = await prisma.fieldValue.findUnique({
+        const existingRecordValue = await tx.fieldValue.findUnique({
           where: {
             recordId_fieldId: { recordId: recordId, fieldId: field.id },
           },
@@ -1094,11 +1172,14 @@ export class BoardService {
           existingRecordValue?.value ?? "",
           value,
           memberId,
+          tx,
           "update",
           field.fieldName
         );
 
-        await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+        await purgeAllCacheKeys(
+          `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+        );
 
         this.boardGateway.emitRecordValueUpdated(
           organizationId,
@@ -1271,7 +1352,9 @@ export class BoardService {
       return board;
     });
 
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+    await purgeAllCacheKeys(
+      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+    );
     this.boardGateway.emitRecordCreated(organizationId, record, moduleType);
 
     return record;
@@ -1285,7 +1368,11 @@ export class BoardService {
   ) {
     const result = await prisma.$transaction(async (tx) => {
       const fields = await tx.field.findMany({
-        where: { organizationId: organizationId, moduleType: moduleType },
+        where: {
+          organizationId: organizationId,
+          moduleType: moduleType,
+          isDeleted: false,
+        },
         orderBy: { fieldOrder: "asc" },
       });
 
@@ -1333,7 +1420,6 @@ export class BoardService {
             recordId: referral.id,
             fieldId: field.id,
             value: value,
-            moduleType: moduleType,
           });
         }
 
@@ -1351,7 +1437,6 @@ export class BoardService {
 
         allNotificationStates.push({
           id: uuidv4(),
-          updated_at: new Date(),
           recordId: referral.id,
           lastSeen: new Date(),
         });
@@ -1611,35 +1696,12 @@ export class BoardService {
     return { message: "Column deleted successfully" };
   }
 
-  async createLocation(
-    location_name: string,
-    recordId: string,
-    organizationId: string
-  ) {
-    if (location_name === "") {
-      const fields = await prisma.field.findMany({
-        where: {
-          fieldName: {
-            in: ["Address", "City", "State", "Zip Code", "County", "Country"],
-          },
-          isDeleted: false,
-          organizationId: organizationId,
-        },
-        select: { id: true, fieldName: true },
-      });
-      await prisma.fieldValue.updateMany({
-        where: {
-          recordId: recordId,
-          fieldId: { in: fields.map((f) => f.id) },
-        },
-        data: { value: null },
-      });
-
-      return {
-        address: null,
-        isCached: true,
-      };
-    }
+  /**
+   * Geocode a location string via Geocodify API.
+   * Runs OUTSIDE the transaction to avoid timeout from external HTTP calls.
+   */
+  private async geocodeLocation(location_name: string, recordId: string) {
+    if (location_name === "") return { cleared: true } as const;
 
     const existing = await prisma.fieldValue.findFirst({
       where: { recordId: recordId },
@@ -1647,10 +1709,7 @@ export class BoardService {
     });
 
     if (existing?.value === location_name) {
-      return {
-        address: location_name,
-        isCached: true,
-      };
+      return { cached: true, address: location_name } as const;
     }
 
     const geocodifyResponse = await fetch(
@@ -1672,20 +1731,73 @@ export class BoardService {
 
     const props = feature.properties;
 
+    return {
+      geocoded: true,
+      address: props.name as string,
+      city: (props.locality ?? null) as string | null,
+      state: (props.region_a ?? null) as string | null,
+      zip: lookupByName(props.locality, props.region_a)[0].zip as string,
+      county: props.county
+        ? (props.county.replace(/ County/g, "") as string)
+        : null,
+      country: (props.country ?? null) as string | null,
+    } as const;
+  }
+
+  /**
+   * Save geocoded location fields to DB. Only DB writes, no external calls.
+   */
+  private async saveLocationFields(
+    geocodeResult: Awaited<ReturnType<typeof this.geocodeLocation>>,
+    location_name: string,
+    recordId: string,
+    organizationId: string,
+    tx: Prisma.TransactionClient
+  ) {
+    const locationFieldNames = [
+      "Address",
+      "City",
+      "State",
+      "Zip Code",
+      "County",
+      "Country",
+    ];
+
+    if ("cleared" in geocodeResult) {
+      const fields = await tx.field.findMany({
+        where: {
+          fieldName: { in: locationFieldNames },
+          isDeleted: false,
+          organizationId: organizationId,
+        },
+        select: { id: true },
+      });
+      await tx.fieldValue.updateMany({
+        where: {
+          recordId: recordId,
+          fieldId: { in: fields.map((f) => f.id) },
+        },
+        data: { value: null },
+      });
+      return { address: null, isCached: true };
+    }
+
+    if ("cached" in geocodeResult) {
+      return { address: location_name, isCached: true };
+    }
+
     const locationData = {
-      address: props.name,
-      city: props.locality ? props.locality : null,
-      state: props.region_a ? props.region_a : null,
-      zip: lookupByName(props.locality, props.region_a)[0].zip,
-      county: props.county ? props.county.replace(/ County/g, "") : null,
-      country: props.country ? props.country : null,
+      address: geocodeResult.address,
+      city: geocodeResult.city,
+      state: geocodeResult.state,
+      zip: geocodeResult.zip,
+      county: geocodeResult.county,
+      country: geocodeResult.country,
     };
 
-    const fields = await prisma.field.findMany({
+    const fields = await tx.field.findMany({
       where: {
-        fieldName: {
-          in: ["Address", "City", "State", "Zip Code", "County", "Country"],
-        },
+        fieldName: { in: locationFieldNames },
         isDeleted: false,
         organizationId: organizationId,
       },
@@ -1704,11 +1816,10 @@ export class BoardService {
     const upserts = fields
       .map((field) => {
         const key = field.fieldName.toLowerCase().replace(/\s+/g, "");
-
         const value = mapper[key];
         if (!value) return null;
 
-        return prisma.fieldValue.upsert({
+        return tx.fieldValue.upsert({
           where: {
             recordId_fieldId: {
               recordId: recordId,
@@ -1774,6 +1885,7 @@ export class BoardService {
       existingRecord?.assignedUser?.name ?? "",
       newAssignedUser.name ?? "",
       memberId,
+      tx,
       "update",
       "Assigned To"
     );
@@ -1785,7 +1897,7 @@ export class BoardService {
     value: string,
     memberId: string
   ) {
-    const existingRecord = await prisma.board.findUnique({
+    const existingRecord = await tx.board.findUnique({
       where: { id: recordId },
       select: { recordName: true },
     });
@@ -1799,16 +1911,22 @@ export class BoardService {
       existingRecord?.recordName ?? "",
       value,
       memberId,
+      tx,
       "update",
       "Lead"
     );
   }
 
-  async createRecordFieldOption(fieldId: string, optionName: string) {
+  async createRecordFieldOption(
+    fieldId: string,
+    optionName: string,
+    color?: string
+  ) {
     return await prisma.fieldOption.create({
       data: {
         optionName: optionName,
         fieldId: fieldId,
+        ...(color && { color }),
       },
     });
   }
@@ -1832,27 +1950,19 @@ export class BoardService {
     oldValue: string,
     newValue: string,
     createdBy: string,
+    tx: Prisma.TransactionClient,
     action?: string,
     column?: string
   ) {
-    return await prisma.$transaction(async (tx) => {
-      await tx.history.create({
-        data: {
-          recordId: recordId,
-          oldValue: oldValue,
-          newValue: newValue,
-          action: action ?? "create",
-          createdBy: createdBy,
-          column: column,
-        },
-      });
-      await tx.boardNotificationState.upsert({
-        where: {
-          recordId: recordId,
-        },
-        update: { lastSeen: new Date() },
-        create: { recordId: recordId, lastSeen: new Date() },
-      });
+    return await tx.history.create({
+      data: {
+        recordId: recordId,
+        oldValue: oldValue,
+        newValue: newValue,
+        action: action ?? "create",
+        createdBy: createdBy,
+        column: column,
+      },
     });
   }
 

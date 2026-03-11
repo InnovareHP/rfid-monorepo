@@ -1,16 +1,21 @@
-import { useTeamLayoutContext } from "@/routes/_team";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import type { Subscription } from "@dashboard/shared";
+import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { useEffect } from "react";
+
+interface RouteContext {
+  activeSubscription: Subscription | null;
+}
 
 export const Route = createFileRoute("/_team/$team/success")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { activeSubscription } = useTeamLayoutContext();
+  const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
+  const activeSubscription = ctx?.activeSubscription;
 
   useEffect(() => {
     const duration = 1800;

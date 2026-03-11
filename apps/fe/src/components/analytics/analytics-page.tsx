@@ -21,11 +21,13 @@ import {
   Building2,
   CalendarIcon,
   Clock,
+  ClipboardList,
   CreditCard,
   Globe,
   MapPin,
   TrendingUp,
   UserRound,
+  Users,
 } from "lucide-react";
 
 import {
@@ -103,7 +105,6 @@ export default function ReferralAnalyticsDashboard() {
     end: null,
   });
 
-  // MAIN ANALYTICS (runs when date range exists)
   const { data: analytics, refetch: refetchAnalytics } = useQuery({
     queryKey: ["analytics", dateRange],
     queryFn: async () => {
@@ -113,11 +114,9 @@ export default function ReferralAnalyticsDashboard() {
     },
   });
 
-  // AI SUMMARY (runs ONLY when analytics is done)
   const { data: analyticsSummary, isLoading: isLoadingSummary } = useQuery({
     queryKey: ["analyticsSummary", analytics?.analytics],
     enabled: !!analytics,
-
     queryFn: async () => {
       return await getAnalyticsSummary(analytics ?? ({} as AnalyticsResponse));
     },
@@ -129,13 +128,43 @@ export default function ReferralAnalyticsDashboard() {
       count: f._count.value,
     })) ?? [];
 
-  const pieData =
+  const payerPieData =
     analytics?.payers?.map((p) => ({
       name: p.value ?? "Unknown",
       value: p._count.value,
     })) ?? [];
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+  const sourcePieData =
+    analytics?.sources?.map((s) => ({
+      name: s.value ?? "Unknown",
+      value: s._count.value,
+    })) ?? [];
+
+  const monthlyTrendData =
+    analytics?.discharge?.map((d) => ({
+      month: d.month,
+      total: d.total,
+    })) ?? [];
+
+  const admissionTypeData =
+    analytics?.admissionTypes?.map((a) => ({
+      name: a.value ?? "Unknown",
+      value: a._count.value,
+    })) ?? [];
+
+  const emergingData = analytics?.outreach ?? [];
+  const hasPeriodFilter = dateRange.start && dateRange.end;
+
+  const COLORS = [
+    "#0088FE",
+    "#00C49F",
+    "#FFBB28",
+    "#FF8042",
+    "#8884d8",
+    "#82ca9d",
+    "#ffc658",
+    "#ff7300",
+  ];
 
   const {
     ResponsiveContainer,
@@ -147,11 +176,14 @@ export default function ReferralAnalyticsDashboard() {
     PieChart,
     Pie,
     Cell,
+    LineChart,
+    Line,
+    CartesianGrid,
   } = Recharts;
 
   return (
     <div className="min-h-full bg-gray-50 p-8">
-      <div className=" space-y-6">
+      <div className="space-y-6">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -163,7 +195,6 @@ export default function ReferralAnalyticsDashboard() {
             </p>
           </div>
 
-          {/* DATE FILTER */}
           <DateRangeFilter
             onChange={(range) => {
               setDateRange(range);
@@ -172,147 +203,137 @@ export default function ReferralAnalyticsDashboard() {
           />
         </div>
 
-        {/* AI SUMMARY CARD */}
-        <AiSumary
-          isLoadingSummary={isLoadingSummary}
-          summary={analyticsSummary}
-        />
-
-        {/* ANALYTICS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Top Facilities */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/50 border-b">
+        {/* SUMMARY CARDS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border shadow-sm">
+            <CardContent className="p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-600">
-                  <Building2 className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <ClipboardList className="h-5 w-5 text-blue-600" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Top 10 Referring Facilities
-                </CardTitle>
+                <div>
+                  <p className="text-sm text-gray-500">Total Referrals</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {analytics?.totalCounts?.totalReferrals ?? 0}
+                  </p>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={barData.slice(0, 10)}>
-                  <XAxis dataKey="name" hide />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#2563eb" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Clinicians */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-cyan-50 to-cyan-100/50 border-b">
+          <Card className="border shadow-sm">
+            <CardContent className="p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-600">
-                  <UserRound className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-indigo-100">
+                  <Users className="h-5 w-5 text-indigo-600" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Top 10 Referring Clinicians
-                </CardTitle>
+                <div>
+                  <p className="text-sm text-gray-500">Total Leads</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {analytics?.totalCounts?.totalLeads ?? 0}
+                  </p>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart
-                  data={
-                    analytics?.clinicians?.slice(0, 10).map((c) => ({
-                      name: c.value ?? "Unknown",
-                      count: c._count.value,
-                    })) ?? []
-                  }
-                >
-                  <XAxis dataKey="name" hide />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#0891b2" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Counties */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-green-100/50 border-b">
+          <Card className="border shadow-sm">
+            <CardContent className="p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-600">
-                  <MapPin className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-emerald-100">
+                  <TrendingUp className="h-5 w-5 text-emerald-600" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Top 10 Counties Generating Referrals
-                </CardTitle>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {hasPeriodFilter ? "Referrals (Period)" : "Referrals"}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {analytics?.totalCounts?.referralsThisPeriod ?? 0}
+                  </p>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart
-                  data={
-                    analytics?.counties?.slice(0, 10).map((c) => ({
-                      name: c.value ?? "Unknown",
-                      count: c._count.value,
-                    })) ?? []
-                  }
-                >
-                  <XAxis dataKey="name" hide />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Referral Source Breakdown */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50 border-b">
+          <Card className="border shadow-sm">
+            <CardContent className="p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-600">
+                <div className="p-2 rounded-lg bg-amber-100">
+                  <TrendingUp className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {hasPeriodFilter ? "Leads (Period)" : "Leads"}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {analytics?.totalCounts?.leadsThisPeriod ?? 0}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* STATUS BREAKDOWN + CONVERSION + AVG TIME BY STATUS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Status Breakdown */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-violet-50 to-violet-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-violet-600">
                   <Activity className="h-5 w-5 text-white" />
                 </div>
                 <CardTitle className="text-lg font-semibold text-gray-900">
-                  Referral Source Type Breakdown
+                  Status Breakdown
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" outerRadius={80} label>
-                    {pieData.map((_, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {(analytics?.statusBreakdown?.length ?? 0) > 0 ? (
+                <div className="space-y-3">
+                  {analytics?.statusBreakdown?.map((item) => {
+                    const total =
+                      analytics?.statusBreakdown?.reduce(
+                        (sum, s) => sum + s.count,
+                        0
+                      ) ?? 1;
+                    const pct = ((item.count / total) * 100).toFixed(1);
+                    return (
+                      <div key={item.status} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="inline-block size-3 rounded-full"
+                              style={{
+                                backgroundColor: item.color ?? "#94a3b8",
+                              }}
+                            />
+                            <span className="font-medium text-gray-700">
+                              {item.status}
+                            </span>
+                          </div>
+                          <span className="text-gray-500">
+                            {item.count} ({pct}%)
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: item.color ?? "#94a3b8",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No status data available
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -336,12 +357,13 @@ export default function ReferralAnalyticsDashboard() {
                 <ArrowUpRight className="h-6 w-6 text-emerald-600" />
               </div>
               <p className="text-sm text-gray-500 mt-3">
-                Converted referrals this period
+                {analytics?.conversion?.admitted ?? 0} admitted out of{" "}
+                {analytics?.conversion?.totalReferrals ?? 0} referrals
               </p>
             </CardContent>
           </Card>
 
-          {/* Time to Admission */}
+          {/* Average Time by Status */}
           <Card className="border shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100/50 border-b">
               <div className="flex items-center gap-3">
@@ -349,15 +371,269 @@ export default function ReferralAnalyticsDashboard() {
                   <Clock className="h-5 w-5 text-white" />
                 </div>
                 <CardTitle className="text-lg font-semibold text-gray-900">
-                  Average Time to Admission
+                  Average Time by Status
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <p className="text-5xl font-bold text-amber-600">
-                {analytics?.avgTime?.averageDays ?? "0.0"}
-              </p>
-              <p className="text-sm text-gray-500 mt-3">days on average</p>
+              {(analytics?.avgTimeByStatus?.length ?? 0) > 0 ? (
+                <div className="space-y-4">
+                  {analytics?.avgTimeByStatus?.map((item) => (
+                    <div
+                      key={item.status}
+                      className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 border border-gray-100"
+                    >
+                      <span className="text-sm font-medium text-gray-700">
+                        {item.status}
+                      </span>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-amber-600">
+                          {item.averageDays}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-1">days</span>
+                        <span className="text-xs text-gray-400 ml-2">
+                          ({item.count})
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No status transition data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI SUMMARY CARD */}
+        <AiSumary
+          isLoadingSummary={isLoadingSummary}
+          summary={analyticsSummary}
+        />
+
+        {/* ANALYTICS GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* Top Facilities */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-600">
+                  <Building2 className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Top 10 Referring Facilities
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {barData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={barData.slice(0, 10)}>
+                    <XAxis dataKey="name" hide />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#2563eb"
+                      radius={[6, 6, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No facility data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Clinicians */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-cyan-50 to-cyan-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-cyan-600">
+                  <UserRound className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Top 10 Referring Clinicians
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {(analytics?.clinicians?.length ?? 0) > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart
+                    data={analytics?.clinicians?.slice(0, 10).map((c) => ({
+                      name: c.value ?? "Unknown",
+                      count: c._count.value,
+                    }))}
+                  >
+                    <XAxis dataKey="name" hide />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#0891b2"
+                      radius={[6, 6, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No clinician data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Counties */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-green-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-600">
+                  <MapPin className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Top 10 Counties Generating Referrals
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {(analytics?.counties?.length ?? 0) > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart
+                    data={analytics?.counties?.slice(0, 10).map((c) => ({
+                      name: c.value ?? "Unknown",
+                      count: c._count.value,
+                    }))}
+                  >
+                    <XAxis dataKey="name" hide />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#16a34a"
+                      radius={[6, 6, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No county data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Referral Source Breakdown */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-600">
+                  <Activity className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Referral Source Type Breakdown
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {sourcePieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={sourcePieData}
+                      dataKey="value"
+                      outerRadius={80}
+                      label
+                    >
+                      {sourcePieData.map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No referral source data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Admission Type */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-rose-600">
+                  <ClipboardList className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Admission Type
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {admissionTypeData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={admissionTypeData}
+                      dataKey="value"
+                      outerRadius={80}
+                      label
+                    >
+                      {admissionTypeData.map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No admission type data available
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -374,69 +650,83 @@ export default function ReferralAnalyticsDashboard() {
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" outerRadius={80} label>
-                    {pieData.map((_, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {payerPieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={payerPieData}
+                      dataKey="value"
+                      outerRadius={80}
+                      label
+                    >
+                      {payerPieData.map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No payer data available
+                </p>
+              )}
             </CardContent>
           </Card>
 
-          {/* Discharge */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-rose-600">
-                  <Activity className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Discharge Disposition
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <p className="text-5xl font-bold text-rose-600">
-                {analytics?.discharge?.reduce(
-                  (sum, d) => sum + (d.total ?? 0),
-                  0
-                ) ?? 0}
-              </p>
-              <p className="text-sm text-gray-500 mt-3">Total discharges</p>
-            </CardContent>
-          </Card>
-
-          {/* Outreach Impact */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+          {/* Monthly Referral Trend */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow xl:col-span-2">
             <CardHeader className="bg-gradient-to-r from-sky-50 to-sky-100/50 border-b">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-sky-600">
                   <TrendingUp className="h-5 w-5 text-white" />
                 </div>
                 <CardTitle className="text-lg font-semibold text-gray-900">
-                  Outreach Activity Impact
+                  Monthly Referral Trend
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Recent outreach activities correlated with referral spikes.
-                Monitor trends to optimize engagement strategies.
-              </p>
+              {monthlyTrendData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={monthlyTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#0284c7"
+                      strokeWidth={2}
+                      dot={{ fill: "#0284c7", r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No monthly trend data available
+                </p>
+              )}
             </CardContent>
           </Card>
 
-          {/* Emerging Sources */}
+          {/* Emerging Referral Sources */}
           <Card className="border shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100/50 border-b">
               <div className="flex items-center gap-3">
@@ -449,10 +739,27 @@ export default function ReferralAnalyticsDashboard() {
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <p className="text-sm text-gray-600 leading-relaxed">
-                New or low-frequency facilities beginning to refer. Identify
-                opportunities for relationship building.
-              </p>
+              {emergingData.length > 0 ? (
+                <div className="space-y-3 max-h-[250px] overflow-y-auto">
+                  {emergingData.map((source, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 border border-gray-100"
+                    >
+                      <span className="text-sm font-medium text-gray-700 truncate mr-2">
+                        {source.facility ?? "Unknown"}
+                      </span>
+                      <span className="text-sm font-semibold text-teal-600 bg-teal-50 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                        {source.recent_referrals}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No emerging sources detected
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -472,7 +779,7 @@ export default function ReferralAnalyticsDashboard() {
           <CardContent className="pt-6 px-0 pb-0">
             <CountyHeatMap
               counties={
-                analytics?.counties.map((c) => ({
+                analytics?.counties?.map((c) => ({
                   value: c.value ?? "",
                   _count: { value: c._count.value },
                 })) ?? []

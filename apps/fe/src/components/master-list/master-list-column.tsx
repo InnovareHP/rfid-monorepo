@@ -61,6 +61,8 @@ export function generateLeadColumns(
           type={col.type}
         />
       ),
+      size: 180,
+      minSize: 80,
     })
   );
 
@@ -76,6 +78,8 @@ export function generateLeadColumns(
     ),
     enableSorting: false,
     enableHiding: false,
+    enableResizing: false,
+    size: 100,
   };
 
   const OrganizerColumn: ColumnDef<LeadRow> = {
@@ -93,6 +97,8 @@ export function generateLeadColumns(
         "Facility"
       ),
     accessorKey: "Facility",
+    size: 280,
+    minSize: 150,
     cell: ({ row }) => (
       <div className="group flex items-center gap-2 w-full min-w-0">
         {row.original.has_notification && (
@@ -149,10 +155,12 @@ export function generateLeadColumns(
         "Account Manager"
       ),
     accessorKey: "assigned_to",
+    size: 200,
+    minSize: 100,
     cell: ({ row }) => (
       <EditableCell
         id={row.original.id}
-        fieldName="Account Manager"
+        fieldName="account_manager"
         fieldKey="ASSIGNED_TO"
         value={row.original.assignedTo}
         type="ASSIGNED_TO"
@@ -164,6 +172,8 @@ export function generateLeadColumns(
     header: () => <CreateColumnModal />,
     id: "create_column",
     accessorKey: "create_column",
+    enableResizing: false,
+    size: 80,
   };
 
   return [

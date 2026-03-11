@@ -90,7 +90,11 @@ export function EventDetailDialog({
             <Clock className="size-4 mt-0.5 text-muted-foreground" />
             <div>
               <p>{formatTime(startDate)}</p>
-              {endDate && <p className="text-muted-foreground">to {formatTime(endDate)}</p>}
+              {endDate && (
+                <p className="text-muted-foreground">
+                  to {formatTime(endDate)}
+                </p>
+              )}
               {event.allDay && (
                 <Badge variant="outline" className="text-xs mt-1">
                   All day
@@ -141,11 +145,7 @@ export function EventDetailDialog({
         <DialogFooter className="flex-row justify-between sm:justify-between">
           <div className="flex gap-2">
             {event.htmlLink && (
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
+              <Button variant="outline" size="sm" asChild>
                 <a
                   href={event.htmlLink}
                   target="_blank"

@@ -1,4 +1,3 @@
-import { useTeamLayoutContext } from "@/routes/_team";
 import {
   getCalendarConnectionStatus,
   getCalendarEvents,
@@ -6,21 +5,26 @@ import {
   type CalendarEvent,
 } from "@/services/calendar/calendar-service";
 import { Button } from "@dashboard/ui/components/button";
-import { useQuery } from "@tanstack/react-query";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
 import type { DateSelectArg, EventClickArg } from "@fullcalendar/core";
-import { Link } from "@tanstack/react-router";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import { addMonths, startOfMonth, subMonths } from "date-fns";
 import { Calendar, Loader2, PlugZap, Plus } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { CreateEventDialog } from "./create-event-dialog";
 import { EventDetailDialog } from "./event-detail-dialog";
 
+interface RouteContext {
+  activeOrganizationId: string;
+}
+
 export function CalendarPage() {
-  const { activeOrganizationId } = useTeamLayoutContext();
+  const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
+  const { activeOrganizationId } = ctx;
   const calendarRef = useRef<FullCalendar>(null);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
@@ -43,10 +47,7 @@ export function CalendarPage() {
   const hasConnection =
     connectionStatus?.google.connected || connectionStatus?.outlook.connected;
 
-  const {
-    data: events,
-    isLoading: eventsLoading,
-  } = useQuery<CalendarEvent[]>({
+  const { data: events, isLoading: eventsLoading } = useQuery<CalendarEvent[]>({
     queryKey: ["calendar-events", dateRange.start, dateRange.end],
     queryFn: () => getCalendarEvents(dateRange.start, dateRange.end),
     enabled: !!hasConnection,
@@ -64,9 +65,7 @@ export function CalendarPage() {
     borderColor: event.provider === "google" ? "#ea4335" : "#0078d4",
     textColor: "#ffffff",
     classNames: [
-      event.provider === "google"
-        ? "fc-event-google"
-        : "fc-event-outlook",
+      event.provider === "google" ? "fc-event-google" : "fc-event-outlook",
     ],
   }));
 
@@ -114,7 +113,9 @@ export function CalendarPage() {
               <Calendar className="size-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">Calendar</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                Calendar
+              </h1>
               {/* Legend */}
               {hasConnection && (
                 <div className="flex items-center gap-3 mt-0.5">
@@ -167,7 +168,10 @@ export function CalendarPage() {
               Integrations page to view and manage your events here.
             </p>
           </div>
-          <Button asChild className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md">
+          <Button
+            asChild
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
+          >
             <Link
               to="/$team/integrations"
               params={{ team: activeOrganizationId }}
