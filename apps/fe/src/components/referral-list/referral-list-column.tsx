@@ -58,6 +58,9 @@ export function generateReferralColumns(
           />
         );
       },
+
+      size: 180,
+      minSize: 250,
     })
   );
 
@@ -73,6 +76,8 @@ export function generateReferralColumns(
     ),
     enableSorting: false,
     enableHiding: false,
+    enableResizing: false,
+    size: 80,
   };
 
   const referralNameColumn: ColumnDef<ReferralRow> = {
@@ -90,6 +95,8 @@ export function generateReferralColumns(
         "Referral Name"
       ),
     accessorKey: "record_name",
+    size: 280,
+    minSize: 150,
     cell: ({ row }) => (
       <div className="group flex items-center gap-2 w-full min-w-0">
         {row.original.has_notification && (
@@ -127,6 +134,8 @@ export function generateReferralColumns(
   const createNewColumn: ColumnDef<ReferralRow> = {
     header: () => <CreateColumnModal isReferral={true} />,
     accessorKey: "create_column",
+    enableResizing: false,
+    size: 160,
   };
 
   return [selectColumn, referralNameColumn, ...dynamicColumns, createNewColumn];

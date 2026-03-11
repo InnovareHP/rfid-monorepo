@@ -34,6 +34,7 @@ export const appConfigSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.url(),
   GEOCODIFY_API_KEY: z.string().min(1),
+  GOOGLE_PLACES_API_KEY: z.string().min(1),
 
   PORT: z.coerce.number().default(8080),
 });

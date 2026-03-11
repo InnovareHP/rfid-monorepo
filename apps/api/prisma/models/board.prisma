@@ -57,6 +57,7 @@ model FieldValue {
 model FieldOption {
   id             String      @id @default(uuid())
   optionName     String
+  color          String?
   isDeleted      Boolean     @default(false)
   fieldId        String
   field          Field @relation(fields: [fieldId], references: [id])

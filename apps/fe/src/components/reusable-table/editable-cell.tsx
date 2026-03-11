@@ -113,17 +113,14 @@ export function EditableCell({
         if (!old) return old;
         return {
           ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((r: LeadRow) =>
-              r.id === id
-                ? {
-                    ...r,
-                    [field]: value,
-                  }
-                : r
-            ),
-          })),
+          data: old.data.map((r: LeadRow) =>
+            r.id === id
+              ? {
+                  ...r,
+                  [field]: value,
+                }
+              : r
+          ),
         };
       });
       return { previousData };
@@ -274,6 +271,7 @@ export function EditableCell({
     return (
       <StatusSelect
         val={val}
+        fieldKey={fieldKey}
         isReferral={isReferral}
         handleUpdate={(v, reason) => handleUpdate(v, undefined, reason)}
       />

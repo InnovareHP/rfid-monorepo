@@ -4,21 +4,17 @@ import { exportToCSV } from "@/lib/fe-helpers";
 import { createLead, deleteLead, getLeads } from "@/services/lead/lead-service";
 import type { LeadRow, OptionsResponse } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getCoreRowModel,
   useReactTable,
   type Header,
 } from "@tanstack/react-table";
 import { Download, ScanLine } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import AddRow from "../reusable-table/add-row";
+
 import { AnalyzeLeadDialog } from "./analyze-cell";
 import ColumnFilter from "./column-filter";
 import { MasterListFilters } from "./master-list-filter";
@@ -43,35 +39,15 @@ export default function MasterListPage() {
     BoardDateFrom: null,
     BoardDateTo: null,
     filter: {},
-    limit: 20,
+    limit: 10,
   });
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    refetch,
-    isFetchingNextPage,
-    isLoading,
-  } = useInfiniteQuery({
+  const { data, refetch, isLoading } = useQuery({
     queryKey: ["leads", filterMeta],
-
-    queryFn: ({ pageParam = filterMeta.limit }) =>
-      getLeads({
-        ...filterMeta,
-        page: pageParam,
-      }),
-
-    initialPageParam: 1,
-
-    getNextPageParam: (lastPage) => {
-      const { page, limit, count } = lastPage.pagination;
-      const totalPages = Math.ceil(count / limit);
-      return page < totalPages ? page + 1 : undefined;
-    },
+    queryFn: () => getLeads(filterMeta),
   });
 
-  const rows = data?.pages.flatMap((p) => p.data) ?? [];
+  const rows = data?.data ?? [];
 
   const handleSort = (columnId: string, order: "asc" | "desc" | null) => {
     setFilterMeta((prev) => ({
@@ -81,30 +57,61 @@ export default function MasterListPage() {
     }));
   };
 
-  const columns = generateLeadColumns(
-    data?.pages[0].columns ?? [],
-    (recordId: string) => {
-      setSelectedRecordId(recordId);
-      setOpenAnalyzeDialog(true);
-    },
-    (recordId: string) => {
-      setSelectedRecordId(recordId);
-      setOpenMasterListView(true);
-    },
-    { sortBy: filterMeta.sortBy, sortOrder: filterMeta.sortOrder },
-    handleSort
+  const columns = useMemo(
+    () =>
+      generateLeadColumns(
+        data?.columns ?? [],
+        (recordId: string) => {
+          setSelectedRecordId(recordId);
+          setOpenAnalyzeDialog(true);
+        },
+        (recordId: string) => {
+          setSelectedRecordId(recordId);
+          setOpenMasterListView(true);
+        },
+        { sortBy: filterMeta.sortBy, sortOrder: filterMeta.sortOrder },
+        handleSort
+      ),
+    [data?.columns, filterMeta.sortBy, filterMeta.sortOrder]
   ) as {
     id: string;
     name: string;
     type: string;
   }[];
 
+  const STORAGE_KEY = "master-list-column-sizing";
+  const [columnSizing, setColumnSizing] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleColumnSizingChange = useCallback((updater: any) => {
+    setColumnSizing((prev: any) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }, 300);
+      return next;
+    });
+  }, []);
+
   const table = useReactTable({
-    data: rows,
+    data: rows as LeadRow[],
     columns,
     getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
+    columnResizeMode: "onChange",
+    state: { columnSizing },
+    onColumnSizingChange: handleColumnSizingChange,
   });
 
   const addLeadMutation = useMutation({
@@ -128,10 +135,9 @@ export default function MasterListPage() {
         if (!old) return old;
         return {
           ...old,
-          pages: old.pages.map((page: { data: LeadRow[] }) => ({
-            ...page,
-            data: page.data.filter((r: LeadRow) => !ids.includes(r.id)),
-          })),
+          data: old.data.map((r: LeadRow) =>
+            r.id === ids ? { ...r, has_notification: true } : r
+          ),
         };
       });
       return { previousData };
@@ -253,6 +259,16 @@ export default function MasterListPage() {
       });
   }, [table]);
 
+  const totalPages = Math.ceil(
+    (data?.pagination.count ?? 0) / filterMeta.limit
+  );
+  const currentPage = data?.pagination.page ?? 1;
+  const setCurrentPage = (page: number) => {
+    setFilterMeta((prev) => ({
+      ...prev,
+      page: page,
+    }));
+  };
   return (
     <div className="p-8 bg-gray-50 min-h-full">
       <div className="space-y-6">
@@ -272,9 +288,8 @@ export default function MasterListPage() {
           isReferral={false}
           hasNotification={
             selectedRecordId
-              ? (data?.pages[0].data.find(
-                  (r: LeadRow) => r.id === selectedRecordId
-                )?.has_notification ?? false)
+              ? (data?.data.find((r: LeadRow) => r.id === selectedRecordId)
+                  ?.has_notification ?? false)
               : false
           }
           initialTab="history"
@@ -306,14 +321,14 @@ export default function MasterListPage() {
               <ScanLine className="h-4 w-4" />
               Smart Scan
             </Button>
-            <AddRow isReferral={false} onAdd={handleAddNewLead} />
+
             <ColumnFilter tableColumns={tableColumns as any} />
           </div>
         </div>
 
         <div className="bg-white">
           <MasterListFilters
-            columns={data?.pages[0].columns ?? []}
+            columns={data?.columns ?? []}
             filterMeta={filterMeta}
             refetch={refetch}
             setFilterMeta={setFilterMeta}
@@ -321,22 +336,20 @@ export default function MasterListPage() {
         </div>
 
         {/* Table Wrapper */}
-        <div className="bg-white rounded-xl border shadow-sm">
-          <ReusableTable
-            table={table}
-            columns={columns}
-            isFetchingList={isFetchingNextPage || isLoading}
-            onLoadMore={() => {
-              if (hasNextPage) {
-                fetchNextPage();
-              }
-            }}
-            hasMore={hasNextPage}
-            setActivePage={() => {}}
-            onAdd={handleAddNewLead}
-            onDelete={handleDeleteLeads}
-          />
-        </div>
+
+        <ReusableTable
+          table={table}
+          columns={columns}
+          isFetchingList={isLoading}
+          onLoadMore={() => setCurrentPage(currentPage + 1)}
+          hasMore={false}
+          setActivePage={() => setCurrentPage(currentPage + 1)}
+          onAdd={handleAddNewLead}
+          onDelete={handleDeleteLeads}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+        />
       </div>
     </div>
   );

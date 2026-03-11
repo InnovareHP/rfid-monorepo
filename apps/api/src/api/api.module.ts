@@ -8,6 +8,7 @@ import { ImageModule } from "./image/image.module";
 import { LiasonModule } from "./liason/liason.module";
 import { ManualModule } from "./manual/manual.module";
 import { OptionsModule } from "./options/options.module";
+import { PlacesModule } from "./places/places.module";
 import { PlanModule } from "./plan/plan.module";
 import { SupportModule } from "./support/support.module";
 import { UserModule } from "./user/user.module";
@@ -26,6 +27,7 @@ import { UserModule } from "./user/user.module";
     LiasonModule,
     SupportModule,
     ManualModule,
+    PlacesModule,
   ],
   controllers: [],
   providers: [],

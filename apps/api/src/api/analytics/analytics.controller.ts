@@ -23,7 +23,6 @@ export class AnalyticsController {
   ) {}
 
   @Get()
-  @UseGuards(AuthGuard)
   async getAllAnalytics(
     @Query("start") start: string,
     @Query("end") end: string,

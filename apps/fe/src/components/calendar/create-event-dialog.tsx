@@ -198,9 +198,7 @@ export function CreateEventDialog({
                 <Input
                   id="start"
                   type={allDay ? "date" : "datetime-local"}
-                  value={
-                    allDay ? startDate.slice(0, 10) : startDate
-                  }
+                  value={allDay ? startDate.slice(0, 10) : startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   required
                 />

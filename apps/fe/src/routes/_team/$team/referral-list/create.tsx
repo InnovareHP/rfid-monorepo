@@ -1,5 +1,4 @@
 import LocationCell from "@/components/reusable-table/location-cell";
-import { useTeamLayoutContext } from "@/routes/_team";
 import {
   createReferral,
   getReferralColumnOptions,
@@ -38,28 +37,35 @@ import {
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouteContext,
+} from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ArrowLeft, CalendarIcon, Loader2, Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+interface RouteContext {
+  activeOrganizationId: string;
+}
+
 export const Route = createFileRoute("/_team/$team/referral-list/create")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { activeOrganizationId } = useTeamLayoutContext() as {
-    activeOrganizationId: string;
-  };
+  const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
+  const activeOrganizationId = ctx?.activeOrganizationId ?? "";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Fetch available columns from API
   const { data: columnsData, isLoading: isLoadingColumns } = useQuery({
     queryKey: ["referral-columns"],
-    queryFn: getReferralColumnOptions,
+    queryFn: () => getReferralColumnOptions(),
   });
 
   const columns: { id: string; name: string; type: string }[] =
@@ -120,7 +126,6 @@ function RouteComponent() {
     name: "referrals",
   });
 
-  // Mutation for creating referrals
   const createReferralMutation = useMutation({
     mutationFn: createReferral,
     onSuccess: () => {

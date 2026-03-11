@@ -40,7 +40,7 @@ export const getReferralHistory = async (
 };
 
 export const getReferralColumnOptions = async () => {
-  const response = await axiosClient.get("/api/boards/columns", {
+  const response = await axiosClient.get("/api/boards/column", {
     params: { moduleType: "REFERRAL" },
   });
 
@@ -67,12 +67,14 @@ export const getReferralDropdownOptions = async (
 
 export const createReferralDropdownOption = async (
   fieldKey: string,
-  option: string
+  option: string,
+  color?: string
 ) => {
   const response = await axiosClient.post(
     `/api/boards/field/${fieldKey}/options`,
     {
       optionName: option,
+      ...(color && { color }),
     }
   );
 

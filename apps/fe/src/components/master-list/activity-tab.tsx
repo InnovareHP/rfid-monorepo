@@ -1,5 +1,7 @@
-"use client";
-
+import {
+  createCalendarEvent,
+  getCalendarConnectionStatus,
+} from "@/services/calendar/calendar-service";
 import {
   completeActivity,
   createActivity,
@@ -105,6 +107,8 @@ type FormValues = {
   emailSubject?: string;
   emailBody?: string;
   sendVia?: "AUTO" | "GMAIL" | "OUTLOOK";
+  meetingEndDate?: Date;
+  calendarProvider?: "google" | "outlook";
 };
 
 export function ActivityTab({
@@ -126,6 +130,14 @@ export function ActivityTab({
     queryKey: ["outlook-status"],
     queryFn: getOutlookStatus,
   });
+
+  const { data: calendarStatus } = useQuery({
+    queryKey: ["calendar-status"],
+    queryFn: getCalendarConnectionStatus,
+  });
+
+  const hasCalendar =
+    calendarStatus?.google?.connected || calendarStatus?.outlook?.connected;
 
   const {
     data: activitiesData,
@@ -193,6 +205,12 @@ export function ActivityTab({
       emailSubject: "",
       emailBody: "",
       sendVia: "AUTO",
+      meetingEndDate: undefined,
+      calendarProvider: calendarStatus?.google?.connected
+        ? "google"
+        : calendarStatus?.outlook?.connected
+          ? "outlook"
+          : undefined,
     },
   });
 
@@ -204,8 +222,32 @@ export function ActivityTab({
     setShowForm(false);
   };
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     if (!data.title.trim()) return;
+
+    if (
+      data.activityType === "MEETING" &&
+      data.calendarProvider &&
+      data.dueDate
+    ) {
+      const startTime = data.dueDate.toISOString();
+      const endTime = data.meetingEndDate
+        ? data.meetingEndDate.toISOString()
+        : new Date(data.dueDate.getTime() + 60 * 60 * 1000).toISOString();
+
+      try {
+        await createCalendarEvent({
+          provider: data.calendarProvider,
+          title: data.title.trim(),
+          description: data.description?.trim(),
+          startTime,
+          endTime,
+        });
+        queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+      } catch {
+        toast.error("Failed to create calendar event");
+      }
+    }
 
     createMutation.mutate({
       recordId: recordId,
@@ -301,19 +343,21 @@ export function ActivityTab({
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.keys(activityTypeConfig).map((key) => (
-                          <SelectItem key={key} value={key}>
-                            <span className="flex items-center gap-2">
-                              {React.createElement(
-                                activityTypeConfig[key as ActivityType].icon,
-                                {
-                                  className: "h-3.5 w-3.5",
-                                }
-                              )}
-                              {activityTypeConfig[key as ActivityType].label}
-                            </span>
-                          </SelectItem>
-                        ))}
+                        {Object.keys(activityTypeConfig)
+                          .filter((key) => key !== "MEETING" || hasCalendar)
+                          .map((key) => (
+                            <SelectItem key={key} value={key}>
+                              <span className="flex items-center gap-2">
+                                {React.createElement(
+                                  activityTypeConfig[key as ActivityType].icon,
+                                  {
+                                    className: "h-3.5 w-3.5",
+                                  }
+                                )}
+                                {activityTypeConfig[key as ActivityType].label}
+                              </span>
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   )}
@@ -415,6 +459,80 @@ export function ActivityTab({
                           {outlookStatus?.connected && (
                             <SelectItem value="OUTLOOK">
                               Outlook ({outlookStatus.email})
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              )}
+
+              {watchActivityType === "MEETING" && hasCalendar && (
+                <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-600">
+                    Meeting Details
+                  </p>
+
+                  <Controller
+                    control={control}
+                    name="meetingEndDate"
+                    render={({ field }) => (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                          >
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            {field.value
+                              ? field.value.toLocaleDateString() +
+                                " " +
+                                field.value.toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "End time (defaults to 1 hour)"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  />
+
+                  <Controller
+                    control={control}
+                    name="calendarProvider"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select calendar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {calendarStatus?.google?.connected && (
+                            <SelectItem value="google">
+                              Google Calendar
+                              {calendarStatus.google.email
+                                ? ` (${calendarStatus.google.email})`
+                                : ""}
+                            </SelectItem>
+                          )}
+                          {calendarStatus?.outlook?.connected && (
+                            <SelectItem value="outlook">
+                              Outlook Calendar
+                              {calendarStatus.outlook.email
+                                ? ` (${calendarStatus.outlook.email})`
+                                : ""}
                             </SelectItem>
                           )}
                         </SelectContent>

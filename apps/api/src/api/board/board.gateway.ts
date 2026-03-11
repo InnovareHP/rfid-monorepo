@@ -148,4 +148,38 @@ export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
       .to(`org:${orgId}`)
       .emit("board:activity-updated", { recordId, activityId, status });
   }
+
+  emitRecordValueMultiselectUpdated(
+    orgId: string,
+    recordId: string,
+    fieldId: string,
+    value: any,
+    moduleType: string = "LEAD"
+  ) {
+    this.server.to(`org:${orgId}`).emit("board:update-multiselect", {
+      recordId,
+      fieldId,
+      value,
+      moduleType,
+    });
+  }
+
+  emitRecordValueStatusUpdated(
+    orgId: string,
+    recordId: string,
+    fieldId: string,
+    value: string,
+    moduleType: string = "LEAD",
+    reason: { id: string; value: string },
+    actionDate: { id: string; value: string }
+  ) {
+    this.server.to(`org:${orgId}`).emit("board:update-status", {
+      recordId,
+      fieldId,
+      value,
+      moduleType,
+      reason,
+      actionDate,
+    });
+  }
 }

@@ -48,18 +48,18 @@ const AddRow = ({
           <DialogTrigger asChild>
             <Button className="flex gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="h-4 w-4" />
-              Add New organization
+              Add New Facility
             </Button>
           </DialogTrigger>
 
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>New organization</DialogTitle>
+              <DialogTitle>New Facility</DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Organization Name</Label>
+                <Label htmlFor="name">Facility Name</Label>
                 <Input
                   id="name"
                   placeholder="Enter name"

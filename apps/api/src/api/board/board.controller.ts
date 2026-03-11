@@ -25,7 +25,6 @@ import {
   CreateActivityDto,
   CreateColumnDto,
   CreateFieldOptionDto,
-  CreateHistoryDto,
   CreateRecordCountyAssignmentDto,
   CreateRecordDto,
   CsvImportDto,
@@ -55,6 +54,43 @@ export class BoardController {
     private readonly geminiQueue: Queue
   ) {}
 
+  // ─── GET ──────────────────────────────────────────────────────────────
+
+  @Get("/")
+  async getAllRecords(
+    @Session()
+    session: AuthenticatedSession,
+    @Query("filter") filtersQuery: string,
+    @Query("boardDateFrom") boardDateFrom?: string,
+    @Query("boardDateTo") boardDateTo?: string,
+    @Query("page") page = 1,
+    @Query("limit") limit = 50,
+    @Query("search") search?: string,
+    @Query("moduleType") moduleType?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "asc" | "desc"
+  ) {
+    try {
+      const organizationId = session.session.activeOrganizationId;
+      const filter = filtersQuery ? JSON.parse(filtersQuery) : {};
+      const filters = {
+        filter,
+        boardDateFrom,
+        boardDateTo,
+        page: Number(page),
+        limit: Number(limit),
+        search,
+        moduleType,
+        sortBy,
+        sortOrder,
+      };
+
+      return this.boardService.getAllBoards(organizationId, filters);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/gmail/auth-url")
   async getGmailAuthUrl(@Session() session: AuthenticatedSession) {
     try {
@@ -73,16 +109,6 @@ export class BoardController {
   async getGmailStatus(@Session() session: AuthenticatedSession) {
     try {
       return await this.gmailService.getConnectionStatus(session.user.id);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Delete("/gmail/disconnect")
-  async disconnectGmail(@Session() session: AuthenticatedSession) {
-    try {
-      await this.gmailService.disconnect(session.user.id);
-      return { message: "Gmail disconnected successfully" };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -111,11 +137,229 @@ export class BoardController {
     }
   }
 
-  @Delete("/outlook/disconnect")
-  async disconnectOutlook(@Session() session: AuthenticatedSession) {
+  @Get("/column")
+  async getColumns(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    const organizationId = session.session.activeOrganizationId;
     try {
-      await this.outlookService.disconnect(session.user.id);
-      return { message: "Outlook disconnected successfully" };
+      return await this.boardService.getColumns(
+        organizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/history")
+  async getAllRecordHistory(
+    @Query("page") page = 1,
+    @Query("limit") limit = 50,
+    @Session()
+    session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      const organizationId = session.session.activeOrganizationId;
+      return await this.boardService.getAllRecordHistory(organizationId, {
+        page: Number(page),
+        limit: Number(limit),
+        moduleType: moduleType || "LEAD",
+      });
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/county/configuration")
+  async getCountyConfiguration(
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.getCountyConfiguration(organizationId);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/contact-info/:fieldId")
+  async getValueIdContact(
+    @Param("fieldId") fieldId: string,
+    @Query("value") value: string
+  ) {
+    try {
+      return await this.boardService.getValueId(fieldId, value);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/timeline/:recordId")
+  async getRecordHistory(
+    @Param("recordId") recordId: string,
+    @Query("take") take: number = 15,
+    @Query("skip") skip: number = 1
+  ) {
+    try {
+      const offset = (skip - 1) * take;
+      return this.boardService.getHistory(
+        recordId,
+        Number(take),
+        Number(offset)
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/field/:fieldId/options")
+  async getRecordFieldOptions(
+    @Param("fieldId") fieldId: string,
+    @Session()
+    session: AuthenticatedSession,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number
+  ) {
+    try {
+      const organizationId = session.session.activeOrganizationId;
+      return this.boardService.getRecordFieldOptions(
+        fieldId,
+        organizationId,
+        page ? Number(page) : null,
+        limit ? Number(limit) : null
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/jobs/:jobId/status")
+  async getJobStatus(
+    @Param("jobId") jobId: string,
+    @Query("queue") queueName: string
+  ) {
+    try {
+      const queue = this.getQueueByName(queueName);
+      const job = await queue.getJob(jobId);
+      if (!job) {
+        throw new BadRequestException("Job not found");
+      }
+      const state = await job.getState();
+      return {
+        jobId: job.id,
+        status: state,
+        progress: job.progress,
+        result: job.returnvalue,
+        failedReason: job.failedReason,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/:recordId")
+  async getRecordById(
+    @Param("recordId") recordId: string,
+    @Session()
+    session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.getRecordById(
+        recordId,
+        organizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/:recordId/activities")
+  async getActivities(
+    @Param("recordId") recordId: string,
+    @Session() session: AuthenticatedSession,
+    @Query("page") page = 1,
+    @Query("limit") limit = 15
+  ) {
+    try {
+      return await this.boardService.getActivities(
+        recordId,
+        session.session.activeOrganizationId,
+        Number(page),
+        Number(limit)
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/:recordId/suggestions")
+  async getFollowUpSuggestions(
+    @Param("recordId") recordId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getFollowUpSuggestions(
+        recordId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/:recordId/analyze")
+  async getRecordAnalyze(
+    @Param("recordId") recordId: string,
+    @Query("dateStart") dateStart: string,
+    @Query("dateEnd") dateEnd: string
+  ) {
+    try {
+      const dateStartDate = dateStart ? new Date(dateStart) : undefined;
+      const dateEndDate = dateEnd ? new Date(dateEnd) : undefined;
+      return await this.boardService.getRecordAnalyze(
+        recordId,
+        dateStartDate,
+        dateEndDate
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  // ─── POST ─────────────────────────────────────────────────────────────
+
+  @Post()
+  async createRecord(
+    @Body() dto: CreateRecordDto,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+
+    try {
+      if (dto.moduleType === "REFERRAL") {
+        return this.boardService.createReferral(
+          dto.data,
+          organizationId,
+          session.user.id,
+          dto.moduleType
+        );
+      }
+      return this.boardService.createRecord(
+        dto.recordName,
+        organizationId,
+        session.user.id,
+        dto.moduleType || "LEAD",
+        dto.initialValues,
+        dto.personContact
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -168,25 +412,6 @@ export class BoardController {
     }
   }
 
-  @Get("/:recordId/activities")
-  async getActivities(
-    @Param("recordId") recordId: string,
-    @Session() session: AuthenticatedSession,
-    @Query("page") page = 1,
-    @Query("limit") limit = 15
-  ) {
-    try {
-      return await this.boardService.getActivities(
-        recordId,
-        session.session.activeOrganizationId,
-        Number(page),
-        Number(limit)
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
   @Post("/activities")
   async createActivity(
     @Body() dto: CreateActivityDto,
@@ -215,240 +440,6 @@ export class BoardController {
         session.session.activeOrganizationId,
         session.user.id,
         dto
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Patch("/activities/:activityId")
-  async updateActivity(
-    @Param("activityId") activityId: string,
-    @Body() dto: UpdateActivityDto,
-    @Session() session: AuthenticatedSession
-  ) {
-    try {
-      return await this.boardService.updateActivity(
-        activityId,
-        session.session.activeOrganizationId,
-        dto
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Delete("/activities/:activityId")
-  async deleteActivity(
-    @Param("activityId") activityId: string,
-    @Session() session: AuthenticatedSession
-  ) {
-    try {
-      return await this.boardService.deleteActivity(
-        activityId,
-        session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/:recordId")
-  async getRecordById(
-    @Param("recordId") recordId: string,
-    @Session()
-    session: AuthenticatedSession,
-    @Query("moduleType") moduleType?: string
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-    try {
-      return await this.boardService.getRecordById(
-        recordId,
-        organizationId,
-        moduleType || "LEAD"
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/contact-info/:fieldId")
-  async getValueIdContact(
-    @Param("fieldId") fieldId: string,
-    @Query("value") value: string
-  ) {
-    try {
-      return await this.boardService.getValueId(fieldId, value);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/")
-  async getAllRecords(
-    @Session()
-    session: AuthenticatedSession,
-    @Query("filter") filtersQuery: string,
-    @Query("boardDateFrom") boardDateFrom?: string,
-    @Query("boardDateTo") boardDateTo?: string,
-    @Query("page") page = 1,
-    @Query("limit") limit = 50,
-    @Query("search") search?: string,
-    @Query("moduleType") moduleType?: string,
-    @Query("sortBy") sortBy?: string,
-    @Query("sortOrder") sortOrder?: "asc" | "desc"
-  ) {
-    try {
-      const organizationId = session.session.activeOrganizationId;
-      const filter = filtersQuery ? JSON.parse(filtersQuery) : {};
-      const filters = {
-        filter,
-        boardDateFrom,
-        boardDateTo,
-        page: Number(page),
-        limit: Number(limit),
-        search,
-        moduleType,
-        sortBy,
-        sortOrder,
-      };
-
-      return this.boardService.getAllBoards(organizationId, filters);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/history")
-  async getAllRecordHistory(
-    @Query("page") page = 1,
-    @Query("limit") limit = 50,
-    @Session()
-    session: AuthenticatedSession,
-    @Query("moduleType") moduleType?: string
-  ) {
-    try {
-      const organizationId = session.session.activeOrganizationId;
-      return await this.boardService.getAllRecordHistory(organizationId, {
-        page: Number(page),
-        limit: Number(limit),
-        moduleType: moduleType || "LEAD",
-      });
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/county/configuration")
-  async getCountyConfiguration(
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-    try {
-      return await this.boardService.getCountyConfiguration(organizationId);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/:recordId/suggestions")
-  async getFollowUpSuggestions(
-    @Param("recordId") recordId: string,
-    @Session() session: AuthenticatedSession
-  ) {
-    try {
-      return await this.boardService.getFollowUpSuggestions(
-        recordId,
-        session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/:recordId/analyze")
-  async getRecordAnalyze(
-    @Param("recordId") recordId: string,
-    @Query("dateStart") dateStart: string,
-    @Query("dateEnd") dateEnd: string
-  ) {
-    try {
-      const dateStartDate = dateStart ? new Date(dateStart) : undefined;
-      const dateEndDate = dateEnd ? new Date(dateEnd) : undefined;
-      return await this.boardService.getRecordAnalyze(
-        recordId,
-        dateStartDate,
-        dateEndDate
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/timeline/:recordId")
-  async getRecordHistory(
-    @Param("recordId") recordId: string,
-    @Query("take") take: number = 15,
-    @Query("skip") skip: number = 1
-  ) {
-    try {
-      const offset = (skip - 1) * take;
-      return this.boardService.getHistory(
-        recordId,
-        Number(take),
-        Number(offset)
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/field/:fieldId/options")
-  async getRecordFieldOptions(
-    @Param("fieldId") fieldId: string,
-    @Session()
-    session: AuthenticatedSession,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number
-  ) {
-    try {
-      const organizationId = session.session.activeOrganizationId;
-      return this.boardService.getRecordFieldOptions(
-        fieldId,
-        organizationId,
-        page ? Number(page) : null,
-        limit ? Number(limit) : null
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Post()
-  async createRecord(
-    @Body() dto: CreateRecordDto,
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-
-    try {
-      if (dto.moduleType === "REFERRAL") {
-        return this.boardService.createReferral(
-          dto.data,
-          organizationId,
-          session.user.id,
-          dto.moduleType
-        );
-      }
-      return this.boardService.createRecord(
-        dto.recordName,
-        organizationId,
-        session.user.id,
-        dto.moduleType || "LEAD",
-        dto.initialValues,
-        dto.personContact
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -553,27 +544,27 @@ export class BoardController {
     try {
       return await this.boardService.createRecordFieldOption(
         fieldId,
-        dto.optionName
+        dto.optionName,
+        dto.color
       );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
-  @Post("/timeline/:recordId")
-  async createRecordHistory(
-    @Param("recordId") recordId: string,
-    @Body() dto: CreateHistoryDto,
-    @Session()
-    session: MemberSession
+  // ─── PATCH ────────────────────────────────────────────────────────────
+
+  @Patch("/activities/:activityId")
+  async updateActivity(
+    @Param("activityId") activityId: string,
+    @Body() dto: UpdateActivityDto,
+    @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.boardService.createRecordHistory(
-        recordId,
-        dto.oldValue,
-        dto.newValue,
-        dto.createdBy,
-        session.session.memberId
+      return await this.boardService.updateActivity(
+        activityId,
+        session.session.activeOrganizationId,
+        dto
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -624,6 +615,8 @@ export class BoardController {
     }
   }
 
+  // ─── DELETE ───────────────────────────────────────────────────────────
+
   @Delete()
   async deleteRecords(
     @Body() dto: DeleteRecordsDto,
@@ -632,6 +625,41 @@ export class BoardController {
     try {
       return await this.boardService.deleteRecord(
         dto.column_ids,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/gmail/disconnect")
+  async disconnectGmail(@Session() session: AuthenticatedSession) {
+    try {
+      await this.gmailService.disconnect(session.user.id);
+      return { message: "Gmail disconnected successfully" };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/outlook/disconnect")
+  async disconnectOutlook(@Session() session: AuthenticatedSession) {
+    try {
+      await this.outlookService.disconnect(session.user.id);
+      return { message: "Outlook disconnected successfully" };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete("/activities/:activityId")
+  async deleteActivity(
+    @Param("activityId") activityId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.deleteActivity(
+        activityId,
         session.session.activeOrganizationId
       );
     } catch (error) {
@@ -683,29 +711,7 @@ export class BoardController {
     }
   }
 
-  @Get("/jobs/:jobId/status")
-  async getJobStatus(
-    @Param("jobId") jobId: string,
-    @Query("queue") queueName: string
-  ) {
-    try {
-      const queue = this.getQueueByName(queueName);
-      const job = await queue.getJob(jobId);
-      if (!job) {
-        throw new BadRequestException("Job not found");
-      }
-      const state = await job.getState();
-      return {
-        jobId: job.id,
-        status: state,
-        progress: job.progress,
-        result: job.returnvalue,
-        failedReason: job.failedReason,
-      };
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
+  // ─── PRIVATE ──────────────────────────────────────────────────────────
 
   private getQueueByName(name: string): Queue {
     switch (name) {

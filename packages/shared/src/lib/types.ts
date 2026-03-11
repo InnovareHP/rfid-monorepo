@@ -160,7 +160,10 @@ export type CountyRow = {
 };
 
 export type AnalyticsResponse = {
-  avgTime: AverageTime;
+  totalCounts: TotalCounts;
+  statusBreakdown: StatusBreakdownItem[];
+  avgTimeByStatus: AvgTimeByStatus[];
+  admissionTypes: AdmissionTypeAnalytics[];
   clinicians: ClinicianAnalytics[];
   conversion: ConversionAnalytics;
   counties: CountyAnalytics[];
@@ -172,8 +175,28 @@ export type AnalyticsResponse = {
   analytics: string;
 };
 
-export type AverageTime = {
-  averageDays: string; // e.g. "3.4"
+export type TotalCounts = {
+  totalReferrals: number;
+  totalLeads: number;
+  referralsThisPeriod: number;
+  leadsThisPeriod: number;
+};
+
+export type StatusBreakdownItem = {
+  status: string;
+  count: number;
+  color: string | null;
+};
+
+export type AvgTimeByStatus = {
+  status: string;
+  averageDays: string;
+  count: number;
+};
+
+export type AdmissionTypeAnalytics = {
+  value: string | null;
+  _count: { value: number };
 };
 
 export type ConversionAnalytics = {

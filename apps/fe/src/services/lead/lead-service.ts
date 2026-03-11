@@ -89,12 +89,14 @@ export const getDropdownOptions = async (
 
 export const createDropdownOption = async (
   fieldKey: string,
-  option: string
+  option: string,
+  color?: string
 ) => {
   const response = await axiosClient.post(
     `/api/boards/field/${fieldKey}/options`,
     {
       optionName: option,
+      ...(color && { color }),
     }
   );
 

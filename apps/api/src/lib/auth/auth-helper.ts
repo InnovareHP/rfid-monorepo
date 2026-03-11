@@ -177,6 +177,10 @@ export const beforeUpdateOrganization = async ({
   return {
     data: {
       name: organization.name?.toLowerCase(),
+      ...(organization.logo !== undefined && { logo: organization.logo }),
+      ...(organization.metadata !== undefined && {
+        metadata: organization.metadata,
+      }),
     },
   };
 };
