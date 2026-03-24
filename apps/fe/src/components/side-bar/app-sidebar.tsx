@@ -52,13 +52,13 @@ export function AppSidebar({
           isActive: true,
           items: [
             {
-              title: "Master List",
+              title: "Referral Analytics",
               url: `/${activeOrganizationId}`,
               icon: FileText,
             },
             {
-              title: "Referral",
-              url: `/${activeOrganizationId}/referral-analytics`,
+              title: "Master List Analytics",
+              url: `/${activeOrganizationId}/master-list-analytics`,
               icon: Users,
             },
           ],
@@ -203,11 +203,9 @@ export function AppSidebar({
   // Use org logo if uploaded, otherwise fall back to default
   const logoSrc = React.useMemo(
     () =>
-      orgLogo
-        ? orgLogo
-        : state === "collapsed"
-          ? "/login-page/tarsier.png"
-          : "/login-page/rfid.png",
+      state === "collapsed"
+        ? "/login-page/tarsier.png"
+        : "/login-page/rfid.png",
     [state, orgLogo]
   );
 
@@ -221,11 +219,7 @@ export function AppSidebar({
         : state === "collapsed"
           ? "3rem"
           : "auto",
-      width: orgLogo
-        ? "auto"
-        : state === "collapsed"
-          ? "2rem"
-          : "70%",
+      width: orgLogo ? "auto" : state === "collapsed" ? "2rem" : "70%",
       maxWidth: "100%",
       objectFit: "contain" as const,
       objectPosition: "center" as const,
@@ -240,7 +234,7 @@ export function AppSidebar({
       className="md:left-16 top-(--banner-height,0px) h-[calc(100vh-var(--banner-height,0px))] transition-[top,height,left] duration-300"
     >
       <SidebarHeader>
-        <div className="mb-2 w-full overflow-hidden flex items-center justify-center">
+        <div className="mb-2 w-full overflow-hidden">
           <Link
             to="/$team"
             params={{ team: activeOrganizationId }}
@@ -250,13 +244,22 @@ export function AppSidebar({
             <img
               src={logoSrc}
               alt="Dashboard Logo"
-              className="cursor-pointer transition-all duration-300"
+              className="cursor-pointer transition-all duration-300 w-full h-full"
               loading="eager"
               decoding="async"
               style={imageStyle}
             />
           </Link>
         </div>
+
+        <img
+          src={orgLogo ?? logoSrc}
+          alt="Dashboard Logo"
+          className="cursor-pointer transition-all duration-300"
+          loading="eager"
+          decoding="async"
+          style={imageStyle}
+        />
         <TeamSwitcher
           activeOrganizationId={activeOrganizationId}
           organizations={organizations}

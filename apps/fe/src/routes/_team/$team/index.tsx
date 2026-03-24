@@ -1,4 +1,4 @@
-import MarketingListPage from "@/components/analytics/marketing-list-page";
+import ReferralAnalyticsDashboard from "@/components/analytics/analytics-page";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_team/$team/")({
@@ -6,5 +6,5 @@ export const Route = createFileRoute("/_team/$team/")({
 });
 
 function RouteComponent() {
-  return <MarketingListPage />;
+  return <ReferralAnalyticsDashboard />;
 }

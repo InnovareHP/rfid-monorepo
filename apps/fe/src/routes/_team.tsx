@@ -8,6 +8,7 @@ import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { authClient } from "@/lib/auth-client";
+import { applyBrandColor, removeBrandColor } from "@/lib/color-utils";
 import type { Subscription } from "@dashboard/shared";
 import { Separator } from "@dashboard/ui/components/separator";
 import {
@@ -153,40 +154,12 @@ function TeamLayout() {
 
   useEffect(() => {
     if (brandColor) {
-      // Convert hex to oklch for CSS --primary variable
-      const hexToOklch = (hex: string): string => {
-        const r = parseInt(hex.slice(1, 3), 16) / 255;
-        const g = parseInt(hex.slice(3, 5), 16) / 255;
-        const b = parseInt(hex.slice(5, 7), 16) / 255;
-        // sRGB to linear
-        const toLinear = (c: number) =>
-          c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-        const lr = toLinear(r),
-          lg = toLinear(g),
-          lb = toLinear(b);
-        // Linear RGB to OKLab
-        const l_ = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
-        const m_ = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
-        const s_ = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
-        const l = Math.cbrt(l_),
-          m = Math.cbrt(m_),
-          s = Math.cbrt(s_);
-        const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
-        const a = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
-        const bOk = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
-        // OKLab to OKLCH
-        const C = Math.sqrt(a * a + bOk * bOk);
-        let H = (Math.atan2(bOk, a) * 180) / Math.PI;
-        if (H < 0) H += 360;
-        return `oklch(${L.toFixed(3)} ${C.toFixed(3)} ${H.toFixed(3)})`;
-      };
-      const oklch = hexToOklch(brandColor);
-      document.documentElement.style.setProperty("--primary", oklch);
+      applyBrandColor(brandColor);
     } else {
-      document.documentElement.style.removeProperty("--primary");
+      removeBrandColor();
     }
     return () => {
-      document.documentElement.style.removeProperty("--primary");
+      removeBrandColor();
     };
   }, [brandColor]);
 

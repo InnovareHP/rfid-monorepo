@@ -42,6 +42,7 @@ import {
 } from "@dashboard/ui/components/table";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import {
   type ColumnDef,
@@ -58,7 +59,6 @@ import {
   Trash2Icon,
   X,
 } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -564,7 +564,10 @@ const ReusableTable = <T extends { id: string }>({
                   <Select
                     value={emailForm.watch("sendVia")}
                     onValueChange={(val) =>
-                      emailForm.setValue("sendVia", val as "AUTO" | "GMAIL" | "OUTLOOK")
+                      emailForm.setValue(
+                        "sendVia",
+                        val as "AUTO" | "GMAIL" | "OUTLOOK"
+                      )
                     }
                     disabled={emailForm.formState.isSubmitting}
                   >
