@@ -16,6 +16,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 # Optimize: Remove openssl install - already in deps stage, not needed here
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
@@ -23,7 +24,7 @@ COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_module
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
-RUN pnpm --filter shared build \
+RUN pnpm --filter @dashboard/shared build \
     && pnpm --filter api prisma:generate \
     && pnpm --filter api build
 
