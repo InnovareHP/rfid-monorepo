@@ -1,6 +1,7 @@
 import {
   createDropdownOption,
   getDropdownOptions,
+  getLeadRecords,
   updateLead,
 } from "@/services/lead/lead-service";
 import {
@@ -45,6 +46,7 @@ import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
 import LocationCell from "./location-cell";
+import { RecordAvatar } from "./record-avatar";
 import { StatusSelect } from "./status-action";
 
 type EditableCellProps = {
@@ -56,7 +58,6 @@ type EditableCellProps = {
   isReferral?: boolean;
 };
 
-// Helper functions for validation
 const validateEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -97,47 +98,47 @@ export function EditableCell({
       field,
       value,
       reason,
+      previousValue,
     }: {
       id: string;
       field: string;
+      fieldName: string;
       value: string;
       reason?: string;
+      previousValue?: string;
     }) =>
       isReferral
-        ? await updateReferral(id, field, value, reason)
+        ? await updateReferral(id, field, value, reason, previousValue)
         : await updateLead(id, field, value),
-    onMutate: async ({ id, field, value }) => {
+    onMutate: async ({ id, fieldName: patchKey, value }) => {
       await queryClient.cancelQueries({ queryKey: [isreferralKey] });
-      const previousData = queryClient.getQueryData([isreferralKey]);
-      queryClient.setQueryData([isreferralKey], (old: any) => {
-        if (!old) return old;
+      const previous = queryClient.getQueriesData({ queryKey: [isreferralKey] });
+      queryClient.setQueriesData({ queryKey: [isreferralKey] }, (old: any) => {
+        if (!old?.data) return old;
         return {
           ...old,
           data: old.data.map((r: LeadRow) =>
-            r.id === id
-              ? {
-                  ...r,
-                  [field]: value,
-                }
-              : r
+            r.id === id ? { ...r, [patchKey]: value } : r
           ),
         };
       });
-      return { previousData };
+      return { previous };
     },
     onError: (_err, _vars, context: any) => {
-      queryClient.setQueryData([isreferralKey], context.previousData);
-      toast.error("Failed to update lead.");
+      context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
+        queryClient.setQueryData(key as any, data)
+      );
+      toast.error("Failed to update.");
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [isreferralKey] });
-    },
+    // No invalidate: the optimistic write is authoritative locally and the
+    // board socket reconciles other clients + server-derived fields.
   });
 
   const handleUpdate = async (
     newVal: string,
-    location?: boolean,
-    reason?: string
+    _location?: boolean,
+    reason?: string,
+    previousValue?: string
   ) => {
     // Don't update if value hasn't changed
     if (newVal === value) {
@@ -168,13 +169,18 @@ export function EditableCell({
         updateLeadMutation.mutate({
           id,
           field: fieldKey,
+          fieldName,
           value: newVal,
           reason,
+          previousValue,
         });
-      } else if (location) {
-        updateLeadMutation.mutate({ id, field: fieldKey, value: newVal });
       } else {
-        updateLeadMutation.mutate({ id, field: fieldKey, value: newVal });
+        updateLeadMutation.mutate({
+          id,
+          field: fieldKey,
+          fieldName,
+          value: newVal,
+        });
       }
       // Only show success toast for significant changes, not for every edit
       // toast.success("Value updated successfully");
@@ -248,7 +254,7 @@ export function EditableCell({
   const handleBlur = () => {
     setEditing(false);
     if (val !== value) {
-      handleUpdate(val);
+      handleUpdate(val, undefined, undefined, value);
     }
   };
 
@@ -273,7 +279,7 @@ export function EditableCell({
         val={val}
         fieldKey={fieldKey}
         isReferral={isReferral}
-        handleUpdate={(v, reason) => handleUpdate(v, undefined, reason)}
+        handleUpdate={(v, reason) => handleUpdate(v, undefined, reason, value)}
       />
     );
   }
@@ -288,7 +294,6 @@ export function EditableCell({
     );
   }
 
-  // ---- DATE ----
   if (type === "DATE") {
     // Parse date safely
     const parseDate = (dateString: string): Date | undefined => {
@@ -379,15 +384,18 @@ export function EditableCell({
     );
   }
 
-  // ---- ANALYZE ----
-
-  // ---- ASSIGNED TO ----
   const { data: assignedToOptionsData, isLoading: isLoadingAssignedTo } =
     useQuery({
       queryKey: ["assigned-to-users"],
       queryFn: () => getDropdownOptions("ASSIGNED_TO"),
       enabled: type === "ASSIGNED_TO" || fieldName === "account_manager",
     });
+
+  const { data: records, isLoading: isLoadingRecords } = useQuery({
+    queryKey: ["lead-records", 1, 500],
+    queryFn: () => getLeadRecords(1, 500),
+    enabled: type === "REFERRAL_LINK",
+  });
 
   if (type === "ASSIGNED_TO" || fieldName === "account_manager") {
     return (
@@ -403,6 +411,8 @@ export function EditableCell({
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : isUpdating ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : val ? (
+            <RecordAvatar name={val} className="h-5 w-5 text-[10px] mr-1" />
           ) : null}
           <SelectValue placeholder={val || "Select user"} />
         </SelectTrigger>
@@ -430,12 +440,10 @@ export function EditableCell({
     );
   }
 
-  // ---- TIME ----
   if (type === "TIMELINE") {
     return <MasterListView isReferral={isReferral} leadId={id} />;
   }
 
-  // ---- CHECKBOX ----
   if (type === "CHECKBOX") {
     return (
       <div className="flex items-center gap-2">
@@ -453,7 +461,6 @@ export function EditableCell({
     );
   }
 
-  // ---- DROPDOWN ----
   if (type === "DROPDOWN") {
     const [searchQuery, setSearchQuery] = useState("");
     const hasCurrentVal =
@@ -469,7 +476,6 @@ export function EditableCell({
         opt.value.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
-    const goToCountyConfig = fieldName === "County" && isReferral;
     return (
       <Select
         defaultValue={val}
@@ -515,7 +521,7 @@ export function EditableCell({
                       <div className="flex items-center justify-between w-full">
                         <span>{opt.value}</span>
                         {opt.value === val && (
-                          <Check className="h-3 w-3 ml-2 text-blue-600" />
+                          <Check className="h-3 w-3 ml-2 text-primary" />
                         )}
                       </div>
                     </SelectItem>
@@ -539,7 +545,7 @@ export function EditableCell({
                   <SelectItem key="current-val" value={val}>
                     <div className="flex items-center justify-between w-full">
                       <span>{val}</span>
-                      <Check className="h-3 w-3 ml-2 text-blue-600" />
+                      <Check className="h-3 w-3 ml-2 text-primary" />
                     </div>
                   </SelectItem>
                 )}
@@ -559,96 +565,195 @@ export function EditableCell({
                     Remove value
                   </div>
                 )}
-                {goToCountyConfig ? (
-                  <Link
-                    to={"/$team/county-config" as any}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex items-center gap-2 px-2 py-2 text-xs text-blue-600 hover:bg-blue-50 cursor-pointer">
-                      + County Config
+
+                <>
+                  {adding ? (
+                    <div className="flex items-center gap-2 px-2 py-2">
+                      <Input
+                        placeholder="New option"
+                        value={newOption}
+                        onChange={(e) => setNewOption(e.target.value)}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+
+                          if (e.key === "Enter") handleAddOption();
+                          if (e.key === "Escape") setAdding(false);
+                        }}
+                        className="h-7 text-xs"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddOption();
+                        }}
+                        disabled={isCreatingOption}
+                      >
+                        {isCreatingOption ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            Adding...
+                          </>
+                        ) : (
+                          "Add"
+                        )}
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAdding(false);
+                          setNewOption("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  </Link>
-                ) : (
-                  <>
-                    {adding ? (
-                      <div className="flex items-center gap-2 px-2 py-2">
-                        <Input
-                          placeholder="New option"
-                          value={newOption}
-                          onChange={(e) => setNewOption(e.target.value)}
-                          onKeyDown={(e) => {
-                            e.stopPropagation();
-
-                            if (e.key === "Enter") handleAddOption();
-                            if (e.key === "Escape") setAdding(false);
-                          }}
-                          className="h-7 text-xs"
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddOption();
-                          }}
-                          disabled={isCreatingOption}
-                        >
-                          {isCreatingOption ? (
-                            <>
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                              Adding...
-                            </>
-                          ) : (
-                            "Add"
-                          )}
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAdding(false);
-                            setNewOption("");
-                          }}
-                        >
-                          Cancel
-                        </Button>
+                  ) : (
+                    <div>
+                      <div
+                        className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAdding(true);
+                        }}
+                      >
+                        + Add more option
                       </div>
-                    ) : (
-                      <div>
-                        <div
-                          className="flex items-center gap-2 px-2 py-2 text-xs text-blue-600 hover:bg-blue-50 cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAdding(true);
-                          }}
-                        >
-                          + Add more option
+
+                      <Link
+                        to={
+                          `${
+                            isReferral
+                              ? "/$team/referral-list/option"
+                              : "/$team/master-list/leads/option"
+                          }/${fieldKey}` as any
+                        }
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer">
+                          Proceed to Option Configuration
                         </div>
+                      </Link>
+                    </div>
+                  )}
+                </>
+              </div>
+            </>
+          )}
+        </SelectContent>
+      </Select>
+    );
+  }
 
-                        <Link
-                          to={
-                            `${
-                              isReferral
-                                ? "/$team/referral-list/option"
-                                : "/$team/master-list/leads/option"
-                            }/${fieldKey}` as any
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex items-center gap-2 px-2 py-2 text-xs text-blue-600 hover:bg-blue-50 cursor-pointer">
-                            Proceed to Option Configuration
-                          </div>
-                        </Link>
+  if (type === "REFERRAL_LINK") {
+    const [searchQuery, setSearchQuery] = useState("");
+    const hasCurrentVal =
+      !!val &&
+      (!records ||
+        records.length === 0 ||
+        !records.some((record: any) => record.value === val));
+
+    const filteredRecords =
+      !!records &&
+      records.length > 0 &&
+      records.filter((record: any) =>
+        record.value.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+    return (
+      <Select
+        value={val || ""}
+        onValueChange={(v) => handleUpdate(String(v))}
+        disabled={isUpdating}
+      >
+        <SelectTrigger
+          className={cn("w-auto text-sm", isUpdating && "opacity-50")}
+          onMouseEnter={handleHover} // prefetch before opening
+        >
+          {isUpdating ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : null}
+          <SelectValue placeholder="Select an option" />
+        </SelectTrigger>
+
+        <SelectContent>
+          {isLoadingRecords ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-sm text-gray-500">Loading options...</span>
+            </div>
+          ) : (
+            <>
+              {records.length > 5 && (
+                <div className="p-2 border-b">
+                  <Input
+                    placeholder="Search options..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-8 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
+
+              <div className="max-h-[200px] overflow-y-auto">
+                {filteredRecords.length > 0 ? (
+                  filteredRecords.map((record: any) => (
+                    <SelectItem key={record.id} value={record.value}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{record.value}</span>
+                        {record.value === val && (
+                          <Check className="h-3 w-3 ml-2 text-primary" />
+                        )}
                       </div>
-                    )}
-                  </>
+                    </SelectItem>
+                  ))
+                ) : searchQuery ? (
+                  <div className="flex items-center justify-center p-4">
+                    <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-sm text-gray-500">
+                      No matches found
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center p-4">
+                    <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-sm text-gray-500">
+                      No options available
+                    </span>
+                  </div>
+                )}
+                {hasCurrentVal && !searchQuery && (
+                  <SelectItem key="current-val" value={val}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{val}</span>
+                      <Check className="h-3 w-3 ml-2 text-primary" />
+                    </div>
+                  </SelectItem>
+                )}
+              </div>
+
+              <div className="border-t mt-1">
+                {val && (
+                  <div
+                    className="flex items-center gap-2 px-2 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpdate("", undefined, undefined, val);
+                    }}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Remove value
+                  </div>
                 )}
               </div>
             </>
@@ -775,7 +880,7 @@ export function EditableCell({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-xs text-blue-600 hover:text-blue-700"
+                    className="h-6 text-xs text-primary hover:text-primary"
                     onClick={handleSelectAll}
                   >
                     Select All
@@ -797,7 +902,7 @@ export function EditableCell({
                 options.map((opt: OptionsResponse) => (
                   <div
                     key={opt.id}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-blue-50 rounded-md px-2 py-2 transition-colors"
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-primary/10 rounded-md px-2 py-2 transition-colors"
                     onClick={() => toggleValue(opt.value)}
                   >
                     <Checkbox
@@ -806,7 +911,7 @@ export function EditableCell({
                     />
                     <span className="text-sm flex-1">{opt.value}</span>
                     {selectedValues.includes(opt.value) && (
-                      <Check className="h-3 w-3 text-blue-600" />
+                      <Check className="h-3 w-3 text-primary" />
                     )}
                   </div>
                 ))
@@ -873,7 +978,7 @@ export function EditableCell({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full text-xs text-blue-600 hover:bg-blue-50"
+                className="w-full text-xs text-primary hover:bg-primary/10"
                 onClick={() => setAdding(true)}
               >
                 + Add more option
@@ -885,7 +990,6 @@ export function EditableCell({
     );
   }
 
-  // ---- NUMBER ----
   if (type === "NUMBER") {
     return editing ? (
       <div className="relative">
@@ -927,7 +1031,6 @@ export function EditableCell({
     );
   }
 
-  // ---- EMAIL ----
   if (type === "EMAIL") {
     return editing ? (
       <div className="relative">
@@ -962,7 +1065,7 @@ export function EditableCell({
       <div className="flex items-center gap-2">
         <span
           onClick={() => setEditing(true)}
-          className="cursor-pointer text-sm hover:underline text-blue-500"
+          className="cursor-pointer text-sm hover:underline text-primary"
         >
           {val || <span className="text-muted-foreground">—</span>}
         </span>

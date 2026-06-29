@@ -6,6 +6,7 @@ import type { User } from "better-auth";
 import { Bell, HistoryIcon, SearchIcon } from "lucide-react";
 import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
+import { RecordAvatar } from "../reusable-table/record-avatar";
 
 type ColumnType = {
   id: string;
@@ -110,6 +111,12 @@ export function generateLeadColumns(
             </span>
           </div>
         )}
+
+        <RecordAvatar
+          name={row.original.recordName}
+          onClick={() => onOpenMasterListView(row.original.id)}
+          title="View history"
+        />
 
         <div className="min-w-0 flex-1">
           <EditableCell

@@ -65,11 +65,11 @@ export default function HelpPage() {
 
   if (selectedArticle) {
     return (
-      <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-blue-50/20 to-gray-50">
-        <div className="sticky top-0 z-40 border-b-2 border-blue-200 bg-white shadow-md">
+      <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-primary/5 to-gray-50">
+        <div className="sticky top-0 z-40 border-b-2 border-primary/30 bg-white shadow-md">
           <div className="mx-auto max-w-7xl p-6 sm:p-8">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-lg">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary shadow-lg">
                 <CircleHelp className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -100,11 +100,11 @@ export default function HelpPage() {
   const currentPage = articleFilterMeta.page;
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-blue-50/20 to-gray-50">
-      <div className="sticky top-0 z-40 border-b-2 border-blue-200 bg-white shadow-md">
+    <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-primary/5 to-gray-50">
+      <div className="sticky top-0 z-40 border-b-2 border-primary/30 bg-white shadow-md">
         <div className="mx-auto max-w-7xl p-6 sm:p-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-lg">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary shadow-lg">
               <CircleHelp className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -122,8 +122,8 @@ export default function HelpPage() {
       <div className="mx-auto grid max-w-7xl gap-6 p-6 sm:p-8">
         <div className="space-y-6 lg:col-span-2">
           <Card className="border-2 border-gray-300 shadow-sm">
-            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
-              <CardTitle className="text-blue-900">
+            <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
+              <CardTitle className="text-foreground">
                 Search User Manual
               </CardTitle>
               <CardDescription>
@@ -164,8 +164,8 @@ export default function HelpPage() {
 
           {/* User Manual Articles */}
           <Card className="border-2 border-gray-300 shadow-sm">
-            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
-              <CardTitle className="text-blue-900">User Manual</CardTitle>
+            <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
+              <CardTitle className="text-foreground">User Manual</CardTitle>
               <CardDescription>
                 Step-by-step guides to help you get the most out of the
                 dashboard
@@ -188,11 +188,11 @@ export default function HelpPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedArticle(article)}
-                      className="w-full rounded-lg border border-blue-200 bg-blue-50/40 p-4 text-left transition-colors hover:bg-blue-100/60"
+                      className="w-full rounded-lg border border-primary/30 bg-primary/10 p-4 text-left transition-colors hover:bg-primary/15"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-start gap-3">
-                          <BookOpen className="mt-0.5 h-5 w-5 text-blue-600" />
+                          <BookOpen className="mt-0.5 h-5 w-5 text-primary" />
                           <div>
                             <p className="font-semibold text-gray-900">
                               {article.title}

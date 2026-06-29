@@ -169,7 +169,7 @@ export function RegisterForm({
                               <Input
                                 {...field}
                                 placeholder="John Doe"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                               />
                             </div>
                           </FormControl>
@@ -192,7 +192,7 @@ export function RegisterForm({
                               <Input
                                 {...field}
                                 placeholder="you@example.com"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                               />
                             </div>
                           </FormControl>
@@ -216,7 +216,7 @@ export function RegisterForm({
                                 {...field}
                                 placeholder="••••••••"
                                 type="password"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                               />
                             </div>
                           </FormControl>
@@ -240,7 +240,7 @@ export function RegisterForm({
                                 {...field}
                                 placeholder="••••••••"
                                 type="password"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                               />
                             </div>
                           </FormControl>
@@ -252,7 +252,7 @@ export function RegisterForm({
                     <Button
                       disabled={form.formState.isSubmitting}
                       type="submit"
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
+                      className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
                     >
                       {form.formState.isSubmitting ? (
                         <div className="flex items-center gap-2">
@@ -268,7 +268,7 @@ export function RegisterForm({
                       Already have an account?{" "}
                       <Link
                         to="/"
-                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                        className="font-semibold text-primary hover:text-primary transition-colors"
                       >
                         Sign in instead
                       </Link>
@@ -281,14 +281,14 @@ export function RegisterForm({
               By creating an account, you agree to our{" "}
               <a
                 href="#"
-                className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
               >
                 Terms of Service
               </a>{" "}
               and{" "}
               <a
                 href="#"
-                className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
               >
                 Privacy Policy
               </a>

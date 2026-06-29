@@ -1,118 +1,117 @@
 model SupportTicket {
-  id String @id @default(uuid())
-  ticketNumber String @unique @default(dbgenerated("generate_ticket_number()"))
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  title String
-  subject String
-  description String
-  category TicketCategory @default(GENERAL)
-  status TicketStatus @default(OPEN)
-  priority Priority @default(MEDIUM)
-  assignedTo String
-  assignedToUser User @relation("SupportTicketAssignedTo", fields: [assignedTo], references: [id])
+  id             String         @id @default(uuid())
+  ticketNumber   String         @unique @default(dbgenerated("generate_ticket_number()"))
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  title          String
+  subject        String
+  description    String
+  category       TicketCategory @default(GENERAL)
+  status         TicketStatus   @default(OPEN)
+  priority       Priority       @default(MEDIUM)
+  assignedTo     String
+  assignedToUser User           @relation("SupportTicketAssignedTo", fields: [assignedTo], references: [id])
 
-  createBy String
-  createByUser User @relation("SupportTicketCreateBy", fields: [createBy], references: [id])
+  createBy     String
+  createByUser User   @relation("SupportTicketCreateBy", fields: [createBy], references: [id])
 
   SupportTicketMessage SupportTicketMessage[] @relation("SupportTicketMessage")
-  SupportHistory SupportHistory[] @relation("SupportTicketHistory")
-  SupportTicketRating SupportTicketRating? @relation("SupportTicketRating")
+  SupportHistory       SupportHistory[]       @relation("SupportTicketHistory")
+  SupportTicketRating  SupportTicketRating?   @relation("SupportTicketRating")
 
   @@schema("support_schema")
 }
 
 model SupportHistory {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
-  message String
+  id         String            @id @default(uuid())
+  createdAt  DateTime          @default(now())
+  message    String
   changeType HistoryChangeType @default(MESSAGE_SENT)
-  sender String
-  senderUser User @relation("SupportHistorySender", fields: [sender], references: [id])
+  sender     String
+  senderUser User              @relation("SupportHistorySender", fields: [sender], references: [id])
 
   supportTicketId String
-  supportTicket SupportTicket @relation("SupportTicketHistory", fields: [supportTicketId], references: [id])
+  supportTicket   SupportTicket @relation("SupportTicketHistory", fields: [supportTicketId], references: [id])
 
   @@schema("support_schema")
 }
 
 model SupportTicketRating {
-  id String @id @default(uuid())
+  id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  rating Int
-  comment String?
+  rating    Int
+  comment   String?
 
-  supportTicketId String @unique
-  supportTicket SupportTicket @relation("SupportTicketRating", fields: [supportTicketId], references: [id], onDelete: Cascade)
+  supportTicketId String        @unique
+  supportTicket   SupportTicket @relation("SupportTicketRating", fields: [supportTicketId], references: [id], onDelete: Cascade)
 
-  createdBy String
-  createdByUser User @relation("SupportTicketRatingCreatedBy", fields: [createdBy], references: [id])
+  createdBy     String
+  createdByUser User   @relation("SupportTicketRatingCreatedBy", fields: [createdBy], references: [id])
 
   @@schema("support_schema")
 }
 
-
 model SupportTicketMessage {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  message String
-  sender String
-  senderUser User @relation("SupportTicketMessageSender", fields: [sender], references: [id])
-  supportTicketId String
-  supportTicket SupportTicket @relation("SupportTicketMessage", fields: [supportTicketId], references: [id])
+  id                      String                    @id @default(uuid())
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  message                 String
+  sender                  String
+  senderUser              User                      @relation("SupportTicketMessageSender", fields: [sender], references: [id])
+  supportTicketId         String
+  supportTicket           SupportTicket             @relation("SupportTicketMessage", fields: [supportTicketId], references: [id])
   SupportTicketAttachment SupportTicketAttachment[] @relation("SupportTicketAttachment")
 
   @@schema("support_schema")
 }
 
 model SupportTicketAttachment {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  imageUrl String
+  id                     String               @id @default(uuid())
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  imageUrl               String
   supportTicketMessageId String
-  supportTicketMessage SupportTicketMessage @relation("SupportTicketAttachment", fields: [supportTicketMessageId], references: [id])
+  supportTicketMessage   SupportTicketMessage @relation("SupportTicketAttachment", fields: [supportTicketMessageId], references: [id])
 
   @@schema("support_schema")
 }
 
 model SupportLiveChat {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  message String
-  sender String
-  senderUser User @relation("SupportLiveChatSender", fields: [sender], references: [id])
+  id         String   @id @default(uuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  message    String
+  sender     String
+  senderUser User     @relation("SupportLiveChatSender", fields: [sender], references: [id])
 
-  messages SupportLiveChatMessage[] @relation("SupportLiveChatMessage")
+  messages    SupportLiveChatMessage[]    @relation("SupportLiveChatMessage")
   attachments SupportLiveChatAttachment[] @relation("SupportLiveChatAttachment")
 
   @@schema("support_schema")
 }
 
 model SupportLiveChatMessage {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  message String
-  sender String
-  senderUser User @relation("SupportLiveChatMessageSender", fields: [sender], references: [id])
+  id                String          @id @default(uuid())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  message           String
+  sender            String
+  senderUser        User            @relation("SupportLiveChatMessageSender", fields: [sender], references: [id])
   supportLiveChatId String
-  supportLiveChat SupportLiveChat @relation("SupportLiveChatMessage", fields: [supportLiveChatId], references: [id])
+  supportLiveChat   SupportLiveChat @relation("SupportLiveChatMessage", fields: [supportLiveChatId], references: [id])
 
   @@schema("support_schema")
 }
 
 model SupportLiveChatAttachment {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  imageUrl String
-  sender String
-  senderUser User @relation("SupportLiveChatAttachmentSender", fields: [sender], references: [id])
+  id                String          @id @default(uuid())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  imageUrl          String
+  sender            String
+  senderUser        User            @relation("SupportLiveChatAttachmentSender", fields: [sender], references: [id])
   supportLiveChatId String
-  supportLiveChat SupportLiveChat @relation("SupportLiveChatAttachment", fields: [supportLiveChatId], references: [id])
+  supportLiveChat   SupportLiveChat @relation("SupportLiveChatAttachment", fields: [supportLiveChatId], references: [id])
 
   @@schema("support_schema")
 }

@@ -1,10 +1,11 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
+import { ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
-import { sendEmail } from "../../lib/resend/resend";
+import { sendEmail } from "../../lib/aws/ses";
 import { ActivityEmail } from "../../react-email/activity-email";
 import { BoardGateway } from "./board.gateway";
 import { GmailService } from "./gmail.service";
@@ -50,7 +51,7 @@ export class BulkEmailProcessor extends WorkerHost {
     const emailField = await prisma.field.findFirst({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType,
+        moduleType: moduleType as ModuleType,
         fieldType: "EMAIL",
       },
       select: { id: true },
@@ -64,7 +65,7 @@ export class BulkEmailProcessor extends WorkerHost {
       where: {
         id: { in: recordIds },
         organizationId: organizationId,
-        moduleType: moduleType,
+        moduleType: moduleType as ModuleType,
         isDeleted: false,
       },
       select: {
@@ -200,7 +201,7 @@ export class BulkEmailProcessor extends WorkerHost {
       return appConfig.APP_EMAIL;
     }
 
-    // AUTO: Gmail → Outlook → Resend
+    // AUTO: Gmail → Outlook → SES
     const sentViaGmail = await this.gmailService.trySendViaGmail(
       userId,
       to,

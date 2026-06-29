@@ -196,7 +196,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               isDragging
-                ? "border-blue-500 bg-blue-50"
+                ? "border-primary bg-primary/10"
                 : "border-gray-300 hover:border-gray-400"
             }`}
             onDragOver={(e) => {
@@ -252,7 +252,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
 
         {step === "processing" && (
           <div className="py-12 text-center">
-            <Loader2 className="h-10 w-10 animate-spin mx-auto text-blue-600 mb-4" />
+            <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
             <p className="text-sm text-gray-600">Scanning business card...</p>
             <p className="text-xs text-gray-400 mt-1">
               Extracting contact information

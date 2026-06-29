@@ -1,8 +1,8 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
+import { sendEmail } from "../../lib/aws/ses";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
-import { resend } from "../../lib/resend/resend";
 
 export interface EmailJobData {
   to: string;
@@ -17,7 +17,7 @@ export class EmailProcessor extends WorkerHost {
 
   async process(job: Job<EmailJobData>) {
     this.logger.log(`Processing email job ${job.id} → ${job.data.to}`);
-    await resend.emails.send({
+    await sendEmail({
       from: job.data.from,
       to: job.data.to,
       subject: job.data.subject,

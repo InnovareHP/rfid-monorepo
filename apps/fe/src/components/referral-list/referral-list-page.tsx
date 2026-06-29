@@ -1,9 +1,11 @@
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import { exportToCSV } from "@/lib/fe-helpers";
 import {
+  createReferral,
   deleteReferral,
   getReferral,
 } from "@/services/referral/referral-service";
+import { v4 as uuidv4 } from "uuid";
 import type { LeadRow, ReferralRow } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +21,7 @@ import { toast } from "sonner";
 import ColumnFilter from "../master-list/column-filter";
 import { MasterListFilters } from "../master-list/master-list-filter";
 import { MasterListView } from "../master-list/master-list-view";
+import ReferralAnalyticsStrip from "./referral-analytics-strip";
 import { generateReferralColumns } from "./referral-list-column";
 
 interface RouteContext {
@@ -50,6 +53,8 @@ export default function ReferralListPage() {
     queryFn: () => getReferral(filterMeta),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
   });
 
   const rows = data?.data ?? [];
@@ -114,55 +119,54 @@ export default function ReferralListPage() {
     onColumnSizingChange: handleColumnSizingChange,
   });
 
-  // const addReferralMutation = useMutation({
-  //   mutationFn: createReferral,
-  //   onMutate: async (newReferral) => {
-  //     await queryClient.cancelQueries({ queryKey: ["referrals", filterMeta] });
-  //     const previousData = queryClient.getQueryData(["referrals", filterMeta]);
-  //     queryClient.setQueryData(["referrals", filterMeta], (old: any) => {
-  //       if (!old) return old;
-  //       return {
-  //         ...old,
-  //         pages: [
-  //           {
-  //             ...old.pages[0],
-  //             data: [newReferral[0], ...old.pages[0].data],
-  //           },
-  //           ...old.pages.slice(1),
-  //         ],
-  //       };
-  //     });
-  //     return { previousData };
-  //   },
-  //   onError: (_err, _newLead, context: any) => {
-  //     queryClient.setQueryData(["referrals", filterMeta], context.previousData);
-  //     toast.error("Failed to add lead.");
-  //   },
-  //   onSettled: () => {
-  //     queryClient.invalidateQueries({ queryKey: ["referrals", filterMeta] });
-  //   },
-  // });
+  const addReferralMutation = useMutation({
+    mutationFn: (referralName: string) =>
+      createReferral([{ referral_name: referralName }]),
+    onMutate: async (referralName: string) => {
+      await queryClient.cancelQueries({ queryKey: ["referrals"] });
+      const previous = queryClient.getQueriesData({ queryKey: ["referrals"] });
+      const tempRow = {
+        id: uuidv4(),
+        recordName: referralName,
+        has_notification: false,
+      };
+      queryClient.setQueriesData({ queryKey: ["referrals"] }, (old: any) => {
+        if (!old?.data) return old;
+        return { ...old, data: [tempRow, ...old.data] };
+      });
+      return { previous };
+    },
+    onError: (_err, _name, context: any) => {
+      context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
+        queryClient.setQueryData(key as any, data)
+      );
+      toast.error("Failed to add referral.");
+    },
+  });
+
+  const handleAddReferral = (value: string) => {
+    addReferralMutation.mutate(value);
+  };
 
   const deleteReferralMutation = useMutation({
     mutationFn: deleteReferral,
-    onMutate: async (columnIds) => {
-      await queryClient.cancelQueries({ queryKey: ["referrals", filterMeta] });
-      const previousData = queryClient.getQueryData(["referrals", filterMeta]);
-      queryClient.setQueryData(["referrals", filterMeta], (old: any) => {
-        if (!old) return old;
+    onMutate: async (columnIds: string[]) => {
+      await queryClient.cancelQueries({ queryKey: ["referrals"] });
+      const previous = queryClient.getQueriesData({ queryKey: ["referrals"] });
+      queryClient.setQueriesData({ queryKey: ["referrals"] }, (old: any) => {
+        if (!old?.data) return old;
         return {
           ...old,
           data: old.data.filter((r: ReferralRow) => !columnIds.includes(r.id)),
         };
       });
-      return { previousData };
+      return { previous };
     },
     onError: (_err, _ids, context: any) => {
-      queryClient.setQueryData(["referrals", filterMeta], context.previousData);
-      toast.error("Failed to delete leads.");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["referrals", filterMeta] });
+      context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
+        queryClient.setQueryData(key as any, data)
+      );
+      toast.error("Failed to delete referral.");
     },
   });
 
@@ -324,6 +328,11 @@ export default function ReferralListPage() {
           />
         </div>
 
+        <ReferralAnalyticsStrip
+          dateFrom={filterMeta.dateFrom}
+          dateTo={filterMeta.dateTo}
+        />
+
         <ReusableTable
           table={table}
           columns={columns}
@@ -331,12 +340,16 @@ export default function ReferralListPage() {
           onLoadMore={() => {}}
           hasMore={false}
           setActivePage={() => {}}
-          onAdd={() => {}}
+          onAdd={handleAddReferral}
           onDelete={handleDeleteReferrals}
           isReferral={true}
           totalPages={totalPages}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
+          pageSize={filterMeta.limit}
+          onPageSizeChange={(size) =>
+            setFilterMeta((prev) => ({ ...prev, limit: size, page: 1 }) as any)
+          }
         />
       </div>
     </div>

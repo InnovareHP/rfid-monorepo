@@ -29,9 +29,9 @@ const priorityConfig = {
     dot: "bg-amber-500",
   },
   low: {
-    badge: "bg-blue-50 text-blue-700 border-blue-300",
-    card: "border-l-blue-500",
-    dot: "bg-blue-500",
+    badge: "bg-primary/10 text-primary border-primary/40",
+    card: "border-l-primary",
+    dot: "bg-primary",
   },
 };
 
@@ -53,7 +53,7 @@ export function FollowUpSuggestions({
     return (
       <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
         <div className="space-y-4">
-          <div className="h-20 w-full rounded-xl bg-gradient-to-r from-purple-100 to-indigo-100 animate-pulse" />
+          <div className="h-20 w-full rounded-xl bg-gradient-to-r from-primary/15 to-primary/15 animate-pulse" />
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
@@ -89,7 +89,7 @@ export function FollowUpSuggestions({
     <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
       <div className="space-y-5">
         {/* Summary Card */}
-        <Card className="border-l-4 border-l-purple-500 shadow-md bg-gradient-to-r from-purple-50/50 to-indigo-50/30">
+        <Card className="border-l-4 border-l-primary shadow-md bg-gradient-to-r from-primary/5 to-primary/5">
           <CardContent className="p-5">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-lg bg-purple-100">
@@ -110,7 +110,7 @@ export function FollowUpSuggestions({
         {/* Suggestions */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-primary shadow-md">
               <Lightbulb className="h-4 w-4 text-white" />
             </div>
             <h3 className="text-base font-bold text-gray-900">
@@ -152,7 +152,7 @@ export function FollowUpSuggestions({
                         {suggestion.reasoning}
                       </p>
 
-                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg font-semibold w-fit ml-[18px]">
+                      <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-lg font-semibold w-fit ml-[18px]">
                         <Clock className="h-3.5 w-3.5" />
                         {suggestion.timing}
                       </div>

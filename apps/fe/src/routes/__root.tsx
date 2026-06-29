@@ -34,6 +34,9 @@ export const Route = createRootRoute({
     return {
       user: data?.user ?? null,
       session: data?.session ?? null,
+      member: data?.member ?? null,
+      organization: data?.organization ?? null,
+      subscription: data?.subscription ?? null,
     };
   },
   component: App,

@@ -156,7 +156,7 @@ export function ProfilePage({
 
   if (!user) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-primary/5 to-gray-50 flex items-center justify-center p-4">
         <div className="bg-white border-2 border-red-200 rounded-lg p-8 text-center max-w-lg">
           <div className="flex flex-col items-center gap-3">
             <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
@@ -183,16 +183,16 @@ export function ProfilePage({
   return (
     <div
       className={cn(
-        "min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-50",
+        "min-h-screen w-full bg-gradient-to-br from-gray-50 via-primary/5 to-gray-50",
         className
       )}
       {...props}
     >
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b-2 border-blue-200 bg-white shadow-md">
+      <div className="sticky top-0 z-50 border-b-2 border-primary/30 bg-white shadow-md">
         <div className="max-w-7xl mx-auto p-6 sm:p-8">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg">
               <User className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -212,11 +212,11 @@ export function ProfilePage({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ---------------- PROFILE CARD ---------------- */}
           <Card className="lg:col-span-2 border-2 border-gray-300 shadow-sm">
-            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
+            <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
               <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-600" />
+                <User className="h-5 w-5 text-primary" />
                 <div>
-                  <CardTitle className="text-blue-900">
+                  <CardTitle className="text-foreground">
                     Profile Information
                   </CardTitle>
                   <CardDescription>Your account details</CardDescription>
@@ -232,14 +232,14 @@ export function ProfilePage({
                     className="relative cursor-pointer group"
                     onClick={handleAvatarClick}
                   >
-                    <Avatar className="h-32 w-32 border-4 border-blue-200 shadow-lg transition-all hover:border-blue-400 hover:shadow-xl">
+                    <Avatar className="h-32 w-32 border-4 border-primary/30 shadow-lg transition-all hover:border-primary/50 hover:shadow-xl">
                       {user?.image ? (
                         <AvatarImage
                           src={`${user.image}?t=${Date.now()}`}
                           alt={user.name ?? "User"}
                         />
                       ) : (
-                        <AvatarFallback className="bg-blue-100 flex items-center justify-center text-blue-600 text-2xl font-bold">
+                        <AvatarFallback className="bg-primary/15 flex items-center justify-center text-primary text-2xl font-bold">
                           {user.name?.charAt(0).toUpperCase() || "U"}
                         </AvatarFallback>
                       )}
@@ -268,13 +268,13 @@ export function ProfilePage({
                     {user?.name || "No name set"}
                   </h3>
                   <p className="text-gray-600 flex items-center justify-center sm:justify-start gap-2 mt-1">
-                    <Mail className="w-4 h-4 text-blue-600" />
+                    <Mail className="w-4 h-4 text-primary" />
                     {user?.email}
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-4 border-blue-300 hover:bg-blue-50"
+                    className="mt-4 border-primary/40 hover:bg-primary/10"
                     onClick={handleAvatarClick}
                     disabled={isUploading}
                   >
@@ -288,10 +288,10 @@ export function ProfilePage({
 
               {/* Account Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <div className="bg-primary/10 border-2 border-primary/30 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Mail className="h-4 w-4 text-blue-600" />
-                    <p className="text-sm font-medium text-blue-900">
+                    <Mail className="h-4 w-4 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
                       Email Address
                     </p>
                   </div>
@@ -313,10 +313,10 @@ export function ProfilePage({
                 )}
 
                 {memberData?.createdAt && (
-                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <div className="bg-primary/10 border-2 border-primary/30 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm font-medium text-blue-900">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium text-foreground">
                         Member Since
                       </p>
                     </div>
@@ -334,12 +334,12 @@ export function ProfilePage({
                 )}
 
                 {memberData?.role && (
-                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <div className="bg-primary/10 border-2 border-primary/30 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Shield className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm font-medium text-blue-900">Role</p>
+                      <Shield className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium text-foreground">Role</p>
                     </div>
-                    <Badge className="bg-blue-100 text-blue-700 border-2 border-blue-300 font-semibold capitalize">
+                    <Badge className="bg-primary/15 text-primary border-2 border-primary/40 font-semibold capitalize">
                       {memberData.role}
                     </Badge>
                   </div>
@@ -350,11 +350,11 @@ export function ProfilePage({
 
           {/* ---------------- ACCOUNT ACTIONS ---------------- */}
           <Card className="border-2 border-gray-300 shadow-sm">
-            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
+            <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-blue-600" />
+                <Shield className="h-5 w-5 text-primary" />
                 <div>
-                  <CardTitle className="text-blue-900">
+                  <CardTitle className="text-foreground">
                     Account Actions
                   </CardTitle>
                   <CardDescription>
@@ -368,7 +368,7 @@ export function ProfilePage({
               {/* Change Password Button */}
               <Button
                 variant="outline"
-                className="w-full justify-start border-blue-300 hover:bg-blue-50"
+                className="w-full justify-start border-primary/40 hover:bg-primary/10"
                 onClick={() => setShowPasswordForm((prev) => !prev)}
                 disabled={isChangingPassword}
               >
@@ -380,15 +380,15 @@ export function ProfilePage({
               {showPasswordForm && (
                 <form
                   onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
-                  className="space-y-4 border-2 border-blue-200 rounded-lg p-4 bg-blue-50"
+                  className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
                 >
                   <div className="space-y-2">
-                    <Label className="text-blue-900 font-medium">
+                    <Label className="text-foreground font-medium">
                       Current Password
                     </Label>
                     <Input
                       type="password"
-                      className="border-blue-300 focus:ring-2 focus:ring-blue-500"
+                      className="border-primary/40 focus:ring-2 focus:ring-primary"
                       {...passwordForm.register("currentPassword")}
                     />
                     {passwordForm.formState.errors.currentPassword && (
@@ -399,12 +399,12 @@ export function ProfilePage({
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-blue-900 font-medium">
+                    <Label className="text-foreground font-medium">
                       New Password
                     </Label>
                     <Input
                       type="password"
-                      className="border-blue-300 focus:ring-2 focus:ring-blue-500"
+                      className="border-primary/40 focus:ring-2 focus:ring-primary"
                       {...passwordForm.register("newPassword")}
                     />
                     {passwordForm.formState.errors.newPassword && (
@@ -415,7 +415,7 @@ export function ProfilePage({
                   </div>
 
                   <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full bg-primary hover:bg-primary/90"
                     type="submit"
                     disabled={isChangingPassword}
                   >

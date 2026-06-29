@@ -196,10 +196,10 @@ export function MasterListView({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden">
           {/* Custom Header with Gradient */}
-          <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+          <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/10 via-primary/10 to-purple-50">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary shadow-lg">
                   <Building2 className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -260,7 +260,7 @@ export function MasterListView({
                 <TabsList className="bg-transparent border-b-0">
                   <TabsTrigger
                     value="details"
-                    className="data-[state=active]:border-b-3 data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 data-[state=active]:font-bold rounded-none transition-all"
+                    className="data-[state=active]:border-b-3 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-bold rounded-none transition-all"
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Details
@@ -268,7 +268,7 @@ export function MasterListView({
 
                   <TabsTrigger
                     value="history"
-                    className="data-[state=active]:border-b-3 data-[state=active]:border-indigo-500 data-[state=active]:text-indigo-600 data-[state=active]:font-bold rounded-none transition-all"
+                    className="data-[state=active]:border-b-3 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-bold rounded-none transition-all"
                   >
                     <Clock className="h-4 w-4 mr-2" />
                     History
@@ -310,10 +310,10 @@ export function MasterListView({
                         return (
                           <div
                             key={key}
-                            className="group rounded-xl border-2 border-gray-200 hover:border-blue-300 p-4 hover:shadow-lg transition-all bg-gradient-to-br from-white to-gray-50"
+                            className="group rounded-xl border-2 border-gray-200 hover:border-primary/40 p-4 hover:shadow-lg transition-all bg-gradient-to-br from-white to-gray-50"
                           >
                             <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-2">
-                              <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
+                              <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
                               {key.split("_").join(" ")}
                             </div>
 
@@ -360,7 +360,7 @@ export function MasterListView({
                   {historyData && historyData.pages.length > 0 && (
                     <div className="relative">
                       {/* Modern Timeline Line with Gradient */}
-                      <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-indigo-400 to-purple-500"></div>
+                      <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-primary to-primary"></div>
 
                       <div className="space-y-5">
                         {historyData.pages
@@ -372,7 +372,7 @@ export function MasterListView({
 
                             const actionColors = {
                               create: "from-green-500 to-emerald-600",
-                              update: "from-blue-500 to-indigo-600",
+                              update: "from-primary to-primary",
                               delete: "from-red-500 to-rose-600",
                             };
 
@@ -394,7 +394,7 @@ export function MasterListView({
                                 </div>
 
                                 {/* Enhanced History Card */}
-                                <div className="bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 p-5 shadow-sm hover:shadow-md transition-all">
+                                <div className="bg-white rounded-xl border-2 border-gray-200 hover:border-primary/40 p-5 shadow-sm hover:shadow-md transition-all">
                                   <div className="flex items-start justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                       <div
@@ -420,7 +420,7 @@ export function MasterListView({
                                               : item.action.toLowerCase() ===
                                                   "delete"
                                                 ? "bg-red-50 text-red-700 border-red-300"
-                                                : "bg-blue-50 text-blue-700 border-blue-300"
+                                                : "bg-primary/10 text-primary border-primary/40"
                                           }`}
                                         >
                                           {item.action.charAt(0).toUpperCase() +
@@ -458,18 +458,18 @@ export function MasterListView({
                                   {/* Enhanced Change Display */}
                                   <div className="mt-4 pt-4 border-t-2 border-gray-100">
                                     <div className="flex items-center gap-2 mb-3">
-                                      <FileText className="h-4 w-4 text-indigo-600" />
+                                      <FileText className="h-4 w-4 text-primary" />
                                       <p className="text-sm font-bold text-gray-900">
                                         {item.column}
                                       </p>
                                     </div>
 
                                     {item.oldValue && item.newValue ? (
-                                      <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
+                                      <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-primary/10 to-primary/10 rounded-lg border-2 border-primary/30">
                                         <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-sm font-semibold border border-red-300">
                                           {item.oldValue}
                                         </span>
-                                        <ArrowRight className="h-4 w-4 text-indigo-600 flex-shrink-0" />
+                                        <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
                                         <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm font-semibold border border-green-300">
                                           {item.newValue}
                                         </span>
@@ -495,7 +495,7 @@ export function MasterListView({
                     <Button
                       variant="outline"
                       onClick={() => fetchNextPage()}
-                      className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 font-semibold"
+                      className="hover:bg-primary/10 hover:text-primary hover:border-primary/40 font-semibold"
                     >
                       Load More
                     </Button>
@@ -523,7 +523,7 @@ export function MasterListView({
             <Button
               variant="outline"
               onClick={() => setOpen?.(false)}
-              className="font-semibold hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+              className="font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary/40"
             >
               Close
             </Button>

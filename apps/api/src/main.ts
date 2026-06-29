@@ -29,15 +29,17 @@ async function bootstrap() {
     type: VersioningType.URI,
   });
 
-  const config = new DocumentBuilder()
-    .setTitle(appConfig.APP_NAME)
-    .setDescription("Innovare Service API Documentation")
-    .setVersion("1.0")
-    .addTag(appConfig.APP_NAME)
-    .build();
+  if (process.env.NODE_ENV !== "production") {
+    const config = new DocumentBuilder()
+      .setTitle(appConfig.APP_NAME)
+      .setDescription("Innovare Service API Documentation")
+      .setVersion("1.0")
+      .addTag(appConfig.APP_NAME)
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("api/docs", app, document);
+  }
 
   app.setGlobalPrefix("api");
 

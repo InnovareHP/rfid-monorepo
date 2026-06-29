@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth/minimal";
 import {
   admin,
+  customSession,
   haveIBeenPwned,
   oneTimeToken,
   openAPI,
@@ -22,6 +23,7 @@ import {
   afterRejectInvitation,
   afterRemoveMember,
   afterUpdateMemberRole,
+  customSessionHandler,
   beforeAcceptInvitation,
   beforeAddMember,
   beforeCreateInvitation,
@@ -318,6 +320,7 @@ export const auth = betterAuth({
         },
       },
     }),
+    customSession(customSessionHandler),
   ],
   secondaryStorage: {
     get: async (key) => {
@@ -333,9 +336,11 @@ export const auth = betterAuth({
     },
   },
   session: {
+    expiresIn: 60 * 60 * 12, // 12h absolute (HIPAA §164.312(a)(2)(iii))
+    updateAge: 60 * 15, // sliding 15m idle refresh
     cookieCache: {
       enabled: true,
-      maxAge: 5 * 60, // Cache duration in seconds
+      maxAge: 60, // 60s cookie cache
     },
   },
   schema: {

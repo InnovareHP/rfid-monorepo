@@ -146,15 +146,19 @@ These are rendered server-side and sent via Resend.
 
 ### Lead Management System
 
-Leads use an Entity-Attribute-Value (EAV) pattern:
+Leads and referrals share an Entity-Attribute-Value (EAV) pattern in `board_schema`, discriminated by `moduleType` (`LEAD` / `REFERRAL`):
 
-- `LeadField`: Defines custom fields per organization (field_name, field_type, field_order)
-- `LeadValue`: Stores actual values for each lead-field combination
-- `LeadFlatView`: Materialized view providing denormalized lead data as JSON for efficient querying
-- `LeadHistory`: Audit trail for all lead changes
-- `LeadNotificationState`: Per-user notification tracking
+- `Field`: Defines custom fields per organization (`fieldName`, `fieldType`, `fieldOrder`, `moduleType`)
+- `Board`: A record row (a lead or referral), discriminated by `moduleType`
+- `FieldValue`: Stores actual values for each `(record, field)` pair (unique on `recordId, fieldId`)
+- `FieldOption`: Options for `DROPDOWN` / `STATUS` fields
+- `History`: Audit trail for all record changes
+- `BoardNotificationState`: Notification state per record (`lastSeen`)
+- `BoardRelation`: Links records across modules (e.g. a referral to a lead via `relationType` `REFERRAL_LINK`)
 
-Field types include: TEXT, NUMBER, STATUS, EMAIL, PHONE, DATE, CHECKBOX, DROPDOWN, LOCATION, TIMELINE, MULTISELECT, ASSIGNED_TO.
+Denormalized flat rows are built in the service layer (`getAllBoards`) at request time — there is no materialized view.
+
+Field types (`BoardFieldType`): TEXT, NUMBER, STATUS, EMAIL, PHONE, DATE, CHECKBOX, DROPDOWN, LOCATION, TIMELINE, MULTISELECT, ASSIGNED_TO, REFERRAL_LINK, PERSON.
 
 ## Important Patterns
 

@@ -1,81 +1,79 @@
 model Marketing {
-    id String @id @default(uuid())
-    facility String
-    touchpoints TouchpointType[]
-    talkedTo String
-    reasonForVisit String?
-    notes String?
-    memberId String
-    createdAt DateTime @default(now())
-    updatedAt DateTime? @updatedAt
-    isDeleted Boolean @default(false)
+  id             String           @id @default(uuid())
+  facility       String
+  touchpoints    TouchpointType[]
+  talkedTo       String
+  reasonForVisit String?
+  notes          String?
+  memberId       String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime?        @updatedAt
+  isDeleted      Boolean          @default(false)
 
-    member Member @relation(fields: [memberId], references: [id])
+  member Member @relation(fields: [memberId], references: [id])
 
-    @@schema("liason_schema")
-    @@index([memberId])
+  @@index([memberId])
+  @@schema("liason_schema")
 }
 
 model Expense {
-    id String @id @default(uuid())
-    amount Float
-    description String
-    notes String
-    memberId String
+  id          String @id @default(uuid())
+  amount      Float
+  description String
+  notes       String
+  memberId    String
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime? @updatedAt
-    isDeleted Boolean @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  isDeleted Boolean   @default(false)
 
+  imageUrl String
+  member   Member @relation(fields: [memberId], references: [id])
 
-    imageUrl String
-    member Member @relation(fields: [memberId], references: [id])
-
-    @@schema("liason_schema")
-    @@index([memberId])
+  @@index([memberId])
+  @@schema("liason_schema")
 }
 
 model Mileage {
-    id String @id @default(uuid())
+  id String @id @default(uuid())
 
-    destination String
-    countiesMarketed String
-    beginningMileage Float
-    endingMileage Float
-    totalMiles Float
+  destination      String
+  countiesMarketed String
+  beginningMileage Float
+  endingMileage    Float
+  totalMiles       Float
 
-    rateType MileageRateType
-    ratePerMile Float
-    reimbursementAmount Float
-    isDeleted Boolean @default(false)
+  rateType            MileageRateType
+  ratePerMile         Float
+  reimbursementAmount Float
+  isDeleted           Boolean         @default(false)
 
-    memberId String
+  memberId String
 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime? @updatedAt
+  member Member @relation(fields: [memberId], references: [id])
 
-    member Member @relation(fields: [memberId], references: [id])
-
-    @@schema("liason_schema")
-    @@index([memberId])
+  @@index([memberId])
+  @@schema("liason_schema")
 }
 
 enum TouchpointType {
-    IN_PERSON_MEETING
-    LINKED_IN
-    FACEBOOK
-    TEXT
-    EMAIL
-    PHONE
-    OTHER
+  IN_PERSON_MEETING
+  LINKED_IN
+  FACEBOOK
+  TEXT
+  EMAIL
+  PHONE
+  OTHER
 
-    @@schema("liason_schema")
+  @@schema("liason_schema")
 }
 
 enum MileageRateType {
-    FEDERAL
-    STATE
+  FEDERAL
+  STATE
 
-    @@schema("liason_schema")
+  @@schema("liason_schema")
 }

@@ -1,12 +1,19 @@
 import { PrismaClient } from "@prisma/client";
+import { encryptionExtension } from "./encryption-extension";
 
 declare global {
   var prisma: PrismaClient | undefined;
 }
 
-const globalForPrisma = global as typeof globalThis & { prisma?: PrismaClient };
+function buildClient(): PrismaClient {
+  const base = new PrismaClient({ log: ["warn", "error"] });
+  return base.$extends(encryptionExtension) as unknown as PrismaClient;
+}
 
-export const prisma =
-  globalForPrisma.prisma || new PrismaClient({ log: ["warn", "error"] });
+const globalForPrisma = global as typeof globalThis & {
+  prisma?: PrismaClient;
+};
+
+export const prisma: PrismaClient = globalForPrisma.prisma || buildClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

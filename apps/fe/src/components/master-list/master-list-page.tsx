@@ -45,6 +45,8 @@ export default function MasterListPage() {
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["leads", filterMeta],
     queryFn: () => getLeads(filterMeta),
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
   });
 
   const rows = data?.data ?? [];
@@ -116,38 +118,42 @@ export default function MasterListPage() {
 
   const addLeadMutation = useMutation({
     mutationFn: (data: any) => createLead(data, "LEAD"),
-
-    onError: (_err, _newLead, context: any) => {
-      queryClient.setQueryData(["leads", filterMeta], context.previousData);
-      toast.error("Failed to add lead.");
+    onMutate: async (newLead: any[]) => {
+      await queryClient.cancelQueries({ queryKey: ["leads"] });
+      const previous = queryClient.getQueriesData({ queryKey: ["leads"] });
+      queryClient.setQueriesData({ queryKey: ["leads"] }, (old: any) => {
+        if (!old?.data) return old;
+        return { ...old, data: [newLead[0], ...old.data] };
+      });
+      return { previous };
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads", filterMeta] });
+    onError: (_err, _newLead, context: any) => {
+      context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
+        queryClient.setQueryData(key as any, data)
+      );
+      toast.error("Failed to add lead.");
     },
   });
 
   const deleteLeadMutation = useMutation({
     mutationFn: (data: any) => deleteLead(data, "LEAD"),
-    onMutate: async (ids) => {
-      await queryClient.cancelQueries({ queryKey: ["leads", filterMeta] });
-      const previousData = queryClient.getQueryData(["leads", filterMeta]);
-      queryClient.setQueryData(["leads", filterMeta], (old: any) => {
-        if (!old) return old;
+    onMutate: async (ids: string[]) => {
+      await queryClient.cancelQueries({ queryKey: ["leads"] });
+      const previous = queryClient.getQueriesData({ queryKey: ["leads"] });
+      queryClient.setQueriesData({ queryKey: ["leads"] }, (old: any) => {
+        if (!old?.data) return old;
         return {
           ...old,
-          data: old.data.map((r: LeadRow) =>
-            r.id === ids ? { ...r, has_notification: true } : r
-          ),
+          data: old.data.filter((r: LeadRow) => !ids.includes(r.id)),
         };
       });
-      return { previousData };
+      return { previous };
     },
     onError: (_err, _ids, context: any) => {
-      queryClient.setQueryData(["leads", filterMeta], context.previousData);
+      context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
+        queryClient.setQueryData(key as any, data)
+      );
       toast.error("Failed to delete leads.");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads", filterMeta] });
     },
   });
 
@@ -349,6 +355,10 @@ export default function MasterListPage() {
           totalPages={totalPages}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
+          pageSize={filterMeta.limit}
+          onPageSizeChange={(size) =>
+            setFilterMeta((prev) => ({ ...prev, limit: size, page: 1 }) as any)
+          }
         />
       </div>
     </div>

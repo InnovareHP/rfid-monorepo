@@ -128,7 +128,7 @@ const LocationCell: React.FC<LocationCellProps> = ({
               }
             }}
             placeholder="Search for an address..."
-            className="w-96 border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-96 border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </PopoverAnchor>
 

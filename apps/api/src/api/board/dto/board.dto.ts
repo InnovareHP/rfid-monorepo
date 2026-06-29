@@ -21,6 +21,7 @@ export const UpdateRecordValueSchema = z.object({
   fieldId: z.string(),
   moduleType: z.string().default("LEAD"),
   reason: z.string().optional(),
+  previousValue: z.string().optional(),
 });
 
 export const RestoreHistorySchema = z.object({

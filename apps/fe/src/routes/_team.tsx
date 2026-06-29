@@ -9,14 +9,14 @@ import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { authClient } from "@/lib/auth-client";
 import { applyBrandColor, removeBrandColor } from "@/lib/color-utils";
-import type { Subscription } from "@dashboard/shared";
+import type { SessionMember, Subscription } from "@dashboard/shared";
 import { Separator } from "@dashboard/ui/components/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@dashboard/ui/components/sidebar";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import type { Session, User } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
@@ -24,9 +24,11 @@ import type { Member, Organization } from "better-auth/plugins/organization";
 export const Route = createFileRoute("/_team")({
   beforeLoad: async (context) => {
     const params = context.params as { team: string };
-    const { user, session } = context.context as {
+    const { user, session, member, subscription } = context.context as {
       user: User;
       session: Session & { activeOrganizationId: string };
+      member: SessionMember | null;
+      subscription: Subscription | null;
     };
 
     if (!user || !session?.activeOrganizationId) {
@@ -40,6 +42,8 @@ export const Route = createFileRoute("/_team")({
     return {
       user,
       session,
+      member,
+      subscription,
       activeOrganizationId: session.activeOrganizationId,
     };
   },
@@ -48,10 +52,13 @@ export const Route = createFileRoute("/_team")({
 });
 
 function TeamLayout() {
-  const { user, activeOrganizationId } = Route.useRouteContext() as {
-    user: User;
-    activeOrganizationId: string;
-  };
+  const { user, activeOrganizationId, member, subscription } =
+    Route.useRouteContext() as {
+      user: User;
+      activeOrganizationId: string;
+      member: SessionMember | null;
+      subscription: Subscription | null;
+    };
 
   useBoardSync();
 
@@ -70,37 +77,22 @@ function TeamLayout() {
     gcTime: 1000 * 60 * 60,
   });
 
-  const {
-    data: memberData,
-    isLoading: memberLoading,
-    error: memberError,
-  } = useQuery({
-    queryKey: ["member-data", activeOrganizationId],
-    queryFn: async () => {
-      const { data } = await authClient.organization.getActiveMember();
-      return data as Member;
-    },
-    staleTime: 1000 * 60 * 30, // 30 min
-    gcTime: 1000 * 60 * 30,
-  });
+  const queryClient = useQueryClient();
 
-  const {
-    data: activeSubscription,
-    isLoading: subscriptionLoading,
-    error: subscriptionError,
-  } = useQuery({
-    queryKey: ["subscription", activeOrganizationId],
-    queryFn: async () => {
-      const res = await authClient.subscription.list({
-        query: { referenceId: activeOrganizationId },
-      });
-      return (res.data?.find(
-        (s: any) => s.status === "active" || s.status === "trialing"
-      ) ?? null) as Subscription | null;
-    },
-    staleTime: 1000 * 60 * 15,
-    gcTime: 1000 * 60 * 15,
-  });
+  const memberData = member
+    ? ({ ...member, memberRole: member.role } as unknown as Member & {
+        memberRole: string;
+      })
+    : undefined;
+  const activeSubscription = subscription;
+
+  useEffect(() => {
+    queryClient.setQueryData(["member-data", activeOrganizationId], memberData);
+    queryClient.setQueryData(
+      ["subscription", activeOrganizationId],
+      activeSubscription
+    );
+  }, [queryClient, activeOrganizationId, memberData, activeSubscription]);
 
   // useEffect(() => {
   //   if (subscriptionLoading) return;
@@ -115,8 +107,8 @@ function TeamLayout() {
   //   }
   // }, [subscriptionLoading, activeSubscription]);
 
-  const isLoading = orgLoading || memberLoading || subscriptionLoading;
-  const hasError = orgError || memberError || subscriptionError;
+  const isLoading = orgLoading;
+  const hasError = orgError;
   const isReady = !isLoading && !hasError && organizations && memberData;
 
   const ctxValue = useMemo(() => {

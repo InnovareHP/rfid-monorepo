@@ -134,15 +134,15 @@ const MarketingListPage = () => {
   const hasActiveFilters = filters.start || filters.end || filters.userId;
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-50">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-primary/5 to-gray-50">
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b-2 border-blue-200 bg-white shadow-md">
+      <div className="sticky top-0 z-50 border-b-2 border-primary/30 bg-white shadow-md">
         <div className="p-6 sm:p-8">
           <div className="flex flex-col gap-6">
             {/* Title Section */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg">
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -160,7 +160,7 @@ const MarketingListPage = () => {
                   variant="outline"
                   onClick={handleReset}
                   disabled={!hasActiveFilters}
-                  className="border-blue-300 hover:bg-blue-50"
+                  className="border-primary/40 hover:bg-primary/10"
                 >
                   <RefreshCcw className="h-4 w-4 mr-2" />
                   Reset
@@ -170,7 +170,7 @@ const MarketingListPage = () => {
                   disabled={
                     !filters.start || !filters.end || !data || isExporting
                   }
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {isExporting ? (
                     <>
@@ -188,16 +188,16 @@ const MarketingListPage = () => {
             </div>
 
             {/* Filters Section */}
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 border-2 border-blue-200 rounded-xl p-5 shadow-sm">
+            <div className="bg-gradient-to-r from-primary/10 to-primary/15 border-2 border-primary/30 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                   <Filter className="h-4 w-4 text-white" />
                 </div>
-                <h3 className="text-base font-bold text-blue-900">
+                <h3 className="text-base font-bold text-foreground">
                   Filter Analytics Data
                 </h3>
                 {hasActiveFilters && (
-                  <span className="ml-auto text-xs font-medium text-blue-700 bg-blue-200 px-2 py-1 rounded-full">
+                  <span className="ml-auto text-xs font-medium text-primary-foreground bg-primary/80 px-2 py-1 rounded-full">
                     Filters Active
                   </span>
                 )}
@@ -205,7 +205,7 @@ const MarketingListPage = () => {
               <div className="flex flex-wrap items-center gap-3">
                 {/* Date Range */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-blue-900">
+                  <label className="text-xs font-medium text-foreground">
                     Date Range
                   </label>
                   <DateRangeFilter
@@ -223,7 +223,7 @@ const MarketingListPage = () => {
 
                 {/* Liaison */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-blue-900">
+                  <label className="text-xs font-medium text-foreground">
                     Liaison
                   </label>
                   <Select
@@ -235,7 +235,7 @@ const MarketingListPage = () => {
                       }))
                     }
                   >
-                    <SelectTrigger className="w-[220px] bg-white border-blue-300 hover:border-blue-400 focus:ring-2 focus:ring-blue-500">
+                    <SelectTrigger className="w-[220px] bg-white border-primary/40 hover:border-primary/50 focus:ring-2 focus:ring-primary">
                       <SelectValue placeholder="All liaisons" />
                     </SelectTrigger>
                     <SelectContent>
@@ -261,7 +261,7 @@ const MarketingListPage = () => {
                   </label>
                   <Button
                     onClick={handleApplyFilters}
-                    className="bg-blue-600 hover:bg-blue-700 shadow-sm transition-all hover:shadow-md"
+                    className="bg-primary hover:bg-primary/90 shadow-sm transition-all hover:shadow-md"
                   >
                     <Filter className="h-4 w-4 mr-2" />
                     Apply Filters
@@ -277,8 +277,8 @@ const MarketingListPage = () => {
       <div className="p-6 sm:p-8 space-y-8">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
-            <p className="text-blue-700 font-medium">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-primary font-medium">
               Loading analytics data...
             </p>
             <p className="text-sm text-gray-600 mt-1">This may take a moment</p>
@@ -309,10 +309,10 @@ const MarketingListPage = () => {
             </div>
           </div>
         ) : !data || !data.analytics || data.analytics.length === 0 ? (
-          <div className="bg-white border-2 border-blue-200 rounded-lg p-12 text-center">
+          <div className="bg-white border-2 border-primary/30 rounded-lg p-12 text-center">
             <div className="flex flex-col items-center gap-3">
-              <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
-                <BarChart3 className="h-10 w-10 text-blue-600" />
+              <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center border-2 border-primary/30">
+                <BarChart3 className="h-10 w-10 text-primary" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -334,11 +334,11 @@ const MarketingListPage = () => {
 
             <div className="bg-white rounded-xl border-2 border-gray-300 p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-6">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <BarChart3 className="h-5 w-5 text-primary" />
                 <h2 className="text-xl font-bold text-gray-900">
                   Liaison Performance Overview
                 </h2>
-                <span className="ml-auto text-sm text-gray-600 bg-blue-100 px-3 py-1 rounded-full">
+                <span className="ml-auto text-sm text-gray-600 bg-primary/15 px-3 py-1 rounded-full">
                   {data.analytics.length}{" "}
                   {data.analytics.length === 1 ? "Liaison" : "Liaisons"}
                 </span>

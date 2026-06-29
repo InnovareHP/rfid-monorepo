@@ -168,7 +168,7 @@ export function MasterListFilters({
   if (isMileage) {
     return (
       <>
-        <div className="mb-6 p-4 border-2 border-blue-200 rounded-lg bg-blue-50 shadow-sm space-y-4">
+        <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
           <div className="flex justify-start flex-wrap items-start gap-4">
             <Button onClick={handleRefresh} variant="outline">
               <RefreshCcw className="w-4 h-4 mr-2" />
@@ -211,7 +211,7 @@ export function MasterListFilters({
   if (isMarketing) {
     return (
       <>
-        <div className="mb-6 p-4 border-2 border-blue-200 rounded-lg bg-blue-50 shadow-sm space-y-4">
+        <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
           <div className="flex justify-start flex-wrap items-start gap-4">
             <Button onClick={handleRefresh} variant="outline">
               <RefreshCcw className="w-4 h-4 mr-2" />
@@ -253,7 +253,7 @@ export function MasterListFilters({
   if (isExpense) {
     return (
       <>
-        <div className="mb-6 p-4 border-2 border-blue-200 rounded-lg bg-blue-50 shadow-sm space-y-4">
+        <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
           <div className="flex justify-start flex-wrap items-start gap-4">
             <Button onClick={handleRefresh} variant="outline">
               <RefreshCcw className="w-4 h-4 mr-2" />
@@ -297,7 +297,7 @@ export function MasterListFilters({
   return (
     <>
       {/* === TOP BAR FILTERS === */}
-      <div className="mb-6 p-4 border-2 border-blue-200 rounded-lg bg-blue-50 shadow-sm space-y-4">
+      <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
         <div className="flex justify-start flex-wrap items-start gap-4">
           {/* SEARCH BAR */}
           <div className="w-auto">

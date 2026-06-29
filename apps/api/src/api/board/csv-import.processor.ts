@@ -1,7 +1,7 @@
 import { normalizeKey, normalizeOptionValue } from "@dashboard/shared";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import { BoardFieldType, Field, FieldOption } from "@prisma/client";
+import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
 import { isSelectType } from "src/lib/helper";
 import { prisma } from "src/lib/prisma/prisma";
@@ -40,7 +40,7 @@ export class CsvImportProcessor extends WorkerHost {
     );
 
     const fields = (await prisma.field.findMany({
-      where: { organizationId: organizationId, moduleType: moduleType },
+      where: { organizationId: organizationId, moduleType: moduleType as ModuleType },
       include: { options: true },
     })) as (Field & { options: FieldOption[] })[];
 
@@ -52,7 +52,7 @@ export class CsvImportProcessor extends WorkerHost {
     const recordsToCreate: {
       recordName: string;
       organizationId: string;
-      moduleType: string;
+      moduleType: ModuleType;
     }[] = [];
 
     const recordValueBuffer: {
@@ -69,7 +69,7 @@ export class CsvImportProcessor extends WorkerHost {
       recordsToCreate.push({
         recordName: recordName,
         organizationId: organizationId,
-        moduleType: moduleType,
+        moduleType: moduleType as ModuleType,
       });
 
       for (const [csvFieldName, rawValue] of Object.entries(row)) {
@@ -140,6 +140,7 @@ export class CsvImportProcessor extends WorkerHost {
         const optionRows: {
           optionName: string;
           fieldId: string;
+          organizationId: string;
         }[] = [];
 
         for (const [fieldId, options] of optionsToCreate.entries()) {
@@ -147,6 +148,7 @@ export class CsvImportProcessor extends WorkerHost {
             optionRows.push({
               optionName: opt,
               fieldId: fieldId,
+              organizationId: organizationId,
             });
           }
         }
@@ -161,6 +163,7 @@ export class CsvImportProcessor extends WorkerHost {
         recordId: createdRecords[lv.record_index].id,
         fieldId: lv.fieldId,
         value: lv.value,
+        organizationId: organizationId,
       }));
 
       await tx.fieldValue.createMany({

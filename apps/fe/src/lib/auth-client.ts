@@ -1,11 +1,35 @@
 import { stripeClient } from "@better-auth/stripe/client";
+import type {
+  Organization,
+  SessionMember,
+  Subscription,
+} from "@dashboard/shared";
 import {
   adminClient,
+  customSessionClient,
   oneTimeTokenClient,
   organizationClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
+import type { Session, User } from "better-auth";
 import { ac, admission_manager, liason, owner } from "./permissions";
+
+type EnrichedSession = {
+  user: User & { isOnboarded: boolean };
+  session: Session & { activeOrganizationId: string | null };
+  member: SessionMember | null;
+  organization: Organization | null;
+  subscription: Subscription | null;
+};
+
+type CustomSessionServer = {
+  options: {
+    plugins: {
+      id: "custom-session";
+      $Infer: { Session: EnrichedSession };
+    }[];
+  };
+};
 
 export const authClient = createAuthClient({
   plugins: [
@@ -22,6 +46,7 @@ export const authClient = createAuthClient({
         admission_manager,
       },
     }),
+    customSessionClient<CustomSessionServer>(),
   ],
   additionalFields: {
     user_is_onboarded: {

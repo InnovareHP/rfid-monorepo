@@ -229,7 +229,7 @@ export function LoginForm({
                                 <Input
                                   {...field}
                                   placeholder="you@example.com"
-                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                                 />
                               </div>
                             </FormControl>
@@ -249,7 +249,7 @@ export function LoginForm({
                               </FormLabel>
                               <Link
                                 to="/reset-password"
-                                className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                                className="text-xs font-medium text-primary hover:text-primary transition-colors"
                               >
                                 Forgot password?
                               </Link>
@@ -261,7 +261,7 @@ export function LoginForm({
                                   {...field}
                                   placeholder="••••••••"
                                   type="password"
-                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                                 />
                               </div>
                             </FormControl>
@@ -273,7 +273,7 @@ export function LoginForm({
                       <Button
                         disabled={form.formState.isSubmitting}
                         type="submit"
-                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
+                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
                       >
                         {form.formState.isSubmitting ? (
                           <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export function LoginForm({
                         Don't have an account?{" "}
                         <Link
                           to="/register"
-                          className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                          className="font-semibold text-primary hover:text-primary transition-colors"
                         >
                           Sign up for free
                         </Link>
@@ -301,14 +301,14 @@ export function LoginForm({
                   By continuing, you agree to our{" "}
                   <a
                     href="#"
-                    className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                    className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
                   >
                     Terms of Service
                   </a>{" "}
                   and{" "}
                   <a
                     href="#"
-                    className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                    className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
                   >
                     Privacy Policy
                   </a>
@@ -341,10 +341,10 @@ export function LoginForm({
           <div className="flex flex-col gap-3 mt-2">
             <button
               onClick={() => pendingNav && goToMainDashboard(pendingNav)}
-              className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
+              className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-primary hover:bg-primary/10 transition-all text-left group"
             >
-              <div className="p-2.5 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors flex-shrink-0">
-                <LayoutDashboard className="w-5 h-5 text-blue-600" />
+              <div className="p-2.5 rounded-lg bg-primary/15 group-hover:bg-primary/25 transition-colors flex-shrink-0">
+                <LayoutDashboard className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="font-semibold text-gray-900 text-sm">
@@ -359,10 +359,10 @@ export function LoginForm({
             {pendingNav?.role === ROLES.SUPPORT ? (
               <button
                 onClick={() => goToParamsDashboard("/support")}
-                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-primary hover:bg-primary/10 transition-all text-left group"
               >
-                <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
-                  <HeadphonesIcon className="w-5 h-5 text-indigo-600" />
+                <div className="p-2.5 rounded-lg bg-primary/15 group-hover:bg-primary/25 transition-colors flex-shrink-0">
+                  <HeadphonesIcon className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">
@@ -376,10 +376,10 @@ export function LoginForm({
             ) : (
               <button
                 onClick={() => pendingNav && goToParamsDashboard("/admin")}
-                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-primary hover:bg-primary/10 transition-all text-left group"
               >
-                <div className="p-2.5 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors flex-shrink-0">
-                  <LayoutDashboard className="w-5 h-5 text-indigo-600" />
+                <div className="p-2.5 rounded-lg bg-primary/15 group-hover:bg-primary/25 transition-colors flex-shrink-0">
+                  <LayoutDashboard className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">

@@ -91,7 +91,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="flex items-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all"
+          className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-all"
         >
           <FileText className="h-4 w-4" />
           View Referral
@@ -99,7 +99,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
       </DialogTrigger>
 
       <DialogContent className="max-w-5xl max-h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 from-blue-50 to-purple-50">
+        <DialogHeader className="px-6 pt-6 pb-4 from-primary/10 to-purple-50">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-bold text-gray-900">
               Referral Details
@@ -143,7 +143,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
               <TabsList className="bg-transparent border-b-0">
                 <TabsTrigger
                   value="details"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Details
@@ -151,7 +151,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
 
                 <TabsTrigger
                   value="history"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                 >
                   <Clock className="h-4 w-4 mr-2" />
                   History
@@ -223,14 +223,14 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                             FILETYPE[item.action as keyof typeof FILETYPE];
                           return (
                             <div key={item.id} className="relative pl-12">
-                              <div className="absolute left-0 w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center border-4 border-white">
+                              <div className="absolute left-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center border-4 border-white">
                                 <Icon className="h-5 w-5 text-white" />
                               </div>
 
                               <div className="bg-white rounded-xl border p-4">
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
+                                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
                                       {item.createdBy
                                         .split(" ")
                                         .map((n: string) => n[0])

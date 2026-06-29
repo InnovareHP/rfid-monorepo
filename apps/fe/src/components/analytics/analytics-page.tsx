@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { useState } from "react";
 
+import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
 import {
@@ -20,14 +21,16 @@ import {
   ArrowUpRight,
   Building2,
   CalendarIcon,
-  Clock,
   ClipboardList,
+  Clock,
   CreditCard,
   Globe,
   MapPin,
+  ShieldAlert,
+  Star,
+  TrendingDown,
   TrendingUp,
   UserRound,
-  Users,
 } from "lucide-react";
 
 import {
@@ -61,7 +64,7 @@ function DateRangeFilter({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="w-[280px] justify-start text-left font-normal border-2 border-gray-200 hover:border-blue-500 transition-colors"
+          className="w-[280px] justify-start text-left font-normal border-2 border-gray-200 hover:border-primary/50 transition-colors"
         >
           <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
           {date.start ? (
@@ -153,6 +156,13 @@ export default function ReferralAnalyticsDashboard() {
     })) ?? [];
 
   const emergingData = analytics?.outreach ?? [];
+  const scorecardData = analytics?.scorecard ?? [];
+  const denialReasonData =
+    analytics?.denials?.reasons?.map((d) => ({
+      name: d.reason,
+      count: d.count,
+    })) ?? [];
+  const denialTrendData = analytics?.denials?.monthlyTrend ?? [];
   const hasPeriodFilter = dateRange.start && dateRange.end;
 
   const COLORS = [
@@ -165,6 +175,18 @@ export default function ReferralAnalyticsDashboard() {
     "#ffc658",
     "#ff7300",
   ];
+
+  const TIER_CONFIG = {
+    "Tier 1": {
+      color: "bg-emerald-100 text-emerald-700",
+      label: "Always Refers",
+    },
+    "Tier 2": {
+      color: "bg-amber-100 text-amber-700",
+      label: "Frequently Refers",
+    },
+    Infrequent: { color: "bg-gray-100 text-gray-600", label: "Infrequent" },
+  } as const;
 
   const {
     ResponsiveContainer,
@@ -204,33 +226,17 @@ export default function ReferralAnalyticsDashboard() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
           <Card className="border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <ClipboardList className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-lg bg-primary/15">
+                  <ClipboardList className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Total Referrals</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {analytics?.totalCounts?.totalReferrals ?? 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-indigo-100">
-                  <Users className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Leads</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {analytics?.totalCounts?.totalLeads ?? 0}
                   </p>
                 </div>
               </div>
@@ -254,33 +260,15 @@ export default function ReferralAnalyticsDashboard() {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="border shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-100">
-                  <TrendingUp className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    {hasPeriodFilter ? "Leads (Period)" : "Leads"}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {analytics?.totalCounts?.leadsThisPeriod ?? 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* STATUS BREAKDOWN + CONVERSION + AVG TIME BY STATUS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Status Breakdown */}
           <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-violet-50 to-violet-100/50 border-b">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/15 border-b">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-violet-600">
+                <div className="p-2 rounded-lg bg-primary">
                   <Activity className="h-5 w-5 text-white" />
                 </div>
                 <CardTitle className="text-lg font-semibold text-gray-900">
@@ -417,9 +405,9 @@ export default function ReferralAnalyticsDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Top Facilities */}
           <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/50 border-b">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/15 border-b">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-600">
+                <div className="p-2 rounded-lg bg-primary">
                   <Building2 className="h-5 w-5 text-white" />
                 </div>
                 <CardTitle className="text-lg font-semibold text-gray-900">
@@ -442,7 +430,7 @@ export default function ReferralAnalyticsDashboard() {
                     />
                     <Bar
                       dataKey="count"
-                      fill="#2563eb"
+                      fill="var(--primary)"
                       radius={[6, 6, 0, 0]}
                     />
                   </BarChart>
@@ -485,11 +473,7 @@ export default function ReferralAnalyticsDashboard() {
                         borderRadius: "8px",
                       }}
                     />
-                    <Bar
-                      dataKey="count"
-                      fill="#0891b2"
-                      radius={[6, 6, 0, 0]}
-                    />
+                    <Bar dataKey="count" fill="#0891b2" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -530,11 +514,7 @@ export default function ReferralAnalyticsDashboard() {
                         borderRadius: "8px",
                       }}
                     />
-                    <Bar
-                      dataKey="count"
-                      fill="#16a34a"
-                      radius={[6, 6, 0, 0]}
-                    />
+                    <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -639,9 +619,9 @@ export default function ReferralAnalyticsDashboard() {
 
           {/* Payer Mix */}
           <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100/50 border-b">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/15 border-b">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-indigo-600">
+                <div className="p-2 rounded-lg bg-primary">
                   <CreditCard className="h-5 w-5 text-white" />
                 </div>
                 <CardTitle className="text-lg font-semibold text-gray-900">
@@ -758,6 +738,151 @@ export default function ReferralAnalyticsDashboard() {
               ) : (
                 <p className="text-sm text-gray-500 text-center py-12">
                   No emerging sources detected
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Referral Source Scorecard */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow xl:col-span-2">
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-600">
+                  <Star className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Referral Source Scorecard
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {scorecardData.length > 0 ? (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  <div className="grid grid-cols-4 gap-2 text-xs font-medium text-gray-500 px-3 pb-2 border-b">
+                    <span>Source</span>
+                    <span>Tier</span>
+                    <span className="text-right">Referrals</span>
+                    <span className="text-right">Per Week</span>
+                  </div>
+                  {scorecardData.map((source, i) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-4 gap-2 items-center py-2 px-3 rounded-lg hover:bg-gray-50"
+                    >
+                      <span
+                        className="text-sm font-medium text-gray-700 truncate"
+                        title={source.sourceName}
+                      >
+                        {source.sourceName}
+                      </span>
+                      <Badge
+                        className={`text-[10px] px-1.5 py-0 w-fit ${TIER_CONFIG[source.tier].color}`}
+                      >
+                        {TIER_CONFIG[source.tier].label}
+                      </Badge>
+                      <span className="text-sm text-gray-900 text-right font-semibold">
+                        {source.referralCount}
+                      </span>
+                      <span className="text-sm text-gray-500 text-right">
+                        {source.referralsPerWeek}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No scorecard data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Denial Reasons */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-red-50 to-red-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-600">
+                  <ShieldAlert className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Denial Reasons
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({analytics?.denials?.totalDenials ?? 0} total)
+                  </span>
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {denialReasonData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart
+                    data={denialReasonData}
+                    layout="vertical"
+                    margin={{ left: 80 }}
+                  >
+                    <XAxis type="number" />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={75}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No denial data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Monthly Denial Trend */}
+          <Card className="border shadow-sm hover:shadow-md transition-shadow xl:col-span-2">
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100/50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-600">
+                  <TrendingDown className="h-5 w-5 text-white" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Monthly Denial Trend
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {denialTrendData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={denialTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={{ fill: "#ef4444", r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-12">
+                  No denial trend data available
                 </p>
               )}
             </CardContent>

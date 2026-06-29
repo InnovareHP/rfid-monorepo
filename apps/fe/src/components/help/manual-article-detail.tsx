@@ -37,8 +37,8 @@ export function ManualArticleDetail({
       <div className="space-y-4">
         {article.steps.map((step, index) => (
           <Card key={step.id} className="border-2 border-gray-300 shadow-sm">
-            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
-              <CardTitle className="text-blue-900">
+            <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
+              <CardTitle className="text-foreground">
                 Step {index + 1}
                 {step.title ? `: ${step.title}` : ""}
               </CardTitle>

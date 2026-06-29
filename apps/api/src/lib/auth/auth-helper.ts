@@ -5,7 +5,7 @@ import { InvitationEmail } from "../../react-email/invitation-email";
 import { ResetPasswordEmail } from "../../react-email/reset-password-email";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
-import { renderEmailHtml } from "../resend/resend";
+import { renderEmailHtml } from "../aws/ses";
 import { OnboardingSeeding } from "./onboarding";
 
 export const beforeSessionCreate = async (session: {
@@ -31,6 +31,48 @@ export const beforeSessionCreate = async (session: {
       activeOrganizationId,
     },
   };
+};
+
+export const customSessionHandler = async ({
+  user,
+  session,
+}: {
+  user: Record<string, any>;
+  session: Record<string, any>;
+}) => {
+  const activeOrganizationId = session.activeOrganizationId as
+    | string
+    | undefined;
+
+  if (!activeOrganizationId) {
+    return { user, session, member: null, organization: null, subscription: null };
+  }
+
+  const [member, organization, subscription] = await Promise.all([
+    prisma.member.findFirst({
+      where: { userId: user.id, organizationId: activeOrganizationId },
+      select: { id: true, role: true, organizationId: true },
+    }),
+    prisma.organization.findFirst({
+      where: { id: activeOrganizationId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo: true,
+        metadata: true,
+        createdAt: true,
+      },
+    }),
+    prisma.subscription.findFirst({
+      where: {
+        referenceId: activeOrganizationId,
+        status: { in: ["active", "trialing"] },
+      },
+    }),
+  ]);
+
+  return { user, session, member, organization, subscription };
 };
 
 export const beforeSessionUpdate = async (
@@ -203,34 +245,12 @@ export const beforeDeleteOrganization = async ({
   }
 };
 
-export const afterDeleteOrganization = async ({
-  organization,
-}: {
+export const afterDeleteOrganization = async ({}: {
   organization: { id: string };
 }) => {
-  await prisma.$transaction([
-    prisma.fieldValue.deleteMany({
-      where: { record: { organizationId: organization.id } },
-    }),
-    prisma.fieldOption.deleteMany({
-      where: { field: { organizationId: organization.id } },
-    }),
-    prisma.history.deleteMany({
-      where: { record: { organizationId: organization.id } },
-    }),
-    prisma.activity.deleteMany({
-      where: { organizationId: organization.id },
-    }),
-    prisma.boardCounty.deleteMany({
-      where: { organizationId: organization.id },
-    }),
-    prisma.board.deleteMany({
-      where: { organizationId: organization.id },
-    }),
-    prisma.field.deleteMany({
-      where: { organizationId: organization.id },
-    }),
-  ]);
+  // Board-schema children are removed automatically via `onDelete: Cascade`
+  // on the Organization relations (Field, Board, Activity, BoardCounty) and
+  // their downstream cascades. No manual cleanup required.
 };
 
 // ─── Member lifecycle hooks ────────────────────────────────────────
