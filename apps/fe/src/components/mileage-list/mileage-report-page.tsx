@@ -130,7 +130,7 @@ export default function MileageReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-primary/5 to-gray-50">
       <div className="p-6 sm:p-8">
         <h1 className="text-3xl font-bold text-gray-900">Mileage Report</h1>
         <p className="text-sm text-gray-600 mt-1">
@@ -161,8 +161,8 @@ export default function MileageReportPage() {
           <Card className="border-2 hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-lg bg-blue-50">
-                  <Route className="h-6 w-6 text-blue-600" />
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Route className="h-6 w-6 text-primary" />
                 </div>
               </div>
               <div>

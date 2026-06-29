@@ -121,6 +121,17 @@ export const getSpecificLead = async (leadId: string, moduleType?: string) => {
   return response.data;
 };
 
+export const getLeadRecords = async (page: number, limit: number) => {
+  const response = await axiosClient.get("/api/boards/records", {
+    params: {
+      page: page,
+      limit: limit,
+      moduleType: "LEAD",
+    },
+  });
+  return response.data;
+};
+
 export const updateLead = async (
   recordId: string,
   fieldId: string,

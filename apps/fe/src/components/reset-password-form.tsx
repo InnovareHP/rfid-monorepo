@@ -153,7 +153,7 @@ export function ResetPasswordForm({
                               <Input
                                 {...field}
                                 placeholder="you@example.com"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                               />
                             </div>
                           </FormControl>
@@ -165,7 +165,7 @@ export function ResetPasswordForm({
                     <Button
                       disabled={form.formState.isSubmitting}
                       type="submit"
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
+                      className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
                     >
                       {form.formState.isSubmitting ? (
                         <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export function ResetPasswordForm({
                     <div className="text-center text-sm text-gray-600 pt-4">
                       <Link
                         to="/"
-                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors inline-flex items-center gap-2"
+                        className="font-semibold text-primary hover:text-primary transition-colors inline-flex items-center gap-2"
                       >
                         <ArrowLeft className="w-4 h-4" />
                         Back to Sign In
@@ -195,7 +195,7 @@ export function ResetPasswordForm({
             Need help?{" "}
             <a
               href="#"
-              className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+              className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
             >
               Contact Support
             </a>

@@ -1,33 +1,33 @@
 model Subscription {
-  id                    String     @id @default(uuid())
-  plan                  String
-  referenceId           String
-  stripeCustomerId      String     @unique
-  stripeSubscriptionId  String?
-  status                String?
-  periodStart           DateTime?
-  periodEnd             DateTime?
-  cancelAtPeriodEnd     Boolean?
-  seats                 Int?
-  trialStart            DateTime?
-  trialEnd              DateTime?
-  cancelAt              DateTime?
+  id                   String    @id @default(uuid())
+  plan                 String
+  referenceId          String
+  stripeCustomerId     String    @unique
+  stripeSubscriptionId String?
+  status               String?
+  periodStart          DateTime?
+  periodEnd            DateTime?
+  cancelAtPeriodEnd    Boolean?
+  seats                Int?
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  cancelAt             DateTime?
 
   @@schema("stripe_schema")
 }
 
 model Plan {
-  id              String    @id @default(uuid())
-  name            String
-  priceId         String?
-  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime? @db.Timestamptz(3)
-  photo           String?
-  description     String?
-  roleAvailable   String?
-  isActive        Boolean
-  type            String?
-  limits          Json?
+  id            String    @id @default(uuid())
+  name          String
+  priceId       String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime? @db.Timestamptz(3)
+  photo         String?
+  description   String?
+  roleAvailable String?
+  isActive      Boolean
+  type          String?
+  limits        Json?
 
   @@schema("stripe_schema")
 }

@@ -144,12 +144,12 @@ code {
 /* FullCalendar theme overrides */
 .fc {
   --fc-border-color: #e2e8f0;
-  --fc-button-bg-color: #3b82f6;
-  --fc-button-border-color: #3b82f6;
-  --fc-button-hover-bg-color: #2563eb;
-  --fc-button-hover-border-color: #2563eb;
-  --fc-button-active-bg-color: #1d4ed8;
-  --fc-button-active-border-color: #1d4ed8;
+  --fc-button-bg-color: var(--primary);
+  --fc-button-border-color: var(--primary);
+  --fc-button-hover-bg-color: color-mix(in oklch, var(--primary), black 15%);
+  --fc-button-hover-border-color: color-mix(in oklch, var(--primary), black 15%);
+  --fc-button-active-bg-color: color-mix(in oklch, var(--primary), black 25%);
+  --fc-button-active-border-color: color-mix(in oklch, var(--primary), black 25%);
   --fc-today-bg-color: transparent;
   --fc-neutral-bg-color: #f1f5f9;
   --fc-page-bg-color: transparent;
@@ -180,7 +180,7 @@ code {
   color: #1e293b;
 }
 
-/* Column headers - light blue with white text */
+/* Column headers - primary color with white text */
 .fc .fc-col-header-cell {
   font-weight: 600;
   font-size: 0.75rem;
@@ -188,7 +188,7 @@ code {
   letter-spacing: 0.05em;
   color: #ffffff;
   padding: 0.625rem 0;
-  background: linear-gradient(135deg, #60a5fa, #818cf8);
+  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 20%), var(--primary));
   border-bottom: none;
 }
 
@@ -256,31 +256,31 @@ code {
 }
 
 .fc .fc-daygrid-body tr:nth-child(even) .fc-daygrid-day {
-  background: linear-gradient(135deg, #f0f4ff 0%, #eef2ff 50%, #e0e7ff 100%);
+  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 92%) 0%, color-mix(in oklch, var(--primary), white 90%) 50%, color-mix(in oklch, var(--primary), white 85%) 100%);
 }
 
-/* Today cell - distinct blue glow */
+/* Today cell - distinct primary glow */
 .fc .fc-daygrid-day.fc-day-today {
-  background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%) !important;
+  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 82%) 0%, color-mix(in oklch, var(--primary), white 85%) 100%) !important;
   position: relative;
 }
 
 .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-  color: #1d4ed8 !important;
+  color: var(--primary) !important;
   font-weight: 700;
-  background-color: rgba(219, 234, 254, 0.95);
+  background-color: color-mix(in oklch, var(--primary), white 80%);
 }
 
-/* Weekend columns - subtle warm tint */
+/* Weekend columns - subtle primary tint */
 .fc .fc-day-sat:not(.fc-day-today),
 .fc .fc-day-sun:not(.fc-day-today) {
-  background-color: #eef2ff !important;
+  background-color: color-mix(in oklch, var(--primary), white 90%) !important;
 }
 
 /* Override weekend + striped row combo */
 .fc .fc-daygrid-body tr:nth-child(even) .fc-day-sat:not(.fc-day-today),
 .fc .fc-daygrid-body tr:nth-child(even) .fc-day-sun:not(.fc-day-today) {
-  background: linear-gradient(135deg, #e0e7ff 0%, #eef2ff 100%) !important;
+  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 85%) 0%, color-mix(in oklch, var(--primary), white 90%) 100%) !important;
 }
 
 /* Timegrid (week/day) - cool alternating hour bands */
@@ -290,7 +290,7 @@ code {
 
 .fc .fc-timegrid-slot:nth-child(4n + 1),
 .fc .fc-timegrid-slot:nth-child(4n + 2) {
-  background: linear-gradient(90deg, #f8fafc, #f0f4ff);
+  background: linear-gradient(90deg, #f8fafc, color-mix(in oklch, var(--primary), white 92%));
 }
 
 .fc .fc-timegrid-slot:nth-child(4n + 3),
@@ -307,14 +307,14 @@ code {
 .fc .fc-daygrid-more-link {
   font-size: 0.7rem;
   font-weight: 700;
-  color: #3b82f6;
+  color: var(--primary);
   padding: 1px 4px;
   border-radius: 4px;
   transition: background 0.15s;
 }
 
 .fc .fc-daygrid-more-link:hover {
-  background: #eff6ff;
+  background: color-mix(in oklch, var(--primary), white 92%);
 }
 
 /* Timegrid events */
@@ -328,7 +328,7 @@ code {
 
 /* Day cell hover */
 .fc .fc-daygrid-day:hover {
-  background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%) !important;
+  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 92%) 0%, color-mix(in oklch, var(--primary), white 90%) 100%) !important;
   transition: background 0.2s;
 }
 

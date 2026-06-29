@@ -71,7 +71,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
   );
 
   return (
-    <Card className="group h-full hover:shadow-md transition-all duration-300 border-2 border-gray-300 hover:border-blue-400 bg-white overflow-hidden">
+    <Card className="group h-full hover:shadow-md transition-all duration-300 border-2 border-gray-300 hover:border-primary/50 bg-white overflow-hidden">
       {/* Decorative top gradient bar */}
       <div className={`h-2 bg-gradient-to-r ${config.gradient}`} />
 
@@ -133,11 +133,11 @@ export function LiaisonAnalyticsCard({ data }: Props) {
         {/* Facilities Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-blue-600" />
+            <Building2 className="h-4 w-4 text-primary" />
             <p className="text-sm font-semibold text-gray-900">
               Facilities Covered
             </p>
-            <span className="ml-auto text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
               {data.facilitiesCovered.length}
             </span>
           </div>
@@ -152,7 +152,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
                 <Badge
                   key={facility}
                   variant="secondary"
-                  className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-medium"
+                  className="bg-primary/10 text-primary hover:bg-primary/15 border border-primary/30 font-medium"
                 >
                   {facility}
                 </Badge>
@@ -164,11 +164,11 @@ export function LiaisonAnalyticsCard({ data }: Props) {
         {/* People Contacted Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-blue-600" />
+            <Users className="h-4 w-4 text-primary" />
             <p className="text-sm font-semibold text-gray-900">
               People Contacted
             </p>
-            <span className="ml-auto text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
               {data.peopleContacted.length}
             </span>
           </div>
@@ -183,7 +183,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
                 <Badge
                   key={person}
                   variant="secondary"
-                  className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-medium"
+                  className="bg-primary/10 text-primary hover:bg-primary/15 border border-primary/30 font-medium"
                 >
                   {person}
                 </Badge>
@@ -195,7 +195,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
         {/* Touchpoints Section - Enhanced */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-blue-600" />
+            <Phone className="h-4 w-4 text-primary" />
             <p className="text-sm font-semibold text-gray-900">
               Touchpoints Used
             </p>
@@ -215,12 +215,12 @@ export function LiaisonAnalyticsCard({ data }: Props) {
                   <div key={tp.type} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        <Icon className="h-3.5 w-3.5 text-blue-600" />
+                        <Icon className="h-3.5 w-3.5 text-primary" />
                         <span className="text-gray-700 font-medium capitalize">
                           {tp.type.replace(/_/g, " ")}
                         </span>
                       </div>
-                      <span className="font-bold text-blue-600">
+                      <span className="font-bold text-primary">
                         {tp.count}
                       </span>
                     </div>
@@ -228,7 +228,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
                     {/* Mini progress bar */}
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-primary to-primary transition-all duration-500"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -241,7 +241,7 @@ export function LiaisonAnalyticsCard({ data }: Props) {
       </CardContent>
 
       {/* Hover effect overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-100/0 group-hover:from-blue-50/30 group-hover:to-blue-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </Card>
   );
 }

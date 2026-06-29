@@ -65,11 +65,12 @@ Organization-based tenancy. Every authenticated request carries `activeOrganizat
 
 ### Lead Management (EAV Pattern)
 
-Leads use an Entity-Attribute-Value pattern for dynamic custom fields per organization:
+Leads and referrals use an Entity-Attribute-Value pattern for dynamic custom fields per organization. Both share the same tables in `board_schema`, discriminated by `moduleType` (`LEAD` / `REFERRAL`):
 
-- `LeadField` — field definitions (name, type, order) per org
-- `LeadValue` — stores values for each lead-field pair
-- `LeadFlatView` — materialized view for efficient querying
+- `Field` — field definitions (`fieldName`, `fieldType`, `fieldOrder`, `moduleType`) per org
+- `Board` — a record row (a lead or referral), discriminated by `moduleType`
+- `FieldValue` — stores the value for each `(record, field)` pair (unique on `recordId, fieldId`)
+- EAV rows are reshaped into flat row objects in the service layer (`getAllBoards`) at request time — there is no materialized view
 - Columns are dynamic (fetched from API), never hardcoded on the frontend
 
 ### Database Schema Organization
@@ -110,3 +111,56 @@ File-based routing in `apps/fe/src/routes/`:
 - Avoid comments and follow the claude.md of each file
 - Toast notifications via `sonner`
 - Node >=18 required
+
+## Coding Standards & Separation of Concerns
+
+The codebase is organized so each file has one responsibility. Put new code in the layer that matches its concern — do not mix data fetching, business logic, and presentation in a single file.
+
+### Frontend Folder Structure (`apps/fe/src/`)
+
+Each concern has a dedicated directory. Match the existing layout — do not invent new top-level folders.
+
+```
+src/
+  routes/        # File-based routes only — thin. Wire data + render a feature component. No business logic.
+  components/     # UI. One folder per domain feature (master-list/, analytics/, calendar/, side-bar/).
+    ui/           # shadcn/ui primitives only (button, dialog, table). Never put feature logic here.
+    reusable-table/  # Cross-feature reusable building blocks shared by multiple domains.
+  services/       # API layer. One folder per domain (lead/, referral/, expense/). Axios calls + return typed data. No React.
+  hooks/          # Reusable React hooks (use-board-sync.ts, auth-query.ts). Stateful logic shared across components.
+  lib/            # Clients + utilities (axios-client, auth-client, permissions, query-client, toast).
+    helper/       # App-specific pure helpers.
+  types/          # Shared TypeScript types.
+```
+
+### Separation of Concerns (the rule)
+
+- **Routes** (`routes/`) stay thin: read params/loaders, call a service or hook, render a feature component. No fetch logic, no formatting, no business rules.
+- **Services** (`services/`) own all API access. A component never calls Axios directly — it calls a service function through TanStack Query. Services contain no React and no JSX.
+- **Components** (`components/<feature>/`) own presentation and local UI state only. Server state comes from TanStack Query; never duplicate it in `useState`.
+- **Hooks** (`hooks/`) own reusable stateful logic. If two components share the same `useQuery`/`useMutation` or effect logic, extract a hook.
+- **Utilities** (`lib/`) own pure, side-effect-free functions (formatters, `cn`, permission checks).
+
+### Reusable Components
+
+- Build a reusable component when the same UI pattern appears in two or more features. Place it in a shared location, not inside one feature folder:
+  - **Primitive / unstyled-base** → `apps/fe/src/components/ui/` (shadcn) or `packages/ui` for cross-app reuse.
+  - **Composite reusable feature blocks** (e.g. tables) → a shared folder like `components/reusable-table/`.
+- Feature-specific components stay inside their domain folder (`components/master-list/`). Do not promote to shared until a second consumer exists.
+- A component used by **both `apps/fe` and `apps/fe-support`** belongs in `packages/ui`, not duplicated.
+- Keep components presentational: pass data and callbacks as props; let the parent route/hook own fetching.
+
+### Utility Separation (local vs. global)
+
+Decide where a utility lives by **who consumes it**:
+
+- **Local utility** — used by one app only → that app's `lib/` (`apps/fe/src/lib/`, `apps/api/src/lib/`).
+- **Frontend-only utility** (DOM, lucide-react, papaparse, router) → `apps/fe/src/lib/fe-helpers.ts`. Never put these in `packages/shared` (it builds for NestJS CJS and must stay framework-agnostic).
+- **Global / shared utility** — needed by both backend and frontend → `packages/shared`. Must be pure TypeScript with no framework or DOM deps. Run `pnpm build:shared` before consuming from the API.
+- Pure functions only in utility files — no React, no API calls, no module-level side effects.
+
+### Backend (`apps/api/src/`)
+
+- `api/<feature>/` holds the NestJS module, controller, and service. Controller = HTTP boundary + validation (DTOs); service = business logic; no Prisma queries in controllers.
+- Shared infrastructure (clients, integrations, helpers) lives in `src/lib/`.
+- See `apps/api/CLAUDE.md` and `apps/fe/CLAUDE.md` for layer-specific rules.

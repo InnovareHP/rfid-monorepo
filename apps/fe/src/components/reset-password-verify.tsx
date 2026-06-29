@@ -113,8 +113,8 @@ export function ResetPasswordVerifyForm({
 
         <div className="space-y-6">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-blue-50 flex-shrink-0">
-              <Shield className="w-7 h-7 text-blue-600" />
+            <div className="p-3 rounded-xl bg-primary/10 flex-shrink-0">
+              <Shield className="w-7 h-7 text-primary" />
             </div>
             <div>
               <h3 className="font-bold text-gray-900 mb-2 text-lg">
@@ -152,8 +152,8 @@ export function ResetPasswordVerifyForm({
                 onSubmit={form.handleSubmit(handleResetPassword)}
               >
                 <div className="space-y-2 text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-xl mb-4">
-                    <RotateCcw className="w-8 h-8 text-blue-600" />
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-xl mb-4">
+                    <RotateCcw className="w-8 h-8 text-primary" />
                   </div>
                   <h2 className="text-3xl font-bold text-gray-900">
                     Reset Password
@@ -177,7 +177,7 @@ export function ResetPasswordVerifyForm({
                               {...field}
                               placeholder="••••••••"
                               type="password"
-                              className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                              className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                             />
                           </div>
                         </FormControl>
@@ -201,7 +201,7 @@ export function ResetPasswordVerifyForm({
                               {...field}
                               placeholder="••••••••"
                               type="password"
-                              className="h-12 pl-11 border-2 border-gray-200 focus:border-blue-500 rounded-lg transition-colors"
+                              className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
                             />
                           </div>
                         </FormControl>
@@ -213,7 +213,7 @@ export function ResetPasswordVerifyForm({
                   <Button
                     disabled={form.formState.isSubmitting}
                     type="submit"
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
+                    className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
                   >
                     {form.formState.isSubmitting ? (
                       <div className="flex items-center gap-2">
@@ -228,7 +228,7 @@ export function ResetPasswordVerifyForm({
                   <div className="text-center text-sm text-gray-600 pt-4">
                     <Link
                       to="/"
-                      className="font-semibold text-blue-600 hover:text-blue-700 transition-colors inline-flex items-center gap-2"
+                      className="font-semibold text-primary hover:text-primary transition-colors inline-flex items-center gap-2"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       Back to Sign In
@@ -244,7 +244,7 @@ export function ResetPasswordVerifyForm({
           Need help?{" "}
           <a
             href="#"
-            className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+            className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
           >
             Contact Support
           </a>

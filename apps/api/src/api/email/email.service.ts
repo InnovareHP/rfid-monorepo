@@ -2,8 +2,8 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
 import { Queue } from "bullmq";
 import { appConfig } from "../../config/app-config";
+import { sendEmail } from "../../lib/aws/ses";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
-import { resend } from "../../lib/resend/resend";
 import { SendEmailDto } from "./dto/email.schema";
 
 @Injectable()
@@ -26,16 +26,11 @@ export class EmailService {
 
   async sendEmail(sendEmailDto: SendEmailDto) {
     const { to, subject, html } = sendEmailDto;
-
-    await resend.emails.send({
-      from: `${appConfig.APP_EMAIL}`,
-      to: to,
-      subject: subject,
-      html: html,
+    return sendEmail({
+      from: appConfig.APP_EMAIL,
+      to,
+      subject,
+      html,
     });
-
-    return {
-      message: "Email sent successfully",
-    };
   }
 }

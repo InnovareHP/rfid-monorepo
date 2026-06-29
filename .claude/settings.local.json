@@ -32,7 +32,10 @@
       "Bash(node:*)",
       "Bash(npm view:*)",
       "Bash(wc:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(ls apps/fe/src/components/master-list/ apps/fe/src/components/referral-list/)",
+      "Bash(wc -l apps/fe/src/components/master-list/*.tsx apps/fe/src/components/referral-list/*.tsx)"
     ]
   }
 }

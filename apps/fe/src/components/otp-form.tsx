@@ -56,7 +56,7 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
                 onSubmit={form.handleSubmit(handleVerifyOtp)}
               >
                 <div className="space-y-2 text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to- from-blue-600 to-blue-700 rounded-xl mb-4">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to- from-primary to-primary rounded-xl mb-4">
                     <Shield className="w-6 h-6 text-white" />
                   </div>
                   <h1 className="text-2xl font-bold bg-gradient-to- from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
@@ -82,7 +82,7 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
                             <Input
                               {...field}
                               placeholder="Enter 6-digit code"
-                              className="h-10 pl-10 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-200 text-center text-lg tracking-widest"
+                              className="h-10 pl-10 border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20 transition-all duration-200 text-center text-lg tracking-widest"
                               maxLength={6}
                               onChange={(e) => {
                                 // Only allow numbers
@@ -100,7 +100,7 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
                   <Button
                     disabled={form.formState.isSubmitting}
                     type="submit"
-                    className="w-full h-10 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer"
+                    className="w-full h-10 bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer"
                   >
                     {form.formState.isSubmitting ? (
                       <div className="flex items-center space-x-2">
@@ -120,7 +120,7 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
                       type="button"
                       variant="outline"
                       onClick={handleResendOtp}
-                      className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200"
+                      className="text-sm text-primary hover:text-primary dark:text-primary dark:hover:text-primary border-primary/30 dark:border-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-200"
                     >
                       Resend Code
                     </Button>
@@ -129,7 +129,7 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
                   <div className="text-center text-sm text-slate-600 dark:text-slate-400">
                     <Link
                       to="/"
-                      className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 inline-flex items-center"
+                      className="font-medium text-primary hover:text-primary dark:text-primary dark:hover:text-primary transition-colors duration-200 inline-flex items-center"
                     >
                       <ArrowLeft className="w-4 h-4 mr-1" />
                       Back to Sign In
@@ -145,14 +145,14 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
           By clicking continue, you agree to our{" "}
           <a
             href="#"
-            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-4 transition-colors duration-200"
+            className="text-primary hover:text-primary dark:text-primary dark:hover:text-primary underline underline-offset-4 transition-colors duration-200"
           >
             Terms of Service
           </a>{" "}
           and{" "}
           <a
             href="#"
-            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-4 transition-colors duration-200"
+            className="text-primary hover:text-primary dark:text-primary dark:hover:text-primary underline underline-offset-4 transition-colors duration-200"
           >
             Privacy Policy
           </a>

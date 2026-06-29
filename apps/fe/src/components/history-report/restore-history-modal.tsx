@@ -125,8 +125,8 @@ export function RestoreHistoryModal({
             </div>
 
             {isUpdate && (
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">
+              <div className="p-4 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/30 dark:border-primary">
+                <p className="text-xs font-semibold text-primary dark:text-primary mb-2">
                   This will revert the change:
                 </p>
                 <div className="flex items-center gap-2 text-sm">
@@ -138,7 +138,7 @@ export function RestoreHistoryModal({
                     {historyItem.newValue || "(empty)"}
                   </span>
                 </div>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                <p className="text-xs text-primary dark:text-primary mt-2">
                   Restoring will change it back to:{" "}
                   <span className="font-semibold">
                     {historyItem.oldValue || "(empty)"}

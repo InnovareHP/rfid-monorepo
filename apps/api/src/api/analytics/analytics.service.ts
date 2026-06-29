@@ -4,7 +4,7 @@ import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
-import { analyticsPrompt } from "src/lib/gemini/prompt";
+import { analyticsPrompt } from "src/lib/aws/prompts";
 import { redis } from "src/lib/redis/redis";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
@@ -21,30 +21,41 @@ export class AnalyticsService {
       connection: { url: appConfig.REDIS_URL },
     });
   }
-  // 1️⃣ Top 10 Referring Facilities or Organizations
   async getTopFacilities(
     organizationId: string,
     startDate: Date,
     endDate: Date
   ) {
-    const whereClause: Prisma.FieldValueWhereInput = {
-      field: { fieldName: "Facility" },
-      record: {
-        organizationId: organizationId,
-        moduleType: "REFERRAL",
-        isDeleted: false,
-        ...(startDate &&
-          endDate && { createdAt: { gte: startDate, lte: endDate } }),
-      },
-    };
+    const dateFilter =
+      startDate && endDate
+        ? Prisma.sql`AND referral."createdAt" >= ${startDate} AND referral."createdAt" <= ${endDate}`
+        : Prisma.empty;
 
-    return await prisma.fieldValue.groupBy({
-      by: ["value"],
-      where: whereClause,
-      _count: { value: true },
-      orderBy: { _count: { value: "desc" } },
-      take: 10,
-    });
+    const results = await prisma.$queryRaw<
+      { facility: string; count: number }[]
+    >`
+      SELECT
+        lead."recordName" AS facility,
+        COUNT(*)::int AS count
+      FROM board_schema."BoardRelation" br
+      JOIN board_schema."Board" referral ON referral."id" = br."sourceId"
+      JOIN board_schema."Board" lead ON lead."id" = br."targetId"
+      WHERE br."relationType" = 'REFERRAL_LINK'
+        AND referral."organizationId" = ${organizationId}
+        AND referral."moduleType" = 'REFERRAL'
+        AND referral."isDeleted" = false
+        AND lead."moduleType" = 'LEAD'
+        AND lead."isDeleted" = false
+        ${dateFilter}
+      GROUP BY lead."recordName"
+      ORDER BY count DESC
+      LIMIT 10;
+    `;
+
+    return results.map((r) => ({
+      value: r.facility,
+      _count: { value: r.count },
+    }));
   }
 
   async getTopClinicians(
@@ -72,22 +83,40 @@ export class AnalyticsService {
   }
 
   async getTopCounties(organizationId: string, startDate: Date, endDate: Date) {
-    const whereClause: Prisma.FieldValueWhereInput = {
-      field: { fieldName: "County" },
-      record: {
-        moduleType: "REFERRAL",
-        organizationId: organizationId,
-        isDeleted: false,
-        ...(startDate &&
-          endDate && { createdAt: { gte: startDate, lte: endDate } }),
-      },
-    };
-    return await prisma.fieldValue.groupBy({
-      by: ["value"],
-      where: whereClause,
-      _count: { value: true },
-      orderBy: { _count: { value: "desc" } },
-    });
+    const dateFilter =
+      startDate && endDate
+        ? Prisma.sql`AND referral."createdAt" >= ${startDate} AND referral."createdAt" <= ${endDate}`
+        : Prisma.empty;
+
+    const results = await prisma.$queryRaw<{ county: string; count: number }[]>`
+      SELECT
+        fv."value" AS county,
+        COUNT(*)::int AS count
+      FROM board_schema."BoardRelation" br
+      JOIN board_schema."Board" referral ON referral."id" = br."sourceId"
+      JOIN board_schema."Board" lead ON lead."id" = br."targetId"
+      JOIN board_schema."FieldValue" fv ON fv."recordId" = lead."id"
+      JOIN board_schema."Field" f ON f."id" = fv."fieldId"
+      WHERE br."relationType" = 'REFERRAL_LINK'
+        AND referral."organizationId" = ${organizationId}
+        AND referral."moduleType" = 'REFERRAL'
+        AND referral."isDeleted" = false
+        AND lead."moduleType" = 'LEAD'
+        AND lead."isDeleted" = false
+        AND f."fieldName" = 'County'
+        AND f."moduleType" = 'LEAD'
+        AND f."isDeleted" = false
+        AND fv."value" IS NOT NULL
+        AND fv."value" != ''
+        ${dateFilter}
+      GROUP BY fv."value"
+      ORDER BY count DESC;
+    `;
+
+    return results.map((r) => ({
+      value: r.county,
+      _count: { value: r.count },
+    }));
   }
 
   async getReferralSourceBreakdown(
@@ -187,11 +216,7 @@ export class AnalyticsService {
   }
 
   // Total counts for referrals and leads
-  async getTotalCounts(
-    organizationId: string,
-    startDate: Date,
-    endDate: Date
-  ) {
+  async getTotalCounts(organizationId: string, startDate: Date, endDate: Date) {
     const dateFilter =
       startDate && endDate
         ? { createdAt: { gte: startDate, lte: endDate } }
@@ -348,45 +373,164 @@ export class AnalyticsService {
     return results;
   }
 
-  // 🔟 Emerging Referral Sources (new/low frequency facilities)
   async getEmergingSources(
     organizationId: string,
     startDate: Date,
     endDate: Date
   ) {
-    const results = await prisma.fieldValue.groupBy({
-      by: ["value"],
-      where: {
-        field: { fieldName: "Facility" },
-        record: {
-          moduleType: "REFERRAL",
-          organizationId: organizationId,
-          isDeleted: false,
-          ...(startDate &&
-            endDate && { createdAt: { gte: startDate, lte: endDate } }),
-        },
-      },
-      _count: {
-        _all: true,
-      },
-      having: {
-        value: {
-          _count: {
-            lt: 5,
-          },
-        },
-      },
-      orderBy: {
-        _count: {
-          value: "asc",
-        },
-      },
-    });
+    const dateFilter =
+      startDate && endDate
+        ? Prisma.sql`AND referral."createdAt" >= ${startDate} AND referral."createdAt" <= ${endDate}`
+        : Prisma.empty;
+
+    const results = await prisma.$queryRaw<
+      { facility: string; recent_referrals: number }[]
+    >`
+      SELECT
+        lead."recordName" AS facility,
+        COUNT(*)::int AS recent_referrals
+      FROM board_schema."BoardRelation" br
+      JOIN board_schema."Board" referral ON referral."id" = br."sourceId"
+      JOIN board_schema."Board" lead ON lead."id" = br."targetId"
+      WHERE br."relationType" = 'REFERRAL_LINK'
+        AND referral."organizationId" = ${organizationId}
+        AND referral."moduleType" = 'REFERRAL'
+        AND referral."isDeleted" = false
+        AND lead."moduleType" = 'LEAD'
+        AND lead."isDeleted" = false
+        ${dateFilter}
+      GROUP BY lead."recordName"
+      HAVING COUNT(*) < 5
+      ORDER BY recent_referrals ASC;
+    `;
 
     return results.map((r) => ({
-      facility: r.value,
-      recent_referrals: r._count?._all ?? 0,
+      facility: r.facility,
+      recent_referrals: r.recent_referrals,
     }));
+  }
+
+  async getReferralSourceScorecard(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const dateFilter =
+      startDate && endDate
+        ? Prisma.sql`AND referral."createdAt" >= ${startDate} AND referral."createdAt" <= ${endDate}`
+        : Prisma.empty;
+
+    const results = await prisma.$queryRaw<
+      { source_name: string; referral_count: number }[]
+    >`
+      SELECT
+        lead."recordName" AS source_name,
+        COUNT(*)::int AS referral_count
+      FROM board_schema."BoardRelation" br
+      JOIN board_schema."Board" referral ON referral."id" = br."sourceId"
+      JOIN board_schema."Board" lead ON lead."id" = br."targetId"
+      WHERE br."relationType" = 'REFERRAL_LINK'
+        AND referral."organizationId" = ${organizationId}
+        AND referral."moduleType" = 'REFERRAL'
+        AND referral."isDeleted" = false
+        AND lead."moduleType" = 'LEAD'
+        AND lead."isDeleted" = false
+        ${dateFilter}
+      GROUP BY lead."id", lead."recordName"
+      ORDER BY referral_count DESC;
+    `;
+
+    const msInWeek = 7 * 24 * 60 * 60 * 1000;
+    const weeks =
+      startDate && endDate
+        ? Math.max(1, (endDate.getTime() - startDate.getTime()) / msInWeek)
+        : 4;
+
+    return results.map((r) => {
+      const rate = r.referral_count / weeks;
+      let tier: "Tier 1" | "Tier 2" | "Infrequent";
+      if (rate > 1) tier = "Tier 1";
+      else if (rate >= 0.25) tier = "Tier 2";
+      else tier = "Infrequent";
+
+      return {
+        sourceName: r.source_name,
+        referralCount: r.referral_count,
+        tier,
+        referralsPerWeek: Number(rate.toFixed(2)),
+      };
+    });
+  }
+
+  async getDenialTracking(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const dateFilter =
+      startDate && endDate
+        ? Prisma.sql`AND b."createdAt" >= ${startDate} AND b."createdAt" <= ${endDate}`
+        : Prisma.empty;
+
+    const [reasons, monthlyTrend] = await Promise.all([
+      prisma.$queryRaw<{ denial_reason: string; count: number }[]>`
+        SELECT
+          reason_fv."value" AS denial_reason,
+          COUNT(*)::int AS count
+        FROM board_schema."Board" b
+        JOIN board_schema."FieldValue" status_fv ON status_fv."recordId" = b."id"
+        JOIN board_schema."Field" status_f ON status_f."id" = status_fv."fieldId"
+        JOIN board_schema."FieldValue" reason_fv ON reason_fv."recordId" = b."id"
+        JOIN board_schema."Field" reason_f ON reason_f."id" = reason_fv."fieldId"
+        WHERE b."organizationId" = ${organizationId}
+          AND b."moduleType" = 'REFERRAL'
+          AND b."isDeleted" = false
+          AND status_f."fieldName" = 'Status'
+          AND status_f."moduleType" = 'REFERRAL'
+          AND status_f."isDeleted" = false
+          AND status_fv."value" IN ('Rejected', 'Denied')
+          AND reason_f."fieldName" = 'Reason'
+          AND reason_f."moduleType" = 'REFERRAL'
+          AND reason_f."isDeleted" = false
+          AND reason_fv."value" IS NOT NULL
+          AND reason_fv."value" != ''
+          ${dateFilter}
+        GROUP BY reason_fv."value"
+        ORDER BY count DESC;
+      `,
+      prisma.$queryRaw<{ month: string; total: number }[]>`
+        SELECT
+          TO_CHAR(b."createdAt", 'YYYY-MM') AS month,
+          COUNT(*)::int AS total
+        FROM board_schema."Board" b
+        JOIN board_schema."FieldValue" status_fv ON status_fv."recordId" = b."id"
+        JOIN board_schema."Field" status_f ON status_f."id" = status_fv."fieldId"
+        WHERE b."organizationId" = ${organizationId}
+          AND b."moduleType" = 'REFERRAL'
+          AND b."isDeleted" = false
+          AND status_f."fieldName" = 'Status'
+          AND status_f."moduleType" = 'REFERRAL'
+          AND status_f."isDeleted" = false
+          AND status_fv."value" IN ('Rejected', 'Denied')
+          ${dateFilter}
+        GROUP BY month
+        ORDER BY month ASC;
+      `,
+    ]);
+
+    const totalDenials = reasons.reduce((sum, r) => sum + r.count, 0);
+
+    return {
+      reasons: reasons.map((r) => ({
+        reason: r.denial_reason,
+        count: r.count,
+      })),
+      monthlyTrend: monthlyTrend.map((r) => ({
+        month: r.month,
+        total: r.total,
+      })),
+      totalDenials,
+    };
   }
 
   // 🔹 Combine All Metrics
@@ -398,9 +542,9 @@ export class AnalyticsService {
     const cachedData = await redis.get(
       `analytics:${organizationId}:${startDate}:${endDate}`
     );
-    if (cachedData) {
-      return JSON.parse(cachedData);
-    }
+    // if (cachedData) {
+    //   return JSON.parse(cachedData);
+    // }
     const [
       totalCounts,
       statusBreakdown,
@@ -414,6 +558,8 @@ export class AnalyticsService {
       payers,
       discharge,
       outreach,
+      scorecard,
+      denials,
     ] = await Promise.all([
       this.getTotalCounts(organizationId, startDate, endDate),
       this.getStatusBreakdown(organizationId, startDate, endDate),
@@ -427,6 +573,8 @@ export class AnalyticsService {
       this.getPayerMix(organizationId, startDate, endDate),
       this.getOutreachImpact(organizationId, startDate, endDate),
       this.getEmergingSources(organizationId, startDate, endDate),
+      this.getReferralSourceScorecard(organizationId, startDate, endDate),
+      this.getDenialTracking(organizationId, startDate, endDate),
     ]);
 
     const result = {
@@ -442,6 +590,8 @@ export class AnalyticsService {
       payers,
       discharge,
       outreach,
+      scorecard,
+      denials,
     };
 
     redis.set(

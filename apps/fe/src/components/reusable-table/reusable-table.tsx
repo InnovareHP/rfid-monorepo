@@ -68,7 +68,7 @@ import {
   getOutlookStatus,
   sendBulkEmail,
 } from "../../services/lead/lead-service";
-import Loader from "../loader";
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import AddRow from "./add-row";
 
 type Props<T> = {
@@ -87,6 +87,8 @@ type Props<T> = {
   totalPages: number;
   currentPage: number;
   setCurrentPage: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
 };
 
 const ReusableTable = <T extends { id: string }>({
@@ -104,6 +106,8 @@ const ReusableTable = <T extends { id: string }>({
   totalPages,
   currentPage,
   setCurrentPage,
+  pageSize,
+  onPageSizeChange,
 }: Props<T>) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -201,12 +205,12 @@ const ReusableTable = <T extends { id: string }>({
   return (
     <>
       {hasSelected && (
-        <div className="flex items-center gap-3 m-4 p-4 bg-blue-50 border-2 border-blue-400 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300">
+        <div className="flex items-center gap-3 m-4 p-4 bg-primary/10 border-2 border-primary/50 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shadow-sm">
               {selectedIds.length}
             </div>
-            <span className="text-sm font-semibold text-blue-900">
+            <span className="text-sm font-semibold text-foreground">
               {selectedIds.length === 1 ? "item" : "items"} selected
             </span>
           </div>
@@ -215,7 +219,7 @@ const ReusableTable = <T extends { id: string }>({
               variant="ghost"
               size="sm"
               onClick={handleClearSelection}
-              className="h-9 hover:bg-blue-100 text-blue-700 hover:text-blue-900"
+              className="h-9 hover:bg-primary/15 text-primary hover:text-foreground"
             >
               <X className="h-4 w-4 mr-1" />
               Clear
@@ -225,7 +229,7 @@ const ReusableTable = <T extends { id: string }>({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 bg-white hover:bg-blue-50 border-blue-400"
+                  className="h-9 bg-white hover:bg-primary/10 border-primary/50"
                   aria-label="More Options"
                 >
                   <MoreHorizontalIcon className="h-4 w-4 mr-1" />
@@ -254,11 +258,6 @@ const ReusableTable = <T extends { id: string }>({
       <Card className="border border-gray-300 shadow-md">
         <CardContent className="relative p-0">
           <ScrollArea className="relative w-full">
-            <Loader
-              isLoading={isFetchingList && totalRows === 0}
-              text="Loading data..."
-            />
-
             <Table
               className="border border-gray-300 table-fixed"
               style={{ width: table.getCenterTotalSize() }}
@@ -267,15 +266,27 @@ const ReusableTable = <T extends { id: string }>({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
                     key={headerGroup.id}
-                    className="border-b-2 border-gray-300 bg-blue-50"
+                    className="border-b-2 border-gray-300 bg-primary/10"
                   >
-                    {headerGroup.headers.map((header) => (
+                    {headerGroup.headers.map((header, headerIndex) => {
+                      const stickyLeft = headerIndex < 2;
+                      const leftOffset =
+                        headerIndex === 1
+                          ? (headerGroup.headers[0]?.getSize() ?? 0)
+                          : 0;
+                      return (
                       <TableHead
-                        className="text-blue-900 text-center font-semibold border-r border-gray-300 last:border-r-0 py-4 text-sm tracking-wide relative group/header overflow-visible"
+                        className={cn(
+                          "text-foreground text-center font-semibold border-r border-gray-300 last:border-r-0 py-4 text-sm tracking-wide relative group/header overflow-visible sticky top-0 bg-primary/10",
+                          stickyLeft ? "z-30" : "z-20"
+                        )}
                         key={header.id}
                         style={{
                           width: header.getSize(),
                           maxWidth: header.getSize(),
+                          ...(stickyLeft
+                            ? { position: "sticky", left: leftOffset }
+                            : {}),
                         }}
                       >
                         <div className="overflow-hidden text-ellipsis">
@@ -294,20 +305,41 @@ const ReusableTable = <T extends { id: string }>({
                             className={cn(
                               "absolute -right-1 top-0 h-full w-2 cursor-col-resize select-none touch-none z-50",
                               header.column.getIsResizing()
-                                ? "bg-blue-600"
+                                ? "bg-primary"
                                 : "opacity-0 group-hover/header:opacity-100 bg-gray-400"
                             )}
                             style={{ touchAction: "none" }}
                           />
                         )}
                       </TableHead>
-                    ))}
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableHeader>
 
               <TableBody>
-                {isError ? (
+                {isFetchingList && totalRows === 0 ? (
+                  Array.from({ length: 8 }).map((_, rowIdx) => (
+                    <TableRow
+                      key={`skeleton-${rowIdx}`}
+                      className={cn(
+                        "border-b border-gray-300",
+                        rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      )}
+                    >
+                      {table.getAllLeafColumns().map((col) => (
+                        <TableCell
+                          key={col.id}
+                          style={{ width: col.getSize(), maxWidth: col.getSize() }}
+                          className="border-r border-gray-300 last:border-r-0 px-6 py-4"
+                        >
+                          <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : isError ? (
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
@@ -328,27 +360,41 @@ const ReusableTable = <T extends { id: string }>({
                     </TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row, index) => (
+                  table.getRowModel().rows.map((row, index) => {
+                    const cells = row.getVisibleCells();
+                    const col0Width = cells[0]?.column.getSize() ?? 0;
+                    const rowBg = row.getIsSelected()
+                      ? "bg-primary/15"
+                      : index % 2 === 0
+                        ? "bg-white"
+                        : "bg-gray-50";
+                    return (
                     <TableRow
                       className={cn(
-                        "border-b border-gray-300 hover:bg-blue-50/50 transition-all duration-150 group w-full",
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50",
-                        row.getIsSelected() &&
-                          "bg-blue-100 hover:bg-blue-100 border-blue-400"
+                        "border-b border-gray-300 transition-all duration-150 group w-full",
+                        rowBg,
+                        row.getIsSelected() && "border-primary/50"
                       )}
                       key={row.id}
                       data-selected={row.getIsSelected()}
                     >
-                      {row.getVisibleCells().map((cell, cellIndex) => (
+                      {cells.map((cell, cellIndex) => {
+                        const stickyLeft = cellIndex < 2;
+                        const leftOffset = cellIndex === 1 ? col0Width : 0;
+                        return (
                         <TableCell
                           key={cell.id}
                           style={{
                             width: cell.column.getSize(),
                             maxWidth: cell.column.getSize(),
+                            ...(stickyLeft
+                              ? { position: "sticky", left: leftOffset, zIndex: 10 }
+                              : {}),
                           }}
                           className={cn(
                             "border-r border-gray-300 last:border-r-0 px-6 py-4 text-sm overflow-hidden text-ellipsis",
-                            cellIndex === 0 && "font-medium text-gray-900"
+                            cellIndex === 0 && "font-medium text-gray-900",
+                            stickyLeft && rowBg
                           )}
                         >
                           {flexRender(
@@ -356,9 +402,11 @@ const ReusableTable = <T extends { id: string }>({
                             cell.getContext()
                           )}
                         </TableCell>
-                      ))}
+                        );
+                      })}
                     </TableRow>
-                  ))
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell
@@ -366,9 +414,9 @@ const ReusableTable = <T extends { id: string }>({
                       className="text-center py-20 bg-gray-50 border-t border-gray-300"
                     >
                       <div className="flex flex-col items-center gap-4">
-                        <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                        <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center border-2 border-primary/30">
                           <svg
-                            className="h-10 w-10 text-blue-600"
+                            className="h-10 w-10 text-primary"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -423,9 +471,31 @@ const ReusableTable = <T extends { id: string }>({
             </div>
           )}
 
-          <div className="flex items-center justify-between p-4 bg-blue-50 border-t-2 border-gray-300">
+          <div className="flex items-center justify-between p-4 bg-primary/10 border-t-2 border-gray-300">
             <div className="flex items-center gap-3">
               <AddRow isReferral={isReferral} onAdd={onAdd} />
+              {onPageSizeChange && (
+                <div className="flex items-center gap-2">
+                  <span className="hidden text-sm text-muted-foreground whitespace-nowrap sm:inline">
+                    Rows per page
+                  </span>
+                  <Select
+                    value={String(pageSize ?? 10)}
+                    onValueChange={(v) => onPageSizeChange(Number(v))}
+                  >
+                    <SelectTrigger className="h-8 w-[72px] bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[10, 25, 50, 100].map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2 text-sm">
@@ -524,8 +594,8 @@ const ReusableTable = <T extends { id: string }>({
           >
             <DialogContent className="max-w-lg">
               <DialogHeader className="space-y-3">
-                <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <MailIcon className="h-6 w-6 text-blue-600" />
+                <div className="mx-auto h-12 w-12 rounded-full bg-primary/15 flex items-center justify-center">
+                  <MailIcon className="h-6 w-6 text-primary" />
                 </div>
                 <DialogTitle className="text-center text-xl">
                   Send Email

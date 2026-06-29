@@ -98,7 +98,16 @@ export function StatusSelect({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors hover:brightness-95"
+            style={
+              val
+                ? {
+                    backgroundColor: `${currentColor}1a`,
+                    borderColor: `${currentColor}40`,
+                    color: currentColor,
+                  }
+                : undefined
+            }
           >
             <span
               className="h-2.5 w-2.5 rounded-full shrink-0"
@@ -107,7 +116,7 @@ export function StatusSelect({
             <span className="truncate max-w-[100px]">
               {val || "Select status"}
             </span>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
           </button>
         </PopoverTrigger>
 

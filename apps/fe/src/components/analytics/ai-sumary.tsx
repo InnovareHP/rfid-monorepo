@@ -61,8 +61,8 @@ function renderAIContent(content: any): React.ReactNode {
     return (
       <div className="ml-2 space-y-4">
         {Object.entries(content).map(([key, value]) => (
-          <div key={key} className="bg-white/50 rounded-lg p-3 border border-blue-100">
-            <h4 className="font-bold text-sm text-blue-900 mb-2">{formatKey(key)}</h4>
+          <div key={key} className="bg-white/50 rounded-lg p-3 border border-primary/15">
+            <h4 className="font-bold text-sm text-foreground mb-2">{formatKey(key)}</h4>
             <div className="ml-2">{renderAIContent(value)}</div>
           </div>
         ))}
@@ -98,10 +98,10 @@ export default function AiSummary({
   }
 
   return (
-    <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-50 shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="border-b bg-gradient-to-r from-blue-100 to-blue-50">
+    <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-white to-primary/10 shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="border-b bg-gradient-to-r from-primary/20 to-primary/10">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-600">
+          <div className="p-2 rounded-lg bg-primary">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <CardTitle className="text-xl font-bold text-gray-900">
@@ -114,8 +114,8 @@ export default function AiSummary({
         {/* Loading */}
         {isLoadingSummary && !summary && (
           <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent" />
-            <p className="text-sm text-blue-700 font-medium">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-primary font-medium">
               Analyzing your analytics data and generating insights...
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function AiSummary({
             {isLong && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors mt-4 group"
+                className="flex items-center gap-2 text-primary hover:text-primary font-semibold text-sm transition-colors mt-4 group"
               >
                 {expanded ? (
                   <>

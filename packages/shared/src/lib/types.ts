@@ -70,6 +70,18 @@ export type MemberSession = {
   activeOrganizationId: string;
 };
 
+export type SessionMember = {
+  id: string;
+  role: string;
+  organizationId: string;
+};
+
+export type SessionContext = {
+  member: SessionMember | null;
+  organization: Organization | null;
+  subscription: Subscription | null;
+};
+
 export type LeadRow = {
   id: string;
   lead_name: string;
@@ -172,6 +184,8 @@ export type AnalyticsResponse = {
   outreach: OutreachAnalytics[];
   payers: PayerAnalytics[];
   sources: SourceAnalytics[];
+  scorecard: ReferralSourceScore[];
+  denials: DenialAnalytics;
   analytics: string;
 };
 
@@ -248,6 +262,29 @@ export type DischargeAnalytics = {
 export type OutreachAnalytics = {
   facility: string | null;
   recent_referrals: number;
+};
+
+export type ReferralSourceScore = {
+  sourceName: string;
+  referralCount: number;
+  tier: "Tier 1" | "Tier 2" | "Infrequent";
+  referralsPerWeek: number;
+};
+
+export type DenialReasonAnalytics = {
+  reason: string;
+  count: number;
+};
+
+export type DenialTrendAnalytics = {
+  month: string;
+  total: number;
+};
+
+export type DenialAnalytics = {
+  reasons: DenialReasonAnalytics[];
+  monthlyTrend: DenialTrendAnalytics[];
+  totalDenials: number;
 };
 
 export type OptionsResponse = {

@@ -176,11 +176,11 @@ export default function IntegrationPage() {
   }, [queryClient, search?.outlook_calendar, search?.message]);
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-blue-50/20 to-gray-50">
-      <div className="sticky top-0 z-50 border-b-2 border-blue-200 bg-white shadow-md">
+    <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-primary/5 to-gray-50">
+      <div className="sticky top-0 z-50 border-b-2 border-primary/30 bg-white shadow-md">
         <div className="mx-auto max-w-7xl p-6 sm:p-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-lg">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary shadow-lg">
               <PlugZap className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -205,11 +205,11 @@ export default function IntegrationPage() {
           {/* ---- Email Tab ---- */}
           <TabsContent value="email" className="mt-0">
             <Card className="border-2 border-gray-300 shadow-sm">
-              <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
+              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
                 <div className="flex items-center gap-2">
-                  <Link className="h-5 w-5 text-blue-600" />
+                  <Link className="h-5 w-5 text-primary" />
                   <div>
-                    <CardTitle className="text-blue-900">Connected Accounts</CardTitle>
+                    <CardTitle className="text-foreground">Connected Accounts</CardTitle>
                     <CardDescription>
                       Connect external email accounts to enhance your workflow
                     </CardDescription>
@@ -228,7 +228,7 @@ export default function IntegrationPage() {
                       {gmailStatusQuery.data?.connected ? (
                         <p className="text-sm text-gray-600">
                           Connected as{" "}
-                          <span className="font-medium text-blue-600">
+                          <span className="font-medium text-primary">
                             {gmailStatusQuery.data.email}
                           </span>
                         </p>
@@ -266,7 +266,7 @@ export default function IntegrationPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-blue-300 hover:bg-blue-50"
+                        className="border-primary/40 hover:bg-primary/10"
                         onClick={() => connectGmailMutation.mutate()}
                         disabled={connectGmailMutation.isPending || gmailStatusQuery.isLoading}
                       >
@@ -285,15 +285,15 @@ export default function IntegrationPage() {
 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50">
-                      <Mail className="h-6 w-6 text-blue-500" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-primary/30 bg-primary/10">
+                      <Mail className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">Outlook</p>
                       {outlookStatusQuery.data?.connected ? (
                         <p className="text-sm text-gray-600">
                           Connected as{" "}
-                          <span className="font-medium text-blue-600">
+                          <span className="font-medium text-primary">
                             {outlookStatusQuery.data.email}
                           </span>
                         </p>
@@ -331,7 +331,7 @@ export default function IntegrationPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-blue-300 hover:bg-blue-50"
+                        className="border-primary/40 hover:bg-primary/10"
                         onClick={() => connectOutlookMutation.mutate()}
                         disabled={
                           connectOutlookMutation.isPending || outlookStatusQuery.isLoading
@@ -354,11 +354,11 @@ export default function IntegrationPage() {
           {/* ---- Calendar Tab ---- */}
           <TabsContent value="calendar" className="mt-0">
             <Card className="border-2 border-gray-300 shadow-sm">
-              <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
+              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <Calendar className="h-5 w-5 text-primary" />
                   <div>
-                    <CardTitle className="text-blue-900">
+                    <CardTitle className="text-foreground">
                       Calendar Integrations
                     </CardTitle>
                     <CardDescription>
@@ -371,15 +371,15 @@ export default function IntegrationPage() {
                 {/* Google Calendar */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50">
-                      <Calendar className="h-6 w-6 text-blue-500" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-primary/30 bg-primary/10">
+                      <Calendar className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">Google Calendar</p>
                       {calendarStatusQuery.data?.google.connected ? (
                         <p className="text-sm text-gray-600">
                           Connected as{" "}
-                          <span className="font-medium text-blue-600">
+                          <span className="font-medium text-primary">
                             {calendarStatusQuery.data.google.email}
                           </span>
                         </p>
@@ -417,7 +417,7 @@ export default function IntegrationPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-blue-300 hover:bg-blue-50"
+                        className="border-primary/40 hover:bg-primary/10"
                         onClick={() => connectGoogleCalendarMutation.mutate()}
                         disabled={
                           connectGoogleCalendarMutation.isPending ||
@@ -440,15 +440,15 @@ export default function IntegrationPage() {
                 {/* Outlook Calendar */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50">
-                      <Calendar className="h-6 w-6 text-blue-600" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-primary/30 bg-primary/10">
+                      <Calendar className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">Outlook Calendar</p>
                       {calendarStatusQuery.data?.outlook.connected ? (
                         <p className="text-sm text-gray-600">
                           Connected as{" "}
-                          <span className="font-medium text-blue-600">
+                          <span className="font-medium text-primary">
                             {calendarStatusQuery.data.outlook.email}
                           </span>
                         </p>
@@ -486,7 +486,7 @@ export default function IntegrationPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-blue-300 hover:bg-blue-50"
+                        className="border-primary/40 hover:bg-primary/10"
                         onClick={() => connectOutlookCalendarMutation.mutate()}
                         disabled={
                           connectOutlookCalendarMutation.isPending ||

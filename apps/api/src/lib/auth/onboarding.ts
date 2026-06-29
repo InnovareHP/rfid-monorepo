@@ -26,8 +26,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
   const referralFieldData = [
     ["Referral Date", BoardFieldType.DATE],
     ["County", BoardFieldType.DROPDOWN],
-    ["Facility", BoardFieldType.TEXT],
-    ["Contact", BoardFieldType.TEXT],
+    ["Facility", BoardFieldType.REFERRAL_LINK],
     ["Number", BoardFieldType.PHONE],
     ["Patient Name", BoardFieldType.PERSON],
     ["Date of Birth", BoardFieldType.DATE],
@@ -73,10 +72,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
     "Admission Type": ["Emergency", "Routine", "Transfer"],
   };
 
-  const statusOptionsMap: Record<
-    string,
-    { name: string; color: string }[]
-  > = {
+  const statusOptionsMap: Record<string, { name: string; color: string }[]> = {
     Status: [
       { name: "Pending", color: "#eab308" },
       { name: "Admitted", color: "#22c55e" },

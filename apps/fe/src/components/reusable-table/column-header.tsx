@@ -78,14 +78,14 @@ export function ColumnHeader({
         <DropdownMenuTrigger asChild>
           <Button
             variant={"ghost"}
-            className="flex justify-between w-full gap-1 hover:text-blue-700 transition-colors cursor-pointer select-none " 
+            className="flex justify-between w-full gap-1 hover:text-primary transition-colors cursor-pointer select-none " 
           >
             <span>{columnName}</span>
             {isActive && currentOrder === "asc" && (
-              <ArrowUpAZ className="h-3.5 w-3.5 text-blue-600" />
+              <ArrowUpAZ className="h-3.5 w-3.5 text-primary" />
             )}
             {isActive && currentOrder === "desc" && (
-              <ArrowDownAZ className="h-3.5 w-3.5 text-blue-600" />
+              <ArrowDownAZ className="h-3.5 w-3.5 text-primary" />
             )}
             {!isActive && <ChevronDown className="h-3.5 w-3.5 opacity-50" />}
           </Button>
@@ -93,14 +93,14 @@ export function ColumnHeader({
         <DropdownMenuContent align="start" className="w-44">
           <DropdownMenuItem
             onClick={() => handleSort("asc")}
-            className={currentOrder === "asc" ? "bg-blue-50" : ""}
+            className={currentOrder === "asc" ? "bg-primary/10" : ""}
           >
             <ArrowUpAZ className="h-4 w-4 mr-2" />
             Sort A to Z
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => handleSort("desc")}
-            className={currentOrder === "desc" ? "bg-blue-50" : ""}
+            className={currentOrder === "desc" ? "bg-primary/10" : ""}
           >
             <ArrowDownAZ className="h-4 w-4 mr-2" />
             Sort Z to A

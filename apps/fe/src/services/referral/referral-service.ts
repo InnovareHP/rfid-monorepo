@@ -85,13 +85,15 @@ export const updateReferral = async (
   referralId: string,
   fieldId: string,
   value: string,
-  reason: string | undefined
+  reason: string | undefined,
+  previousValue?: string
 ) => {
   const response = await axiosClient.patch(`/api/boards/${referralId}`, {
     value,
     fieldId,
     reason,
     moduleType: "REFERRAL",
+    previousValue,
   });
 
   return response.data;

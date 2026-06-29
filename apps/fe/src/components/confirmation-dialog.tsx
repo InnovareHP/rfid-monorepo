@@ -84,7 +84,7 @@ export function ConfirmationDialog({
             variant={variant === "destructive" ? "destructive" : "default"}
             className={cn(
               variant === "default" &&
-                "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                "bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90"
             )}
           >
             {confirmText}

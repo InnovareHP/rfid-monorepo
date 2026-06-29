@@ -163,7 +163,7 @@ export class GmailService {
       return true;
     } catch (error) {
       this.logger.error(
-        `Gmail send failed for user ${userId}, falling back to Resend`,
+        `Gmail send failed for user ${userId}, falling back to SES`,
         error
       );
 

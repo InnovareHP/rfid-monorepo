@@ -1,134 +1,148 @@
 model Field {
-  id              String            @id @default(uuid())
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  fieldName       String
-  fieldOrder      Int
-  fieldType       BoardFieldType
-  moduleType      String            @default("LEAD")
-  isDeleted       Boolean           @default(false)
+  id         String         @id @default(uuid())
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  fieldName  String
+  fieldOrder Int
+  fieldType  BoardFieldType
+  moduleType ModuleType     @default(LEAD)
+  isDeleted  Boolean        @default(false)
 
-  organizationId  String
-  organization    Organization      @relation(fields: [organizationId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  options         FieldOption[]
-  values          FieldValue[]
+  options FieldOption[]
+  values  FieldValue[]
 
+  @@index([organizationId, moduleType, isDeleted, fieldOrder])
   @@schema("board_schema")
-  @@index([fieldName])
 }
 
 model Board {
-  id              String            @id @default(uuid())
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  recordName      String
-  assignedTo      String?
-  isDeleted       Boolean           @default(false)
-  moduleType      String            @default("LEAD")
+  id         String     @id @default(uuid())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  recordName String
+  assignedTo String?
+  isDeleted  Boolean    @default(false)
+  moduleType ModuleType @default(LEAD)
 
-  organizationId  String
-  organization    Organization      @relation(fields: [organizationId], references: [id])
-  assignedUser    User?             @relation(fields: [assignedTo], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedUser   User?        @relation(fields: [assignedTo], references: [id])
 
-  values          FieldValue[]
-  history         History[]
-  notifications   BoardNotificationState[]
-  activities      Activity[]
+  values            FieldValue[]
+  history           History[]
+  notifications     BoardNotificationState[]
+  activities        Activity[]
+  relationsAsSource BoardRelation[]          @relation("RelationSource")
+  relationsAsTarget BoardRelation[]          @relation("RelationTarget")
 
-  @@schema("board_schema")
   @@index([organizationId, recordName])
+  @@index([organizationId, moduleType, isDeleted, createdAt])
+  @@index([assignedTo])
+  @@schema("board_schema")
 }
 
 model FieldValue {
-  id         String       @id @default(uuid())
-  recordId   String
-  fieldId    String
-  value      String?
+  id             String  @id @default(uuid())
+  recordId       String
+  fieldId        String
+  value          String?
+  organizationId String?
 
-  field      Field  @relation(fields: [fieldId], references: [id])
-  record     Board @relation(fields: [recordId], references: [id])
+  field        Field                   @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  record       Board                   @relation(fields: [recordId], references: [id], onDelete: Cascade)
   contactValue FieldPersonInformation?
 
   @@unique([recordId, fieldId])
+  @@index([recordId])
+  @@index([fieldId, value])
+  @@index([organizationId])
   @@schema("board_schema")
 }
 
 model FieldOption {
-  id             String      @id @default(uuid())
+  id             String  @id @default(uuid())
   optionName     String
   color          String?
-  isDeleted      Boolean     @default(false)
+  isDeleted      Boolean @default(false)
   fieldId        String
-  field          Field @relation(fields: [fieldId], references: [id])
+  organizationId String?
+  field          Field   @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
+  @@index([fieldId])
+  @@index([organizationId])
   @@schema("board_schema")
 }
 
 model History {
-  id         String       @id @default(uuid())
-  recordId   String
-  oldValue   String?
-  newValue   String?
-  column     String?
-  action     String
-  createdAt  DateTime     @default(now())
-  createdBy  String?
+  id             String   @id @default(uuid())
+  recordId       String
+  oldValue       String?
+  newValue       String?
+  column         String?
+  action         String
+  createdAt      DateTime @default(now())
+  createdBy      String?
+  organizationId String?
 
-  record     Board @relation(fields: [recordId], references: [id])
-  user       User? @relation(fields: [createdBy], references: [id])
+  record Board @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  user   User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
+  @@index([recordId, createdAt])
+  @@index([organizationId])
   @@schema("board_schema")
 }
 
 model FieldPersonInformation {
-  id String @id @default(uuid())
+  id            String @id @default(uuid())
   contactNumber String
-  email     String
-  address   String
+  email         String
+  address       String
 
   fieldValueId String @unique
 
-  fieldvalue FieldValue @relation(fields: [fieldValueId], references: [id])
+  fieldvalue FieldValue @relation(fields: [fieldValueId], references: [id], onDelete: Cascade)
 
   @@schema("board_schema")
 }
 
 model BoardNotificationState {
-  id         String   @id @default(uuid())
-  recordId   String   @unique
-  lastSeen   DateTime
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  recordId  String   @unique
+  lastSeen  DateTime
+  updatedAt DateTime @updatedAt
 
-  record Board       @relation(fields: [recordId], references: [id])
+  record Board @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
   @@schema("board_schema")
 }
 
 model BoardCounty {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
-  countyName String
-  organizationId String
+  id                    String                  @id @default(uuid())
+  createdAt             DateTime                @default(now())
+  countyName            String
+  organizationId        String
   boardCountyAssignedTo BoardCountyAssignedTo[]
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  @@schema("board_schema")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@index([organizationId])
+  @@schema("board_schema")
 }
 
 model BoardCountyAssignedTo {
-  id String @id @default(uuid())
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  createdAt  DateTime @default(now())
   assignedTo String
 
   boardCountyId String
-  boardCounty BoardCounty @relation(fields: [boardCountyId], references: [id])
-  @@schema("board_schema")
+  boardCounty   BoardCounty @relation(fields: [boardCountyId], references: [id], onDelete: Cascade)
+
   @@index([boardCountyId])
+  @@schema("board_schema")
 }
-
-
 
 enum ActivityType {
   CALL
@@ -148,60 +162,92 @@ enum ActivityStatus {
 }
 
 model Activity {
-  id              String             @id @default(uuid())
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  title           String
-  description     String?
-  activityType    ActivityType
-  status          ActivityStatus     @default(PENDING)
-  dueDate         DateTime?
-  completedAt     DateTime?
-  recipientEmail  String?
-  emailSubject    String?
-  emailBody       String?
-  emailSentAt     DateTime?
-  senderEmail     String?
+  id             String         @id @default(uuid())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  title          String
+  description    String?
+  activityType   ActivityType
+  status         ActivityStatus @default(PENDING)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  recipientEmail String?
+  emailSubject   String?
+  emailBody      String?
+  emailSentAt    DateTime?
+  senderEmail    String?
 
-  recordId        String
-  record          Board              @relation(fields: [recordId], references: [id])
+  recordId String
+  record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
-  createdBy       String
-  creator         User               @relation(fields: [createdBy], references: [id])
+  createdBy String
+  creator   User   @relation(fields: [createdBy], references: [id])
 
-  organizationId  String
-  organization    Organization       @relation(fields: [organizationId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@schema("board_schema")
   @@index([recordId])
   @@index([organizationId])
   @@index([dueDate])
+  @@schema("board_schema")
 }
 
 model GmailToken {
-  id              String     @id @default(uuid())
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  userId          String     @unique
-  user            User       @relation(fields: [userId], references: [id])
-  accessToken     String
-  refreshToken    String
-  tokenExpiry     DateTime
-  gmailAddress    String
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String
+  refreshToken String
+  tokenExpiry  DateTime
+  gmailAddress String
 
   @@schema("board_schema")
 }
 
 model OutlookToken {
-  id              String     @id @default(uuid())
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  userId          String     @unique
-  user            User       @relation(fields: [userId], references: [id])
-  accessToken     String
-  refreshToken    String
-  tokenExpiry     DateTime
-  outlookEmail    String
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String
+  refreshToken String
+  tokenExpiry  DateTime
+  outlookEmail String
+
+  @@schema("board_schema")
+}
+
+model BoardRelation {
+  id             String       @id @default(uuid())
+  createdAt      DateTime     @default(now())
+  sourceId       String
+  targetId       String
+  relationType   RelationType @default(REFERRAL_LINK)
+  organizationId String?
+
+  source Board @relation("RelationSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Board @relation("RelationTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, relationType])
+  @@index([sourceId])
+  @@index([targetId])
+  @@index([organizationId])
+  @@schema("board_schema")
+}
+
+enum ModuleType {
+  LEAD
+  REFERRAL
+
+  @@schema("board_schema")
+}
+
+enum RelationType {
+  REFERRAL_LINK
+  FACILITY_LINK
 
   @@schema("board_schema")
 }
@@ -219,6 +265,7 @@ enum BoardFieldType {
   TIMELINE
   MULTISELECT
   ASSIGNED_TO
+  REFERRAL_LINK
   PERSON
 
   @@schema("board_schema")

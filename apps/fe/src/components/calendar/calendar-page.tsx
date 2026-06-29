@@ -104,12 +104,12 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30">
+    <div className="flex flex-col gap-4 h-full min-h-screen bg-gradient-to-br from-slate-50 via-primary/5 to-primary/5">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-blue-100 bg-white/80 backdrop-blur-sm px-4 sm:px-6 py-4">
+      <div className="sticky top-0 z-20 border-b border-primary/15 bg-white/80 backdrop-blur-sm px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary shadow-md">
               <Calendar className="size-5 text-white" />
             </div>
             <div>
@@ -127,7 +127,7 @@ export function CalendarPage() {
                   )}
                   {connectionStatus?.outlook.connected && (
                     <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <span className="inline-block size-2.5 rounded-full bg-[#0078d4] ring-2 ring-blue-100" />
+                      <span className="inline-block size-2.5 rounded-full bg-[#0078d4] ring-2 ring-primary/15" />
                       <span>Outlook</span>
                     </div>
                   )}
@@ -139,7 +139,7 @@ export function CalendarPage() {
             {hasConnection && (
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
+                className="bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 shadow-md"
                 onClick={() => {
                   setDefaultEventDate(new Date());
                   setShowCreateEvent(true);
@@ -156,8 +156,8 @@ export function CalendarPage() {
       {/* Calendar or empty state */}
       {!hasConnection ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground px-4">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 shadow-inner">
-            <Calendar className="size-10 text-blue-400 stroke-[1.5]" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/15 shadow-inner">
+            <Calendar className="size-10 text-primary/50 stroke-[1.5]" />
           </div>
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-800">
@@ -170,7 +170,7 @@ export function CalendarPage() {
           </div>
           <Button
             asChild
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
+            className="bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 shadow-md"
           >
             <Link
               to="/$team/integrations"
@@ -183,10 +183,10 @@ export function CalendarPage() {
           </Button>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 relative mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden">
+        <div className="flex-1 min-h-0 relative mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-xl border border-primary/15 bg-white shadow-sm overflow-hidden">
           {eventsLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-10">
-              <Loader2 className="size-6 animate-spin text-blue-400" />
+              <Loader2 className="size-6 animate-spin text-primary/50" />
             </div>
           )}
           <FullCalendar

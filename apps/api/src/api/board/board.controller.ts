@@ -137,6 +137,26 @@ export class BoardController {
     }
   }
 
+  @Get("/records")
+  async getRecords(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string,
+    @Query("page") page = 1,
+    @Query("limit") limit = 50
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.getRecords(
+        organizationId,
+        moduleType || "LEAD",
+        Number(page),
+        Number(limit)
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/column")
   async getColumns(
     @Session() session: AuthenticatedSession,
@@ -332,8 +352,6 @@ export class BoardController {
       throw new BadRequestException(error.message);
     }
   }
-
-  // ─── POST ─────────────────────────────────────────────────────────────
 
   @Post()
   async createRecord(
@@ -552,8 +570,6 @@ export class BoardController {
     }
   }
 
-  // ─── PATCH ────────────────────────────────────────────────────────────
-
   @Patch("/activities/:activityId")
   async updateActivity(
     @Param("activityId") activityId: string,
@@ -608,7 +624,8 @@ export class BoardController {
         organizationId,
         session.session.userId,
         dto.moduleType,
-        dto.reason
+        dto.reason,
+        dto.previousValue
       );
     } catch (error) {
       throw new BadRequestException(error.message);

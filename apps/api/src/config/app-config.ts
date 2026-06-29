@@ -7,7 +7,18 @@ export const appConfigSchema = z.object({
   APP_NAME: z.string().default("auth-service"),
   APP_EMAIL: z.string(),
   REDIS_URL: z.url(),
-  RESEND_API_KEY: z.string().min(1),
+  AWS_REGION: z.string().min(1).default("us-east-1"),
+  AWS_ACCESS_KEY_ID: z.string().min(1),
+  AWS_SECRET_ACCESS_KEY: z.string().min(1),
+  SES_FROM_EMAIL: z.string().min(1),
+  BEDROCK_MODEL_ID: z
+    .string()
+    .min(1)
+    .default("anthropic.claude-3-5-sonnet-20241022-v2:0"),
+  BEDROCK_VISION_MODEL_ID: z
+    .string()
+    .min(1)
+    .default("anthropic.claude-3-5-sonnet-20241022-v2:0"),
 
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   LOG_SERVICE: z.string().default("auth"),
@@ -33,6 +44,10 @@ export const appConfigSchema = z.object({
   JWT_SECRET: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.url(),
+  ENCRYPTION_KEY: z
+    .string()
+    .min(1, "ENCRYPTION_KEY required (base64 of 32 random bytes)"),
+  AI_SCRUB_PHI: z.coerce.boolean().default(false),
   GEOCODIFY_API_KEY: z.string().min(1),
   GOOGLE_PLACES_API_KEY: z.string().min(1),
 

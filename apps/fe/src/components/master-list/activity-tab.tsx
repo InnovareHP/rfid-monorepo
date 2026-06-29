@@ -58,13 +58,13 @@ const activityTypeConfig = {
   CALL: {
     icon: Phone,
     label: "Call",
-    color: "from-blue-500 to-cyan-600",
-    badge: "bg-blue-50 text-blue-700 border-blue-300",
+    color: "from-primary to-primary",
+    badge: "bg-primary/10 text-primary border-primary/40",
   },
   EMAIL: {
     icon: Mail,
     label: "Email",
-    color: "from-purple-500 to-indigo-600",
+    color: "from-primary to-primary",
     badge: "bg-purple-50 text-purple-700 border-purple-300",
   },
   MEETING: {

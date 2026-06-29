@@ -1,131 +1,131 @@
 model User {
-  id                  String              @id
-  name                String
-  email               String              @unique
-  emailVerified       Boolean
-  image               String?
-  createdAt           DateTime            @db.Timestamptz(3)
-  updatedAt           DateTime            @db.Timestamptz(3)
-  banExpires          DateTime?           @db.Timestamptz(3)
-  isActive            Boolean             @default(false)
-  stripeCustomerId    String?
-  twoFactorEnabled    Boolean?
-  isOnboarded         Boolean             @default(false)
-  role                String              @default("user")
-  banReason           String?
-  banned              Boolean             @default(false)
-  invitations         Invitation[]
-  members             Member[]
-  accounts            UserAccount[]
-  onboarding          UserOnboarding?
-  Board               Board[]
-  History             History[]
+  id               String          @id
+  name             String
+  email            String          @unique
+  emailVerified    Boolean
+  image            String?
+  createdAt        DateTime        @db.Timestamptz(3)
+  updatedAt        DateTime        @db.Timestamptz(3)
+  banExpires       DateTime?       @db.Timestamptz(3)
+  isActive         Boolean         @default(false)
+  stripeCustomerId String?
+  twoFactorEnabled Boolean?
+  isOnboarded      Boolean         @default(false)
+  role             String          @default("user")
+  banReason        String?
+  banned           Boolean         @default(false)
+  invitations      Invitation[]
+  members          Member[]
+  accounts         UserAccount[]
+  onboarding       UserOnboarding?
+  Board            Board[]
+  History          History[]
 
-  SupportTicket SupportTicket[] @relation("SupportTicketCreateBy")
-  SupportTicketAssignedTo SupportTicket[] @relation("SupportTicketAssignedTo")
-  SupportLiveChat SupportLiveChat[] @relation("SupportLiveChatSender")
-  SupportTicketMessage SupportTicketMessage[] @relation("SupportTicketMessageSender")
-  SupportLiveChatMessage SupportLiveChatMessage[] @relation("SupportLiveChatMessageSender")
+  SupportTicket             SupportTicket[]             @relation("SupportTicketCreateBy")
+  SupportTicketAssignedTo   SupportTicket[]             @relation("SupportTicketAssignedTo")
+  SupportLiveChat           SupportLiveChat[]           @relation("SupportLiveChatSender")
+  SupportTicketMessage      SupportTicketMessage[]      @relation("SupportTicketMessageSender")
+  SupportLiveChatMessage    SupportLiveChatMessage[]    @relation("SupportLiveChatMessageSender")
   SupportLiveChatAttachment SupportLiveChatAttachment[] @relation("SupportLiveChatAttachmentSender")
-  SupportHistory SupportHistory[] @relation("SupportHistorySender")
-  SupportTicketRating SupportTicketRating[] @relation("SupportTicketRatingCreatedBy")
-  AdminActivityLogAdmin   AdminActivityLog[] @relation("AdminActivityLogAdmin")
-  AdminActivityLogTarget  AdminActivityLog[] @relation("AdminActivityLogTarget")
-  Activity                Activity[]
-  GmailToken              GmailToken?
-  OutlookToken            OutlookToken?
-  GoogleCalendarToken     GoogleCalendarToken?
-  OutlookCalendarToken    OutlookCalendarToken?
-  ManualArticle           ManualArticle[] @relation("ManualArticleCreatedBy")
+  SupportHistory            SupportHistory[]            @relation("SupportHistorySender")
+  SupportTicketRating       SupportTicketRating[]       @relation("SupportTicketRatingCreatedBy")
+  AdminActivityLogAdmin     AdminActivityLog[]          @relation("AdminActivityLogAdmin")
+  AdminActivityLogTarget    AdminActivityLog[]          @relation("AdminActivityLogTarget")
+  Activity                  Activity[]
+  GmailToken                GmailToken?
+  OutlookToken              OutlookToken?
+  GoogleCalendarToken       GoogleCalendarToken?
+  OutlookCalendarToken      OutlookCalendarToken?
+  ManualArticle             ManualArticle[]             @relation("ManualArticleCreatedBy")
 
   @@schema("auth_schema")
 }
 
 model UserAccount {
-  id                    String     @id
-  accountId             String
-  providerId            String
-  userId                String
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?  @db.Timestamptz(3)
-  scope                 String?
-  password              String?
-  createdAt             DateTime   @db.Timestamptz(3)
-  updatedAt             DateTime   @db.Timestamptz(3)
-  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String    @id
+  accountId            String
+  providerId           String
+  userId               String
+  accessToken          String?
+  refreshToken         String?
+  idToken              String?
+  accessTokenExpiresAt DateTime? @db.Timestamptz(3)
+  scope                String?
+  password             String?
+  createdAt            DateTime  @db.Timestamptz(3)
+  updatedAt            DateTime  @db.Timestamptz(3)
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@schema("auth_schema")
 }
 
 model UserOnboarding {
-  id             String     @id @default(uuid())
-  userId         String     @unique
-  hearAbout      String
-  howToUse       String
-  whatToExpect   String
-  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  hearAbout    String
+  howToUse     String
+  whatToExpect String
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@schema("auth_schema")
 }
 
 model Verification {
-  id             String    @id
-  identifier     String
-  value          String
-  expiresAt      DateTime  @db.Timestamptz(3)
-  createdAt      DateTime? @db.Timestamptz(3)
-  updatedAt      DateTime? @db.Timestamptz(3)
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime  @db.Timestamptz(3)
+  createdAt  DateTime? @db.Timestamptz(3)
+  updatedAt  DateTime? @db.Timestamptz(3)
 
   @@schema("auth_schema")
 }
 
 model Organization {
-  id             String             @id
-  name           String
-  slug           String?            @unique
-  logo           String?
-  createdAt      DateTime
-  metadata       String?
+  id        String   @id
+  name      String
+  slug      String?  @unique
+  logo      String?
+  createdAt DateTime
+  metadata  String?
 
-  invitations    Invitation[]
-  members        Member[]
-  Board          Board[]
-  Field          Field[]
-  BoardCounty    BoardCounty[]
-  Activity       Activity[]
+  invitations Invitation[]
+  members     Member[]
+  Board       Board[]
+  Field       Field[]
+  BoardCounty BoardCounty[]
+  Activity    Activity[]
 
   @@schema("auth_schema")
 }
 
 model Member {
-  id                  String             @id
-  organizationId      String
-  userId              String
-  role                String
-  createdAt           DateTime
-  organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  marketing           Marketing[]
-  mileage             Mileage[]
-  expense             Expense[]
+  id             String       @id
+  organizationId String
+  userId         String
+  role           String
+  createdAt      DateTime
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketing      Marketing[]
+  mileage        Mileage[]
+  expense        Expense[]
 
   @@schema("auth_schema")
 }
 
 model Invitation {
-  id                    String             @id
-  organizationId        String
-  email                 String
-  role                  String?
-  status                String
-  createdAt             DateTime           @default(now())
-  expiresAt             DateTime
-  inviterId             String
-  user                  User               @relation(fields: [inviterId], references: [id], onDelete: Cascade)
-  organization          Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id
+  organizationId String
+  email          String
+  role           String?
+  status         String
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@schema("auth_schema")
 }
@@ -141,17 +141,47 @@ enum AdminAction {
   @@schema("auth_schema")
 }
 
+model AuditLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  actorUserId    String?
+  actorOrgId     String?
+  actorRole      String?
+  actorIp        String?
+  actorUserAgent String?
+
+  action       String
+  resourceType String?
+  resourceId   String?
+
+  method     String?
+  path       String?
+  statusCode Int?
+  durationMs Int?
+  requestId  String?
+
+  changeHash String?
+  metadata   Json?
+
+  @@index([actorUserId, createdAt])
+  @@index([actorOrgId, createdAt])
+  @@index([resourceType, resourceId])
+  @@index([action, createdAt])
+  @@schema("auth_schema")
+}
+
 model AdminActivityLog {
-  id              String       @id @default(uuid())
-  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
-  adminId         String
-  action          AdminAction
-  targetUserId    String?
-  targetOrgId     String?
-  details         String?
-  ipAddress       String?
-  adminUser       User         @relation("AdminActivityLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
-  targetUser      User?        @relation("AdminActivityLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  id           String      @id @default(uuid())
+  createdAt    DateTime    @default(now()) @db.Timestamptz(3)
+  adminId      String
+  action       AdminAction
+  targetUserId String?
+  targetOrgId  String?
+  details      String?
+  ipAddress    String?
+  adminUser    User        @relation("AdminActivityLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  targetUser   User?       @relation("AdminActivityLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
 
   @@schema("auth_schema")
 }
