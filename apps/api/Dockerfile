@@ -1,5 +1,5 @@
 FROM node:22-slim AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 WORKDIR /app
 
 ENV NODE_ENV=production

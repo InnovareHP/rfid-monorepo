@@ -1,3 +1,16 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "@swc/core"
+  - "@nestjs/core"
+  - bcrypt
+  - esbuild
+  - prisma
+  - protobufjs
+  - sharp
+  - "@scarf/scarf"
+  - msgpackr-extract
