@@ -1,5 +1,5 @@
 FROM node:22-slim AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
@@ -16,6 +16,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 # Optimize: Remove openssl install - already in deps stage, not needed here
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
@@ -23,7 +24,7 @@ COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_module
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
-RUN pnpm --filter shared build \
+RUN pnpm --filter @dashboard/shared build \
     && pnpm --filter api prisma:generate \
     && pnpm --filter api build
 
@@ -33,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 WORKDIR /app
 
 ENV NODE_ENV=production
