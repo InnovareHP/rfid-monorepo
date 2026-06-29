@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { applyBrandColor } from "@/lib/color-utils";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
 import { formatCapitalize, ROLES } from "@dashboard/shared";
 import {
@@ -328,10 +329,10 @@ const TeamPage = () => {
   const saveBrandColor = useCallback(
     debounce(async (color: string) => {
       try {
-        const metadata = JSON.stringify({
+        const metadata = {
           ...currentMetadata,
           brandColor: color,
-        });
+        };
         await authClient.organization.update({
           organizationId: organizationData?.id,
           data: { metadata },
@@ -346,6 +347,7 @@ const TeamPage = () => {
 
   const handleBrandColorChange = (color: string) => {
     setBrandColor(color);
+    applyBrandColor(color);
     saveBrandColor(color);
   };
 
@@ -467,7 +469,7 @@ const TeamPage = () => {
                       onClick={handleLogoClick}
                       className={`relative w-16 h-16 rounded-full bg-transparent overflow-hidden border-2 border-gray-200 ${
                         memberData?.role === ROLES.OWNER
-                          ? "cursor-pointer hover:border-blue-500 transition-all"
+                          ? "cursor-pointer hover:border-primary transition-all"
                           : ""
                       }`}
                     >
@@ -595,8 +597,8 @@ const TeamPage = () => {
                     {teamStats.totalMembers ?? 0}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <Users className="w-6 h-6 text-blue-600" />
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <Users className="w-6 h-6 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -813,7 +815,7 @@ const TeamPage = () => {
               <Card className="shadow-lg border-0">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Mail className="w-5 h-5 text-blue-600" />
+                    <Mail className="w-5 h-5 text-primary" />
                     <span>Pending Invitations</span>
                     <Badge variant="secondary">{invitations?.length}</Badge>
                   </CardTitle>

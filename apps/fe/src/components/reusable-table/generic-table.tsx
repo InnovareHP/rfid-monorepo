@@ -76,7 +76,7 @@ export function ReusableTable<T>({
       <ScrollArea>
         <Table className="border-0">
           <TableHeader>
-            <TableRow className="border-b-2 border-gray-300 bg-blue-50 hover:bg-blue-50">
+            <TableRow className="border-b-2 border-gray-300 bg-primary/5 hover:bg-primary/5">
               {columns.map((col, idx) => (
                 <TableHead
                   key={idx}

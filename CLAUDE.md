@@ -107,5 +107,6 @@ File-based routing in `apps/fe/src/routes/`:
 - No Redux or other state libraries — TanStack Query for server state, React context/useState for UI state
 - shadcn/ui components live in `apps/fe/src/components/ui/`; feature components in domain folders
 - Tests colocated next to source files as `*.test.tsx`
+- Avoid comments and follow the claude.md of each file
 - Toast notifications via `sonner`
 - Node >=18 required

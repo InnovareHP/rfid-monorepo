@@ -31,6 +31,7 @@ const OnBoardingPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedUsage, setSelectedUsage] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [primaryColor, setPrimaryColor] = useState("#3b82f6");
 
   const { data: session, refetch } = useSession();
 
@@ -189,6 +190,7 @@ const OnBoardingPage = () => {
           slug: toSlug(data.organizationName.trim()),
           metadata: {
             user_id: session?.user?.id,
+            brandColor: primaryColor,
           },
           logo: logoUrl,
           userId: session?.user?.id,
@@ -284,6 +286,8 @@ const OnBoardingPage = () => {
                   isSubmitting={isSubmitting}
                   logoFile={logoFile}
                   onLogoChange={setLogoFile}
+                  primaryColor={primaryColor}
+                  onColorChange={setPrimaryColor}
                 />
               </motion.div>
             )}

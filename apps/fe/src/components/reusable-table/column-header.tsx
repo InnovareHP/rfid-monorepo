@@ -78,7 +78,7 @@ export function ColumnHeader({
         <DropdownMenuTrigger asChild>
           <Button
             variant={"ghost"}
-            className="flex justify-between w-full gap-1 hover:text-blue-700 transition-colors cursor-pointer select-none"
+            className="flex justify-between w-full gap-1 hover:text-blue-700 transition-colors cursor-pointer select-none " 
           >
             <span>{columnName}</span>
             {isActive && currentOrder === "asc" && (

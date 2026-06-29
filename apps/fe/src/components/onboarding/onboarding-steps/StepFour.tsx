@@ -2,19 +2,32 @@ import { Button } from "@dashboard/ui/components/button";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@dashboard/ui/components/avatar";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Check, Loader2 } from "lucide-react";
 import { useRef } from "react";
 import type { UseFormRegister } from "react-hook-form";
 import { type FormValues } from "../onboarding";
+
+const PRESET_COLORS = [
+  { name: "Blue", hex: "#3b82f6" },
+  { name: "Green", hex: "#22c55e" },
+  { name: "Purple", hex: "#a855f7" },
+  { name: "Orange", hex: "#f97316" },
+  { name: "Red", hex: "#ef4444" },
+  { name: "Teal", hex: "#14b8a6" },
+  { name: "Pink", hex: "#ec4899" },
+  { name: "Indigo", hex: "#6366f1" },
+];
 
 type StepFourProps = {
   register: UseFormRegister<FormValues>;
   isSubmitting: boolean;
   logoFile: File | null;
   onLogoChange: (file: File | null) => void;
+  primaryColor: string;
+  onColorChange: (color: string) => void;
 };
 
-const StepFour = ({ register, isSubmitting, logoFile, onLogoChange }: StepFourProps) => {
+const StepFour = ({ register, isSubmitting, logoFile, onLogoChange, primaryColor, onColorChange }: StepFourProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +84,51 @@ const StepFour = ({ register, isSubmitting, logoFile, onLogoChange }: StepFourPr
           className="focus-visible:ring-primary"
           {...register("organizationName", { required: true })}
         />
+      </div>
+
+      <div className="max-w-md mx-auto space-y-2">
+        <Label>Brand Color</Label>
+        <div className="flex flex-wrap gap-2">
+          {PRESET_COLORS.map((preset) => (
+            <button
+              key={preset.hex}
+              type="button"
+              onClick={() => onColorChange(preset.hex)}
+              className="w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center"
+              style={{
+                backgroundColor: preset.hex,
+                borderColor: primaryColor === preset.hex ? preset.hex : "transparent",
+                outline: primaryColor === preset.hex ? `2px solid ${preset.hex}` : "none",
+                outlineOffset: "2px",
+              }}
+              title={preset.name}
+            >
+              {primaryColor === preset.hex && (
+                <Check className="w-4 h-4 text-white" />
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3 pt-1">
+          <input
+            type="color"
+            value={primaryColor}
+            onChange={(e) => onColorChange(e.target.value)}
+            className="w-9 h-9 rounded-lg border-2 border-gray-200 cursor-pointer"
+          />
+          <Input
+            value={primaryColor}
+            onChange={(e) => onColorChange(e.target.value)}
+            className="w-28 font-mono text-sm"
+            maxLength={7}
+          />
+          <div
+            className="h-8 px-3 rounded-md text-white text-xs font-medium flex items-center"
+            style={{ backgroundColor: primaryColor }}
+          >
+            Preview
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-center">
