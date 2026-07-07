@@ -26,9 +26,12 @@ function App() {
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const data = await queryClient.fetchQuery({
+    const data = await queryClient.ensureQueryData({
       queryKey: ["session"],
       queryFn: () => authClient.getSession().then((r: any) => r.data),
+      staleTime: 5 * 60 * 1000,
+      gcTime: 60 * 60 * 1000,
+      revalidateIfStale: true,
     });
 
     return {
