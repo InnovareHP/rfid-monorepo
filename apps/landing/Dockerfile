@@ -22,7 +22,8 @@ COPY apps/landing/ ./apps/landing/
 RUN cd apps/landing && npx astro build
 
 FROM nginx:alpine AS production
-COPY apps/landing/nginx.conf /etc/nginx/conf.d/default.conf
+ENV PORT=3002
+COPY apps/landing/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/apps/landing/dist /usr/share/nginx/html
 
 EXPOSE 3002
