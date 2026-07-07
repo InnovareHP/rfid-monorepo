@@ -1,7 +1,6 @@
 import { authClient } from "@/lib/auth-client";
 import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -26,11 +25,8 @@ import type { ErrorContext } from "better-auth/react";
 import {
   HeadphonesIcon,
   LayoutDashboard,
+  LayoutGrid,
   Loader2,
-  Lock,
-  Mail,
-  TrendingUp,
-  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -41,6 +37,14 @@ type PendingNav = {
   activeOrganizationId: string | null | undefined;
   role: string;
 };
+
+function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M21.35 11.1H12v3.2h5.38c-.5 2.5-2.62 3.9-5.38 3.9a5.95 5.95 0 1 1 0-11.9c1.52 0 2.9.56 3.98 1.48l2.4-2.4A9.53 9.53 0 0 0 12 2.75a9.25 9.25 0 1 0 0 18.5c4.63 0 9.15-3.37 9.35-10.15Z" />
+    </svg>
+  );
+}
 
 export function LoginForm({
   className,
@@ -125,197 +129,158 @@ export function LoginForm({
 
   return (
     <>
-      <div className={cn("gap-0 p-4", className)} {...props}>
-        <div className="flex items-stretch w-full overflow-hidden rounded-2xl shadow-xl">
-          {/* Left Side - Image background + text */}
-          <div className="hidden lg:block relative lg:w-3/5 min-h-[28rem]">
-            {/* Background image - slightly dimmed so overlay and text stand out */}
-            <div
-              className="absolute inset-0 bg-cover bg-center brightness-95"
-              style={{ backgroundImage: "url(/login-page/login-img-2.jpg)" }}
-              aria-hidden
+      <div className={cn("gap-0 p-0 lg:p-4", className)} {...props}>
+        <div className="flex items-stretch w-full lg:gap-6 lg:min-h-[42rem]">
+          {/* Left Side - Design image */}
+          <div className="hidden lg:block lg:w-1/2 overflow-hidden rounded-3xl shadow-xl">
+            <img
+              src="/login-page/Inner.png"
+              alt="See every referral. Track every opportunity."
+              className="h-full w-full object-cover"
             />
-            {/* Gradient overlay: lighter at top so image shows, darker at bottom for text readability */}
-            <div
-              className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/30 to-black/75"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute top-10 left-1/2 h-64 w-[32rem] -translate-x-1/2 rounded-full bg-white/30 blur-3xl"
-              aria-hidden
-            />
-            {/* Content */}
-            <div className="relative z-10 flex flex-col justify-center h-full p-10 text-white">
-              <div className="flex flex-col gap-0 space-y-10 [text-shadow:_0_1px_2px_rgba(0,0,0,0.3)]">
-                <div className="flex flex-col gap-0">
-                  <img
-                    src="/login-page/rfid.png"
-                    alt="Innovare HP Referral Intelligence"
-                    className="w-full h-auto object-contain max-h-52 brightness-110 contrast-125 saturate-125 drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
-                  />
-                  <p className="text-xl text-white leading-relaxed mt-4">
-                    Streamline your healthcare marketing and analytics
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
-                      <TrendingUp className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-white mb-2 text-lg">
-                        Advanced Analytics
-                      </h3>
-                      <p className="text-white/95 leading-relaxed">
-                        Track performance metrics and gain actionable insights
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
-                      <Users className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-white mb-2 text-lg">
-                        Team Collaboration
-                      </h3>
-                      <p className="text-white/95 leading-relaxed">
-                        Work seamlessly with your team across all locations
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Side - Login Form */}
-          <div className="w-full lg:w-2/5">
-            <Card className="border-2 border-l-0 lg:border-l-2 shadow-none rounded-none lg:rounded-r-2xl h-full flex flex-col justify-center">
-              <CardContent className="p-8">
-                <Form {...form}>
-                  <form
-                    className="space-y-6"
-                    onSubmit={form.handleSubmit(handleLogin)}
-                  >
-                    <div className="space-y-2 text-center">
-                      <img
-                        src="/login-page/tarsier.png"
-                        alt=""
-                        className="w-16 h-16 mx-auto mb-4 object-contain"
-                      />
-                      <h2 className="text-3xl font-bold text-gray-900">
-                        Welcome back
-                      </h2>
-                      <p className="text-gray-600">
-                        Sign in to your account to continue
-                      </p>
-                    </div>
+          <div className="w-full lg:w-1/2 min-h-svh lg:min-h-0 rounded-none lg:rounded-3xl shadow-none lg:shadow-xl bg-gradient-to-b from-blue-900 via-blue-600 to-sky-300 lg:bg-gradient-to-br lg:from-sky-200 lg:via-blue-100 lg:to-blue-200 flex flex-col items-center justify-center gap-10 px-4 py-12 sm:px-8 lg:p-12">
+            <img
+              src="/login-page/Refidly%20[Full]%20-%20White%201.png"
+              alt="Refidly — See it. Track it. Move it."
+              className="w-44 sm:w-52 lg:hidden"
+            />
+            <div className="w-full max-w-md rounded-2xl bg-gradient-to-b from-white to-blue-50 shadow-lg p-6 sm:p-10">
+              <Form {...form}>
+                <form
+                  className="space-y-6"
+                  onSubmit={form.handleSubmit(handleLogin)}
+                >
+                  <div className="space-y-1 text-center">
+                    <h2 className="text-3xl font-bold text-blue-900">
+                      Welcome back!
+                    </h2>
+                    <p className="text-gray-600">
+                      Sign in to your account to continue.
+                    </p>
+                  </div>
 
-                    <div className="space-y-5">
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-semibold text-gray-700">
-                              Email Address
+                  <div className="space-y-5">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-gray-900">
+                            Email Address
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="m@example.com"
+                              className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between mb-2">
+                            <FormLabel className="text-sm font-medium text-gray-900">
+                              Password
                             </FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <Input
-                                  {...field}
-                                  placeholder="you@example.com"
-                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between mb-2">
-                              <FormLabel className="text-sm font-semibold text-gray-700">
-                                Password
-                              </FormLabel>
-                              <Link
-                                to="/reset-password"
-                                className="text-xs font-medium text-primary hover:text-primary transition-colors"
-                              >
-                                Forgot password?
-                              </Link>
-                            </div>
-                            <FormControl>
-                              <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <Input
-                                  {...field}
-                                  placeholder="••••••••"
-                                  type="password"
-                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button
-                        disabled={form.formState.isSubmitting}
-                        type="submit"
-                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
-                      >
-                        {form.formState.isSubmitting ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>Signing in...</span>
+                            <Link
+                              to="/reset-password"
+                              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                            >
+                              Forgot password?
+                            </Link>
                           </div>
-                        ) : (
-                          "Sign In"
-                        )}
-                      </Button>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="password"
+                              className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <div className="text-center text-sm text-gray-600 pt-4">
-                        Don't have an account?{" "}
-                        <Link
-                          to="/register"
-                          className="font-semibold text-primary hover:text-primary transition-colors"
-                        >
-                          Sign up for free
-                        </Link>
-                      </div>
+                    <Button
+                      disabled={form.formState.isSubmitting}
+                      type="submit"
+                      className="w-full h-11 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+                    >
+                      {form.formState.isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Signing in...</span>
+                        </div>
+                      ) : (
+                        "Sign In"
+                      )}
+                    </Button>
+
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-gray-300" aria-hidden />
+                      <span className="text-xs font-medium tracking-wider text-gray-500 whitespace-nowrap">
+                        OR CONTINUE WITH
+                      </span>
+                      <div className="h-px flex-1 bg-gray-300" aria-hidden />
                     </div>
-                  </form>
-                </Form>
-                <div className="mt-6 text-center text-xs text-gray-500">
-                  By continuing, you agree to our{" "}
-                  <a
-                    href="#"
-                    className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
-                  >
-                    Terms of Service
-                  </a>{" "}
-                  and{" "}
-                  <a
-                    href="#"
-                    className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
-                  >
-                    Privacy Policy
-                  </a>
-                  .
-                </div>
-              </CardContent>
-            </Card>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        aria-label="Continue with Google"
+                        className="flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
+                      >
+                        <GoogleIcon className="w-5 h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="More sign-in options"
+                        className="flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
+                      >
+                        <LayoutGrid className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="text-center text-sm text-gray-600 pt-2">
+                      Don't have an account?{" "}
+                      <Link
+                        to="/register"
+                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                      >
+                        Sign up for free.
+                      </Link>
+                    </div>
+                  </div>
+                </form>
+              </Form>
+              <div className="mt-8 text-center text-xs text-gray-500">
+                By continuing, you agree to our{" "}
+                <a
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                >
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </div>
+            </div>
           </div>
         </div>
       </div>
