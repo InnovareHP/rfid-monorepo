@@ -34,6 +34,14 @@ export const getLeads = async (filters: any) => {
   return response.data;
 };
 
+export const getLeadColumnOptions = async () => {
+  const response = await axiosClient.get("/api/boards/column", {
+    params: { moduleType: "LEAD" },
+  });
+
+  return response.data;
+};
+
 export const getColumnOptions = async (moduleType?: string) => {
   const response = await axiosClient.get(`/api/boards/options`, {
     params: {

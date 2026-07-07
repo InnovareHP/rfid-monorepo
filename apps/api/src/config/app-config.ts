@@ -11,14 +11,8 @@ export const appConfigSchema = z.object({
   AWS_ACCESS_KEY_ID: z.string().min(1),
   AWS_SECRET_ACCESS_KEY: z.string().min(1),
   SES_FROM_EMAIL: z.string().min(1),
-  BEDROCK_MODEL_ID: z
-    .string()
-    .min(1)
-    .default("anthropic.claude-3-5-sonnet-20241022-v2:0"),
-  BEDROCK_VISION_MODEL_ID: z
-    .string()
-    .min(1)
-    .default("anthropic.claude-3-5-sonnet-20241022-v2:0"),
+  BEDROCK_MODEL_ID: z.string().min(1).default("amazon.nova-micro-v1:0"),
+  BEDROCK_VISION_MODEL_ID: z.string().min(1).default("amazon.nova-lite-v1:0"),
 
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   LOG_SERVICE: z.string().default("auth"),

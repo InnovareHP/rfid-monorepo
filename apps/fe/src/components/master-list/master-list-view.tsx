@@ -120,19 +120,19 @@ export function MasterListView({
     initialPageParam: 1,
   });
 
-  const { fieldTypes, fieldIds, entries } = useMemo(() => {
-    const columns = data?.columns ?? [];
-    const formattedData = data?.data ?? {};
-    const fieldTypes: Record<string, string> = {};
-    const fieldIds: Record<string, string> = {};
-    columns.forEach((col: { name: string; type: string; id: string }) => {
-      fieldTypes[col.name] = col.type;
-      fieldIds[col.name] = col.id;
-    });
+  const { detailColumns, record } = useMemo(() => {
+    const columns = (data?.columns ?? []) as {
+      id: string;
+      name: string;
+      type: string;
+    }[];
     return {
-      fieldTypes,
-      fieldIds,
-      entries: Object.entries(formattedData) as [string, unknown][],
+      detailColumns: columns.filter(
+        (col) =>
+          col.name !== "History" &&
+          !["TIMELINE", "REFERRAL_LINK"].includes(col.type)
+      ),
+      record: (data?.data ?? {}) as Record<string, unknown>,
     };
   }, [data]);
 
@@ -195,19 +195,22 @@ export function MasterListView({
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-          {/* Custom Header with Gradient */}
-          <div className="px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/10 via-primary/10 to-purple-50">
+          <div className="px-6 pt-6 pb-5 border-b bg-gray-50">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary shadow-lg">
-                  <Building2 className="h-5 w-5 text-white" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                  <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <DialogTitle className="text-xl font-bold text-gray-900">
-                    {isReferral ? "Referral Details" : "Organization Details"}
+                  <DialogTitle className="text-xl font-semibold text-gray-900">
+                    {serializeValue(record.recordName) !== "—"
+                      ? String(record.recordName)
+                      : isReferral
+                        ? "Referral Details"
+                        : "Facility Details"}
                   </DialogTitle>
-                  <p className="text-sm text-gray-600 mt-0.5 font-medium">
-                    Complete organization information
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {isReferral ? "Referral" : "Facility"} record
                   </p>
                 </div>
               </div>
@@ -215,7 +218,7 @@ export function MasterListView({
               {data?.data.Status && (
                 <Badge
                   variant="outline"
-                  className="bg-emerald-100 text-emerald-700 border-emerald-300 flex items-center gap-1.5 font-semibold px-3 py-1.5 shadow-sm"
+                  className="bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1.5 font-medium px-3 py-1.5"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   {data.data.Status}
@@ -256,7 +259,7 @@ export function MasterListView({
               }
               className="w-full"
             >
-              <div className="px-6 border-b bg-gradient-to-r from-gray-50 to-slate-50">
+              <div className="px-6 border-b bg-gray-50">
                 <TabsList className="bg-transparent border-b-0">
                   <TabsTrigger
                     value="details"
@@ -293,41 +296,35 @@ export function MasterListView({
               </div>
 
               <TabsContent value="details" className="mt-0">
-                <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {entries
-                      .filter(
-                        ([key]) =>
-                          !["History", "Timeline", "id"].some((substr) =>
-                            key.includes(substr)
-                          )
-                      )
-                      .map(([key, rawValue]) => {
-                        const value = serializeValue(rawValue);
-                        const type = fieldTypes[key] ?? "TEXT";
-                        const fieldId = fieldIds[key] ?? "";
-
-                        return (
-                          <div
-                            key={key}
-                            className="group rounded-xl border-2 border-gray-200 hover:border-primary/40 p-4 hover:shadow-lg transition-all bg-gradient-to-br from-white to-gray-50"
-                          >
-                            <div className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-2">
-                              <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
-                              {key.split("_").join(" ")}
-                            </div>
-
+                <ScrollArea className="h-[calc(90vh-240px)]">
+                  <div className="px-6 py-4">
+                    <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 bg-white">
+                      {detailColumns.map((col) => (
+                        <div
+                          key={col.id}
+                          className="flex items-start gap-4 px-4 py-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="w-44 shrink-0 pt-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            {col.name}
+                          </div>
+                          <div className="flex-1 min-w-0 text-sm">
                             <EditableCell
                               id={leadId}
-                              fieldKey={fieldId}
-                              fieldName={key}
-                              value={value}
-                              type={type}
-                              isReferral
+                              fieldKey={col.id}
+                              fieldName={col.name}
+                              value={serializeValue(record[col.name] ?? "")}
+                              type={col.type}
+                              isReferral={isReferral}
                             />
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
+                      {detailColumns.length === 0 && (
+                        <p className="px-4 py-8 text-sm text-muted-foreground text-center">
+                          No fields configured yet.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </ScrollArea>
               </TabsContent>
@@ -519,7 +516,7 @@ export function MasterListView({
             </Tabs>
           )}
 
-          <DialogFooter className="px-6 py-4 bg-gradient-to-r from-gray-50 to-slate-50 border-t">
+          <DialogFooter className="px-6 py-4 bg-gray-50 border-t">
             <Button
               variant="outline"
               onClick={() => setOpen?.(false)}

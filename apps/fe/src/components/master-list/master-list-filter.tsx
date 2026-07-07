@@ -42,6 +42,7 @@ export function MasterListFilters({
   // Staging area for filters (not applied until user clicks Apply)
   const [pendingFilters, setPendingFilters] = useState<any>({
     filter: {},
+    recordName: "",
     dateFrom: null,
     dateTo: null,
   });
@@ -102,6 +103,13 @@ export function MasterListFilters({
         },
       };
 
+      const recordNameFilter = pendingFilters.recordName?.trim();
+      if (recordNameFilter) {
+        newFilters.search = recordNameFilter;
+      } else if (filterMeta.search && pendingFilters.recordName === "") {
+        delete newFilters.search;
+      }
+
       if (isExpense) {
         newFilters.filter.expenseDateFrom = pendingFilters.dateFrom;
         newFilters.filter.expenseDateTo = pendingFilters.dateTo;
@@ -140,7 +148,12 @@ export function MasterListFilters({
 
     setFilterMeta(baseReset);
     setSearchValue("");
-    setPendingFilters({ filter: {}, dateFrom: null, dateTo: null });
+    setPendingFilters({
+      filter: {},
+      recordName: "",
+      dateFrom: null,
+      dateTo: null,
+    });
     refetch();
     toast.info("Filters refreshed");
   };
@@ -161,7 +174,12 @@ export function MasterListFilters({
 
     setFilterMeta(baseReset);
     setSearchValue("");
-    setPendingFilters({ filter: {}, dateFrom: null, dateTo: null });
+    setPendingFilters({
+      filter: {},
+      recordName: "",
+      dateFrom: null,
+      dateTo: null,
+    });
     toast.info("Filters reset");
   };
 
@@ -353,7 +371,16 @@ export function MasterListFilters({
             }
           />
 
-          <Button variant="outline" onClick={() => setIsSheetOpen(true)}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setPendingFilters((prev: any) => ({
+                ...prev,
+                recordName: filterMeta?.search ?? "",
+              }));
+              setIsSheetOpen(true);
+            }}
+          >
             More Filters
           </Button>
 
@@ -372,10 +399,27 @@ export function MasterListFilters({
             </SheetHeader>
 
             <div className="mt-6 space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">
+                  {isReferral ? "Referral Name" : "Facility"}
+                </label>
+                <Input
+                  placeholder={`Filter by ${isReferral ? "referral name" : "facility"}`}
+                  value={pendingFilters.recordName ?? ""}
+                  onChange={(e) =>
+                    setPendingFilters((prev: any) => ({
+                      ...prev,
+                      recordName: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
               {columns && columns.length > 0 ? (
                 columns
-                  .filter((col) =>
-                    ["TEXT", "EMAIL", "PHONE", "DROPDOWN"].includes(col.type)
+                  .filter(
+                    (col) =>
+                      !["TIMELINE", "ASSIGNED_TO"].includes(col.type)
                   )
                   .map((col) => (
                     <div key={col.id || col.name} className="space-y-2">
@@ -403,6 +447,7 @@ export function MasterListFilters({
                 onClick={() => {
                   setPendingFilters({
                     filter: {},
+                    recordName: "",
                     dateFrom: null,
                     dateTo: null,
                   });

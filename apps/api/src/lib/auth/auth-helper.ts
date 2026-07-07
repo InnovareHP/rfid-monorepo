@@ -33,6 +33,32 @@ export const beforeSessionCreate = async (session: {
   };
 };
 
+export interface ResolvedSessionMembership {
+  role: string | null;
+  memberId: string | null;
+  activeOrganizationId: string | null;
+}
+
+export const resolveSessionMembership = async (
+  userId: string,
+  activeOrganizationId?: string | null
+): Promise<ResolvedSessionMembership> => {
+  const member = await prisma.member.findFirst({
+    where: {
+      userId,
+      ...(activeOrganizationId ? { organizationId: activeOrganizationId } : {}),
+    },
+    select: { id: true, organizationId: true, role: true },
+  });
+
+  return {
+    role: member?.role ?? null,
+    memberId: member?.id ?? null,
+    activeOrganizationId:
+      member?.organizationId ?? activeOrganizationId ?? null,
+  };
+};
+
 export const customSessionHandler = async ({
   user,
   session,
@@ -40,19 +66,37 @@ export const customSessionHandler = async ({
   user: Record<string, any>;
   session: Record<string, any>;
 }) => {
-  const activeOrganizationId = session.activeOrganizationId as
-    | string
-    | undefined;
+  const membership = await resolveSessionMembership(
+    user.id,
+    (session as { activeOrganizationId?: string }).activeOrganizationId
+  );
+
+  const activeOrganizationId = membership.activeOrganizationId;
+  const mergedSession = {
+    ...session,
+    ...membership,
+    memberRole: membership.role,
+  };
 
   if (!activeOrganizationId) {
-    return { user, session, member: null, organization: null, subscription: null };
+    return {
+      user,
+      session: mergedSession,
+      member: null,
+      organization: null,
+      subscription: null,
+    };
   }
 
-  const [member, organization, subscription] = await Promise.all([
-    prisma.member.findFirst({
-      where: { userId: user.id, organizationId: activeOrganizationId },
-      select: { id: true, role: true, organizationId: true },
-    }),
+  const member = membership.memberId
+    ? {
+        id: membership.memberId,
+        role: membership.role,
+        organizationId: activeOrganizationId,
+      }
+    : null;
+
+  const [organization, subscription] = await Promise.all([
     prisma.organization.findFirst({
       where: { id: activeOrganizationId },
       select: {
@@ -72,7 +116,7 @@ export const customSessionHandler = async ({
     }),
   ]);
 
-  return { user, session, member, organization, subscription };
+  return { user, session: mergedSession, member, organization, subscription };
 };
 
 export const beforeSessionUpdate = async (
@@ -80,7 +124,7 @@ export const beforeSessionUpdate = async (
 ) => {
   const member = await prisma.member.findFirst({
     where: {
-      id: session.userId,
+      userId: session.userId,
       organizationId: session.activeOrganizationId,
     },
     select: { organizationId: true, role: true, id: true },

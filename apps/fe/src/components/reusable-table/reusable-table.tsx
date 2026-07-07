@@ -78,8 +78,9 @@ type Props<T> = {
   onLoadMore: () => void;
   hasMore: boolean;
   setActivePage: () => void;
-  onAdd: (value: string) => void;
   onDelete: (ids: string[]) => void;
+  onRowOpen?: (id: string) => void;
+  totalCount?: number;
   isReferral?: boolean;
   emptyMessage?: string;
   errorMessage?: string;
@@ -97,8 +98,9 @@ const ReusableTable = <T extends { id: string }>({
   isFetchingList,
   onLoadMore,
   hasMore = false,
-  onAdd,
   onDelete,
+  onRowOpen,
+  totalCount,
   isReferral = false,
   emptyMessage = "No data found.",
   errorMessage = "Failed to load data. Please try again.",
@@ -255,18 +257,18 @@ const ReusableTable = <T extends { id: string }>({
           </div>
         </div>
       )}
-      <Card className="border border-gray-300 shadow-md">
+      <Card className="border border-gray-200 shadow-sm py-0 gap-0 overflow-hidden">
         <CardContent className="relative p-0">
-          <ScrollArea className="relative w-full">
+          <ScrollArea className="relative w-full max-h-[calc(100vh-260px)]">
             <Table
-              className="border border-gray-300 table-fixed"
-              style={{ width: table.getCenterTotalSize() }}
+              className="table-fixed w-full"
+              style={{ minWidth: table.getCenterTotalSize() }}
             >
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
                     key={headerGroup.id}
-                    className="border-b-2 border-gray-300 bg-primary/10"
+                    className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50"
                   >
                     {headerGroup.headers.map((header, headerIndex) => {
                       const stickyLeft = headerIndex < 2;
@@ -277,7 +279,7 @@ const ReusableTable = <T extends { id: string }>({
                       return (
                       <TableHead
                         className={cn(
-                          "text-foreground text-center font-semibold border-r border-gray-300 last:border-r-0 py-4 text-sm tracking-wide relative group/header overflow-visible sticky top-0 bg-primary/10",
+                          "text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground border-r border-gray-200 last:border-r-0 px-4 py-3 relative group/header overflow-visible sticky top-0 bg-gray-50",
                           stickyLeft ? "z-30" : "z-20"
                         )}
                         key={header.id}
@@ -323,16 +325,13 @@ const ReusableTable = <T extends { id: string }>({
                   Array.from({ length: 8 }).map((_, rowIdx) => (
                     <TableRow
                       key={`skeleton-${rowIdx}`}
-                      className={cn(
-                        "border-b border-gray-300",
-                        rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                      )}
+                      className="border-b border-gray-200 bg-white"
                     >
                       {table.getAllLeafColumns().map((col) => (
                         <TableCell
                           key={col.id}
                           style={{ width: col.getSize(), maxWidth: col.getSize() }}
-                          className="border-r border-gray-300 last:border-r-0 px-6 py-4"
+                          className="border-r border-gray-200 last:border-r-0 px-4 py-3"
                         >
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -360,23 +359,33 @@ const ReusableTable = <T extends { id: string }>({
                     </TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row, index) => {
+                  table.getRowModel().rows.map((row) => {
                     const cells = row.getVisibleCells();
                     const col0Width = cells[0]?.column.getSize() ?? 0;
-                    const rowBg = row.getIsSelected()
-                      ? "bg-primary/15"
-                      : index % 2 === 0
-                        ? "bg-white"
-                        : "bg-gray-50";
+                    const isSelected = row.getIsSelected();
+                    const rowBg = isSelected ? "bg-primary/10" : "bg-white";
                     return (
                     <TableRow
                       className={cn(
-                        "border-b border-gray-300 transition-all duration-150 group w-full",
+                        "border-b border-gray-200 transition-colors duration-150 group w-full",
                         rowBg,
-                        row.getIsSelected() && "border-primary/50"
+                        isSelected
+                          ? "border-primary/30 hover:bg-primary/10"
+                          : "hover:bg-gray-50"
                       )}
                       key={row.id}
-                      data-selected={row.getIsSelected()}
+                      data-selected={isSelected}
+                      onDoubleClick={(e) => {
+                        if (!onRowOpen) return;
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest(
+                            "button, input, select, textarea, a, [role='checkbox'], [role='combobox'], [role='dialog']"
+                          )
+                        )
+                          return;
+                        onRowOpen(row.original.id);
+                      }}
                     >
                       {cells.map((cell, cellIndex) => {
                         const stickyLeft = cellIndex < 2;
@@ -392,9 +401,10 @@ const ReusableTable = <T extends { id: string }>({
                               : {}),
                           }}
                           className={cn(
-                            "border-r border-gray-300 last:border-r-0 px-6 py-4 text-sm overflow-hidden text-ellipsis",
+                            "border-r border-gray-200 last:border-r-0 px-4 py-2.5 text-sm overflow-hidden text-ellipsis",
                             cellIndex === 0 && "font-medium text-gray-900",
-                            stickyLeft && rowBg
+                            stickyLeft && rowBg,
+                            stickyLeft && !isSelected && "group-hover:bg-gray-50"
                           )}
                         >
                           {flexRender(
@@ -411,7 +421,7 @@ const ReusableTable = <T extends { id: string }>({
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="text-center py-20 bg-gray-50 border-t border-gray-300"
+                      className="text-center py-20 bg-gray-50 border-t border-gray-200"
                     >
                       <div className="flex flex-col items-center gap-4">
                         <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center border-2 border-primary/30">
@@ -446,6 +456,7 @@ const ReusableTable = <T extends { id: string }>({
             </Table>
 
             <ScrollBar orientation="horizontal" />
+            <ScrollBar orientation="vertical" />
           </ScrollArea>
 
           {hasMore && !isError && (
@@ -471,9 +482,9 @@ const ReusableTable = <T extends { id: string }>({
             </div>
           )}
 
-          <div className="flex items-center justify-between p-4 bg-primary/10 border-t-2 border-gray-300">
+          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
             <div className="flex items-center gap-3">
-              <AddRow isReferral={isReferral} onAdd={onAdd} />
+              <AddRow isReferral={isReferral} />
               {onPageSizeChange && (
                 <div className="flex items-center gap-2">
                   <span className="hidden text-sm text-muted-foreground whitespace-nowrap sm:inline">
@@ -498,7 +509,18 @@ const ReusableTable = <T extends { id: string }>({
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-4 text-sm">
+              {totalCount !== undefined && totalCount > 0 && (
+                <span className="text-muted-foreground whitespace-nowrap hidden md:inline">
+                  {(() => {
+                    const size = pageSize ?? 10;
+                    const start = (currentPage - 1) * size + 1;
+                    const end = Math.min(currentPage * size, totalCount);
+                    return `${start}–${end} of ${totalCount}`;
+                  })()}
+                  {hasSelected && ` · ${selectedIds.length} selected`}
+                </span>
+              )}
               {totalPages > 1 && (
                 <Pagination>
                   <PaginationContent>

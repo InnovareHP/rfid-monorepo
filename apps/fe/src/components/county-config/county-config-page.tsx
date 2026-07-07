@@ -139,16 +139,20 @@ export default function CountyConfigTablePage() {
       <Card className="overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-gray-100 border-b border-gray-200 text-gray-700">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   County Name
                 </th>
-                <th className="px-4 py-3 text-left font-semibold">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Assigned Person
                 </th>
-                <th className="px-4 py-3 text-center font-semibold">Status</th>
-                <th className="px-4 py-3 text-center font-semibold">Actions</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -156,7 +160,7 @@ export default function CountyConfigTablePage() {
                 counties.map((county: CountyRow) => (
                   <tr
                     key={county.id}
-                    className={`border-b ${
+                    className={`border-b border-gray-200 ${
                       !county.assigned_to ? "bg-orange-50" : "bg-white"
                     } hover:bg-gray-50 transition-colors`}
                   >
