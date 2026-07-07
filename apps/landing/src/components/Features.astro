@@ -1,0 +1,82 @@
+---
+import {
+  Card,
+  CardContent,
+} from "@dashboard/ui/components/card";
+
+const FEATURES = [
+  {
+    icon: "M3 4h18v4H3zM3 10h18v4H3zM3 16h18v4H3z",
+    title: "Master facility list",
+    body: "Every skilled nursing facility, hospital, and referral source in one live database — with the exact fields your team needs, not a rigid template.",
+  },
+  {
+    icon: "M9 5l7 7-7 7",
+    title: "Referral pipeline tracking",
+    body: "Follow each patient referral from first call through assessment to admitted or referred out, with statuses, payor, county, and assessor on record.",
+  },
+  {
+    icon: "M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z",
+    title: "AI insights built in",
+    body: "Follow-up suggestions when a source goes quiet, plain-English analytics summaries, and business-card smart scan that creates a lead in seconds.",
+  },
+  {
+    icon: "M4 19V9m5.5 10V5m5.5 14v-7m5 7V11",
+    title: "Marketing analytics",
+    body: "Referral trends by county, facility, payor, and liaison — so you know which relationships produce admissions and which need attention.",
+  },
+  {
+    icon: "M8 7h8M8 12h8M8 17h5M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z",
+    title: "Field activity logs",
+    body: "Expense, mileage, and marketing logs your liaisons actually fill in — tied to facilities and exportable for monthly reporting in one click.",
+  },
+  {
+    icon: "M3 8l9 6 9-6M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z",
+    title: "Outreach that connects",
+    body: "Bulk email through your own Gmail or Outlook, county assignments per liaison, and a shared calendar — coverage without the chaos.",
+  },
+];
+---
+
+<section id="features" class="py-16 lg:py-24">
+  <div class="mx-auto w-full max-w-6xl px-6">
+    <div class="reveal mx-auto mb-14 max-w-3xl text-center">
+      <h2 class="section-title">The whole referral operation, one dashboard</h2>
+      <p class="section-lead mx-auto">
+        Purpose-built for healthcare marketing teams — not a generic CRM you
+        have to bend into shape.
+      </p>
+    </div>
+
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        FEATURES.map((feature, i) => (
+          <Card
+            className="reveal gap-0 py-7 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+            style={{ transitionDelay: `${(i % 3) * 80}ms` }}
+          >
+            <CardContent className="px-7">
+              <div class="mb-4 grid size-11 place-items-center rounded-xl bg-brand-fade text-brand-strong">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d={feature.icon} />
+                </svg>
+              </div>
+              <h3 class="mb-2 text-lg font-bold">{feature.title}</h3>
+              <p class="text-sm text-muted-foreground">{feature.body}</p>
+            </CardContent>
+          </Card>
+        ))
+      }
+    </div>
+  </div>
+</section>

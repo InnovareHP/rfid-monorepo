@@ -1,0 +1,49 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { APP_URL, SUPPORT_EMAIL } from "../config";
+---
+
+<section
+  class="relative overflow-hidden bg-gradient-to-br from-brand-deep to-[oklch(0.35_0.16_268)] py-16 text-white lg:py-24"
+>
+  <div
+    class="pointer-events-none absolute -right-32 -bottom-56 size-[520px] rounded-full bg-[radial-gradient(circle,oklch(0.7_0.18_258/0.4)_0%,transparent_65%)]"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div class="relative mx-auto flex w-full max-w-6xl justify-center px-6">
+    <div class="reveal max-w-[620px] text-center">
+      <h2 class="text-3xl font-bold sm:text-4xl">
+        Start tracking referrals today
+      </h2>
+      <p class="mt-4 text-lg text-white/85">
+        Try Refidly free — no credit card, no sales call, cancel anytime.
+        Your team can be working out of it this afternoon.
+      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3.5">
+        <a
+          href={APP_URL}
+          class={buttonVariants({
+            size: "lg",
+            className:
+              "text-brand-deep shadow-xl shadow-black/25 hover:bg-white/90",
+          })}
+        >
+          Start free trial
+        </a>
+        <a
+          href={`mailto:${SUPPORT_EMAIL}`}
+          class={buttonVariants({
+            size: "lg",
+            variant: "outline",
+            className:
+              "border-white/40 bg-transparent text-white hover:border-white hover:bg-white/10 hover:text-white",
+          })}
+        >
+          Talk to us
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
