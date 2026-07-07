@@ -67,7 +67,7 @@ export function generateReferralColumns(
 
   const selectColumn: ColumnDef<ReferralRow> = {
     id: "select",
-    header: () => <div className="px-4">Select</div>,
+    header: () => "Select",
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
@@ -142,7 +142,7 @@ export function generateReferralColumns(
     header: () => <CreateColumnModal isReferral={true} />,
     accessorKey: "create_column",
     enableResizing: false,
-    size: 160,
+    size: 200,
   };
 
   return [selectColumn, referralNameColumn, ...dynamicColumns, createNewColumn];

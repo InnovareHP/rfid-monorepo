@@ -1,11 +1,9 @@
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import { exportToCSV } from "@/lib/fe-helpers";
 import {
-  createReferral,
   deleteReferral,
   getReferral,
 } from "@/services/referral/referral-service";
-import { v4 as uuidv4 } from "uuid";
 import type { LeadRow, ReferralRow } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +29,9 @@ interface RouteContext {
 export default function ReferralListPage() {
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const activeOrganizationId = ctx?.activeOrganizationId ?? "";
+
+  console.log(activeOrganizationId);
+
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [openMasterListView, setOpenMasterListView] = useState(false);
   const queryClient = useQueryClient();
@@ -109,44 +110,35 @@ export default function ReferralListPage() {
     });
   }, []);
 
+  const VISIBILITY_KEY = "referral-list-column-visibility";
+  const [columnVisibility, setColumnVisibility] = useState(() => {
+    try {
+      const saved = localStorage.getItem(VISIBILITY_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const handleColumnVisibilityChange = useCallback((updater: any) => {
+    setColumnVisibility((prev: any) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      localStorage.setItem(VISIBILITY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const table = useReactTable({
     data: rows as ReferralRow[],
     columns,
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     columnResizeMode: "onChange",
-    state: { columnSizing },
+    state: { columnSizing, columnVisibility },
     onColumnSizingChange: handleColumnSizingChange,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
   });
-
-  const addReferralMutation = useMutation({
-    mutationFn: (referralName: string) =>
-      createReferral([{ referral_name: referralName }]),
-    onMutate: async (referralName: string) => {
-      await queryClient.cancelQueries({ queryKey: ["referrals"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["referrals"] });
-      const tempRow = {
-        id: uuidv4(),
-        recordName: referralName,
-        has_notification: false,
-      };
-      queryClient.setQueriesData({ queryKey: ["referrals"] }, (old: any) => {
-        if (!old?.data) return old;
-        return { ...old, data: [tempRow, ...old.data] };
-      });
-      return { previous };
-    },
-    onError: (_err, _name, context: any) => {
-      context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
-        queryClient.setQueryData(key as any, data)
-      );
-      toast.error("Failed to add referral.");
-    },
-  });
-
-  const handleAddReferral = (value: string) => {
-    addReferralMutation.mutate(value);
-  };
 
   const deleteReferralMutation = useMutation({
     mutationFn: deleteReferral,
@@ -303,8 +295,8 @@ export default function ReferralListPage() {
               <ColumnFilter tableColumns={tableColumns as any} />
               <Link
                 to="/$team/referral-list/create"
-                className="flex items-center gap-2 shadow-sm"
                 params={{ team: activeOrganizationId }}
+                className="flex items-center gap-2 shadow-sm"
               >
                 <Button
                   variant="default"
@@ -340,8 +332,12 @@ export default function ReferralListPage() {
           onLoadMore={() => {}}
           hasMore={false}
           setActivePage={() => {}}
-          onAdd={handleAddReferral}
           onDelete={handleDeleteReferrals}
+          onRowOpen={(recordId) => {
+            setSelectedRecordId(recordId);
+            setOpenMasterListView(true);
+          }}
+          totalCount={data?.pagination.count ?? 0}
           isReferral={true}
           totalPages={totalPages}
           currentPage={currentPage}

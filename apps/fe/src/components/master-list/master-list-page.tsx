@@ -1,7 +1,7 @@
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import { exportToCSV } from "@/lib/fe-helpers";
-import { createLead, deleteLead, getLeads } from "@/services/lead/lead-service";
+import { deleteLead, getLeads } from "@/services/lead/lead-service";
 import type { LeadRow, OptionsResponse } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +13,6 @@ import {
 import { Download, ScanLine } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 
 import { AnalyzeLeadDialog } from "./analyze-cell";
 import ColumnFilter from "./column-filter";
@@ -105,6 +104,24 @@ export default function MasterListPage() {
     });
   }, []);
 
+  const VISIBILITY_KEY = "master-list-column-visibility";
+  const [columnVisibility, setColumnVisibility] = useState(() => {
+    try {
+      const saved = localStorage.getItem(VISIBILITY_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const handleColumnVisibilityChange = useCallback((updater: any) => {
+    setColumnVisibility((prev: any) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      localStorage.setItem(VISIBILITY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const table = useReactTable({
     data: rows as LeadRow[],
     columns,
@@ -112,27 +129,9 @@ export default function MasterListPage() {
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     columnResizeMode: "onChange",
-    state: { columnSizing },
+    state: { columnSizing, columnVisibility },
     onColumnSizingChange: handleColumnSizingChange,
-  });
-
-  const addLeadMutation = useMutation({
-    mutationFn: (data: any) => createLead(data, "LEAD"),
-    onMutate: async (newLead: any[]) => {
-      await queryClient.cancelQueries({ queryKey: ["leads"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["leads"] });
-      queryClient.setQueriesData({ queryKey: ["leads"] }, (old: any) => {
-        if (!old?.data) return old;
-        return { ...old, data: [newLead[0], ...old.data] };
-      });
-      return { previous };
-    },
-    onError: (_err, _newLead, context: any) => {
-      context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
-        queryClient.setQueryData(key as any, data)
-      );
-      toast.error("Failed to add lead.");
-    },
+    onColumnVisibilityChange: handleColumnVisibilityChange,
   });
 
   const deleteLeadMutation = useMutation({
@@ -156,25 +155,6 @@ export default function MasterListPage() {
       toast.error("Failed to delete leads.");
     },
   });
-
-  const handleAddNewLead = (value: string) => {
-    const newLead = [
-      {
-        id: uuidv4(),
-        recordName: value,
-        status: "",
-        activities_time: 0,
-        create_contact: "",
-        company: "",
-        title: "",
-        email: "",
-        phone: "",
-        last_interaction: "",
-        active_sequences: 0,
-      },
-    ];
-    addLeadMutation.mutate(newLead);
-  };
 
   const handleDeleteLeads = (columnIds: string[]) => {
     deleteLeadMutation.mutate(columnIds);
@@ -350,8 +330,12 @@ export default function MasterListPage() {
           onLoadMore={() => setCurrentPage(currentPage + 1)}
           hasMore={false}
           setActivePage={() => setCurrentPage(currentPage + 1)}
-          onAdd={handleAddNewLead}
           onDelete={handleDeleteLeads}
+          onRowOpen={(recordId) => {
+            setSelectedRecordId(recordId);
+            setOpenMasterListView(true);
+          }}
+          totalCount={data?.pagination.count ?? 0}
           totalPages={totalPages}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}

@@ -1,6 +1,8 @@
 import {
   BedrockRuntimeClient,
-  InvokeModelCommand,
+  ConverseCommand,
+  type ContentBlock,
+  type ImageFormat,
 } from "@aws-sdk/client-bedrock-runtime";
 import { Logger } from "@nestjs/common";
 import { appConfig } from "../../config/app-config";
@@ -15,46 +17,29 @@ export const bedrockClient = new BedrockRuntimeClient({
   },
 });
 
-interface ClaudeTextBlock {
-  type: "text";
-  text: string;
-}
-interface ClaudeImageBlock {
-  type: "image";
-  source: { type: "base64"; media_type: string; data: string };
-}
-type ClaudeContent = ClaudeTextBlock | ClaudeImageBlock;
-
-interface ClaudeResponse {
-  content?: { type: string; text?: string }[];
-}
-
-async function invokeClaude(args: {
+async function converse(args: {
   modelId: string;
-  contents: ClaudeContent[];
+  contents: ContentBlock[];
   maxTokens?: number;
   temperature?: number;
 }): Promise<string> {
-  const body = {
-    anthropic_version: "bedrock-2023-05-31",
-    max_tokens: args.maxTokens ?? 2048,
-    temperature: args.temperature ?? 0.2,
-    messages: [{ role: "user", content: args.contents }],
-  };
+  const res = await bedrockClient.send(
+    new ConverseCommand({
+      modelId: args.modelId,
+      messages: [{ role: "user", content: args.contents }],
+      inferenceConfig: {
+        maxTokens: args.maxTokens ?? 2048,
+        temperature: args.temperature ?? 0.2,
+      },
+    })
+  );
 
-  const cmd = new InvokeModelCommand({
-    modelId: args.modelId,
-    contentType: "application/json",
-    accept: "application/json",
-    body: JSON.stringify(body),
-  });
-
-  const res = await bedrockClient.send(cmd);
-  const raw = Buffer.from(res.body).toString("utf8");
-  const parsed = JSON.parse(raw) as ClaudeResponse;
-  const text = parsed.content?.find((c) => c.type === "text")?.text ?? "";
+  const text =
+    res.output?.message?.content?.find((c) => "text" in c)?.text ?? "";
   if (!text) {
-    logger.warn(`Bedrock returned empty text. raw=${raw.slice(0, 200)}`);
+    logger.warn(
+      `Bedrock returned empty text. stopReason=${res.stopReason ?? "unknown"}`
+    );
   }
   return text;
 }
@@ -68,13 +53,21 @@ function extractJson(text: string): string {
   return text.trim();
 }
 
+function toImageFormat(mimeType: string): ImageFormat {
+  const subtype = mimeType.split("/")[1]?.toLowerCase() ?? "";
+  if (subtype === "jpg" || subtype === "jpeg") return "jpeg";
+  if (subtype === "gif") return "gif";
+  if (subtype === "webp") return "webp";
+  return "png";
+}
+
 export async function bedrockGenerateText(
   prompt: string,
   opts?: { modelId?: string; maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  const text = await invokeClaude({
+  const text = await converse({
     modelId: opts?.modelId ?? appConfig.BEDROCK_MODEL_ID,
-    contents: [{ type: "text", text: prompt }],
+    contents: [{ text: prompt }],
     maxTokens: opts?.maxTokens,
     temperature: opts?.temperature,
   });
@@ -87,18 +80,16 @@ export async function bedrockGenerateVision(args: {
   modelId?: string;
   maxTokens?: number;
 }): Promise<string> {
-  const text = await invokeClaude({
+  const text = await converse({
     modelId: args.modelId ?? appConfig.BEDROCK_VISION_MODEL_ID,
     contents: [
       {
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: args.image.mimeType,
-          data: args.image.base64,
+        image: {
+          format: toImageFormat(args.image.mimeType),
+          source: { bytes: Buffer.from(args.image.base64, "base64") },
         },
       },
-      { type: "text", text: args.prompt },
+      { text: args.prompt },
     ],
     maxTokens: args.maxTokens,
   });

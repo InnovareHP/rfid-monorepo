@@ -267,12 +267,12 @@ export default function MasterListImportPage() {
               {rows.length > 0 && (
                 <div className="rounded-xl border overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-muted/40">
+                    <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
                         {headers.map((h) => (
                           <th
                             key={h}
-                            className="px-3 py-2 text-left font-semibold whitespace-nowrap"
+                            className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
                           >
                             {h}
                           </th>
@@ -281,7 +281,10 @@ export default function MasterListImportPage() {
                     </thead>
                     <tbody>
                       {rows.slice(0, maxPreviewRows).map((row, i) => (
-                        <tr key={i} className="border-t">
+                        <tr
+                          key={i}
+                          className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
                           {headers.map((h) => (
                             <td key={h} className="px-3 py-2 whitespace-nowrap">
                               {row?.[h] ?? ""}

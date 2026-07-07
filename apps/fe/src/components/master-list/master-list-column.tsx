@@ -180,7 +180,7 @@ export function generateLeadColumns(
     id: "create_column",
     accessorKey: "create_column",
     enableResizing: false,
-    size: 80,
+    size: 200,
   };
 
   return [
