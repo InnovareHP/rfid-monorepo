@@ -1,0 +1,96 @@
+---
+import { Card, CardContent } from "@dashboard/ui/components/card";
+
+const QUOTES = [
+  {
+    quote:
+      "I used to keep three spreadsheets and a notebook. Now every facility, every referral, and every visit is in one place — and my Friday report takes ten minutes.",
+    name: "Community liaison",
+    org: "Skilled nursing network",
+  },
+  {
+    quote:
+      "The AI follow-up suggestions caught two referral sources that had gone quiet. We rebooked visits before the census felt it.",
+    name: "Director of admissions",
+    org: "Behavioral health group",
+  },
+  {
+    quote:
+      "County assignments finally made coverage visible. We stopped assuming territories were handled and started knowing.",
+    name: "Marketing director",
+    org: "Post-acute care provider",
+  },
+];
+
+const SAFEGUARDS = [
+  "Role-based access control",
+  "Short-lived, auto-expiring sessions",
+  "PHI-aware AI processing",
+  "Full audit history on every record",
+];
+---
+
+<section class="py-16 lg:py-24">
+  <div class="mx-auto w-full max-w-6xl px-6">
+    <div class="reveal mx-auto mb-14 max-w-3xl text-center">
+      <h2 class="section-title">Made with liaison teams, not just for them</h2>
+    </div>
+
+    <div class="grid gap-5 md:grid-cols-3">
+      {
+        QUOTES.map((q, i) => (
+          <Card
+            className="reveal gap-0 py-7 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+            style={{ transitionDelay: `${i * 90}ms` }}
+          >
+            <CardContent className="flex h-full flex-col px-7">
+              <span
+                class="text-5xl leading-none font-extrabold text-primary/35"
+                aria-hidden="true"
+              >
+                “
+              </span>
+              <blockquote class="mt-1.5 flex-1 text-sm text-muted-foreground">
+                {q.quote}
+              </blockquote>
+              <figcaption class="mt-5 flex flex-col border-t border-border pt-4">
+                <strong class="text-sm">{q.name}</strong>
+                <span class="text-xs text-muted-foreground">{q.org}</span>
+              </figcaption>
+            </CardContent>
+          </Card>
+        ))
+      }
+    </div>
+
+    <div
+      class="reveal mt-12 flex flex-wrap justify-center gap-3"
+      role="list"
+      aria-label="Security safeguards"
+    >
+      {
+        SAFEGUARDS.map((item) => (
+          <span
+            role="listitem"
+            class="inline-flex items-center gap-2 rounded-full border border-brand-fade bg-brand-fade px-4 py-2 text-[13px] font-semibold text-brand-deep"
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" />
+            </svg>
+            {item}
+          </span>
+        ))
+      }
+    </div>
+  </div>
+</section>

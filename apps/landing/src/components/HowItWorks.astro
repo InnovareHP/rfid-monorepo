@@ -1,0 +1,49 @@
+---
+const STEPS = [
+  {
+    title: "Create your workspace",
+    body: "Sign up, name your organization, and invite the team. Starter fields and statuses are seeded for you — rename or extend anything.",
+  },
+  {
+    title: "Bring your facilities in",
+    body: "Import your existing lists from CSV, or snap a business card with Smart Scan and let AI fill in the record.",
+  },
+  {
+    title: "Track referrals as they happen",
+    body: "Log each referral with payor, county, assessor, and status. Edit inline, right in the table — changes sync to the whole team instantly.",
+  },
+  {
+    title: "Act on the insight",
+    body: "Review AI summaries, follow-up suggestions, and county coverage. Export reports when leadership asks — it's one click.",
+  },
+];
+---
+
+<section id="how-it-works" class="bg-muted/50 py-16 lg:py-24">
+  <div class="mx-auto w-full max-w-6xl px-6">
+    <div class="reveal mx-auto mb-14 max-w-3xl text-center">
+      <h2 class="section-title">Live in an afternoon, not a quarter</h2>
+      <p class="section-lead mx-auto">
+        No implementation consultants. No data migration project. Four steps
+        and your team is working out of Refidly.
+      </p>
+    </div>
+
+    <ol class="grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        STEPS.map((step, i) => (
+          <li
+            class="reveal rounded-2xl border border-border bg-white p-6 shadow-sm"
+            style={`transition-delay:${i * 90}ms`}
+          >
+            <span class="mb-4 grid size-10 place-items-center rounded-full bg-gradient-to-br from-primary to-brand-strong text-[15px] font-extrabold text-white shadow-md shadow-primary/30">
+              {i + 1}
+            </span>
+            <h3 class="mb-2 text-base font-bold">{step.title}</h3>
+            <p class="text-sm text-muted-foreground">{step.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>

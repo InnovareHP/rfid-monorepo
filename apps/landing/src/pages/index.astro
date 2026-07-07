@@ -1,0 +1,29 @@
+---
+import Benefits from "../components/Benefits.astro";
+import Cta from "../components/Cta.astro";
+import Features from "../components/Features.astro";
+import Footer from "../components/Footer.astro";
+import Hero from "../components/Hero.astro";
+import HowItWorks from "../components/HowItWorks.astro";
+import Nav from "../components/Nav.astro";
+import Trust from "../components/Trust.astro";
+import ValueProp from "../components/ValueProp.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Refidly — Referral Intelligence for Healthcare Marketing Teams"
+  description="Track facilities, referrals, and field activity in one dashboard. AI-powered referral intelligence for healthcare liaison and marketing teams. Free trial."
+>
+  <Nav />
+  <main>
+    <Hero />
+    <Features />
+    <ValueProp />
+    <Benefits />
+    <HowItWorks />
+    <Trust />
+    <Cta />
+  </main>
+  <Footer />
+</BaseLayout>

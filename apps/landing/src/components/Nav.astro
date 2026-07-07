@@ -1,0 +1,65 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { APP_URL } from "../config";
+import MobileMenu from "./MobileMenu";
+
+const LINKS = [
+  { href: "#features", label: "Features" },
+  { href: "#why", label: "Why Refidly" },
+  { href: "#how-it-works", label: "How It Works" },
+];
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-border bg-white/80 backdrop-blur-xl"
+>
+  <div class="mx-auto flex h-[72px] w-full max-w-6xl items-center gap-8 px-6">
+    <a
+      href="/"
+      class="flex items-center gap-2.5"
+      aria-label="Refidly home"
+    >
+      <img src="/tarsier.png" alt="" width="36" height="36" loading="eager" />
+      <span class="flex flex-col leading-tight">
+        <strong class="text-lg font-extrabold tracking-tight text-brand-strong">
+          Refidly
+        </strong>
+        <small
+          class="text-[0.62rem] font-semibold tracking-[0.09em] uppercase whitespace-nowrap text-muted-foreground"
+        >
+          Referral Intelligence Platform
+        </small>
+      </span>
+    </a>
+
+    <nav
+      class="mx-auto hidden gap-1 min-[901px]:flex"
+      aria-label="Primary navigation"
+    >
+      {
+        LINKS.map((link) => (
+          <a
+            href={link.href}
+            class="rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-brand-fade hover:text-brand-strong"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="hidden items-center gap-4 min-[901px]:flex">
+      <a
+        href={APP_URL}
+        class="text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-strong"
+      >
+        Sign in
+      </a>
+      <a href={APP_URL} class={buttonVariants()}>Start free trial</a>
+    </div>
+
+    <div class="ml-auto min-[901px]:hidden">
+      <MobileMenu client:media="(max-width: 900px)" />
+    </div>
+  </div>
+</header>

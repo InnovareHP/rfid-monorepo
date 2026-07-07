@@ -1,0 +1,47 @@
+---
+const BENEFITS = [
+  {
+    title: "Nothing falls through",
+    body: "Notifications when a record changes, full history with restore, and AI nudges when a referral source goes quiet.",
+  },
+  {
+    title: "Reporting in minutes, not Fridays",
+    body: "Filter by county, payor, status, or date range and export to CSV. Monthly reports stop being a whole afternoon.",
+  },
+  {
+    title: "Every county owned",
+    body: "Assign counties to liaisons and instantly see which territories are covered — and which are leaking referrals.",
+  },
+  {
+    title: "One login per team, roles per person",
+    body: "Owners see everything, liaisons see their work. Invite your teammates with role-based permissions.",
+  },
+];
+---
+
+<section class="py-16 lg:py-24">
+  <div class="mx-auto w-full max-w-6xl px-6">
+    <div class="reveal mx-auto mb-14 max-w-3xl text-center">
+      <h2 class="section-title">What changes when you switch</h2>
+    </div>
+
+    <div class="grid gap-5 md:grid-cols-2">
+      {
+        BENEFITS.map((benefit, i) => (
+          <article
+            class="reveal flex gap-5 rounded-2xl border border-border bg-gradient-to-br from-white to-muted/60 p-7 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+            style={`transition-delay:${(i % 2) * 90}ms`}
+          >
+            <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-brand-fade bg-brand-fade text-base font-extrabold text-primary">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <div>
+              <h3 class="mb-2 text-lg font-bold">{benefit.title}</h3>
+              <p class="text-sm text-muted-foreground">{benefit.body}</p>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

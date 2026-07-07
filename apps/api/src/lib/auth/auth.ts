@@ -23,7 +23,6 @@ import {
   afterRejectInvitation,
   afterRemoveMember,
   afterUpdateMemberRole,
-  customSessionHandler,
   beforeAcceptInvitation,
   beforeAddMember,
   beforeCreateInvitation,
@@ -36,6 +35,7 @@ import {
   beforeUpdateMemberRole,
   beforeUpdateOrganization,
   beforeUpdateTeam,
+  customSessionHandler,
   onPasswordReset,
   sendInvitationEmail,
   sendMagicLink,
@@ -61,7 +61,7 @@ export const auth = betterAuth({
       enabled: true,
       domain: appConfig.WEBSITE_URL.includes("localhost")
         ? "localhost"
-        : "innovarehp.com",
+        : "refidly.com",
     },
   },
 

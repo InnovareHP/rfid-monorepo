@@ -1,0 +1,159 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { APP_URL } from "../config";
+
+const ROWS = [
+  {
+    initials: "SC",
+    name: "Sunrise Care Facility",
+    meta: "Referral · Medicare · Onsite",
+    pill: "Admitted",
+    pillClass: "bg-emerald-100 text-emerald-700",
+  },
+  {
+    initials: "LH",
+    name: "Lakeside Health Center",
+    meta: "Referral · Private · Remote",
+    pill: "Pending",
+    pillClass: "bg-amber-100 text-amber-700",
+  },
+  {
+    initials: "MG",
+    name: "Maple Grove Nursing",
+    meta: "Lead · 64 beds · Cedar Falls",
+    pill: "Assessing",
+    pillClass: "bg-brand-fade text-brand-strong",
+  },
+];
+
+const PROOF = [
+  "No credit card required",
+  "Set up in minutes",
+  "HIPAA-conscious by design",
+];
+---
+
+<section
+  class="relative overflow-hidden bg-[radial-gradient(1100px_520px_at_78%_-8%,oklch(0.93_0.05_255)_0%,transparent_60%),radial-gradient(800px_400px_at_6%_110%,oklch(0.95_0.03_255)_0%,transparent_55%)] py-20 pb-24 lg:py-28 lg:pb-32"
+>
+  <div class="hero-grid-bg absolute inset-0" aria-hidden="true"></div>
+
+  <div
+    class="relative mx-auto grid w-full max-w-6xl items-center gap-16 px-6 lg:grid-cols-[1.05fr_0.95fr]"
+  >
+    <div>
+      <h1
+        class="text-4xl font-extrabold sm:text-5xl lg:text-[3.6rem] lg:leading-[1.1]"
+      >
+        Every referral tracked.<br />
+        Every facility
+        <span
+          class="bg-gradient-to-r from-primary to-brand-strong bg-clip-text text-transparent"
+        >
+          covered.
+        </span>
+      </h1>
+      <p class="mt-5 max-w-[540px] text-lg text-muted-foreground">
+        Refidly gives healthcare marketing and liaison teams one place to
+        manage facility relationships, track referrals from first contact to
+        admission, and turn field activity into insight — without the
+        spreadsheets.
+      </p>
+
+      <div class="mt-8 flex flex-wrap gap-3.5">
+        <a
+          href={APP_URL}
+          class={buttonVariants({
+            size: "lg",
+            className: "shadow-lg shadow-primary/30",
+          })}
+        >
+          Start free trial
+        </a>
+        <a
+          href="#how-it-works"
+          class={buttonVariants({ size: "lg", variant: "outline" })}
+        >
+          See how it works
+        </a>
+      </div>
+
+      <ul
+        class="mt-8 flex flex-wrap gap-5 text-sm text-muted-foreground"
+        aria-label="Trust highlights"
+      >
+        {
+          PROOF.map((item) => (
+            <li class="flex items-center gap-2">
+              <span
+                class="size-1.5 rounded-full bg-primary"
+                aria-hidden="true"
+              />
+              {item}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="relative" aria-hidden="true">
+      <div
+        class="rounded-2xl border border-border bg-white/85 p-5 shadow-2xl shadow-primary/10 backdrop-blur-md"
+      >
+        <div class="flex items-center gap-1.5 border-b border-border pb-3.5">
+          <span class="size-2 rounded-full bg-border"></span>
+          <span class="size-2 rounded-full bg-border"></span>
+          <span class="size-2 rounded-full bg-border"></span>
+          <span class="ml-2.5 text-[13px] font-semibold text-muted-foreground">
+            Referral Pipeline
+          </span>
+        </div>
+        <div>
+          {
+            ROWS.map((row) => (
+              <div class="flex items-center gap-3 border-b border-border py-3.5 last:border-b-0">
+                <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-fade text-xs font-bold text-brand-strong">
+                  {row.initials}
+                </span>
+                <div class="flex min-w-0 flex-col">
+                  <span class="truncate text-sm font-semibold">{row.name}</span>
+                  <span class="text-xs text-muted-foreground">{row.meta}</span>
+                </div>
+                <span
+                  class={`ml-auto rounded-full px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap ${row.pillClass}`}
+                >
+                  {row.pill}
+                </span>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <div
+        class="animate-float absolute -bottom-9 left-0 flex max-w-[300px] gap-3 rounded-2xl border border-border bg-white/90 p-4 shadow-xl backdrop-blur-md lg:-left-11"
+      >
+        <span
+          class="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-brand-strong text-white"
+        >
+          ✦
+        </span>
+        <div>
+          <strong class="text-[13px]">AI follow-up suggestion</strong>
+          <p class="mt-0.5 text-xs text-muted-foreground">
+            Lakeside hasn't referred in 21 days — schedule a visit this week.
+          </p>
+        </div>
+      </div>
+
+      <div
+        class="animate-float absolute -top-8 right-0 flex flex-col rounded-2xl border border-border bg-white/90 px-5 py-3.5 shadow-xl backdrop-blur-md [animation-delay:1.6s] lg:-right-4"
+      >
+        <strong class="text-2xl tracking-tight text-brand-strong">+38%</strong>
+        <span class="text-xs text-muted-foreground">
+          referral conversion this quarter
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
