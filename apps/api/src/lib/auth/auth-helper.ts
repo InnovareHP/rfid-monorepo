@@ -3,9 +3,9 @@ import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
 import { InvitationEmail } from "../../react-email/invitation-email";
 import { ResetPasswordEmail } from "../../react-email/reset-password-email";
+import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
-import { renderEmailHtml } from "../aws/ses";
 import { OnboardingSeeding } from "./onboarding";
 
 export const beforeSessionCreate = async (session: {

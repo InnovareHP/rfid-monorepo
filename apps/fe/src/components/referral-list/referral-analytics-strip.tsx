@@ -27,8 +27,14 @@ import { useState } from "react";
 import * as Recharts from "recharts";
 
 const TIER_CONFIG = {
-  "Tier 1": { color: "bg-emerald-100 text-emerald-700", label: "Always Refers" },
-  "Tier 2": { color: "bg-amber-100 text-amber-700", label: "Frequently Refers" },
+  "Tier 1": {
+    color: "bg-emerald-100 text-emerald-700",
+    label: "Always Refers",
+  },
+  "Tier 2": {
+    color: "bg-amber-100 text-amber-700",
+    label: "Frequently Refers",
+  },
   Infrequent: { color: "bg-gray-100 text-gray-600", label: "Infrequent" },
 } as const;
 
@@ -136,7 +142,9 @@ export default function ReferralAnalyticsStrip({
                 <div>
                   <p className="text-xs text-gray-500">Referrals (Period)</p>
                   <p className="text-xl font-bold text-gray-900">
-                    {analytics?.totalCounts?.referralsThisPeriod ?? analytics?.totalCounts?.totalReferrals ?? 0}
+                    {analytics?.totalCounts?.referralsThisPeriod ??
+                      analytics?.totalCounts?.totalReferrals ??
+                      0}
                   </p>
                 </div>
               </div>
@@ -183,7 +191,10 @@ export default function ReferralAnalyticsStrip({
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Top Facility</p>
-                  <p className="text-sm font-bold text-gray-900 truncate max-w-[140px]" title={topFacility}>
+                  <p
+                    className="text-sm font-bold text-gray-900 truncate max-w-[140px]"
+                    title={topFacility}
+                  >
                     {topFacility}
                   </p>
                 </div>
@@ -220,11 +231,17 @@ export default function ReferralAnalyticsStrip({
                         tick={{ fontSize: 11 }}
                       />
                       <Tooltip />
-                      <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                      <Bar
+                        dataKey="count"
+                        fill="#3b82f6"
+                        radius={[0, 4, 4, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-8">No data</p>
+                  <p className="text-sm text-gray-400 text-center py-8">
+                    No data
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -248,7 +265,10 @@ export default function ReferralAnalyticsStrip({
                         className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-50"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-sm text-gray-900 truncate max-w-[140px]" title={source.sourceName}>
+                          <span
+                            className="text-sm text-gray-900 truncate max-w-[140px]"
+                            title={source.sourceName}
+                          >
                             {source.sourceName}
                           </span>
                           <Badge
@@ -265,7 +285,9 @@ export default function ReferralAnalyticsStrip({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-8">No data</p>
+                  <p className="text-sm text-gray-400 text-center py-8">
+                    No data
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -296,11 +318,17 @@ export default function ReferralAnalyticsStrip({
                         tick={{ fontSize: 11 }}
                       />
                       <Tooltip />
-                      <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                      <Bar
+                        dataKey="count"
+                        fill="#ef4444"
+                        radius={[0, 4, 4, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-8">No denials</p>
+                  <p className="text-sm text-gray-400 text-center py-8">
+                    No denials
+                  </p>
                 )}
               </CardContent>
             </Card>
