@@ -73,6 +73,14 @@ services:
     depends_on:
       - api
 
+  landing:
+    build:
+      context: .
+      dockerfile: apps/landing/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+
 volumes:
   pgdata:
   redisdata:
