@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@dashboard/ui/components/form";
-import { Input } from "@dashboard/ui/components/input";
+import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
@@ -34,14 +34,31 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const addOptionSchema = z.object({
-  optionName: z
+  optionNames: z
     .string()
-    .min(1, "Option name is required")
-    .max(100, "Option name must be less than 100 characters")
-    .trim(),
+    .trim()
+    .min(1, "Enter at least one option")
+    .refine(
+      (v) =>
+        v
+          .split(/[\n,]/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .every((s) => s.length <= 100),
+      "Each option must be less than 100 characters"
+    ),
 });
 
 type AddOptionFormData = z.infer<typeof addOptionSchema>;
+
+const parseOptionNames = (raw: string): string[] => [
+  ...new Set(
+    raw
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  ),
+];
 
 export default function ReferralOption() {
   const params = useParams({
@@ -52,14 +69,11 @@ export default function ReferralOption() {
 
   const queryClient = useQueryClient();
   const fieldKey = params.option;
-  const fieldName = fieldKey
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (l: string) => l.toUpperCase());
 
   const form = useForm<AddOptionFormData>({
     resolver: zodResolver(addOptionSchema),
     defaultValues: {
-      optionName: "",
+      optionNames: "",
     },
   });
 
@@ -75,21 +89,32 @@ export default function ReferralOption() {
   });
 
   const addOptionMutation = useMutation({
-    mutationFn: (optionName: string) =>
-      createReferralDropdownOption(fieldKey, optionName),
-    onSuccess: () => {
+    mutationFn: async (optionNames: string[]) => {
+      const results = await Promise.allSettled(
+        optionNames.map((name) => createReferralDropdownOption(fieldKey, name))
+      );
+      return {
+        added: results.filter((r) => r.status === "fulfilled").length,
+        failed: results.filter((r) => r.status === "rejected").length,
+      };
+    },
+    onSuccess: ({ added, failed }) => {
       queryClient.invalidateQueries({
-        queryKey: ["referral-options", fieldKey, filterMeta],
+        queryKey: ["referral-options", fieldKey],
       });
       queryClient.invalidateQueries({
         queryKey: ["dropdown-options", fieldKey],
       });
       setAddDialogOpen(false);
       form.reset();
-      toast.success("Option added successfully.");
+      if (failed > 0) {
+        toast.warning(`Added ${added} option(s), ${failed} failed.`);
+      } else {
+        toast.success(`Added ${added} option(s).`);
+      }
     },
     onError: () => {
-      toast.error("Failed to add option.");
+      toast.error("Failed to add options.");
     },
   });
 
@@ -156,7 +181,7 @@ export default function ReferralOption() {
   const columns = [
     {
       key: "value",
-      header: optionsData.field + " Options",
+      header: optionsData.field ? `${optionsData.field} Options` : "Options",
       render: (row: LeadOptions) => (
         <span className="font-medium text-gray-900">{row.value}</span>
       ),
@@ -169,7 +194,7 @@ export default function ReferralOption() {
   ];
 
   const onSubmit = (data: AddOptionFormData) => {
-    addOptionMutation.mutate(data.optionName);
+    addOptionMutation.mutate(parseOptionNames(data.optionNames));
   };
 
   const addOptionDialog = () => (
@@ -190,22 +215,24 @@ export default function ReferralOption() {
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Option</DialogTitle>
+          <DialogTitle>Add Options</DialogTitle>
           <DialogDescription>
-            Create a new option for the {optionsData.field || fieldName} field.
+            Add one or more options for the {optionsData.field ?? "this"}{" "}
+            field. Separate multiple options with a new line or comma.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="optionName"
+              name="optionNames"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Option Name</FormLabel>
+                  <FormLabel>Options</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter option name..."
+                    <Textarea
+                      placeholder={"Option A\nOption B\nOption C"}
+                      rows={5}
                       {...field}
                       autoFocus
                     />
@@ -227,7 +254,7 @@ export default function ReferralOption() {
                 Cancel
               </Button>
               <Button type="submit" disabled={addOptionMutation.isPending}>
-                {addOptionMutation.isPending ? "Adding..." : "Add Option"}
+                {addOptionMutation.isPending ? "Adding..." : "Add Options"}
               </Button>
             </DialogFooter>
           </form>
@@ -243,10 +270,11 @@ export default function ReferralOption() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              {optionsData.field} Options
+              {optionsData.field ?? "Field"} Options
             </h1>
             <p className="text-gray-500 text-sm mt-1">
-              Manage dropdown options for the {optionsData.field} field.
+              Manage dropdown options for the {optionsData.field ?? "selected"}{" "}
+              field.
             </p>
           </div>
 

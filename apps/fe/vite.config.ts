@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 
     server: {
       host: true,
-      allowedHosts: ["dashboard-fe-prod.up.railway.app", "dash.innovarehp.com"],
+      allowedHosts: ["api.refidly.com", "portal.refidly.com"],
       port: 3000,
       proxy: {
         "/api": {
