@@ -203,6 +203,7 @@ export function LoginForm({
                             <Input
                               {...field}
                               type="password"
+                              placeholder="Enter your password"
                               className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors"
                             />
                           </FormControl>
