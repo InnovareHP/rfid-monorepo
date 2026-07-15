@@ -5,7 +5,7 @@
 model ManualCategory {
   id          String   @id @default(uuid())
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
   name        String // e.g. "Master List", "Referral List", "Integrations"
   slug        String   @unique
   description String?
@@ -20,7 +20,7 @@ model ManualCategory {
 model ManualArticle {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
   title     String
   slug      String   @unique
   summary   String // short description shown in search results / cards
@@ -42,7 +42,7 @@ model ManualArticle {
 model ManualStep {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
   title     String? // optional step heading
   content   String // text explaining what to do in this step
   imageUrl  String? // screenshot or illustration for the step

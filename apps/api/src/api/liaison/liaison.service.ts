@@ -11,11 +11,11 @@ import {
   UpdateExpenseDto,
   UpdateMarketingDto,
   UpdateMillageDto,
-} from "./dto/liason.schema";
+} from "./dto/liaison.schema";
 
 @Injectable()
-export class LiasonService {
-  private readonly logger = new Logger(LiasonService.name);
+export class LiaisonService {
+  private readonly logger = new Logger(LiaisonService.name);
   async createMillage(createMillageDto: CreateMillageDto, memberId: string) {
     await prisma.$transaction(async (tx) => {
       const existingMileageToday = await tx.mileage.findFirst({
@@ -49,21 +49,21 @@ export class LiasonService {
     });
   }
 
-  async getMillage(memberId: string | null, filter: any) {
+  async getMillage(
+    memberId: string | null,
+    filter: any,
+    organizationId: string
+  ) {
     const where: Prisma.MileageWhereInput = {
       memberId: memberId ?? undefined,
+      member: { organizationId },
       isDeleted: false,
     };
 
-    if (filter.mileageDateFrom && filter.mileageDateTo) {
+    if (filter.filter.mileageDateFrom && filter.filter.mileageDateTo) {
       where.createdAt = {
-        gte: new Date(filter.dateFrom),
-        lte: new Date(filter.dateTo),
-      };
-    } else {
-      where.createdAt = {
-        gte: new Date(new Date().setHours(0, 0, 0, 0)),
-        lte: new Date(new Date().setHours(23, 59, 59, 999)),
+        gte: new Date(filter.filter.mileageDateFrom),
+        lte: new Date(filter.filter.mileageDateTo),
       };
     }
 
@@ -74,12 +74,17 @@ export class LiasonService {
         where,
         skip: offset,
         take: filter.limit,
+        orderBy: { createdAt: "desc" },
       }),
       prisma.mileage.count({
         where,
       }),
     ]);
-    return { data, total };
+    return {
+      data,
+      total,
+      nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
+    };
   }
 
   async getMillageById(id: string) {
@@ -115,21 +120,30 @@ export class LiasonService {
   async createMarketing(
     createMarketingDto: CreateMarketingDto,
     memberId: string,
-    userId: string
+    userId: string,
+    organizationId: string
   ) {
-    const findLeadNameViaName = await prisma.board.findFirst({
+    // recordName is encrypted at rest with a random IV, so equality
+    // lookups must compare decrypted values in memory.
+    const leads = await prisma.board.findMany({
       where: {
-        recordName: createMarketingDto.facility,
+        organizationId,
         moduleType: "LEAD",
+        isDeleted: false,
       },
+      select: { id: true, recordName: true },
     });
+
+    const findLeadNameViaName = leads.find(
+      (lead) => lead.recordName === createMarketingDto.facility
+    );
 
     if (!findLeadNameViaName) {
       throw new BadRequestException("Lead not found");
     }
 
     await prisma.$transaction(async (tx) => {
-      tx.marketing.create({
+      await tx.marketing.create({
         data: {
           facility: createMarketingDto.facility,
           touchpoints: createMarketingDto.touchpoint,
@@ -140,7 +154,7 @@ export class LiasonService {
         },
       });
 
-      tx.history.create({
+      await tx.history.create({
         data: {
           recordId: findLeadNameViaName.id,
           column: "marketing",
@@ -162,9 +176,14 @@ export class LiasonService {
     });
   }
 
-  async getMarketing(memberId: string | null, filter: any) {
+  async getMarketing(
+    memberId: string | null,
+    filter: any,
+    organizationId: string
+  ) {
     const where: Prisma.MarketingWhereInput = {
       memberId: memberId ?? undefined,
+      member: { organizationId },
       isDeleted: false,
     };
 
@@ -172,11 +191,6 @@ export class LiasonService {
       where.createdAt = {
         gte: new Date(filter.filter.marketingDateFrom),
         lte: new Date(filter.filter.marketingDateTo),
-      };
-    } else {
-      where.createdAt = {
-        gte: new Date(new Date().setHours(0, 0, 0, 0)),
-        lte: new Date(new Date().setHours(23, 59, 59, 999)),
       };
     }
 
@@ -187,12 +201,17 @@ export class LiasonService {
         where,
         skip: offset,
         take: filter.limit,
+        orderBy: { createdAt: "desc" },
       }),
       prisma.marketing.count({
         where,
       }),
     ]);
-    return { data, total };
+    return {
+      data,
+      total,
+      nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
+    };
   }
 
   async getMarketingById(id: string) {
@@ -243,6 +262,7 @@ export class LiasonService {
   ) {
     const where: Prisma.ExpenseWhereInput = {
       memberId: memberId ?? undefined,
+      isDeleted: false,
       member: {
         organizationId: activeOrganizationId,
       },
@@ -252,11 +272,6 @@ export class LiasonService {
       where.createdAt = {
         gte: new Date(filter.filter.expenseDateFrom),
         lte: new Date(filter.filter.expenseDateTo),
-      };
-    } else if (memberId) {
-      where.createdAt = {
-        gte: new Date(new Date().setHours(0, 0, 0, 0)),
-        lte: new Date(new Date().setHours(23, 59, 59, 999)),
       };
     }
 
@@ -275,7 +290,11 @@ export class LiasonService {
         where,
       }),
     ]);
-    return { data, total };
+    return {
+      data,
+      total,
+      nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
+    };
   }
 
   private async fetchImage(url: string): Promise<Buffer> {

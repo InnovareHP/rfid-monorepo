@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Response } from "express";
+import { AuditService } from "../../lib/audit/audit.service";
 import {
   CreateExpenseDto,
   CreateMarketingDto,
@@ -20,13 +21,16 @@ import {
   UpdateExpenseDto,
   UpdateMarketingDto,
   UpdateMillageDto,
-} from "./dto/liason.schema";
-import { LiasonService } from "./liason.service";
+} from "./dto/liaison.schema";
+import { LiaisonService } from "./liaison.service";
 
-@Controller("liason")
+@Controller("liaison")
 @UseGuards(AuthGuard)
-export class LiasonController {
-  constructor(private readonly liasonService: LiasonService) {}
+export class LiaisonController {
+  constructor(
+    private readonly liaisonService: LiaisonService,
+    private readonly audit: AuditService
+  ) {}
 
   @Post("mileage")
   async createMillage(
@@ -35,7 +39,7 @@ export class LiasonController {
     session: MemberSession
   ) {
     try {
-      return await this.liasonService.createMillage(
+      return await this.liaisonService.createMillage(
         createMillageDto,
         session.session.memberId
       );
@@ -62,9 +66,10 @@ export class LiasonController {
 
       const isOwner = session.session.memberRole === "owner";
 
-      return await this.liasonService.getMillage(
+      return await this.liaisonService.getMillage(
         isOwner ? null : session.session.memberId,
-        filters
+        filters,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -74,7 +79,7 @@ export class LiasonController {
   @Get("mileage/:id")
   async getMillageById(@Param("id") id: string) {
     try {
-      return await this.liasonService.getMillageById(id);
+      return await this.liaisonService.getMillageById(id);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -86,7 +91,7 @@ export class LiasonController {
     @Body() updateMillageDto: UpdateMillageDto
   ) {
     try {
-      return await this.liasonService.updateMillage(id, updateMillageDto);
+      return await this.liaisonService.updateMillage(id, updateMillageDto);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -95,7 +100,7 @@ export class LiasonController {
   @Delete("mileage/:id")
   async deleteMillage(@Param("id") id: string) {
     try {
-      return await this.liasonService.deleteMillage(id);
+      return await this.liaisonService.deleteMillage(id);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -108,10 +113,11 @@ export class LiasonController {
     session: MemberSession
   ) {
     try {
-      return await this.liasonService.createMarketing(
+      return await this.liaisonService.createMarketing(
         createMarketingDto,
         session.session.memberId,
-        session.session.userId
+        session.session.userId,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -137,7 +143,11 @@ export class LiasonController {
         limit: Number(limit),
       };
 
-      return await this.liasonService.getMarketing(memberId, filters);
+      return await this.liaisonService.getMarketing(
+        memberId,
+        filters,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -146,7 +156,7 @@ export class LiasonController {
   @Get("marketing/:id")
   async getMarketingById(@Param("id") id: string) {
     try {
-      return await this.liasonService.getMarketingById(id);
+      return await this.liaisonService.getMarketingById(id);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -158,7 +168,7 @@ export class LiasonController {
     @Body() updateMarketingDto: UpdateMarketingDto
   ) {
     try {
-      return await this.liasonService.updateMarketing(id, updateMarketingDto);
+      return await this.liaisonService.updateMarketing(id, updateMarketingDto);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -167,7 +177,7 @@ export class LiasonController {
   @Delete("marketing/:id")
   async deleteMarketing(@Param("id") id: string) {
     try {
-      return await this.liasonService.deleteMarketing(id);
+      return await this.liaisonService.deleteMarketing(id);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -180,7 +190,7 @@ export class LiasonController {
     session: MemberSession
   ) {
     try {
-      return await this.liasonService.createExpense(
+      return await this.liaisonService.createExpense(
         createExpenseDto,
         session.session.memberId
       );
@@ -207,7 +217,7 @@ export class LiasonController {
     try {
       const isOwner = session.session.memberRole === "owner";
       const organizationId = session.session.activeOrganizationId;
-      return await this.liasonService.getExpense(
+      return await this.liaisonService.getExpense(
         isOwner ? null : session.session.memberId,
         filters,
         organizationId
@@ -235,11 +245,22 @@ export class LiasonController {
 
       const isOwner = session.session.memberRole === "owner";
       const organizationId = session.session.activeOrganizationId;
-      const pdfBuffer = await this.liasonService.getExpenseExport(
+      const pdfBuffer = await this.liaisonService.getExpenseExport(
         isOwner ? null : session.session.memberId,
         filters,
         organizationId
       );
+
+      await this.audit.record({
+        actorUserId: session.session.userId ?? null,
+        actorOrgId: organizationId,
+        actorRole: session.session.memberRole ?? null,
+        action: "expense.export",
+        resourceType: "Expense",
+        method: "GET",
+        path: "/api/liaison/expense/export",
+        metadata: { format: "pdf", filter },
+      });
 
       res.set({
         "Content-Type": "application/pdf",
@@ -259,7 +280,7 @@ export class LiasonController {
     @Body() updateExpenseDto: UpdateExpenseDto
   ) {
     try {
-      return await this.liasonService.updateExpense(id, updateExpenseDto);
+      return await this.liaisonService.updateExpense(id, updateExpenseDto);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -268,7 +289,7 @@ export class LiasonController {
   @Delete("expense/:id")
   async deleteExpense(@Param("id") id: string) {
     try {
-      return await this.liasonService.deleteExpense(id);
+      return await this.liaisonService.deleteExpense(id);
     } catch (error) {
       throw new BadRequestException(error.message);
     }

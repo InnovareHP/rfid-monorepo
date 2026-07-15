@@ -8,6 +8,7 @@ import {
   oneTimeToken,
   openAPI,
   organization,
+  twoFactor,
 } from "better-auth/plugins";
 import { appConfig } from "../../config/app-config";
 import { StripeHelper } from "../helper.js";
@@ -44,7 +45,7 @@ import {
   stripeAuthorizeReference,
   subscriptionAuthorizeReference,
 } from "./auth-helper";
-import { ac, liason, owner, super_admin, support } from "./permission";
+import { ac, liaison, owner, super_admin, support } from "./permission";
 
 export const auth = betterAuth({
   appName: appConfig.APP_NAME,
@@ -70,6 +71,18 @@ export const auth = betterAuth({
     appConfig.WEBSITE_URL,
     appConfig.API_URL,
   ],
+  rateLimit: {
+    enabled: true,
+    storage: "secondary-storage",
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 5 },
+      "/forget-password": { window: 300, max: 3 },
+      "/reset-password": { window: 300, max: 5 },
+    },
+  },
   databaseHooks: {
     session: {
       create: {
@@ -165,6 +178,24 @@ export const auth = betterAuth({
     sendMagicLink,
   },
   plugins: [
+    twoFactor({
+      issuer: appConfig.APP_NAME,
+      schema: {
+        twoFactor: {
+          modelName: "TwoFactor",
+          fields: {
+            secret: "secret",
+            backupCodes: "backupCodes",
+            userId: "userId",
+          },
+        },
+        user: {
+          fields: {
+            twoFactorEnabled: "twoFactorEnabled",
+          },
+        },
+      },
+    }),
     oneTimeToken(),
     admin({
       ac,
@@ -187,7 +218,7 @@ export const auth = betterAuth({
       ac,
       roles: {
         owner,
-        liason,
+        liason: liaison,
       },
       organizationHooks: {
         beforeCreateOrganization,
@@ -293,31 +324,10 @@ export const auth = betterAuth({
             },
             freeTrial: {
               days: 14,
-              onTrialStart: async (subscription) => {
-                console.log(subscription);
-              },
-              onTrialEnd: async ({ subscription }) => {
-                console.log(subscription);
-              },
-              onTrialExpired: async (subscription) => {
-                console.log(subscription);
-              },
             },
           },
         ],
         authorizeReference: subscriptionAuthorizeReference,
-        onSubscriptionComplete: async ({}) => {
-          console.log("Welcome");
-        },
-        onSubscriptionUpdate: async ({ event, subscription }) => {
-          console.log(`Subscription ${subscription.id} updated`);
-        },
-        onSubscriptionCancel: async ({}) => {
-          console.log("Cancelled");
-        },
-        onSubscriptionDeleted: async ({ subscription }) => {
-          console.log(`Subscription ${subscription.id} deleted`);
-        },
       },
     }),
     customSession(customSessionHandler),

@@ -1,7 +1,7 @@
 import { axiosClient } from "@/lib/axios-client";
 
 export const getMileageLogs = async (filters?: any) => {
-  const response = await axiosClient.get("/api/liason/mileage", {
+  const response = await axiosClient.get("/api/liaison/mileage", {
     params: {
       ...filters,
       filter: filters?.filter ? JSON.stringify(filters.filter) : undefined,
@@ -19,13 +19,13 @@ export const getMileageLogs = async (filters?: any) => {
 };
 
 export const createMileageLog = async (data: any) => {
-  const response = await axiosClient.post("/api/liason/mileage", data);
+  const response = await axiosClient.post("/api/liaison/mileage", data);
 
   return response.data;
 };
 
 export const updateMileageLog = async (id: string, data: any) => {
-  const response = await axiosClient.patch(`/api/liason/mileage/${id}`, {
+  const response = await axiosClient.patch(`/api/liaison/mileage/${id}`, {
     ...data,
   });
 
@@ -38,7 +38,7 @@ export const deleteMileageLog = async (id: string | string[]) => {
     // Delete each log sequentially (or you could implement a bulk delete endpoint)
     const results = await Promise.all(
       id.map((singleId) =>
-        axiosClient.delete(`/api/liason/mileage/${singleId}`)
+        axiosClient.delete(`/api/liaison/mileage/${singleId}`)
       )
     );
 
@@ -46,7 +46,7 @@ export const deleteMileageLog = async (id: string | string[]) => {
   }
 
   // Single delete
-  const response = await axiosClient.delete(`/api/liason/mileage/${id}`);
+  const response = await axiosClient.delete(`/api/liaison/mileage/${id}`);
 
   return response.data;
 };

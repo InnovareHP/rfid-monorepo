@@ -46,7 +46,7 @@ export const owner = ac.newRole({
   ...orgAccess.statements,
 });
 
-export const liason = ac.newRole({
+export const liaison = ac.newRole({
   project: ["create", "update"], // limited operational
 });
 

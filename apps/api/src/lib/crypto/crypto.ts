@@ -46,12 +46,16 @@ export function decryptString(value: string): string {
   return pt.toString("utf8");
 }
 
-export function encryptNullable(value: string | null | undefined): string | null | undefined {
+export function encryptNullable(
+  value: string | null | undefined
+): string | null | undefined {
   if (value === null || value === undefined) return value;
   return encryptString(value);
 }
 
-export function decryptNullable(value: string | null | undefined): string | null | undefined {
+export function decryptNullable(
+  value: string | null | undefined
+): string | null | undefined {
   if (value === null || value === undefined) return value;
   if (typeof value !== "string") return value;
   return decryptString(value);

@@ -14,8 +14,9 @@ import { QUEUE_NAMES } from "./queue.constants";
       defaultJobOptions: {
         attempts: 3,
         backoff: { type: "exponential", delay: 1000 },
-        removeOnComplete: { age: 86400 },
-        removeOnFail: { age: 604800 },
+        // Job payloads can hold PHI (emails, CSV rows) — keep Redis residency short
+        removeOnComplete: { age: 3600 },
+        removeOnFail: { age: 86400 },
       },
     }),
     BullModule.registerQueue(

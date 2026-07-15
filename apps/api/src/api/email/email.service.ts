@@ -27,7 +27,7 @@ export class EmailService {
   async sendEmail(sendEmailDto: SendEmailDto) {
     const { to, subject, html } = sendEmailDto;
     return sendEmail({
-      from: appConfig.APP_EMAIL,
+      from: appConfig.SES_FROM_EMAIL,
       to,
       subject,
       html,

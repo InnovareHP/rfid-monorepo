@@ -1,22 +1,20 @@
+import { formatCurrency } from "@/lib/helper/helper";
 import {
   createExpenseLog,
+  deleteExpenseLog,
   getExpenseLogs,
 } from "@/services/expense/expense-service";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
-import { deleteMarketLog } from "@/services/market/market-service";
 import { formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
+import { Card } from "@dashboard/ui/components/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
-  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
 } from "@dashboard/ui/components/dialog";
 import {
   Form,
@@ -24,6 +22,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@dashboard/ui/components/form";
 import { ReceiptImagePicker } from "@dashboard/ui/components/ImageUpload";
 import { Input } from "@dashboard/ui/components/input";
@@ -31,18 +30,25 @@ import { ReceiptViewer } from "@dashboard/ui/components/receipt-viewer";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { CalendarClock, DollarSign, Loader2, Receipt } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
+import {
+  LogEmptyState,
+  LogPageHeader,
+  LogRowDelete,
+  LogStatCard,
+  LogTableSkeleton,
+} from "../log-shared/log-page-shell";
 import { ReusableTable } from "../reusable-table/generic-table";
 
 export const CreateExpenseSchema = z.object({
-  amount: z.coerce.number().min(1),
-  description: z.string().min(1),
+  amount: z.coerce.number().min(1, "Enter an amount"),
+  description: z.string().min(1, "Enter a description"),
   notes: z.string(),
-  image: z.instanceof(File).optional(),
+  image: z.instanceof(File, { message: "Attach a receipt image" }),
 });
 
 export type CreateExpenseFormValues = z.infer<typeof CreateExpenseSchema>;
@@ -62,20 +68,36 @@ const ExpenseLogPage = () => {
   });
 
   const createExpenseMutation = useMutation({
-    mutationFn: createExpenseLog,
+    mutationFn: async (values: CreateExpenseFormValues) => {
+      const image = await uploadImage(values.image);
+      if (!image?.url) throw new Error("Failed to upload receipt image");
+
+      try {
+        return await createExpenseLog({ ...values, image: image.url });
+      } catch (error) {
+        await deleteImage(image.id);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-logs"] });
       toast.success("Expense log created successfully!");
       form.reset();
       setOpen(false);
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create expense log");
+    },
   });
 
-  const deleteMarketMutation = useMutation({
-    mutationFn: async (id: string) => await deleteMarketLog(id),
+  const deleteExpenseMutation = useMutation({
+    mutationFn: async (id: string) => await deleteExpenseLog(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-logs"] });
-      toast.success("Market log deleted successfully!");
+      toast.success("Expense log deleted successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -89,44 +111,56 @@ const ExpenseLogPage = () => {
     },
   });
 
-  const onSubmit = async (values: CreateExpenseFormValues) => {
-    const image = await uploadImage(values.image as File);
-
-    if (!image?.url) throw new Error("Failed to upload image");
-
-    try {
-      createExpenseMutation.mutate({
-        ...values,
-        image: image.url,
-      });
-    } catch (error) {
-      await deleteImage(image.id);
-
-      toast.error("Failed to create expense log");
-    }
+  const onSubmit = (values: CreateExpenseFormValues) => {
+    createExpenseMutation.mutate(values);
   };
 
-  const handleDelete = (id: string) => {
-    deleteMarketMutation.mutate(id);
-  };
+  const rows: any[] = Array.isArray(expenseLogsQuery.data?.data)
+    ? expenseLogsQuery.data.data
+    : [];
+  const totalEntries = expenseLogsQuery.data?.total ?? 0;
+
+  const pageAmount = rows.reduce((sum, row) => sum + (row.amount ?? 0), 0);
+  const lastEntry = rows[0]?.createdAt ? formatDateTime(rows[0].createdAt) : "—";
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Marketing Log</h1>
+    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Card className="cursor-pointer border-2 border-dashed">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5" /> Create New Expense Entry
-                </CardTitle>
-                <CardDescription>Add a Expense Log</CardDescription>
-              </CardHeader>
-            </Card>
-          </DialogTrigger>
+        <LogPageHeader
+          icon={Receipt}
+          title="Expense Log"
+          subtitle="Track expenses and receipts for reimbursement"
+          actionLabel="Log Expense"
+          onAction={() => setOpen(true)}
+        />
 
+        <div className="grid gap-4 sm:grid-cols-3">
+          <LogStatCard
+            icon={Receipt}
+            label="Total Expenses"
+            value={String(totalEntries)}
+          />
+          <LogStatCard
+            icon={DollarSign}
+            label="Amount"
+            value={formatCurrency(pageAmount)}
+            hint="on this page"
+          />
+          <LogStatCard
+            icon={CalendarClock}
+            label="Last Entry"
+            value={lastEntry}
+          />
+        </div>
+
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Log Expense</DialogTitle>
+              <DialogDescription>
+                Record an expense with its receipt for reimbursement.
+              </DialogDescription>
+            </DialogHeader>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -139,8 +173,9 @@ const ExpenseLogPage = () => {
                     <FormItem>
                       <FormLabel>Amount</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" step="0.01" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -154,6 +189,7 @@ const ExpenseLogPage = () => {
                       <FormControl>
                         <Textarea {...field} placeholder="Enter Description" />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -171,6 +207,7 @@ const ExpenseLogPage = () => {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -180,101 +217,118 @@ const ExpenseLogPage = () => {
                   name="image"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Receipt</FormLabel>
                       <FormControl>
                         <ReceiptImagePicker onSelect={field.onChange} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
                 <DialogFooter>
-                  <Button type="submit">Create Entry</Button>
+                  <Button
+                    type="submit"
+                    disabled={createExpenseMutation.isPending}
+                  >
+                    {createExpenseMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
+                    Create Entry
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
+
         <Card className="overflow-hidden border border-gray-200">
           <div className="overflow-x-auto p-4">
             {expenseLogsQuery.isLoading ? (
-              <div className="p-8 text-center text-gray-500">
-                Loading expense logs...
-              </div>
-            ) : expenseLogsQuery.data?.data &&
-              Array.isArray(expenseLogsQuery.data?.data) &&
-              expenseLogsQuery.data?.data?.length > 0 ? (
+              <LogTableSkeleton />
+            ) : rows.length > 0 ? (
               <ReusableTable
-                data={
-                  Array.isArray(expenseLogsQuery.data?.data)
-                    ? expenseLogsQuery.data.data
-                    : []
-                }
+                data={rows}
                 columns={[
                   {
                     key: "amount",
                     header: "Amount",
-                    render: (row: any) => `$${row.amount}`,
-                  },
-
-                  {
-                    key: "createdAt",
-                    header: "Created At",
-                    render: (row: any) => formatDateTime(row.createdAt),
+                    render: (row: any) => (
+                      <span className="font-semibold text-gray-900 tabular-nums">
+                        {formatCurrency(row.amount ?? 0)}
+                      </span>
+                    ),
                   },
                   {
                     key: "description",
                     header: "Description",
-                    render: (row: any) => row.description,
+                    render: (row: any) => (
+                      <span
+                        className="block max-w-64 truncate"
+                        title={row.description ?? ""}
+                      >
+                        {row.description}
+                      </span>
+                    ),
                   },
                   {
                     key: "notes",
                     header: "Notes",
-                    render: (row: any) => row.notes,
+                    render: (row: any) => (
+                      <span
+                        className="block max-w-48 truncate text-gray-600"
+                        title={row.notes ?? ""}
+                      >
+                        {row.notes || "—"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "createdAt",
+                    header: "Logged",
+                    render: (row: any) => (
+                      <span className="text-gray-500 whitespace-nowrap">
+                        {formatDateTime(row.createdAt)}
+                      </span>
+                    ),
                   },
                   {
                     key: "receipt",
                     header: "Receipt",
                     render: (row: any) => (
-                      <div className="flex items-center gap-2">
-                        <ReceiptViewer
-                          url={row.imageUrl}
-                          label="View Receipt"
-                        />
-                      </div>
+                      <ReceiptViewer url={row.imageUrl} label="View Receipt" />
                     ),
                   },
                   {
                     key: "action",
-                    header: "Action",
+                    header: "",
                     render: (row: any) => (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(row.id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
+                      <LogRowDelete
+                        entityLabel="expense"
+                        disabled={deleteExpenseMutation.isPending}
+                        onDelete={() => deleteExpenseMutation.mutate(row.id)}
+                      />
                     ),
                   },
                 ]}
                 currentPage={filterMeta.page}
                 itemsPerPage={filterMeta.limit}
                 onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-                totalCount={expenseLogsQuery.data?.total ?? 0}
-                emptyMessage="No mileage logs found"
+                totalCount={totalEntries}
+                emptyMessage="No expense logs found"
                 isLoading={expenseLogsQuery.isLoading}
               />
             ) : (
-              <div className="p-10 text-center text-gray-500 text-sm">
-                No Expense logs found. Click the card above to create your first
-                entry.
-              </div>
+              <LogEmptyState
+                icon={Receipt}
+                title="No expenses yet"
+                description="Log your first expense with a receipt to start tracking reimbursements."
+                actionLabel="Log Expense"
+                onAction={() => setOpen(true)}
+              />
             )}
           </div>
         </Card>
-        {/* TABLE LEFT UNCHANGED */}
       </div>
     </div>
   );

@@ -9,10 +9,11 @@ import {
   customSessionClient,
   oneTimeTokenClient,
   organizationClient,
+  twoFactorClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import type { Session, User } from "better-auth";
-import { ac, admission_manager, liason, owner } from "./permissions";
+import { ac, admission_manager, liaison, owner } from "./permissions";
 
 type EnrichedSession = {
   user: User & { isOnboarded: boolean };
@@ -42,8 +43,13 @@ export const authClient = createAuthClient({
       ac,
       roles: {
         owner,
-        liason,
+        liason: liaison,
         admission_manager,
+      },
+    }),
+    twoFactorClient({
+      onTwoFactorRedirect() {
+        window.location.href = "/two-factor";
       },
     }),
     customSessionClient<CustomSessionServer>(),

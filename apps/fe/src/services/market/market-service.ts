@@ -1,7 +1,7 @@
 import { axiosClient } from "@/lib/axios-client";
 
 export const getMarketLogs = async (filters?: any) => {
-  const response = await axiosClient.get("/api/liason/marketing", {
+  const response = await axiosClient.get("/api/liaison/marketing", {
     params: {
       ...filters,
       filter: filters?.filter ? JSON.stringify(filters.filter) : undefined,
@@ -19,7 +19,7 @@ export const getMarketLogs = async (filters?: any) => {
 };
 
 export const createMarketLog = async (data: any) => {
-  const response = await axiosClient.post("/api/liason/marketing", {
+  const response = await axiosClient.post("/api/liaison/marketing", {
     ...data,
   });
 
@@ -27,7 +27,7 @@ export const createMarketLog = async (data: any) => {
 };
 
 export const updateMarketLog = async (id: string, data: any) => {
-  const response = await axiosClient.patch(`/api/liason/marketing/${id}`, {
+  const response = await axiosClient.patch(`/api/liaison/marketing/${id}`, {
     ...data,
   });
 
@@ -35,7 +35,7 @@ export const updateMarketLog = async (id: string, data: any) => {
 };
 
 export const deleteMarketLog = async (id: string) => {
-  const response = await axiosClient.delete(`/api/liason/marketing/${id}`);
+  const response = await axiosClient.delete(`/api/liaison/marketing/${id}`);
 
   return response.data;
 };

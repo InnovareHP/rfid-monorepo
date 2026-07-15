@@ -15,6 +15,7 @@ import { Route as TeamRouteImport } from './routes/_team'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InvitationActionRouteImport } from './routes/invitation.$action'
+import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthOtpRouteImport } from './routes/_auth/otp'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -79,6 +80,11 @@ const InvitationActionRoute = InvitationActionRouteImport.update({
   id: '/invitation/$action',
   path: '/invitation/$action',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
+  id: '/two-factor',
+  path: '/two-factor',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: '/register',
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/two-factor': typeof AuthTwoFactorRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
@@ -325,6 +332,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/two-factor': typeof AuthTwoFactorRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
@@ -370,6 +378,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/otp': typeof AuthOtpRoute
   '/_auth/register': typeof AuthRegisterRoute
+  '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/_auth/email/verification': typeof AuthEmailVerificationRoute
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
@@ -414,6 +423,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/two-factor'
     | '/invitation/$action'
     | '/email/verification'
     | '/reset-password/verify'
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/two-factor'
     | '/invitation/$action'
     | '/email/verification'
     | '/reset-password/verify'
@@ -500,6 +511,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/otp'
     | '/_auth/register'
+    | '/_auth/two-factor'
     | '/invitation/$action'
     | '/_auth/email/verification'
     | '/_auth/reset-password/verify'
@@ -588,6 +600,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/invitation/$action'
       preLoaderRoute: typeof InvitationActionRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_auth/two-factor': {
+      id: '/_auth/two-factor'
+      path: '/two-factor'
+      fullPath: '/two-factor'
+      preLoaderRoute: typeof AuthTwoFactorRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_auth/register': {
       id: '/_auth/register'
@@ -848,6 +867,7 @@ interface AuthRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthOtpRoute: typeof AuthOtpRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthTwoFactorRoute: typeof AuthTwoFactorRoute
   AuthEmailVerificationRoute: typeof AuthEmailVerificationRoute
   AuthResetPasswordVerifyRoute: typeof AuthResetPasswordVerifyRoute
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
@@ -857,6 +877,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthOtpRoute: AuthOtpRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  AuthTwoFactorRoute: AuthTwoFactorRoute,
   AuthEmailVerificationRoute: AuthEmailVerificationRoute,
   AuthResetPasswordVerifyRoute: AuthResetPasswordVerifyRoute,
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,

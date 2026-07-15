@@ -18,7 +18,8 @@ export default function MarketingReportPage() {
 
   const { data, refetch, isFetchingNextPage, isFetching } = useInfiniteQuery({
     queryKey: ["marketing-report", filterMeta],
-    queryFn: () => getMarketLogs(filterMeta),
+    queryFn: ({ pageParam }) =>
+      getMarketLogs({ ...filterMeta, page: pageParam }),
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
   });
@@ -39,10 +40,10 @@ export default function MarketingReportPage() {
     {
       key: "touchpoint",
       header: "Touchpoint",
-      render: (row: MarketLogRow) =>
-        Array.isArray(row.touchpoint)
-          ? row.touchpoint.join(", ").replace(/_/g, " ")
-          : row.touchpoint || "N/A",
+      render: (row: any) =>
+        Array.isArray(row.touchpoints)
+          ? row.touchpoints.join(", ").replace(/_/g, " ")
+          : row.touchpoints || "N/A",
     },
     {
       key: "talkedTo",
@@ -63,36 +64,41 @@ export default function MarketingReportPage() {
 
   const handleExportCSV = async () => {
     if (rows.length === 0) {
-      toast.error("No mileage logs available to export.");
+      toast.error("No marketing logs available to export.");
       return;
     }
 
     const limit = 100;
-    let offset = 0;
-    let allData: MarketLogRow[] = [];
-
+    let page = 1;
     let total = 0;
-    let columns: any[] = [];
+    let allData: any[] = [];
 
     do {
-      const res = await getMarketLogs({
-        ...filterMeta,
-        limit,
-        page: offset,
-      });
-
-      if (offset === 1) {
-        total = res.pagination.count;
-        columns = res.columns;
-      }
-
-      columns = [...columns];
+      const res = await getMarketLogs({ ...filterMeta, limit, page });
+      total = res.total ?? 0;
       allData = [...allData, ...res.data];
-      offset += res.data.length;
-    } while (offset < total);
+      page += 1;
+    } while (allData.length < total);
+
+    const exportColumns = [
+      { name: "Date" },
+      { name: "Facility" },
+      { name: "Touchpoints" },
+      { name: "Talked To" },
+      { name: "Reason For Visit" },
+      { name: "Notes" },
+    ];
+    const exportRows = allData.map((row) => ({
+      Date: formatDateTime(row.createdAt),
+      Facility: row.facility ?? "",
+      Touchpoints: (row.touchpoints ?? []).join(", ").replace(/_/g, " "),
+      "Talked To": row.talkedTo ?? "",
+      "Reason For Visit": row.reasonForVisit ?? "",
+      Notes: row.notes ?? "",
+    }));
 
     const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(allData, columns, `Marketing_Report_${timestamp}`);
+    exportToCSV(exportRows, exportColumns, `Marketing_Report_${timestamp}`, [], true);
     toast.success("CSV download started.");
   };
 

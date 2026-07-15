@@ -77,7 +77,7 @@ export function AppSidebar({
               url: `/${activeOrganizationId}/referral-list`,
               icon: Users,
             },
-            ...(memberData?.role !== ROLES.LIASON
+            ...(memberData?.role !== ROLES.LIAISON
               ? [
                   {
                     title: "History Check",

@@ -5,6 +5,7 @@ import {
   listUsers,
   removeUser,
   revokeSession,
+  setUserPassword,
   setUserRole,
   unbanUser,
   verifyEmail,
@@ -51,6 +52,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   Building2,
   Calendar,
+  KeyRound,
   LogOut,
   MoreHorizontal,
   Search,
@@ -65,6 +67,7 @@ import { toast } from "sonner";
 import { RoleBadge, StatusBadge } from "../../Reusable/StatusBadges";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
 import { BanUserDialog } from "./BanUserDialog";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 const ROLE_LABELS = {
   [ROLES.USER]: "User",
@@ -92,6 +95,7 @@ export function UserManagementPage() {
 
   const [banTarget, setBanTarget] = useState<AdminUser | null>(null);
   const [removeTarget, setRemoveTarget] = useState<AdminUser | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users", filterMeta],
@@ -185,6 +189,21 @@ export function UserManagementPage() {
       invalidateUsers();
     },
     onError: () => toast.error("Failed to verify email"),
+  });
+
+  const passwordMutation = useMutation({
+    mutationFn: ({
+      userId,
+      newPassword,
+    }: {
+      userId: string;
+      newPassword: string;
+    }) => setUserPassword(userId, newPassword),
+    onSuccess: () => {
+      toast.success("Password changed");
+      setPasswordTarget(null);
+    },
+    onError: () => toast.error("Failed to change password"),
   });
 
   const columns = [
@@ -329,6 +348,10 @@ export function UserManagementPage() {
               <LogOut className="mr-2 h-4 w-4" />
               Revoke session
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setPasswordTarget(row)}>
+              <KeyRound className="mr-2 h-4 w-4" />
+              Change password
+            </DropdownMenuItem>
             {!row.emailVerified && (
               <DropdownMenuItem
                 onClick={() => verifyEmailMutation.mutate(row.id)}
@@ -428,6 +451,18 @@ export function UserManagementPage() {
             reason: reason || undefined,
             expiresIn,
           })
+        }
+      />
+
+      {/* Change password dialog */}
+      <ChangePasswordDialog
+        open={!!passwordTarget}
+        onOpenChange={(open) => !open && setPasswordTarget(null)}
+        userName={passwordTarget?.name ?? ""}
+        isPending={passwordMutation.isPending}
+        onConfirm={(newPassword) =>
+          passwordTarget &&
+          passwordMutation.mutate({ userId: passwordTarget.id, newPassword })
         }
       />
 

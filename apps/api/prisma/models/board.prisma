@@ -1,7 +1,7 @@
 model Field {
   id         String         @id @default(uuid())
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  createdAt  DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime       @updatedAt @db.Timestamptz(3)
   fieldName  String
   fieldOrder Int
   fieldType  BoardFieldType
@@ -20,8 +20,8 @@ model Field {
 
 model Board {
   id         String     @id @default(uuid())
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  createdAt  DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime   @updatedAt @db.Timestamptz(3)
   recordName String
   assignedTo String?
   isDeleted  Boolean    @default(false)
@@ -83,7 +83,7 @@ model History {
   newValue       String?
   column         String?
   action         String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
   createdBy      String?
   organizationId String?
 
@@ -111,8 +111,8 @@ model FieldPersonInformation {
 model BoardNotificationState {
   id        String   @id @default(uuid())
   recordId  String   @unique
-  lastSeen  DateTime
-  updatedAt DateTime @updatedAt
+  lastSeen  DateTime @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   record Board @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
@@ -121,7 +121,7 @@ model BoardNotificationState {
 
 model BoardCounty {
   id                    String                  @id @default(uuid())
-  createdAt             DateTime                @default(now())
+  createdAt             DateTime                @default(now()) @db.Timestamptz(3)
   countyName            String
   organizationId        String
   boardCountyAssignedTo BoardCountyAssignedTo[]
@@ -134,7 +134,7 @@ model BoardCounty {
 
 model BoardCountyAssignedTo {
   id         String   @id @default(uuid())
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
   assignedTo String
 
   boardCountyId String
@@ -149,6 +149,7 @@ enum ActivityType {
   EMAIL
   MEETING
   NOTE
+  FAX
 
   @@schema("board_schema")
 }
@@ -163,19 +164,22 @@ enum ActivityStatus {
 
 model Activity {
   id             String         @id @default(uuid())
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
   title          String
   description    String?
   activityType   ActivityType
   status         ActivityStatus @default(PENDING)
-  dueDate        DateTime?
-  completedAt    DateTime?
+  dueDate        DateTime?      @db.Timestamptz(3)
+  completedAt    DateTime?      @db.Timestamptz(3)
   recipientEmail String?
   emailSubject   String?
   emailBody      String?
-  emailSentAt    DateTime?
+  emailSentAt    DateTime?      @db.Timestamptz(3)
   senderEmail    String?
+  faxNumber      String?
+  faxId          String?
+  faxSentAt      DateTime?      @db.Timestamptz(3)
 
   recordId String
   record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
@@ -194,13 +198,13 @@ model Activity {
 
 model GmailToken {
   id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken  String
   refreshToken String
-  tokenExpiry  DateTime
+  tokenExpiry  DateTime @db.Timestamptz(3)
   gmailAddress String
 
   @@schema("board_schema")
@@ -208,13 +212,13 @@ model GmailToken {
 
 model OutlookToken {
   id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken  String
   refreshToken String
-  tokenExpiry  DateTime
+  tokenExpiry  DateTime @db.Timestamptz(3)
   outlookEmail String
 
   @@schema("board_schema")
@@ -222,7 +226,7 @@ model OutlookToken {
 
 model BoardRelation {
   id             String       @id @default(uuid())
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
   sourceId       String
   targetId       String
   relationType   RelationType @default(REFERRAL_LINK)

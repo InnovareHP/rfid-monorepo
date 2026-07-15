@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/side-bar/app-sidebar";
 import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
+import { useIdleLogout } from "@/hooks/use-idle-logout";
 import { authClient } from "@/lib/auth-client";
 import { applyBrandColor, removeBrandColor } from "@/lib/color-utils";
 import type { SessionMember, Subscription } from "@dashboard/shared";
@@ -61,6 +62,7 @@ function TeamLayout() {
     };
 
   useBoardSync();
+  useIdleLogout();
 
   const {
     data: organizations,

@@ -5,13 +5,13 @@ model Subscription {
   stripeCustomerId     String    @unique
   stripeSubscriptionId String?
   status               String?
-  periodStart          DateTime?
-  periodEnd            DateTime?
+  periodStart          DateTime? @db.Timestamptz(3)
+  periodEnd            DateTime? @db.Timestamptz(3)
   cancelAtPeriodEnd    Boolean?
   seats                Int?
-  trialStart           DateTime?
-  trialEnd             DateTime?
-  cancelAt             DateTime?
+  trialStart           DateTime? @db.Timestamptz(3)
+  trialEnd             DateTime? @db.Timestamptz(3)
+  cancelAt             DateTime? @db.Timestamptz(3)
 
   @@schema("stripe_schema")
 }

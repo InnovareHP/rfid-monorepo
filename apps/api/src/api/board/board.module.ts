@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { FaxModule } from "../fax/fax.module";
 import { BoardOAuthCallbackController } from "./board-oauth-callback.controller";
 import { BoardController } from "./board.controller";
 import { BoardGateway } from "./board.gateway";
@@ -9,6 +10,7 @@ import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
 @Module({
+  imports: [FaxModule],
   controllers: [BoardOAuthCallbackController, BoardController],
   providers: [
     BoardService,

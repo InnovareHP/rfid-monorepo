@@ -9,11 +9,37 @@ const ENCRYPTED_FIELDS: FieldMap = {
   GoogleCalendarToken: ["accessToken", "refreshToken"],
   OutlookCalendarToken: ["accessToken", "refreshToken"],
   FieldPersonInformation: ["contactNumber", "email", "address"],
-  Activity: ["emailBody", "emailSubject", "recipientEmail", "senderEmail"],
+  TwoFactor: ["secret", "backupCodes"],
+  OrgIntegration: ["apiKey"],
+  Activity: [
+    "emailBody",
+    "emailSubject",
+    "recipientEmail",
+    "senderEmail",
+    "faxNumber",
+  ],
   History: ["oldValue", "newValue"],
+  FieldValue: ["value"],
+  Board: ["recordName"],
 };
 
-function encryptObj(model: string, data: any) {
+// Relation key → model, so encrypted models are handled when nested
+// under another model's include/select or nested-write payload.
+const RELATION_MODELS: Record<string, string> = {
+  values: "FieldValue",
+  contactValue: "FieldPersonInformation",
+  fieldvalue: "FieldValue",
+  record: "Board",
+  history: "History",
+  History: "History",
+  activities: "Activity",
+  Activity: "Activity",
+  Board: "Board",
+  source: "Board",
+  target: "Board",
+};
+
+function encryptOwnFields(model: string, data: any): any {
   const fields = ENCRYPTED_FIELDS[model];
   if (!fields || !data || typeof data !== "object") return data;
   const out: any = { ...data };
@@ -30,13 +56,77 @@ function encryptObj(model: string, data: any) {
   return out;
 }
 
-function decryptObj(model: string, data: any) {
+function encryptObj(model: string, data: any): any {
+  if (!data || typeof data !== "object") return data;
+  const out = encryptOwnFields(model, data);
+  for (const [key, childModel] of Object.entries(RELATION_MODELS)) {
+    const nested = out[key];
+    if (!nested || typeof nested !== "object") continue;
+    out[key] = encryptNestedWrite(childModel, nested);
+  }
+  return out;
+}
+
+function mapMaybeArray(value: any, fn: (v: any) => any): any {
+  return Array.isArray(value) ? value.map(fn) : fn(value);
+}
+
+function encryptNestedWrite(model: string, nested: any): any {
+  const out: any = { ...nested };
+  if (out.create) {
+    out.create = mapMaybeArray(out.create, (d: any) => encryptObj(model, d));
+  }
+  if (out.createMany?.data) {
+    out.createMany = {
+      ...out.createMany,
+      data: mapMaybeArray(out.createMany.data, (d: any) =>
+        encryptObj(model, d)
+      ),
+    };
+  }
+  if (out.update) {
+    out.update = mapMaybeArray(out.update, (u: any) =>
+      u && typeof u === "object" && "data" in u
+        ? { ...u, data: encryptObj(model, u.data) }
+        : encryptObj(model, u)
+    );
+  }
+  if (out.updateMany) {
+    out.updateMany = mapMaybeArray(out.updateMany, (u: any) =>
+      u && typeof u === "object" && "data" in u
+        ? { ...u, data: encryptObj(model, u.data) }
+        : encryptObj(model, u)
+    );
+  }
+  if (out.upsert) {
+    out.upsert = mapMaybeArray(out.upsert, (u: any) => ({
+      ...u,
+      ...(u.create ? { create: encryptObj(model, u.create) } : {}),
+      ...(u.update ? { update: encryptObj(model, u.update) } : {}),
+    }));
+  }
+  if (out.connectOrCreate) {
+    out.connectOrCreate = mapMaybeArray(out.connectOrCreate, (c: any) =>
+      c?.create ? { ...c, create: encryptObj(model, c.create) } : c
+    );
+  }
+  return out;
+}
+
+function decryptObj(model: string, data: any): any {
+  if (!data || typeof data !== "object") return data;
   const fields = ENCRYPTED_FIELDS[model];
-  if (!fields || !data || typeof data !== "object") return data;
-  for (const f of fields) {
-    if (f in data && typeof data[f] === "string") {
-      data[f] = decryptNullable(data[f]);
+  if (fields) {
+    for (const f of fields) {
+      if (f in data && typeof data[f] === "string") {
+        data[f] = decryptNullable(data[f]);
+      }
     }
+  }
+  for (const [key, childModel] of Object.entries(RELATION_MODELS)) {
+    const nested = data[key];
+    if (!nested || typeof nested !== "object") continue;
+    decryptResult(childModel, nested);
   }
   return data;
 }

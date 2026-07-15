@@ -198,7 +198,7 @@ export async function verifyEmail(userId: string) {
   return data;
 }
 
-export async function sendVerificationEmail(
+export async function setUserPassword(
   userId: string,
   newPassword: string
 ) {

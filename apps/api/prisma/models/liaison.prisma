@@ -6,8 +6,8 @@ model Marketing {
   reasonForVisit String?
   notes          String?
   memberId       String
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime?        @updatedAt
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime?        @updatedAt @db.Timestamptz(3)
   isDeleted      Boolean          @default(false)
 
   member Member @relation(fields: [memberId], references: [id])
@@ -23,8 +23,8 @@ model Expense {
   notes       String
   memberId    String
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
   isDeleted Boolean   @default(false)
 
   imageUrl String
@@ -50,8 +50,8 @@ model Mileage {
 
   memberId String
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
 
   member Member @relation(fields: [memberId], references: [id])
 

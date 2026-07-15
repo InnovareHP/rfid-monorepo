@@ -6,12 +6,14 @@ import {
   WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
+import { appConfig } from "src/config/app-config";
 import { auth } from "src/lib/auth/auth";
 
 @WebSocketGateway({
   path: "/ws",
   cors: {
-    origin: "*",
+    origin: [appConfig.WEBSITE_URL, appConfig.SUPPORT_URL],
+    credentials: true,
   },
 })
 export class BoardGateway implements OnGatewayInit, OnGatewayConnection {

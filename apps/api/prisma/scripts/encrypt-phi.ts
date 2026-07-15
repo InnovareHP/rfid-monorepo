@@ -30,6 +30,19 @@ const SPECS: Spec[] = [
     load: () => raw.history.findMany(),
     patch: (id, data) => raw.history.update({ where: { id }, data }),
   },
+  {
+    label: "FieldValue",
+    fields: ["value"],
+    load: () =>
+      raw.fieldValue.findMany({ select: { id: true, value: true } }),
+    patch: (id, data) => raw.fieldValue.update({ where: { id }, data }),
+  },
+  {
+    label: "Board",
+    fields: ["recordName"],
+    load: () => raw.board.findMany({ select: { id: true, recordName: true } }),
+    patch: (id, data) => raw.board.update({ where: { id }, data }),
+  },
 ];
 
 async function run() {

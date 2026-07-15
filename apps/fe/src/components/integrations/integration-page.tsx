@@ -13,8 +13,14 @@ import {
   getGoogleCalendarAuthUrl,
   getOutlookCalendarAuthUrl,
 } from "@/services/calendar/calendar-service";
+import {
+  connectFaxIntegration,
+  disconnectFaxIntegration,
+  getFaxIntegrationStatus,
+} from "@/services/fax/fax-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
+import { Input } from "@dashboard/ui/components/input";
 import {
   Card,
   CardContent,
@@ -26,8 +32,8 @@ import { Separator } from "@dashboard/ui/components/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
-import { Calendar, Link, Loader2, Mail, PlugZap, Unlink } from "lucide-react";
-import { useEffect } from "react";
+import { Calendar, Link, Loader2, Mail, PlugZap, Printer, Unlink } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function IntegrationPage() {
@@ -138,6 +144,41 @@ export default function IntegrationPage() {
     },
   });
 
+  // ---- Fax: Eldon Fax ----
+  const [faxApiKey, setFaxApiKey] = useState("");
+
+  const faxStatusQuery = useQuery({
+    queryKey: ["fax-integration-status"],
+    queryFn: getFaxIntegrationStatus,
+  });
+
+  const connectFaxMutation = useMutation({
+    mutationFn: connectFaxIntegration,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fax-integration-status"] });
+      setFaxApiKey("");
+      toast.success("Eldon Fax connected");
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message ?? "Failed to connect Eldon Fax"
+      );
+    },
+  });
+
+  const disconnectFaxMutation = useMutation({
+    mutationFn: disconnectFaxIntegration,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fax-integration-status"] });
+      toast.success("Eldon Fax disconnected");
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message ?? "Failed to disconnect Eldon Fax"
+      );
+    },
+  });
+
   // ---- Toast on redirect ----
   useEffect(() => {
     if (search?.gmail === "connected") {
@@ -197,9 +238,10 @@ export default function IntegrationPage() {
 
       <div className="mx-auto max-w-7xl p-6 sm:p-8">
         <Tabs defaultValue="email" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:w-[320px]">
+          <TabsList className="grid w-full grid-cols-3 md:w-[480px]">
             <TabsTrigger value="email">Email</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            <TabsTrigger value="fax">Fax</TabsTrigger>
           </TabsList>
 
           {/* ---- Email Tab ---- */}
@@ -502,6 +544,106 @@ export default function IntegrationPage() {
                       </Button>
                     )}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ---- Fax Tab ---- */}
+          <TabsContent value="fax" className="mt-0">
+            <Card className="border-2 border-gray-300 shadow-sm">
+              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
+                <div className="flex items-center gap-2">
+                  <Printer className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-foreground">Eldon Fax</CardTitle>
+                    <CardDescription>
+                      Send documents as faxes directly from record activities
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4 p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-teal-200 bg-teal-50">
+                      <Printer className="h-6 w-6 text-teal-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Eldon Fax</p>
+                      {faxStatusQuery.data?.connected ? (
+                        <p className="text-sm text-gray-600">
+                          Connected with key ending in{" "}
+                          <span className="font-medium text-primary">
+                            …{faxStatusQuery.data.apiKeyLast4}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Paste an organization API key with faxes:read and
+                          faxes:write scopes (owner only)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {faxStatusQuery.data?.connected && (
+                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
+                        Connected
+                      </Badge>
+                    )}
+
+                    {faxStatusQuery.data?.connected && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => disconnectFaxMutation.mutate()}
+                        disabled={disconnectFaxMutation.isPending}
+                      >
+                        {disconnectFaxMutation.isPending ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Unlink className="mr-1 h-4 w-4" />
+                        )}
+                        Disconnect
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <Separator className="bg-gray-300" />
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    type="password"
+                    placeholder={
+                      faxStatusQuery.data?.connected
+                        ? "Paste a new key to rotate"
+                        : "sk_live_..."
+                    }
+                    value={faxApiKey}
+                    onChange={(e) => setFaxApiKey(e.target.value)}
+                    className="sm:max-w-md"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-primary/40 hover:bg-primary/10 sm:h-9"
+                    onClick={() => connectFaxMutation.mutate(faxApiKey.trim())}
+                    disabled={
+                      connectFaxMutation.isPending || faxApiKey.trim().length < 10
+                    }
+                  >
+                    {connectFaxMutation.isPending ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link className="mr-1 h-4 w-4" />
+                    )}
+                    {faxStatusQuery.data?.connected ? "Rotate Key" : "Connect"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

@@ -23,6 +23,7 @@
     "prisma:reset": "prisma db reset",
     "crypto:encrypt-tokens": "ts-node prisma/scripts/encrypt-tokens.ts",
     "crypto:encrypt-phi": "ts-node prisma/scripts/encrypt-phi.ts",
+    "crypto:decrypt-phi": "ts-node prisma/scripts/decrypt-phi.ts",
     "docker:build": "docker build -t dashboard-backend .",
     "auth:generate": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/auth.ts",
     "prepare": "husky"
@@ -41,6 +42,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.13",
     "@nestjs/swagger": "^11.2.0",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.13",
     "@prisma/client": "^5.22.0",
     "@react-email/components": "0.4.0",
@@ -56,6 +58,7 @@
     "dotenv": "^16.6.1",
     "googleapis": "^171.4.0",
     "graphql": "^16.12.0",
+    "helmet": "^8.2.0",
     "ioredis": "^5.7.0",
     "multer": "^2.0.2",
     "nestjs-pino": "^4.4.0",

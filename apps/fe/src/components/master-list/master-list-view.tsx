@@ -511,6 +511,7 @@ export function MasterListView({
                 <ActivityTab
                   recordId={leadId}
                   enabled={activeTab === "activities"}
+                  moduleType={isReferral ? "REFERRAL" : "LEAD"}
                 />
               </TabsContent>
             </Tabs>

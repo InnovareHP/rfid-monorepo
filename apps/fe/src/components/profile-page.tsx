@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { TwoFactorSettings } from "@/components/two-factor/two-factor-settings";
 import { uploadImage } from "@/services/image/image-service";
 import {
   Avatar,
@@ -430,6 +431,16 @@ export function ProfilePage({
                   </Button>
                 </form>
               )}
+
+              <Separator className="bg-gray-300" />
+
+              {/* Two-Factor Authentication */}
+              <TwoFactorSettings
+                enabled={
+                  (user as BetterAuthUser & { twoFactorEnabled?: boolean })
+                    .twoFactorEnabled === true
+                }
+              />
 
               <Separator className="bg-gray-300" />
 

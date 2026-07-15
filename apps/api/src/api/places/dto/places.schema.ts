@@ -1,8 +1,5 @@
 import { createZodDto } from "nestjs-zod";
-import {
-  AutocompleteQuerySchema,
-  PlaceDetailsQuerySchema,
-} from "./places.dto";
+import { AutocompleteQuerySchema, PlaceDetailsQuerySchema } from "./places.dto";
 
 export class AutocompleteQueryDto extends createZodDto(
   AutocompleteQuerySchema

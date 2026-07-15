@@ -5,18 +5,16 @@ import {
   getMarketLogs,
 } from "@/services/market/market-service";
 import { formatDateTime } from "@dashboard/shared";
+import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
+import { Card } from "@dashboard/ui/components/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
-  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
 } from "@dashboard/ui/components/dialog";
 import {
   Form,
@@ -24,6 +22,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { MultiSelect } from "@dashboard/ui/components/multi-select";
@@ -37,46 +36,60 @@ import {
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Building2, Loader2, Megaphone, MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
+import {
+  LogEmptyState,
+  LogPageHeader,
+  LogRowDelete,
+  LogStatCard,
+  LogTableSkeleton,
+} from "../log-shared/log-page-shell";
 import { ReusableTable } from "../reusable-table/generic-table";
 
 export const CreateMarketSchema = z.object({
-  facility: z.string().min(1),
-  touchpoint: z.array(
-    z.enum([
-      "IN_PERSON_MEETING",
-      "LINKED_IN",
-      "FACEBOOK",
-      "TEXT",
-      "EMAIL",
-      "PHONE",
-      "OTHER",
-    ])
-  ),
-  talkedTo: z.string().min(1),
-  reasonForVisit: z.string().min(1),
+  facility: z.string().min(1, "Select a facility"),
+  touchpoint: z
+    .array(
+      z.enum([
+        "IN_PERSON_MEETING",
+        "LINKED_IN",
+        "FACEBOOK",
+        "TEXT",
+        "EMAIL",
+        "PHONE",
+        "OTHER",
+      ])
+    )
+    .min(1, "Select at least one touchpoint"),
+  talkedTo: z.string().min(1, "Enter who you talked to"),
+  reasonForVisit: z.string().min(1, "Enter the reason for the visit"),
   notes: z.string().optional(),
 });
 
 export type CreateMarketFormValues = z.infer<typeof CreateMarketSchema>;
 
+const TOUCHPOINT_LABELS: Record<string, string> = {
+  IN_PERSON_MEETING: "In Person",
+  LINKED_IN: "LinkedIn",
+  FACEBOOK: "Facebook",
+  TEXT: "Text",
+  EMAIL: "Email",
+  PHONE: "Phone",
+  OTHER: "Other",
+};
+
 const MarketLogPage = () => {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const options = [
-    { label: "In Person Meeting", value: "IN_PERSON_MEETING" },
-    { label: "LinkedIn", value: "LINKED_IN" },
-    { label: "Facebook", value: "FACEBOOK" },
-    { label: "Text", value: "TEXT" },
-    { label: "Email", value: "EMAIL" },
-    { label: "Phone", value: "PHONE" },
-    { label: "Other", value: "OTHER" },
-  ];
+  const options = Object.entries(TOUCHPOINT_LABELS).map(([value, label]) => ({
+    label,
+    value,
+  }));
 
   const [filterMeta, setFilterMeta] = useState({
     page: 1,
@@ -100,7 +113,7 @@ const MarketLogPage = () => {
     mutationFn: createMarketLog,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["market-logs"] });
-      toast.success("Market log created successfully!");
+      toast.success("Marketing log created successfully!");
       form.reset();
       setOpen(false);
     },
@@ -113,7 +126,10 @@ const MarketLogPage = () => {
     mutationFn: async (id: string) => await deleteMarketLog(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["market-logs"] });
-      toast.success("Market log deleted successfully!");
+      toast.success("Marketing log deleted successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -132,27 +148,62 @@ const MarketLogPage = () => {
     createMarketMutation.mutate(values);
   };
 
-  const handleDelete = (id: string) => {
-    deleteMarketMutation.mutate(id);
-  };
+  const rows: any[] = Array.isArray(marketLogsQuery.data?.data)
+    ? marketLogsQuery.data.data
+    : [];
+  const totalEntries = marketLogsQuery.data?.total ?? 0;
+
+  const uniqueFacilities = new Set(rows.map((r) => r.facility)).size;
+  const touchpointCounts = new Map<string, number>();
+  for (const row of rows) {
+    for (const tp of row.touchpoints ?? []) {
+      touchpointCounts.set(tp, (touchpointCounts.get(tp) ?? 0) + 1);
+    }
+  }
+  const topTouchpoint =
+    [...touchpointCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  const isLoading = marketLogsQuery.isLoading || facilityOptionsQuery.isLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Marketing Log</h1>
+    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Card className="cursor-pointer border-2 border-dashed">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5" /> Create New Marketing Entry
-                </CardTitle>
-                <CardDescription>Add a Marketing Log</CardDescription>
-              </CardHeader>
-            </Card>
-          </DialogTrigger>
+        <LogPageHeader
+          icon={Megaphone}
+          title="Marketing Log"
+          subtitle="Track facility visits, touchpoints, and outreach activity"
+          actionLabel="Log Activity"
+          onAction={() => setOpen(true)}
+        />
 
+        <div className="grid gap-4 sm:grid-cols-3">
+          <LogStatCard
+            icon={Megaphone}
+            label="Total Activities"
+            value={String(totalEntries)}
+          />
+          <LogStatCard
+            icon={Building2}
+            label="Facilities Touched"
+            value={String(uniqueFacilities)}
+            hint="on this page"
+          />
+          <LogStatCard
+            icon={MessagesSquare}
+            label="Top Touchpoint"
+            value={topTouchpoint ? TOUCHPOINT_LABELS[topTouchpoint] : "—"}
+            hint="on this page"
+          />
+        </div>
+
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Log Marketing Activity</DialogTitle>
+              <DialogDescription>
+                Record a facility visit or outreach touchpoint.
+              </DialogDescription>
+            </DialogHeader>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -169,7 +220,7 @@ const MarketLogPage = () => {
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
-                          <SelectTrigger className="w-auto">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Facility" />
                           </SelectTrigger>
                           <SelectContent>
@@ -181,6 +232,7 @@ const MarketLogPage = () => {
                           </SelectContent>
                         </Select>
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -198,6 +250,7 @@ const MarketLogPage = () => {
                           options={options}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -211,6 +264,7 @@ const MarketLogPage = () => {
                       <FormControl>
                         <Input placeholder="Enter Talked To" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -228,6 +282,7 @@ const MarketLogPage = () => {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -244,43 +299,60 @@ const MarketLogPage = () => {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
                 <DialogFooter>
-                  <Button type="submit">Create Entry</Button>
+                  <Button
+                    type="submit"
+                    disabled={createMarketMutation.isPending}
+                  >
+                    {createMarketMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
+                    Create Entry
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
+
         <Card className="overflow-hidden border border-gray-200">
           <div className="overflow-x-auto p-4">
-            {marketLogsQuery.isLoading || facilityOptionsQuery.isLoading ? (
-              <div className="p-8 text-center text-gray-500">
-                Loading mileage logs...
-              </div>
-            ) : marketLogsQuery.data?.data &&
-              Array.isArray(marketLogsQuery.data?.data) &&
-              marketLogsQuery.data?.data?.length > 0 ? (
+            {isLoading ? (
+              <LogTableSkeleton />
+            ) : rows.length > 0 ? (
               <ReusableTable
-                data={
-                  Array.isArray(marketLogsQuery.data?.data)
-                    ? marketLogsQuery.data.data
-                    : []
-                }
+                data={rows}
                 columns={[
                   {
-                    key: "destination",
-                    header: "Destination",
-                    render: (row: any) => row.facility,
+                    key: "facility",
+                    header: "Facility",
+                    render: (row: any) => (
+                      <span className="font-medium text-gray-900">
+                        {row.facility}
+                      </span>
+                    ),
                   },
                   {
                     key: "touchpoint",
-                    header: "Touchpoint",
-                    render: (row: any) =>
-                      row.touchpoints.join(", ").replace(/_/g, " "),
+                    header: "Touchpoints",
+                    render: (row: any) => (
+                      <div className="flex flex-wrap gap-1">
+                        {(row.touchpoints ?? []).map((tp: string) => (
+                          <Badge
+                            key={tp}
+                            variant="secondary"
+                            className="text-xs font-medium"
+                          >
+                            {TOUCHPOINT_LABELS[tp] ?? tp}
+                          </Badge>
+                        ))}
+                      </div>
+                    ),
                   },
                   {
                     key: "talkedTo",
@@ -290,49 +362,66 @@ const MarketLogPage = () => {
                   {
                     key: "reasonForVisit",
                     header: "Reason for Visit",
-                    render: (row: any) => row.reasonForVisit || "—",
+                    render: (row: any) => (
+                      <span
+                        className="block max-w-56 truncate text-gray-600"
+                        title={row.reasonForVisit ?? ""}
+                      >
+                        {row.reasonForVisit || "—"}
+                      </span>
+                    ),
                   },
                   {
                     key: "createdAt",
-                    header: "Created At",
-                    render: (row: any) => formatDateTime(row.createdAt),
+                    header: "Logged",
+                    render: (row: any) => (
+                      <span className="text-gray-500 whitespace-nowrap">
+                        {formatDateTime(row.createdAt)}
+                      </span>
+                    ),
                   },
                   {
                     key: "notes",
                     header: "Notes",
-                    render: (row: any) => row.notes,
+                    render: (row: any) => (
+                      <span
+                        className="block max-w-48 truncate text-gray-600"
+                        title={row.notes ?? ""}
+                      >
+                        {row.notes || "—"}
+                      </span>
+                    ),
                   },
-
                   {
                     key: "action",
-                    header: "Action",
+                    header: "",
                     render: (row: any) => (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(row.id)}
-                      >
-                        Delete
-                      </Button>
+                      <LogRowDelete
+                        entityLabel="marketing activity"
+                        disabled={deleteMarketMutation.isPending}
+                        onDelete={() => deleteMarketMutation.mutate(row.id)}
+                      />
                     ),
                   },
                 ]}
                 currentPage={filterMeta.page}
                 itemsPerPage={filterMeta.limit}
                 onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-                totalCount={marketLogsQuery.data?.total ?? 0}
-                emptyMessage="No mileage logs found"
+                totalCount={totalEntries}
+                emptyMessage="No marketing logs found"
                 isLoading={marketLogsQuery.isLoading}
               />
             ) : (
-              <div className="p-10 text-center text-gray-500 text-sm">
-                No mileage logs found. Click the card above to create your first
-                entry.
-              </div>
+              <LogEmptyState
+                icon={Megaphone}
+                title="No marketing activity yet"
+                description="Log your first facility visit or outreach touchpoint to start building your activity history."
+                actionLabel="Log Activity"
+                onAction={() => setOpen(true)}
+              />
             )}
           </div>
         </Card>
-        {/* TABLE LEFT UNCHANGED */}
       </div>
     </div>
   );

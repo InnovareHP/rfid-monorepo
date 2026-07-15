@@ -174,10 +174,7 @@ export class GoogleCalendarService {
         error
       );
 
-      if (
-        error?.response?.status === 401 ||
-        error?.code === "invalid_grant"
-      ) {
+      if (error?.response?.status === 401 || error?.code === "invalid_grant") {
         await prisma.googleCalendarToken
           .delete({ where: { userId } })
           .catch(() => {});

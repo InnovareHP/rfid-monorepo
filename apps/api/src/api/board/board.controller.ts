@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Param,
   Patch,
   Post,
@@ -17,6 +18,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Queue } from "bullmq";
 import { memoryStorage } from "multer";
+import { EldonFaxError } from "../../lib/eldonfax/eldonfax";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 import {
@@ -24,6 +26,7 @@ import {
   CompleteActivityDto,
   CreateActivityDto,
   CreateColumnDto,
+  CreateFaxActivityDto,
   CreateFieldOptionDto,
   CreateRecordCountyAssignmentDto,
   CreateRecordDto,
@@ -442,6 +445,52 @@ export class BoardController {
         session.user.id
       );
     } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/activities/fax")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 25 * 1024 * 1024 },
+    })
+  )
+  async createFaxActivity(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateFaxActivityDto,
+    @Session() session: MemberSession
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'No document uploaded. Use multipart/form-data with the "file" field.'
+      );
+    }
+
+    try {
+      return await this.boardService.createFaxActivity(
+        {
+          recordId: dto.recordId,
+          title: dto.title,
+          description: dto.description,
+          faxNumber: dto.faxNumber,
+          file: {
+            buffer: file.buffer,
+            filename: file.originalname,
+            mimetype: file.mimetype,
+          },
+        },
+        session.session.activeOrganizationId,
+        session.session.userId,
+        session.session.memberRole
+      );
+    } catch (error) {
+      if (error instanceof EldonFaxError) {
+        throw new HttpException(
+          { message: error.message, code: error.code },
+          error.status
+        );
+      }
       throw new BadRequestException(error.message);
     }
   }

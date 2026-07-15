@@ -37,7 +37,11 @@
       "Bash(ls apps/fe/src/components/master-list/ apps/fe/src/components/referral-list/)",
       "Bash(wc -l apps/fe/src/components/master-list/*.tsx apps/fe/src/components/referral-list/*.tsx)",
       "PowerShell(New-Item *)",
-      "PowerShell(pnpm *)"
+      "PowerShell(pnpm *)",
+      "WebFetch(domain:eldonfax.com)",
+      "Bash(echo \"exit: $?\")",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/report/marketing/**)",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/report/**)"
     ]
   }
 }

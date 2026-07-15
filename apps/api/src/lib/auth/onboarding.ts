@@ -169,7 +169,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
       switch (field.fieldType) {
         case "TEXT":
           value = referralTextSamples[field.fieldName]
-            ? pick(referralTextSamples[field.fieldName]!, index)
+            ? pick(referralTextSamples[field.fieldName], index)
             : "";
           break;
         case "DATE":
@@ -196,7 +196,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
             (o) => o.fieldId === field.id
           );
           value = fieldOptions.length
-            ? fieldOptions[index % fieldOptions.length]!.optionName
+            ? fieldOptions[index % fieldOptions.length].optionName
             : null;
           break;
         }
@@ -255,8 +255,16 @@ export const OnboardingSeeding = async (organizationId: string) => {
   //
   await prisma.board.createMany({
     data: [
-      { recordName: "Sunrise Care Facility", moduleType: "LEAD", organizationId },
-      { recordName: "Lakeside Health Center", moduleType: "LEAD", organizationId },
+      {
+        recordName: "Sunrise Care Facility",
+        moduleType: "LEAD",
+        organizationId,
+      },
+      {
+        recordName: "Lakeside Health Center",
+        moduleType: "LEAD",
+        organizationId,
+      },
       { recordName: "Maple Grove Nursing", moduleType: "LEAD", organizationId },
     ],
     skipDuplicates: true,
@@ -304,13 +312,12 @@ export const OnboardingSeeding = async (organizationId: string) => {
       switch (field.fieldType) {
         case "TEXT":
           value = leadTextSamples[field.fieldName]
-            ? pick(leadTextSamples[field.fieldName]!, index)
+            ? pick(leadTextSamples[field.fieldName], index)
             : "";
           break;
         case "EMAIL":
           value =
-            lead.recordName.toLowerCase().replace(/\s+/g, ".") +
-            "@example.com";
+            lead.recordName.toLowerCase().replace(/\s+/g, ".") + "@example.com";
           break;
         case "PHONE":
           value = pick(phoneSamples, index);
@@ -330,7 +337,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
             (o) => o.fieldId === field.id
           );
           value = fieldOptions.length
-            ? fieldOptions[index % fieldOptions.length]!.optionName
+            ? fieldOptions[index % fieldOptions.length].optionName
             : null;
           break;
         }

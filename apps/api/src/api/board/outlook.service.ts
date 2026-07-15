@@ -148,10 +148,7 @@ export class OutlookService {
       let accessToken = token.accessToken;
 
       if (new Date() >= token.tokenExpiry) {
-        accessToken = await this.refreshAccessToken(
-          userId,
-          token.refreshToken
-        );
+        accessToken = await this.refreshAccessToken(userId, token.refreshToken);
       }
 
       const htmlContent = await render(ActivityEmail({ recipientName, body }));

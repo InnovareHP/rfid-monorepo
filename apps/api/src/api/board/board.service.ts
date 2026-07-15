@@ -19,6 +19,7 @@ import { lookupByName } from "zipcodes-perogi";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
+import { FaxService } from "../fax/fax.service";
 import { BoardGateway } from "./board.gateway";
 import { UpdateContactDto } from "./dto/board.schema";
 import { GmailService } from "./gmail.service";
@@ -63,6 +64,7 @@ export class BoardService {
     private readonly boardGateway: BoardGateway,
     private readonly gmailService: GmailService,
     private readonly outlookService: OutlookService,
+    private readonly faxService: FaxService,
     @InjectQueue(QUEUE_NAMES.BULK_EMAIL)
     private readonly bulkEmailQueue: Queue,
     @InjectQueue(QUEUE_NAMES.CSV_IMPORT)
@@ -101,104 +103,20 @@ export class BoardService {
       organizationId: organizationId,
       isDeleted: false,
       moduleType: moduleType as ModuleType,
-      AND: [],
     };
 
     if (boardDateFrom || boardDateTo) {
-      where.AND = [
-        ...(where.AND as Prisma.BoardWhereInput[]),
-        {
-          createdAt: {
-            ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
-            ...(boardDateTo && { lte: new Date(boardDateTo) }),
-          },
-        },
-      ];
+      where.createdAt = {
+        ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
+        ...(boardDateTo && { lte: new Date(boardDateTo) }),
+      };
     }
 
-    if (search) {
-      where.AND = [
-        ...(where.AND as Prisma.BoardWhereInput[]),
-        {
-          OR: [
-            {
-              recordName: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
-            {
-              values: {
-                some: {
-                  value: {
-                    contains: search,
-                    mode: "insensitive",
-                  },
-                },
-              },
-            },
-          ],
-        },
-      ];
-    }
-
-    if (filter && Object.keys(filter).length > 0) {
-      const filterFieldIds = Object.keys(filter).filter(
-        (key) => filter[key] !== undefined && filter[key] !== ""
-      );
-
-      const filterFields = await prisma.field.findMany({
-        where: {
-          id: { in: filterFieldIds },
-          organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
-          isDeleted: false,
-        },
-        select: { id: true, fieldType: true, fieldName: true },
-      });
-
-      const fieldTypeMap = new Map(
-        filterFields.map((f) => [f.id, f.fieldType])
-      );
-
-      for (const [id, val] of Object.entries(filter)) {
-        if (val === undefined || val === "") continue;
-
-        const fieldType = fieldTypeMap.get(id);
-        const useExactMatch =
-          fieldType &&
-          (fieldType === "DROPDOWN" ||
-            fieldType === "STATUS" ||
-            fieldType === "CHECKBOX");
-
-        where.AND = [
-          ...(where.AND as Prisma.BoardWhereInput[]),
-          {
-            values: {
-              some: {
-                fieldId: id,
-                value: useExactMatch
-                  ? { equals: String(val), mode: "insensitive" }
-                  : { contains: String(val), mode: "insensitive" },
-              },
-            },
-          },
-        ];
-      }
-    }
-    const staticSortFields = ["recordName", "createdAt"];
-    const isStaticSort = !sortBy || staticSortFields.includes(sortBy);
-    const order = sortOrder === "desc" ? "desc" : "asc";
-
-    const orderBy: Prisma.BoardOrderByWithRelationInput = isStaticSort
-      ? { [sortBy || "recordName"]: order }
-      : { createdAt: "desc" };
-
-    const [boards, count, fields] = await Promise.all([
+    // recordName and FieldValue.value are encrypted at rest, so search,
+    // filter, sort and pagination run on decrypted rows here, not in Postgres
+    const [allBoards, fields] = await Promise.all([
       prisma.board.findMany({
         where,
-        skip: offset,
-        take: Number(limit),
         include: {
           values: {
             select: {
@@ -215,9 +133,7 @@ export class BoardService {
             take: 1,
           },
         },
-        orderBy,
       }),
-      prisma.board.count({ where }),
       prisma.field.findMany({
         where: {
           organizationId: organizationId,
@@ -228,7 +144,47 @@ export class BoardService {
       }),
     ]);
 
-    const formatted = boards.map((b) => {
+    let boards = allBoards;
+
+    if (search) {
+      const q = search.toLowerCase();
+      boards = boards.filter(
+        (b) =>
+          b.recordName.toLowerCase().includes(q) ||
+          b.values.some((v) => v.value?.toLowerCase().includes(q))
+      );
+    }
+
+    if (filter && Object.keys(filter).length > 0) {
+      const fieldTypeMap = new Map(fields.map((f) => [f.id, f.fieldType]));
+
+      for (const [id, val] of Object.entries(filter)) {
+        if (val === undefined || val === "") continue;
+
+        const fieldType = fieldTypeMap.get(id);
+        const useExactMatch =
+          fieldType &&
+          (fieldType === "DROPDOWN" ||
+            fieldType === "STATUS" ||
+            fieldType === "CHECKBOX");
+        const needle = String(val).toLowerCase();
+
+        boards = boards.filter((b) =>
+          b.values.some((v) => {
+            if (v.field.id !== id || v.value == null) return false;
+            const hay = v.value.toLowerCase();
+            return useExactMatch ? hay === needle : hay.includes(needle);
+          })
+        );
+      }
+    }
+
+    const count = boards.length;
+    const staticSortFields = ["recordName", "createdAt"];
+    const isStaticSort = !sortBy || staticSortFields.includes(sortBy);
+    const order = sortOrder === "desc" ? "desc" : "asc";
+
+    const formattedAll = boards.map((b) => {
       const dynamicData = b.values.reduce(
         (acc, curr) => {
           acc[curr.field.fieldName] = curr.value;
@@ -247,20 +203,31 @@ export class BoardService {
       };
     });
 
-    if (sortBy && !isStaticSort) {
-      const sortField = fields.find((f) => f.id === sortBy);
-      if (sortField) {
-        formatted.sort((a, b) => {
-          const valA = (a as Record<string, any>)[sortField.fieldName] ?? "";
-          const valB = (b as Record<string, any>)[sortField.fieldName] ?? "";
-          const cmp = String(valA).localeCompare(String(valB), undefined, {
-            numeric: true,
-            sensitivity: "base",
-          });
-          return order === "desc" ? -cmp : cmp;
+    const sortField = !isStaticSort
+      ? fields.find((f) => f.id === sortBy)
+      : null;
+    const sortKey = isStaticSort
+      ? sortBy || "recordName"
+      : sortField?.fieldName;
+
+    if (sortKey === "createdAt" || !sortKey) {
+      formattedAll.sort((a, b) => {
+        const cmp = a.createdAt.getTime() - b.createdAt.getTime();
+        return (sortKey ? order === "desc" : true) ? -cmp : cmp;
+      });
+    } else {
+      formattedAll.sort((a, b) => {
+        const valA = (a as Record<string, any>)[sortKey] ?? "";
+        const valB = (b as Record<string, any>)[sortKey] ?? "";
+        const cmp = String(valA).localeCompare(String(valB), undefined, {
+          numeric: true,
+          sensitivity: "base",
         });
-      }
+        return order === "desc" ? -cmp : cmp;
+      });
     }
+
+    const formatted = formattedAll.slice(offset, offset + Number(limit));
 
     const data = {
       pagination: {
@@ -777,22 +744,17 @@ export class BoardService {
       },
       select: {
         values: {
-          where: {
-            value: decodeURI(value),
-          },
           select: {
+            value: true,
             contactValue: true,
           },
         },
       },
     });
 
-    if (!data) {
-      return { contactNumber: "", email: "", address: "" };
-    }
-
-    const valueItem = data.values[0];
-    if (!valueItem || !valueItem.contactValue) {
+    const target = decodeURI(value);
+    const valueItem = data?.values.find((v) => v.value === target);
+    if (!valueItem?.contactValue) {
       return { contactNumber: "", email: "", address: "" };
     }
     return valueItem.contactValue;
@@ -846,7 +808,7 @@ export class BoardService {
       }));
     }
 
-    let where: Prisma.FieldOptionFindManyArgs = {
+    const where: Prisma.FieldOptionFindManyArgs = {
       where: { fieldId: fieldId, isDeleted: false },
     };
 
@@ -1128,14 +1090,14 @@ export class BoardService {
         select: { value: true },
       });
 
-      const record = await tx.board.findFirst({
+      const leadCandidates = await tx.board.findMany({
         where: {
-          recordName: value,
           organizationId: organizationId,
           moduleType: "LEAD",
         },
         select: { id: true, recordName: true },
       });
+      const record = leadCandidates.find((b) => b.recordName === value);
 
       if (!record) throw new NotFoundException("Record not found");
 
@@ -2270,14 +2232,16 @@ export class BoardService {
         where: { id: fieldId },
         select: {
           values: {
-            where: { value: body.value },
-            select: { id: true },
+            select: { id: true, value: true },
           },
         },
       });
 
+      const matched = field.values.find((v) => v.value === body.value);
+      if (!matched) throw new NotFoundException("Field value not found");
+
       return await tx.fieldPersonInformation.upsert({
-        where: { fieldValueId: field.values[0].id },
+        where: { fieldValueId: matched.id },
         create: {
           contactNumber: formatPhoneNumber(body.contactNumber),
           email: body.email,
@@ -2489,6 +2453,9 @@ export class BoardService {
         emailBody: a.emailBody,
         emailSentAt: a.emailSentAt,
         senderEmail: a.senderEmail,
+        faxNumber: a.faxNumber,
+        faxId: a.faxId,
+        faxSentAt: a.faxSentAt,
         createdAt: a.createdAt,
         createdBy: a.creator.name,
         creator_email: a.creator.email,
@@ -2560,6 +2527,75 @@ export class BoardService {
       emailSubject: activity.emailSubject,
       emailBody: activity.emailBody,
       senderEmail: activity.senderEmail,
+      createdAt: activity.createdAt,
+      createdBy: creator.name,
+      creator_email: creator.email,
+    };
+  }
+
+  async createFaxActivity(
+    data: {
+      recordId: string;
+      title: string;
+      description?: string;
+      faxNumber: string;
+      file: { buffer: Buffer; filename: string; mimetype: string };
+    },
+    organizationId: string,
+    userId: string,
+    memberRole: string
+  ) {
+    await prisma.board.findFirstOrThrow({
+      where: { id: data.recordId, organizationId: organizationId },
+    });
+
+    // Fax is sent immediately — the document is never stored, only the trail
+    const fax = await this.faxService.sendFax(data.faxNumber, data.file, {
+      userId,
+      orgId: organizationId,
+      role: memberRole,
+    });
+
+    const now = new Date();
+    const activity = await prisma.activity.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        activityType: "FAX",
+        status: "COMPLETED",
+        completedAt: now,
+        faxNumber: data.faxNumber,
+        faxId: fax.id ?? null,
+        faxSentAt: now,
+        recordId: data.recordId,
+        createdBy: userId,
+        organizationId: organizationId,
+      },
+    });
+
+    const creator = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    this.boardGateway.emitActivityCreated(organizationId, data.recordId, {
+      id: activity.id,
+      title: activity.title,
+      activityType: activity.activityType,
+      status: activity.status,
+      createdBy: creator.name,
+      createdAt: activity.createdAt,
+    });
+
+    return {
+      id: activity.id,
+      title: activity.title,
+      description: activity.description,
+      activityType: activity.activityType,
+      status: activity.status,
+      faxNumber: activity.faxNumber,
+      faxId: activity.faxId,
+      faxSentAt: activity.faxSentAt,
       createdAt: activity.createdAt,
       createdBy: creator.name,
       creator_email: creator.email,

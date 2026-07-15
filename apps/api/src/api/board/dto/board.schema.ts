@@ -4,6 +4,7 @@ import {
   CompleteActivitySchema,
   CreateActivitySchema,
   CreateColumnSchema,
+  CreateFaxActivitySchema,
   CreateFieldOptionSchema,
   CreateHistorySchema,
   CreateLocationSchema,
@@ -38,6 +39,9 @@ export class CreateRecordCountyAssignmentDto extends createZodDto(
   CreateRecordCountyAssignmentSchema
 ) {}
 export class CreateActivityDto extends createZodDto(CreateActivitySchema) {}
+export class CreateFaxActivityDto extends createZodDto(
+  CreateFaxActivitySchema
+) {}
 export class UpdateActivityDto extends createZodDto(UpdateActivitySchema) {}
 export class CompleteActivityDto extends createZodDto(CompleteActivitySchema) {}
 export class BulkEmailDto extends createZodDto(BulkEmailSchema) {}

@@ -13,7 +13,7 @@ declare global {
 
   /**
    * Session with member context — adds memberId and memberRole.
-   * Used by liason and controllers that need org-member info.
+   * Used by liaison and controllers that need org-member info.
    */
   type MemberSession = UserSession & {
     session: {

@@ -5,6 +5,7 @@ import {
   impersonateUser,
   removeUser,
   revokeSession,
+  setUserPassword,
   setUserRole,
   unbanUser,
   type AdminUser,
@@ -59,6 +60,7 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  KeyRound,
   LogOut,
   Mail,
   MoreHorizontal,
@@ -72,6 +74,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { BanUserDialog } from "./BanUserDialog";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 const ROLE_LABELS = {
   [ROLES.USER]: "User",
@@ -112,6 +115,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
 
   const [banOpen, setBanOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["admin-user", userId],
@@ -184,6 +188,15 @@ export function UserDetailPage({ userId }: { userId: string }) {
     onError: () => toast.error("Failed to revoke sessions"),
   });
 
+  const passwordMutation = useMutation({
+    mutationFn: (newPassword: string) => setUserPassword(userId, newPassword),
+    onSuccess: () => {
+      toast.success("Password changed");
+      setPasswordOpen(false);
+    },
+    onError: () => toast.error("Failed to change password"),
+  });
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center py-20">
@@ -225,6 +238,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
             onRemove={() => setRemoveOpen(true)}
             onImpersonate={() => impersonateMutation.mutate()}
             onRevokeSession={() => revokeSessionMutation.mutate()}
+            onChangePassword={() => setPasswordOpen(true)}
             onRoleChange={(role) => roleMutation.mutate(role)}
             isPending={
               unbanMutation.isPending ||
@@ -384,6 +398,15 @@ export function UserDetailPage({ userId }: { userId: string }) {
         }
       />
 
+      {/* Change password dialog */}
+      <ChangePasswordDialog
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
+        userName={user.name}
+        isPending={passwordMutation.isPending}
+        onConfirm={(newPassword) => passwordMutation.mutate(newPassword)}
+      />
+
       {/* Remove confirmation dialog */}
       <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
         <AlertDialogContent>
@@ -416,6 +439,7 @@ function ActionsDropdown({
   onRemove,
   onImpersonate,
   onRevokeSession,
+  onChangePassword,
   onRoleChange,
   isPending,
 }: {
@@ -425,6 +449,7 @@ function ActionsDropdown({
   onRemove: () => void;
   onImpersonate: () => void;
   onRevokeSession: () => void;
+  onChangePassword: () => void;
   onRoleChange: (role: string) => void;
   isPending: boolean;
 }) {
@@ -477,6 +502,11 @@ function ActionsDropdown({
         <DropdownMenuItem onClick={onRevokeSession}>
           <LogOut className="mr-2 h-4 w-4" />
           Revoke sessions
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={onChangePassword}>
+          <KeyRound className="mr-2 h-4 w-4" />
+          Change password
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 

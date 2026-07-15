@@ -17,10 +17,10 @@ export interface CsvImportJobData {
 function resolveRecordName(row: Record<string, unknown>): string {
   return String(
     row["Name of Organization"] ||
-    row["Company Name"] ||
-    row["Organization"] ||
-    row["Org Name"] ||
-    "Untitled Lead"
+      row["Company Name"] ||
+      row["Organization"] ||
+      row["Org Name"] ||
+      "Untitled Lead"
   );
 }
 
@@ -40,7 +40,10 @@ export class CsvImportProcessor extends WorkerHost {
     );
 
     const fields = (await prisma.field.findMany({
-      where: { organizationId: organizationId, moduleType: moduleType as ModuleType },
+      where: {
+        organizationId: organizationId,
+        moduleType: moduleType as ModuleType,
+      },
       include: { options: true },
     })) as (Field & { options: FieldOption[] })[];
 

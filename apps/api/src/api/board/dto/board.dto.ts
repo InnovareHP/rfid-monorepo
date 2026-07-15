@@ -83,6 +83,15 @@ export const CreateActivitySchema = z.object({
   send_via: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
 });
 
+export const CreateFaxActivitySchema = z.object({
+  recordId: z.string(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  faxNumber: z
+    .string()
+    .regex(/^\+[1-9]\d{6,14}$/, "Fax number must be E.164, e.g. +15551234567"),
+});
+
 export const UpdateActivitySchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),

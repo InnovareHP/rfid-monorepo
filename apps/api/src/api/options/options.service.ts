@@ -40,8 +40,8 @@ export class OptionsService {
     }));
   }
 
-  async getMemberOptions(organizationId: string, isLiason: boolean) {
-    if (isLiason) {
+  async getMemberOptions(organizationId: string, isLiaison: boolean) {
+    if (isLiaison) {
       return await prisma.member
         .findMany({
           where: { organizationId: organizationId, role: "liason" },

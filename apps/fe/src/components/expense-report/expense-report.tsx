@@ -23,7 +23,8 @@ export default function ExpenseReportPage() {
 
   const { data, refetch, isFetchingNextPage, isFetching } = useInfiniteQuery({
     queryKey: ["expense-report", appliedFilterMeta],
-    queryFn: () => getExpenseLogs(appliedFilterMeta),
+    queryFn: ({ pageParam }) =>
+      getExpenseLogs({ ...appliedFilterMeta, page: pageParam }),
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
   });
@@ -94,7 +95,7 @@ export default function ExpenseReportPage() {
             },
           ]}
           isLoading={isFetchingNextPage || isFetching}
-          emptyMessage="No marketing logs found"
+          emptyMessage="No expense logs found"
         />
       </div>
     </div>

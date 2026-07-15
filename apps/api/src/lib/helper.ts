@@ -80,7 +80,7 @@ export const StripeHelper = async (event: Stripe.Event) => {
     // }
 
     case "payment_intent.succeeded": {
-      console.log("[payment_intent.succeeded]", event);
+      console.log(`[payment_intent.succeeded] id=${event.id}`);
 
       const payment = event.data.object as unknown as any;
 
@@ -92,9 +92,7 @@ export const StripeHelper = async (event: Stripe.Event) => {
           status: payment.status,
           cancelAtPeriodEnd: payment.cancel_at_period_end,
           seats: payment.items.data[0]?.quantity ?? 1,
-          trialStart: new Date(
-            (payment.period_start ?? 0) * 1000
-          ),
+          trialStart: new Date((payment.period_start ?? 0) * 1000),
           trialEnd: new Date((payment.period_end ?? 0) * 1000),
         },
       });
@@ -103,7 +101,7 @@ export const StripeHelper = async (event: Stripe.Event) => {
     }
 
     case "customer.subscription.created": {
-      console.log("[customer.subscription.created]", event);
+      console.log(`[customer.subscription.created] id=${event.id}`);
 
       const subscription = event.data.object as unknown as any;
 
@@ -146,20 +144,16 @@ export const StripeHelper = async (event: Stripe.Event) => {
           status: sub.cancel_at !== null ? "canceled" : sub.status,
           cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
           seats: sub.items.data[0]?.quantity ?? 1,
-          trialStart: sub.trial_start
-            ? new Date(sub.trial_start * 1000)
-            : null,
+          trialStart: sub.trial_start ? new Date(sub.trial_start * 1000) : null,
 
-          trialEnd: sub.trial_end
-            ? new Date(sub.trial_end * 1000)
-            : null,
+          trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
         },
       });
 
       break;
     }
     case "customer.subscription.deleted": {
-      console.log("[customer.subscription.deleted]", event);
+      console.log(`[customer.subscription.deleted] id=${event.id}`);
 
       const subscription = event.data.object;
 

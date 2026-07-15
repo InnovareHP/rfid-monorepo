@@ -5,11 +5,7 @@ import { prisma } from "src/lib/prisma/prisma";
 const MICROSOFT_AUTH_URL =
   "https://login.microsoftonline.com/common/oauth2/v2.0";
 const GRAPH_API_URL = "https://graph.microsoft.com/v1.0";
-const SCOPES = [
-  "Calendars.ReadWrite",
-  "User.Read",
-  "offline_access",
-];
+const SCOPES = ["Calendars.ReadWrite", "User.Read", "offline_access"];
 
 @Injectable()
 export class OutlookCalendarService {
@@ -145,10 +141,7 @@ export class OutlookCalendarService {
       let accessToken = token.accessToken;
 
       if (new Date() >= token.tokenExpiry) {
-        accessToken = await this.refreshAccessToken(
-          userId,
-          token.refreshToken
-        );
+        accessToken = await this.refreshAccessToken(userId, token.refreshToken);
       }
 
       const params = new URLSearchParams({
@@ -189,12 +182,8 @@ export class OutlookCalendarService {
         id: event.id,
         title: event.subject || "(No title)",
         description: event.bodyPreview || null,
-        start: event.start?.dateTime
-          ? event.start.dateTime + "Z"
-          : null,
-        end: event.end?.dateTime
-          ? event.end.dateTime + "Z"
-          : null,
+        start: event.start?.dateTime ? event.start.dateTime + "Z" : null,
+        end: event.end?.dateTime ? event.end.dateTime + "Z" : null,
         allDay: event.isAllDay || false,
         location: event.location?.displayName || null,
         htmlLink: event.webLink || null,
@@ -236,10 +225,7 @@ export class OutlookCalendarService {
 
     let accessToken = token.accessToken;
     if (new Date() >= token.tokenExpiry) {
-      accessToken = await this.refreshAccessToken(
-        userId,
-        token.refreshToken
-      );
+      accessToken = await this.refreshAccessToken(userId, token.refreshToken);
     }
 
     const event: any = {
@@ -311,19 +297,13 @@ export class OutlookCalendarService {
 
     let accessToken = token.accessToken;
     if (new Date() >= token.tokenExpiry) {
-      accessToken = await this.refreshAccessToken(
-        userId,
-        token.refreshToken
-      );
+      accessToken = await this.refreshAccessToken(userId, token.refreshToken);
     }
 
-    const response = await fetch(
-      `${GRAPH_API_URL}/me/events/${eventId}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
+    const response = await fetch(`${GRAPH_API_URL}/me/events/${eventId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
     if (!response.ok && response.status !== 204) {
       const errorText = await response.text();

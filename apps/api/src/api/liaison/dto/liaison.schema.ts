@@ -6,7 +6,7 @@ import {
   UpdateExpenseSchema,
   UpdateMarketingSchema,
   UpdateMillageSchema,
-} from "./liason.dto";
+} from "./liaison.dto";
 
 export class CreateMillageDto extends createZodDto(CreateMillageSchema) {}
 export class UpdateMillageDto extends createZodDto(UpdateMillageSchema) {}

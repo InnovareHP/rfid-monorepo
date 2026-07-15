@@ -45,17 +45,17 @@ export class OptionsController {
 
   @Get("/members")
   async getMemberOptions(
-    @Query("isLiaison") isLiason: string,
+    @Query("isLiaison") isLiaison: string,
     @Session()
     session: AuthenticatedSession
   ) {
     try {
       const organizationId = session.session.activeOrganizationId;
-      const isLiasonValue = isLiason === "true";
+      const isLiaisonValue = isLiaison === "true";
 
       return await this.optionsService.getMemberOptions(
         organizationId,
-        isLiasonValue
+        isLiaisonValue
       );
     } catch (error) {
       throw new BadRequestException(error.message);

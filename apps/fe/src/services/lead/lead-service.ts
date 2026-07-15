@@ -343,7 +343,7 @@ export interface Activity {
   id: string;
   title: string;
   description: string | null;
-  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE";
+  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE" | "FAX";
   status: "PENDING" | "COMPLETED" | "CANCELLED";
   dueDate: string | null;
   completedAt: string | null;
@@ -352,6 +352,9 @@ export interface Activity {
   emailBody: string | null;
   emailSentAt: string | null;
   senderEmail: string | null;
+  faxNumber: string | null;
+  faxId: string | null;
+  faxSentAt: string | null;
   createdAt: string;
   createdBy: string;
   creator_email: string;
