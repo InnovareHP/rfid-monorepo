@@ -21,6 +21,10 @@ const ENCRYPTED_FIELDS: FieldMap = {
   History: ["oldValue", "newValue"],
   FieldValue: ["value"],
   Board: ["recordName"],
+  Task: ["name", "description"],
+  TaskComment: ["body"],
+  TaskChecklistItem: ["title"],
+  TaskActivity: ["oldValue", "newValue"],
 };
 
 // Relation key → model, so encrypted models are handled when nested
@@ -37,6 +41,17 @@ const RELATION_MODELS: Record<string, string> = {
   Board: "Board",
   source: "Board",
   target: "Board",
+  task: "Task",
+  tasks: "Task",
+  subtasks: "Task",
+  parentTask: "Task",
+  comments: "TaskComment",
+  checklistItems: "TaskChecklistItem",
+  taskActivities: "TaskActivity",
+  blockerTask: "Task",
+  blockedTask: "Task",
+  blocking: "TaskDependency",
+  blockedBy: "TaskDependency",
 };
 
 function encryptOwnFields(model: string, data: any): any {

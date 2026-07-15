@@ -34,9 +34,11 @@ import { Route as TeamTeamCountyConfigRouteImport } from './routes/_team/$team/c
 import { Route as TeamTeamCalendarRouteImport } from './routes/_team/$team/calendar'
 import { Route as AuthResetPasswordVerifyRouteImport } from './routes/_auth/reset-password/verify'
 import { Route as AuthEmailVerificationRouteImport } from './routes/_auth/email.verification'
+import { Route as TeamTeamTasksIndexRouteImport } from './routes/_team/$team/tasks/index'
 import { Route as TeamTeamReferralListIndexRouteImport } from './routes/_team/$team/referral-list/index'
 import { Route as TeamTeamMasterListIndexRouteImport } from './routes/_team/$team/master-list/index'
 import { Route as TeamTeamImportIndexRouteImport } from './routes/_team/$team/import/index'
+import { Route as TeamTeamTasksTaskRouteImport } from './routes/_team/$team/tasks/$task'
 import { Route as TeamTeamSettingsBillingRouteImport } from './routes/_team/$team/settings/billing'
 import { Route as TeamTeamReferralListCreateRouteImport } from './routes/_team/$team/referral-list/create'
 import { Route as TeamTeamMasterListCreateRouteImport } from './routes/_team/$team/master-list/create'
@@ -178,6 +180,11 @@ const AuthEmailVerificationRoute = AuthEmailVerificationRouteImport.update({
   path: '/email/verification',
   getParentRoute: () => AuthRoute,
 } as any)
+const TeamTeamTasksIndexRoute = TeamTeamTasksIndexRouteImport.update({
+  id: '/$team/tasks/',
+  path: '/$team/tasks/',
+  getParentRoute: () => TeamRoute,
+} as any)
 const TeamTeamReferralListIndexRoute =
   TeamTeamReferralListIndexRouteImport.update({
     id: '/$team/referral-list/',
@@ -192,6 +199,11 @@ const TeamTeamMasterListIndexRoute = TeamTeamMasterListIndexRouteImport.update({
 const TeamTeamImportIndexRoute = TeamTeamImportIndexRouteImport.update({
   id: '/$team/import/',
   path: '/$team/import/',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamTasksTaskRoute = TeamTeamTasksTaskRouteImport.update({
+  id: '/$team/tasks/$task',
+  path: '/$team/tasks/$task',
   getParentRoute: () => TeamRoute,
 } as any)
 const TeamTeamSettingsBillingRoute = TeamTeamSettingsBillingRouteImport.update({
@@ -309,9 +321,11 @@ export interface FileRoutesByFullPath {
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/import/': typeof TeamTeamImportIndexRoute
   '/$team/master-list/': typeof TeamTeamMasterListIndexRoute
   '/$team/referral-list/': typeof TeamTeamReferralListIndexRoute
+  '/$team/tasks/': typeof TeamTeamTasksIndexRoute
   '/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
   '/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
@@ -352,9 +366,11 @@ export interface FileRoutesByTo {
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/import': typeof TeamTeamImportIndexRoute
   '/$team/master-list': typeof TeamTeamMasterListIndexRoute
   '/$team/referral-list': typeof TeamTeamReferralListIndexRoute
+  '/$team/tasks': typeof TeamTeamTasksIndexRoute
   '/$team/import/master-list': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list': typeof TeamTeamImportReferralListIndexRoute
   '/$team/log/expense': typeof TeamTeamLogExpenseIndexRoute
@@ -398,9 +414,11 @@ export interface FileRoutesById {
   '/_team/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/_team/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/_team/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/_team/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/_team/$team/import/': typeof TeamTeamImportIndexRoute
   '/_team/$team/master-list/': typeof TeamTeamMasterListIndexRoute
   '/_team/$team/referral-list/': typeof TeamTeamReferralListIndexRoute
+  '/_team/$team/tasks/': typeof TeamTeamTasksIndexRoute
   '/_team/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/_team/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
   '/_team/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
@@ -443,9 +461,11 @@ export interface FileRouteTypes {
     | '/$team/master-list/create'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
+    | '/$team/tasks/$task'
     | '/$team/import/'
     | '/$team/master-list/'
     | '/$team/referral-list/'
+    | '/$team/tasks/'
     | '/$team/import/master-list/'
     | '/$team/import/referral-list/'
     | '/$team/log/expense/'
@@ -486,9 +506,11 @@ export interface FileRouteTypes {
     | '/$team/master-list/create'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
+    | '/$team/tasks/$task'
     | '/$team/import'
     | '/$team/master-list'
     | '/$team/referral-list'
+    | '/$team/tasks'
     | '/$team/import/master-list'
     | '/$team/import/referral-list'
     | '/$team/log/expense'
@@ -531,9 +553,11 @@ export interface FileRouteTypes {
     | '/_team/$team/master-list/create'
     | '/_team/$team/referral-list/create'
     | '/_team/$team/settings/billing'
+    | '/_team/$team/tasks/$task'
     | '/_team/$team/import/'
     | '/_team/$team/master-list/'
     | '/_team/$team/referral-list/'
+    | '/_team/$team/tasks/'
     | '/_team/$team/import/master-list/'
     | '/_team/$team/import/referral-list/'
     | '/_team/$team/log/expense/'
@@ -734,6 +758,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthEmailVerificationRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_team/$team/tasks/': {
+      id: '/_team/$team/tasks/'
+      path: '/$team/tasks'
+      fullPath: '/$team/tasks/'
+      preLoaderRoute: typeof TeamTeamTasksIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/referral-list/': {
       id: '/_team/$team/referral-list/'
       path: '/$team/referral-list'
@@ -753,6 +784,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/import'
       fullPath: '/$team/import/'
       preLoaderRoute: typeof TeamTeamImportIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/tasks/$task': {
+      id: '/_team/$team/tasks/$task'
+      path: '/$team/tasks/$task'
+      fullPath: '/$team/tasks/$task'
+      preLoaderRoute: typeof TeamTeamTasksTaskRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/settings/billing': {
@@ -911,9 +949,11 @@ interface TeamRouteChildren {
   TeamTeamIndexRoute: typeof TeamTeamIndexRoute
   TeamTeamMasterListCreateRoute: typeof TeamTeamMasterListCreateRoute
   TeamTeamReferralListCreateRoute: typeof TeamTeamReferralListCreateRoute
+  TeamTeamTasksTaskRoute: typeof TeamTeamTasksTaskRoute
   TeamTeamImportIndexRoute: typeof TeamTeamImportIndexRoute
   TeamTeamMasterListIndexRoute: typeof TeamTeamMasterListIndexRoute
   TeamTeamReferralListIndexRoute: typeof TeamTeamReferralListIndexRoute
+  TeamTeamTasksIndexRoute: typeof TeamTeamTasksIndexRoute
   TeamTeamImportMasterListIndexRoute: typeof TeamTeamImportMasterListIndexRoute
   TeamTeamImportReferralListIndexRoute: typeof TeamTeamImportReferralListIndexRoute
   TeamTeamLogExpenseIndexRoute: typeof TeamTeamLogExpenseIndexRoute
@@ -943,9 +983,11 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamIndexRoute: TeamTeamIndexRoute,
   TeamTeamMasterListCreateRoute: TeamTeamMasterListCreateRoute,
   TeamTeamReferralListCreateRoute: TeamTeamReferralListCreateRoute,
+  TeamTeamTasksTaskRoute: TeamTeamTasksTaskRoute,
   TeamTeamImportIndexRoute: TeamTeamImportIndexRoute,
   TeamTeamMasterListIndexRoute: TeamTeamMasterListIndexRoute,
   TeamTeamReferralListIndexRoute: TeamTeamReferralListIndexRoute,
+  TeamTeamTasksIndexRoute: TeamTeamTasksIndexRoute,
   TeamTeamImportMasterListIndexRoute: TeamTeamImportMasterListIndexRoute,
   TeamTeamImportReferralListIndexRoute: TeamTeamImportReferralListIndexRoute,
   TeamTeamLogExpenseIndexRoute: TeamTeamLogExpenseIndexRoute,

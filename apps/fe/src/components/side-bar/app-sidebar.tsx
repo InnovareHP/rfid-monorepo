@@ -15,6 +15,7 @@ import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
   CircuitBoard,
+  ClipboardList,
   DollarSign,
   FileText,
   Folder,
@@ -60,6 +61,17 @@ export function AppSidebar({
               title: "Master List Analytics",
               url: `/${activeOrganizationId}/master-list-analytics`,
               icon: Users,
+            },
+          ],
+        },
+        {
+          title: "Productivity",
+          icon: ClipboardList,
+          items: [
+            {
+              title: "Tasks",
+              url: `/${activeOrganizationId}/tasks`,
+              icon: ClipboardList,
             },
           ],
         },

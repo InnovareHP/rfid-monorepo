@@ -1,5 +1,50 @@
-import { BoardFieldType, Prisma } from "@prisma/client";
+import { BoardFieldType, Prisma, TaskStatusCategory } from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
+
+export const DEFAULT_TASK_STATUSES = [
+  {
+    name: "Backlog",
+    color: "#6b7280",
+    sortOrder: 1,
+    category: TaskStatusCategory.ACTIVE,
+  },
+  {
+    name: "To Do",
+    color: "#64748b",
+    sortOrder: 2,
+    category: TaskStatusCategory.ACTIVE,
+  },
+  {
+    name: "In Progress",
+    color: "#3b82f6",
+    sortOrder: 3,
+    category: TaskStatusCategory.ACTIVE,
+  },
+  {
+    name: "In Review",
+    color: "#a855f7",
+    sortOrder: 4,
+    category: TaskStatusCategory.ACTIVE,
+  },
+  {
+    name: "Blocked",
+    color: "#ef4444",
+    sortOrder: 5,
+    category: TaskStatusCategory.ACTIVE,
+  },
+  {
+    name: "Completed",
+    color: "#22c55e",
+    sortOrder: 6,
+    category: TaskStatusCategory.DONE,
+  },
+  {
+    name: "Cancelled",
+    color: "#9ca3af",
+    sortOrder: 7,
+    category: TaskStatusCategory.CANCELLED,
+  },
+];
 
 export const OnboardingSeeding = async (organizationId: string) => {
   console.log("🌱 Seeding start");
@@ -354,6 +399,14 @@ export const OnboardingSeeding = async (organizationId: string) => {
 
   await prisma.fieldValue.createMany({
     data: leadValues,
+    skipDuplicates: true,
+  });
+
+  await prisma.taskStatus.createMany({
+    data: DEFAULT_TASK_STATUSES.map((status) => ({
+      ...status,
+      organizationId,
+    })),
     skipDuplicates: true,
   });
 

@@ -38,6 +38,10 @@ model User {
   OutlookCalendarToken      OutlookCalendarToken?
   ManualArticle             ManualArticle[]             @relation("ManualArticleCreatedBy")
   TwoFactor                 TwoFactor[]
+  createdTasks              Task[]                      @relation("TaskCreatedBy")
+  taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
+  taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
+  taskActivities            TaskActivity[]              @relation("TaskActivityActor")
 
   @@schema("auth_schema")
 }
@@ -102,13 +106,19 @@ model Organization {
   createdAt DateTime @db.Timestamptz(3)
   metadata  String?
 
-  invitations  Invitation[]
-  members      Member[]
-  Board        Board[]
-  Field        Field[]
-  BoardCounty  BoardCounty[]
-  Activity     Activity[]
-  integrations OrgIntegration[]
+  invitations     Invitation[]
+  members         Member[]
+  Board           Board[]
+  Field           Field[]
+  BoardCounty     BoardCounty[]
+  Activity        Activity[]
+  integrations    OrgIntegration[]
+  taskProjects    TaskProject[]
+  taskLists       TaskList[]
+  taskStatuses    TaskStatus[]
+  tasks           Task[]
+  taskLabels      TaskLabel[]
+  taskTimeEntries TaskTimeEntry[]
 
   @@schema("auth_schema")
 }
@@ -139,6 +149,9 @@ model Member {
   marketing      Marketing[]
   mileage        Mileage[]
   expense        Expense[]
+  taskAssignees  TaskAssignee[]
+  taskWatchers   TaskWatcher[]
+  taskComments   TaskComment[]
 
   @@schema("auth_schema")
 }

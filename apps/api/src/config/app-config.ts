@@ -50,7 +50,6 @@ export const appConfigSchema = z.object({
   GEOCODIFY_API_KEY: z.string().min(1),
   GOOGLE_PLACES_API_KEY: z.string().min(1),
   SES_CONFIGURATION_SET: z.string().min(1),
-
   PORT: z.coerce.number().default(8080),
 });
 

@@ -12,6 +12,7 @@ import { OptionsModule } from "./options/options.module";
 import { PlacesModule } from "./places/places.module";
 import { PlanModule } from "./plan/plan.module";
 import { SupportModule } from "./support/support.module";
+import { TaskModule } from "./task/task.module";
 import { UserModule } from "./user/user.module";
 
 @Module({
@@ -30,6 +31,7 @@ import { UserModule } from "./user/user.module";
     SupportModule,
     ManualModule,
     PlacesModule,
+    TaskModule,
   ],
   controllers: [],
   providers: [],

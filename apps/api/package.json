@@ -24,6 +24,7 @@
     "crypto:encrypt-tokens": "ts-node prisma/scripts/encrypt-tokens.ts",
     "crypto:encrypt-phi": "ts-node prisma/scripts/encrypt-phi.ts",
     "crypto:decrypt-phi": "ts-node prisma/scripts/decrypt-phi.ts",
+    "seed:task-statuses": "ts-node prisma/scripts/seed-task-statuses.ts",
     "docker:build": "docker build -t dashboard-backend .",
     "auth:generate": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/auth.ts",
     "prepare": "husky"
