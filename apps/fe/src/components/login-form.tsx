@@ -69,6 +69,7 @@ export function LoginForm({
 
   const goToMainDashboard = async (data: PendingNav) => {
     setPendingNav(null);
+
     if (data.activeOrganizationId) {
       await navigate.navigate({
         to: "/$team",
@@ -82,9 +83,7 @@ export function LoginForm({
 
   const goToParamsDashboard = (params: string) => {
     setPendingNav(null);
-    const supportUrl =
-      import.meta.env.VITE_SUPPORT_URL + `${params}` ||
-      `http://localhost:3001${params}`;
+    const supportUrl = `${import.meta.env.VITE_SUPPORT_URL || "http://localhost:3001"}${params}`;
     window.location.href = supportUrl;
   };
 
@@ -100,9 +99,8 @@ export function LoginForm({
             toast.error(ctx.error.message);
           },
           onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["session"] });
-
             const { data: freshSession } = await authClient.getSession();
+            queryClient.setQueryData(["session"], freshSession);
 
             const role = freshSession?.user?.role as string;
             const navData: PendingNav = {

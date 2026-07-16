@@ -2,6 +2,41 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## General Principles
+
+- Generate concise, short solutions for new modules or code.
+- Watch for over-engineering, oversized files needing refactor.
+- Watch for weird syntax/style mismatching rest of codebase.
+- Watch for obvious bugs.
+- Prioritize concise, precise code and docs changes.
+- No emojis or special characters in comments.
+- Write activity-log.md in /docs to refer back if confused.
+- Make to-do list, run major changes by user first.
+- Review existing files before refactor or change.
+- Markdown files use kebab naming (e.g. some-description-changes.md).
+- Don't auto-commit activity logs and docs.
+- Comments: one-liner, one sentence.
+
+## Code Quality
+
+- Right data structures and algorithms for problem.
+- Don't expose data needlessly (least privilege).
+- No external libraries unless absolutely necessary.
+- Use project dependency file for correct versions.
+- Avoid redundancy unless it improves usability.
+
+## Version Control
+
+- Commit after significant changes, clear messages.
+- Keep commits focused, atomic.
+- No auto-push to any branch.
+- Work only inside this repo's workspaces: apps/api, apps/fe, apps/web, packages, terraform, docs.
+
+## AI Restrictions
+
+- No customer personal data — names, contacts, account numbers, transactions, unless an approved exemption applies.
+- No credentials — passwords, API keys, tokens, connection strings.
+
 ## Monorepo Overview
 
 A pnpm workspace monorepo for a multi-tenant business dashboard (lead management, referrals, expenses, analytics). Uses PostgreSQL, Redis, Stripe, and Better Auth.
