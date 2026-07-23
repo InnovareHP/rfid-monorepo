@@ -16,6 +16,7 @@ import { prisma } from "../prisma/prisma";
 import { redis } from "../redis/redis";
 import { BETTER_AUTH_PLANS } from "../stripe/plans";
 import { stripe as stripeClient } from "../stripe/stripe";
+import { TAX_CHECKOUT_BASE } from "../stripe/stripe-tax";
 import {
   afterAcceptInvitation,
   afterAddMember,
@@ -330,6 +331,9 @@ export const auth = betterAuth({
         enabled: true,
         plans: BETTER_AUTH_PLANS,
         authorizeReference: subscriptionAuthorizeReference,
+        getCheckoutSessionParams: () => ({
+          params: TAX_CHECKOUT_BASE,
+        }),
       },
     }),
     customSession(customSessionHandler),
