@@ -1,4 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { createHmac } from "crypto";
+import { appConfig } from "../../config/app-config";
 import { prisma } from "../prisma/prisma";
 
 export interface AuditEntry {
@@ -17,6 +19,25 @@ export interface AuditEntry {
   requestId?: string | null;
   changeHash?: string | null;
   metadata?: Record<string, unknown> | null;
+}
+
+function signEntry(entry: AuditEntry): string {
+  const canonical = JSON.stringify([
+    entry.actorUserId ?? null,
+    entry.actorOrgId ?? null,
+    entry.actorRole ?? null,
+    entry.actorIp ?? null,
+    entry.action,
+    entry.resourceType ?? null,
+    entry.resourceId ?? null,
+    entry.method ?? null,
+    entry.path ?? null,
+    entry.statusCode ?? null,
+    entry.requestId ?? null,
+  ]);
+  return createHmac("sha256", appConfig.ENCRYPTION_KEY)
+    .update(canonical)
+    .digest("hex");
 }
 
 @Injectable()
@@ -40,12 +61,21 @@ export class AuditService {
           statusCode: entry.statusCode ?? null,
           durationMs: entry.durationMs ?? null,
           requestId: entry.requestId ?? null,
-          changeHash: entry.changeHash ?? null,
+          changeHash: entry.changeHash ?? signEntry(entry),
           metadata: (entry.metadata ?? null) as any,
         },
       });
     } catch (err) {
-      this.logger.error("Failed to write audit log", err as Error);
+      // DB write failed — emit the full entry to stdout so the event still
+      // lands in the log pipeline instead of vanishing (§164.312(b)).
+      this.logger.error(
+        `AUDIT_FALLBACK ${JSON.stringify({ ...entry, sig: signEntry(entry) })}`,
+        err as Error
+      );
     }
+  }
+
+  verify(entry: AuditEntry, changeHash: string | null): boolean {
+    return changeHash === signEntry(entry);
   }
 }

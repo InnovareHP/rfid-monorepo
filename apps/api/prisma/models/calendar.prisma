@@ -1,12 +1,12 @@
 model GoogleCalendarToken {
   id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id])
   accessToken  String
   refreshToken String
-  tokenExpiry  DateTime
+  tokenExpiry  DateTime @db.Timestamptz(3)
   email        String
 
   @@schema("calendar_schema")
@@ -14,13 +14,13 @@ model GoogleCalendarToken {
 
 model OutlookCalendarToken {
   id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id])
   accessToken  String
   refreshToken String
-  tokenExpiry  DateTime
+  tokenExpiry  DateTime @db.Timestamptz(3)
   email        String
 
   @@schema("calendar_schema")

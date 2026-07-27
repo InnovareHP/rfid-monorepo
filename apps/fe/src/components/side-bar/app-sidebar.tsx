@@ -14,7 +14,10 @@ import { Link } from "@tanstack/react-router";
 import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
+  Building2,
   CircuitBoard,
+  ClipboardList,
+  Contact,
   DollarSign,
   FileText,
   Folder,
@@ -64,8 +67,8 @@ export function AppSidebar({
           ],
         },
         {
-          title: "Marketing",
-          icon: CircuitBoard,
+          title: "CRM",
+          icon: Contact,
           items: [
             {
               title: "Master List",
@@ -77,11 +80,38 @@ export function AppSidebar({
               url: `/${activeOrganizationId}/referral-list`,
               icon: Users,
             },
-            ...(memberData?.role !== ROLES.LIASON
+            {
+              title: "Contacts",
+              url: `/${activeOrganizationId}/contacts`,
+              icon: Contact,
+            },
+            {
+              title: "Companies",
+              url: `/${activeOrganizationId}/companies`,
+              icon: Building2,
+            },
+          ],
+        },
+        {
+          title: "Productivity",
+          icon: ClipboardList,
+          items: [
+            {
+              title: "Tasks",
+              url: `/${activeOrganizationId}/tasks`,
+              icon: ClipboardList,
+            },
+          ],
+        },
+        {
+          title: "Marketing",
+          icon: CircuitBoard,
+          items: [
+            ...(memberData?.role !== ROLES.LIAISON
               ? [
                   {
                     title: "History Check",
-                    url: `/${activeOrganizationId}/master-list/history`,
+                    url: `/${activeOrganizationId}/history`,
                     icon: HistoryIcon,
                   },
                 ]

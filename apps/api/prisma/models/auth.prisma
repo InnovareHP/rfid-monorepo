@@ -37,7 +37,23 @@ model User {
   GoogleCalendarToken       GoogleCalendarToken?
   OutlookCalendarToken      OutlookCalendarToken?
   ManualArticle             ManualArticle[]             @relation("ManualArticleCreatedBy")
+  TwoFactor                 TwoFactor[]
+  createdTasks              Task[]                      @relation("TaskCreatedBy")
+  taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
+  taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
+  taskActivities            TaskActivity[]              @relation("TaskActivityActor")
 
+  @@schema("auth_schema")
+}
+
+model TwoFactor {
+  id          String @id
+  secret      String
+  backupCodes String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@schema("auth_schema")
 }
 
@@ -87,16 +103,40 @@ model Organization {
   name      String
   slug      String?  @unique
   logo      String?
-  createdAt DateTime
+  createdAt DateTime @db.Timestamptz(3)
   metadata  String?
 
-  invitations Invitation[]
-  members     Member[]
-  Board       Board[]
-  Field       Field[]
-  BoardCounty BoardCounty[]
-  Activity    Activity[]
+  invitations     Invitation[]
+  members         Member[]
+  Board           Board[]
+  Field           Field[]
+  BoardCounty     BoardCounty[]
+  Activity        Activity[]
+  emailOpenEvents EmailOpenEvent[]
+  emailIngest     EmailIngestAddress?
+  integrations    OrgIntegration[]
+  taskProjects    TaskProject[]
+  taskLists       TaskList[]
+  taskStatuses    TaskStatus[]
+  tasks           Task[]
+  taskLabels      TaskLabel[]
+  taskTimeEntries TaskTimeEntry[]
 
+  @@schema("auth_schema")
+}
+
+model OrgIntegration {
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  organizationId String
+  provider       String
+  apiKey         String
+  metadata       Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider])
   @@schema("auth_schema")
 }
 
@@ -105,12 +145,15 @@ model Member {
   organizationId String
   userId         String
   role           String
-  createdAt      DateTime
+  createdAt      DateTime     @db.Timestamptz(3)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   marketing      Marketing[]
   mileage        Mileage[]
   expense        Expense[]
+  taskAssignees  TaskAssignee[]
+  taskWatchers   TaskWatcher[]
+  taskComments   TaskComment[]
 
   @@schema("auth_schema")
 }
@@ -121,8 +164,8 @@ model Invitation {
   email          String
   role           String?
   status         String
-  createdAt      DateTime     @default(now())
-  expiresAt      DateTime
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime     @db.Timestamptz(3)
   inviterId      String
   user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

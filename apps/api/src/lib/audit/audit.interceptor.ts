@@ -10,7 +10,11 @@ import { Observable, tap } from "rxjs";
 import { auth } from "../auth/auth";
 import { AuditService } from "./audit.service";
 
-const SKIP_PATHS = [/^\/api\/health/, /^\/api\/docs/, /^\/api\/auth\/(get-session|session)/];
+const SKIP_PATHS = [
+  /^\/api\/health/,
+  /^\/api\/docs/,
+  /^\/api\/auth\/(get-session|session)/,
+];
 
 function methodToAction(method: string): string {
   switch (method.toUpperCase()) {
@@ -28,7 +32,10 @@ function methodToAction(method: string): string {
   }
 }
 
-function deriveResource(path: string): { type: string | null; id: string | null } {
+function deriveResource(path: string): {
+  type: string | null;
+  id: string | null;
+} {
   const trimmed = path.replace(/\?.*$/, "").replace(/^\/api\/?/, "");
   if (!trimmed) return { type: null, id: null };
   const parts = trimmed.split("/");
@@ -42,7 +49,7 @@ function deriveResource(path: string): { type: string | null; id: string | null 
 
 function clientIp(req: Request): string | null {
   const xf = req.headers["x-forwarded-for"];
-  if (typeof xf === "string" && xf.length) return xf.split(",")[0]!.trim();
+  if (typeof xf === "string" && xf.length) return xf.split(",")[0].trim();
   if (Array.isArray(xf) && xf.length) return xf[0] ?? null;
   return req.socket?.remoteAddress ?? null;
 }

@@ -4,19 +4,23 @@ import { AuthModule } from "./auth/auth.module";
 import { BoardModule } from "./board/board.module";
 import { CalendarModule } from "./calendar/calendar.module";
 import { EmailModule } from "./email/email.module";
+import { FaxModule } from "./fax/fax.module";
 import { ImageModule } from "./image/image.module";
-import { LiasonModule } from "./liason/liason.module";
+import { LiaisonModule } from "./liaison/liaison.module";
 import { ManualModule } from "./manual/manual.module";
 import { OptionsModule } from "./options/options.module";
+import { PipelineModule } from "./pipeline/pipeline.module";
 import { PlacesModule } from "./places/places.module";
 import { PlanModule } from "./plan/plan.module";
 import { SupportModule } from "./support/support.module";
+import { TaskModule } from "./task/task.module";
 import { UserModule } from "./user/user.module";
 
 @Module({
   imports: [
     AuthModule,
     EmailModule,
+    FaxModule,
     ImageModule,
     UserModule,
     PlanModule,
@@ -24,10 +28,12 @@ import { UserModule } from "./user/user.module";
     CalendarModule,
     AnalyticsModule,
     OptionsModule,
-    LiasonModule,
+    LiaisonModule,
     SupportModule,
     ManualModule,
     PlacesModule,
+    PipelineModule,
+    TaskModule,
   ],
   controllers: [],
   providers: [],

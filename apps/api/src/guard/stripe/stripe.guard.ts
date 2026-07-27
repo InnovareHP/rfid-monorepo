@@ -37,8 +37,7 @@ export class StripeGuard implements CanActivate {
 
     // Pick the org’s active subscription
     const activeSubscription =
-      subscription.status === "active" ||
-      subscription.status === "trialing";
+      subscription.status === "active" || subscription.status === "trialing";
 
     if (!activeSubscription) {
       throw new ForbiddenException("Subscription inactive or expired.");

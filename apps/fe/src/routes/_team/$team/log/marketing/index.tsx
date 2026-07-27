@@ -6,7 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/_team/$team/log/marketing/")({
   component: RouteComponent,
   beforeLoad: async (context) => {
-    return AuthorizedRole(context, [ROLES.LIASON, ROLES.ADMISSION_MANAGER]);
+    return AuthorizedRole(context, [ROLES.LIAISON, ROLES.ADMISSION_MANAGER]);
   },
 });
 

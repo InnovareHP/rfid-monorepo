@@ -1,0 +1,287 @@
+enum TaskPriority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+
+  @@schema("task_schema")
+}
+
+enum TaskStatusCategory {
+  ACTIVE
+  DONE
+  CANCELLED
+
+  @@schema("task_schema")
+}
+
+model TaskProject {
+  id             String   @id @default(uuid())
+  name           String
+  color          String?
+  sortOrder      Int
+  taskCounter    Int      @default(0)
+  isArchived     Boolean  @default(false)
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  organizationId String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  taskLists    TaskList[]
+  tasks        Task[]
+
+  @@index([organizationId, isDeleted, isArchived])
+  @@schema("task_schema")
+}
+
+model TaskList {
+  id             String   @id @default(uuid())
+  name           String
+  sortOrder      Int
+  isArchived     Boolean  @default(false)
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  projectId      String
+  organizationId String
+
+  project      TaskProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([projectId, isDeleted])
+  @@index([organizationId])
+  @@schema("task_schema")
+}
+
+model TaskStatus {
+  id             String             @id @default(uuid())
+  name           String
+  color          String
+  sortOrder      Int
+  category       TaskStatusCategory
+  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime           @updatedAt @db.Timestamptz(3)
+  organizationId String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@schema("task_schema")
+}
+
+model Task {
+  id               String       @id @default(uuid())
+  taskNumber       Int
+  name             String
+  description      String?
+  priority         TaskPriority @default(NORMAL)
+  startDate        DateTime?    @db.Timestamptz(3)
+  dueDate          DateTime?    @db.Timestamptz(3)
+  estimatedMinutes Int?
+  trackedMinutes   Int          @default(0)
+  position         Float
+  completedAt      DateTime?    @db.Timestamptz(3)
+  isArchived       Boolean      @default(false)
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+  statusId         String
+  projectId        String
+  listId           String
+  parentTaskId     String?
+  createdBy        String
+  organizationId   String
+
+  status       TaskStatus   @relation(fields: [statusId], references: [id])
+  project      TaskProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  list         TaskList     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  parentTask   Task?        @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks     Task[]       @relation("TaskSubtasks")
+  creator      User         @relation("TaskCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  assignees      TaskAssignee[]
+  watchers       TaskWatcher[]
+  checklistItems TaskChecklistItem[]
+  comments       TaskComment[]
+  attachments    TaskAttachment[]
+  labels         TaskLabelPivot[]
+  timeEntries    TaskTimeEntry[]
+  blocking       TaskDependency[]    @relation("TaskBlocker")
+  blockedBy      TaskDependency[]    @relation("TaskBlocked")
+  taskActivities TaskActivity[]
+
+  @@unique([projectId, taskNumber])
+  @@index([organizationId, listId, isDeleted, isArchived])
+  @@index([organizationId, statusId])
+  @@index([parentTaskId])
+  @@schema("task_schema")
+}
+
+model TaskAssignee {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  taskId    String
+  memberId  String
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, memberId])
+  @@index([memberId])
+  @@schema("task_schema")
+}
+
+model TaskWatcher {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  taskId    String
+  memberId  String
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, memberId])
+  @@index([memberId])
+  @@schema("task_schema")
+}
+
+model TaskChecklistItem {
+  id        String   @id @default(uuid())
+  title     String
+  isDone    Boolean  @default(false)
+  sortOrder Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  taskId    String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@schema("task_schema")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  body      String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  taskId    String
+  memberId  String
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@schema("task_schema")
+}
+
+model TaskAttachment {
+  id         String   @id @default(uuid())
+  url        String
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+  taskId     String
+  uploadedBy String
+
+  task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader User @relation("TaskAttachmentUploadedBy", fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@schema("task_schema")
+}
+
+model TaskLabel {
+  id             String   @id @default(uuid())
+  name           String
+  color          String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  organizationId String
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  taskPivots   TaskLabelPivot[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@schema("task_schema")
+}
+
+model TaskLabelPivot {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  taskId    String
+  labelId   String
+
+  task  Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@index([labelId])
+  @@schema("task_schema")
+}
+
+model TaskTimeEntry {
+  id              String    @id @default(uuid())
+  startedAt       DateTime  @db.Timestamptz(3)
+  endedAt         DateTime? @db.Timestamptz(3)
+  durationMinutes Int?
+  note            String?
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+  taskId          String
+  userId          String
+  organizationId  String
+
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user         User         @relation("TaskTimeEntryUser", fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId, endedAt])
+  @@index([taskId])
+  @@schema("task_schema")
+}
+
+model TaskDependency {
+  id            String   @id @default(uuid())
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  blockerTaskId String
+  blockedTaskId String
+
+  blockerTask Task @relation("TaskBlocker", fields: [blockerTaskId], references: [id], onDelete: Cascade)
+  blockedTask Task @relation("TaskBlocked", fields: [blockedTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerTaskId, blockedTaskId])
+  @@index([blockedTaskId])
+  @@schema("task_schema")
+}
+
+model TaskActivity {
+  id          String   @id @default(uuid())
+  field       String
+  action      String
+  oldValue    String?
+  newValue    String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  taskId      String
+  actorUserId String
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User @relation("TaskActivityActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@schema("task_schema")
+}

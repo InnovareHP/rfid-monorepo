@@ -1,8 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { render } from "@react-email/render";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
-import { ActivityEmail } from "src/react-email/activity-email";
 
 const MICROSOFT_AUTH_URL =
   "https://login.microsoftonline.com/common/oauth2/v2.0";
@@ -134,9 +132,8 @@ export class OutlookService {
     userId: string,
     to: string,
     subject: string,
-    recipientName: string,
-    body: string,
-    senderName: string
+    html: string,
+    references?: string | null
   ): Promise<boolean> {
     const token = await prisma.outlookToken.findUnique({
       where: { userId: userId },
@@ -148,13 +145,8 @@ export class OutlookService {
       let accessToken = token.accessToken;
 
       if (new Date() >= token.tokenExpiry) {
-        accessToken = await this.refreshAccessToken(
-          userId,
-          token.refreshToken
-        );
+        accessToken = await this.refreshAccessToken(userId, token.refreshToken);
       }
-
-      const htmlContent = await render(ActivityEmail({ recipientName, body }));
 
       const sendMailResponse = await fetch(`${GRAPH_API_URL}/me/sendMail`, {
         method: "POST",
@@ -167,7 +159,7 @@ export class OutlookService {
             subject,
             body: {
               contentType: "HTML",
-              content: htmlContent,
+              content: html,
             },
             toRecipients: [
               {
@@ -176,6 +168,13 @@ export class OutlookService {
                 },
               },
             ],
+            // Graph rejects standard headers here, so no References — Outlook
+            // replies thread by sender address instead of by activity.
+            ...(references && {
+              internetMessageHeaders: [
+                { name: "x-ivorzero-thread", value: references },
+              ],
+            }),
           },
         }),
       });

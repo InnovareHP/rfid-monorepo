@@ -1,4 +1,5 @@
 import LocationCell from "@/components/reusable-table/location-cell";
+import { getLinkCandidates } from "@/services/board/board-module-service";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
 import {
@@ -317,7 +318,53 @@ const RecordField = ({
     enabled: column.type === "DROPDOWN" || column.type === "ASSIGNED_TO",
   });
 
+  const linkTargetModule =
+    column.type === "CONTACT_LINK"
+      ? "CONTACT"
+      : column.type === "COMPANY_LINK"
+        ? "COMPANY"
+        : null;
+
+  const { data: linkRecords } = useQuery({
+    queryKey: ["link-records", linkTargetModule, 1, 500],
+    queryFn: () => getLinkCandidates(linkTargetModule as string, 1, 500),
+    enabled: !!linkTargetModule,
+  });
+
   switch (column.type) {
+    case "CONTACT_LINK":
+    case "COMPANY_LINK":
+      return (
+        <FormField
+          control={form.control}
+          name={fieldName}
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormLabel className="text-sm font-semibold text-gray-700">
+                {column.name}
+              </FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={`Select ${column.name.toLowerCase()}`}
+                    />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="w-full">
+                  {linkRecords?.map((record: { id: string; value: string }) => (
+                    <SelectItem key={record.id} value={record.id}>
+                      {record.value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      );
+
     case "DATE":
       return (
         <FormField

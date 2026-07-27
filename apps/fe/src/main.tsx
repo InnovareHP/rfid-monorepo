@@ -2,6 +2,8 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 
+import Loader from "@/components/loader";
+
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
@@ -16,6 +18,9 @@ const router = createRouter({
   scrollRestoration: true,
   defaultStructuralSharing: true,
   defaultPreloadStaleTime: 0,
+  defaultPendingComponent: () => <Loader isLoading />,
+  defaultPendingMs: 300,
+  defaultPendingMinMs: 200,
 });
 
 // Register the router instance for type safety

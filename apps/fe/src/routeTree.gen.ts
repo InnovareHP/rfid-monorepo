@@ -15,6 +15,7 @@ import { Route as TeamRouteImport } from './routes/_team'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InvitationActionRouteImport } from './routes/invitation.$action'
+import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthOtpRouteImport } from './routes/_auth/otp'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -33,16 +34,22 @@ import { Route as TeamTeamCountyConfigRouteImport } from './routes/_team/$team/c
 import { Route as TeamTeamCalendarRouteImport } from './routes/_team/$team/calendar'
 import { Route as AuthResetPasswordVerifyRouteImport } from './routes/_auth/reset-password/verify'
 import { Route as AuthEmailVerificationRouteImport } from './routes/_auth/email.verification'
+import { Route as TeamTeamTasksIndexRouteImport } from './routes/_team/$team/tasks/index'
 import { Route as TeamTeamReferralListIndexRouteImport } from './routes/_team/$team/referral-list/index'
 import { Route as TeamTeamMasterListIndexRouteImport } from './routes/_team/$team/master-list/index'
 import { Route as TeamTeamImportIndexRouteImport } from './routes/_team/$team/import/index'
+import { Route as TeamTeamHistoryIndexRouteImport } from './routes/_team/$team/history/index'
+import { Route as TeamTeamContactsIndexRouteImport } from './routes/_team/$team/contacts/index'
+import { Route as TeamTeamCompaniesIndexRouteImport } from './routes/_team/$team/companies/index'
+import { Route as TeamTeamTasksTaskRouteImport } from './routes/_team/$team/tasks/$task'
 import { Route as TeamTeamSettingsBillingRouteImport } from './routes/_team/$team/settings/billing'
 import { Route as TeamTeamReferralListCreateRouteImport } from './routes/_team/$team/referral-list/create'
 import { Route as TeamTeamMasterListCreateRouteImport } from './routes/_team/$team/master-list/create'
+import { Route as TeamTeamContactsCreateRouteImport } from './routes/_team/$team/contacts/create'
+import { Route as TeamTeamCompaniesCreateRouteImport } from './routes/_team/$team/companies/create'
 import { Route as TeamTeamReportMileageIndexRouteImport } from './routes/_team/$team/report/mileage/index'
 import { Route as TeamTeamReportMarketingIndexRouteImport } from './routes/_team/$team/report/marketing/index'
 import { Route as TeamTeamReportExpenseIndexRouteImport } from './routes/_team/$team/report/expense/index'
-import { Route as TeamTeamMasterListHistoryIndexRouteImport } from './routes/_team/$team/master-list/history/index'
 import { Route as TeamTeamLogMileageIndexRouteImport } from './routes/_team/$team/log/mileage/index'
 import { Route as TeamTeamLogMarketingIndexRouteImport } from './routes/_team/$team/log/marketing/index'
 import { Route as TeamTeamLogExpenseIndexRouteImport } from './routes/_team/$team/log/expense/index'
@@ -79,6 +86,11 @@ const InvitationActionRoute = InvitationActionRouteImport.update({
   id: '/invitation/$action',
   path: '/invitation/$action',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
+  id: '/two-factor',
+  path: '/two-factor',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: '/register',
@@ -172,6 +184,11 @@ const AuthEmailVerificationRoute = AuthEmailVerificationRouteImport.update({
   path: '/email/verification',
   getParentRoute: () => AuthRoute,
 } as any)
+const TeamTeamTasksIndexRoute = TeamTeamTasksIndexRouteImport.update({
+  id: '/$team/tasks/',
+  path: '/$team/tasks/',
+  getParentRoute: () => TeamRoute,
+} as any)
 const TeamTeamReferralListIndexRoute =
   TeamTeamReferralListIndexRouteImport.update({
     id: '/$team/referral-list/',
@@ -186,6 +203,26 @@ const TeamTeamMasterListIndexRoute = TeamTeamMasterListIndexRouteImport.update({
 const TeamTeamImportIndexRoute = TeamTeamImportIndexRouteImport.update({
   id: '/$team/import/',
   path: '/$team/import/',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamHistoryIndexRoute = TeamTeamHistoryIndexRouteImport.update({
+  id: '/$team/history/',
+  path: '/$team/history/',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamContactsIndexRoute = TeamTeamContactsIndexRouteImport.update({
+  id: '/$team/contacts/',
+  path: '/$team/contacts/',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamCompaniesIndexRoute = TeamTeamCompaniesIndexRouteImport.update({
+  id: '/$team/companies/',
+  path: '/$team/companies/',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamTasksTaskRoute = TeamTeamTasksTaskRouteImport.update({
+  id: '/$team/tasks/$task',
+  path: '/$team/tasks/$task',
   getParentRoute: () => TeamRoute,
 } as any)
 const TeamTeamSettingsBillingRoute = TeamTeamSettingsBillingRouteImport.update({
@@ -205,6 +242,16 @@ const TeamTeamMasterListCreateRoute =
     path: '/$team/master-list/create',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamContactsCreateRoute = TeamTeamContactsCreateRouteImport.update({
+  id: '/$team/contacts/create',
+  path: '/$team/contacts/create',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamCompaniesCreateRoute = TeamTeamCompaniesCreateRouteImport.update({
+  id: '/$team/companies/create',
+  path: '/$team/companies/create',
+  getParentRoute: () => TeamRoute,
+} as any)
 const TeamTeamReportMileageIndexRoute =
   TeamTeamReportMileageIndexRouteImport.update({
     id: '/$team/report/mileage/',
@@ -221,12 +268,6 @@ const TeamTeamReportExpenseIndexRoute =
   TeamTeamReportExpenseIndexRouteImport.update({
     id: '/$team/report/expense/',
     path: '/$team/report/expense/',
-    getParentRoute: () => TeamRoute,
-  } as any)
-const TeamTeamMasterListHistoryIndexRoute =
-  TeamTeamMasterListHistoryIndexRouteImport.update({
-    id: '/$team/master-list/history/',
-    path: '/$team/master-list/history/',
     getParentRoute: () => TeamRoute,
   } as any)
 const TeamTeamLogMileageIndexRoute = TeamTeamLogMileageIndexRouteImport.update({
@@ -283,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/two-factor': typeof AuthTwoFactorRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
@@ -299,18 +341,24 @@ export interface FileRoutesByFullPath {
   '/$team/team': typeof TeamTeamTeamRoute
   '/reset-password/': typeof AuthResetPasswordIndexRoute
   '/$team/': typeof TeamTeamIndexRoute
+  '/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
+  '/$team/contacts/create': typeof TeamTeamContactsCreateRoute
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
+  '/$team/companies/': typeof TeamTeamCompaniesIndexRoute
+  '/$team/contacts/': typeof TeamTeamContactsIndexRoute
+  '/$team/history/': typeof TeamTeamHistoryIndexRoute
   '/$team/import/': typeof TeamTeamImportIndexRoute
   '/$team/master-list/': typeof TeamTeamMasterListIndexRoute
   '/$team/referral-list/': typeof TeamTeamReferralListIndexRoute
+  '/$team/tasks/': typeof TeamTeamTasksIndexRoute
   '/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
   '/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
   '/$team/log/marketing/': typeof TeamTeamLogMarketingIndexRoute
   '/$team/log/mileage/': typeof TeamTeamLogMileageIndexRoute
-  '/$team/master-list/history/': typeof TeamTeamMasterListHistoryIndexRoute
   '/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
@@ -325,6 +373,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/two-factor': typeof AuthTwoFactorRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
@@ -341,18 +390,24 @@ export interface FileRoutesByTo {
   '/$team/team': typeof TeamTeamTeamRoute
   '/reset-password': typeof AuthResetPasswordIndexRoute
   '/$team': typeof TeamTeamIndexRoute
+  '/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
+  '/$team/contacts/create': typeof TeamTeamContactsCreateRoute
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
+  '/$team/companies': typeof TeamTeamCompaniesIndexRoute
+  '/$team/contacts': typeof TeamTeamContactsIndexRoute
+  '/$team/history': typeof TeamTeamHistoryIndexRoute
   '/$team/import': typeof TeamTeamImportIndexRoute
   '/$team/master-list': typeof TeamTeamMasterListIndexRoute
   '/$team/referral-list': typeof TeamTeamReferralListIndexRoute
+  '/$team/tasks': typeof TeamTeamTasksIndexRoute
   '/$team/import/master-list': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list': typeof TeamTeamImportReferralListIndexRoute
   '/$team/log/expense': typeof TeamTeamLogExpenseIndexRoute
   '/$team/log/marketing': typeof TeamTeamLogMarketingIndexRoute
   '/$team/log/mileage': typeof TeamTeamLogMileageIndexRoute
-  '/$team/master-list/history': typeof TeamTeamMasterListHistoryIndexRoute
   '/$team/report/expense': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage': typeof TeamTeamReportMileageIndexRoute
@@ -370,6 +425,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/otp': typeof AuthOtpRoute
   '/_auth/register': typeof AuthRegisterRoute
+  '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/_auth/email/verification': typeof AuthEmailVerificationRoute
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
@@ -386,18 +442,24 @@ export interface FileRoutesById {
   '/_team/$team/team': typeof TeamTeamTeamRoute
   '/_auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/_team/$team/': typeof TeamTeamIndexRoute
+  '/_team/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
+  '/_team/$team/contacts/create': typeof TeamTeamContactsCreateRoute
   '/_team/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/_team/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/_team/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/_team/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
+  '/_team/$team/companies/': typeof TeamTeamCompaniesIndexRoute
+  '/_team/$team/contacts/': typeof TeamTeamContactsIndexRoute
+  '/_team/$team/history/': typeof TeamTeamHistoryIndexRoute
   '/_team/$team/import/': typeof TeamTeamImportIndexRoute
   '/_team/$team/master-list/': typeof TeamTeamMasterListIndexRoute
   '/_team/$team/referral-list/': typeof TeamTeamReferralListIndexRoute
+  '/_team/$team/tasks/': typeof TeamTeamTasksIndexRoute
   '/_team/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/_team/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
   '/_team/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
   '/_team/$team/log/marketing/': typeof TeamTeamLogMarketingIndexRoute
   '/_team/$team/log/mileage/': typeof TeamTeamLogMileageIndexRoute
-  '/_team/$team/master-list/history/': typeof TeamTeamMasterListHistoryIndexRoute
   '/_team/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/_team/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/_team/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
@@ -414,6 +476,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/two-factor'
     | '/invitation/$action'
     | '/email/verification'
     | '/reset-password/verify'
@@ -430,18 +493,24 @@ export interface FileRouteTypes {
     | '/$team/team'
     | '/reset-password/'
     | '/$team/'
+    | '/$team/companies/create'
+    | '/$team/contacts/create'
     | '/$team/master-list/create'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
+    | '/$team/tasks/$task'
+    | '/$team/companies/'
+    | '/$team/contacts/'
+    | '/$team/history/'
     | '/$team/import/'
     | '/$team/master-list/'
     | '/$team/referral-list/'
+    | '/$team/tasks/'
     | '/$team/import/master-list/'
     | '/$team/import/referral-list/'
     | '/$team/log/expense/'
     | '/$team/log/marketing/'
     | '/$team/log/mileage/'
-    | '/$team/master-list/history/'
     | '/$team/report/expense/'
     | '/$team/report/marketing/'
     | '/$team/report/mileage/'
@@ -456,6 +525,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/two-factor'
     | '/invitation/$action'
     | '/email/verification'
     | '/reset-password/verify'
@@ -472,18 +542,24 @@ export interface FileRouteTypes {
     | '/$team/team'
     | '/reset-password'
     | '/$team'
+    | '/$team/companies/create'
+    | '/$team/contacts/create'
     | '/$team/master-list/create'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
+    | '/$team/tasks/$task'
+    | '/$team/companies'
+    | '/$team/contacts'
+    | '/$team/history'
     | '/$team/import'
     | '/$team/master-list'
     | '/$team/referral-list'
+    | '/$team/tasks'
     | '/$team/import/master-list'
     | '/$team/import/referral-list'
     | '/$team/log/expense'
     | '/$team/log/marketing'
     | '/$team/log/mileage'
-    | '/$team/master-list/history'
     | '/$team/report/expense'
     | '/$team/report/marketing'
     | '/$team/report/mileage'
@@ -500,6 +576,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/otp'
     | '/_auth/register'
+    | '/_auth/two-factor'
     | '/invitation/$action'
     | '/_auth/email/verification'
     | '/_auth/reset-password/verify'
@@ -516,18 +593,24 @@ export interface FileRouteTypes {
     | '/_team/$team/team'
     | '/_auth/reset-password/'
     | '/_team/$team/'
+    | '/_team/$team/companies/create'
+    | '/_team/$team/contacts/create'
     | '/_team/$team/master-list/create'
     | '/_team/$team/referral-list/create'
     | '/_team/$team/settings/billing'
+    | '/_team/$team/tasks/$task'
+    | '/_team/$team/companies/'
+    | '/_team/$team/contacts/'
+    | '/_team/$team/history/'
     | '/_team/$team/import/'
     | '/_team/$team/master-list/'
     | '/_team/$team/referral-list/'
+    | '/_team/$team/tasks/'
     | '/_team/$team/import/master-list/'
     | '/_team/$team/import/referral-list/'
     | '/_team/$team/log/expense/'
     | '/_team/$team/log/marketing/'
     | '/_team/$team/log/mileage/'
-    | '/_team/$team/master-list/history/'
     | '/_team/$team/report/expense/'
     | '/_team/$team/report/marketing/'
     | '/_team/$team/report/mileage/'
@@ -588,6 +671,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/invitation/$action'
       preLoaderRoute: typeof InvitationActionRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_auth/two-factor': {
+      id: '/_auth/two-factor'
+      path: '/two-factor'
+      fullPath: '/two-factor'
+      preLoaderRoute: typeof AuthTwoFactorRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_auth/register': {
       id: '/_auth/register'
@@ -715,6 +805,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthEmailVerificationRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_team/$team/tasks/': {
+      id: '/_team/$team/tasks/'
+      path: '/$team/tasks'
+      fullPath: '/$team/tasks/'
+      preLoaderRoute: typeof TeamTeamTasksIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/referral-list/': {
       id: '/_team/$team/referral-list/'
       path: '/$team/referral-list'
@@ -734,6 +831,34 @@ declare module '@tanstack/react-router' {
       path: '/$team/import'
       fullPath: '/$team/import/'
       preLoaderRoute: typeof TeamTeamImportIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/history/': {
+      id: '/_team/$team/history/'
+      path: '/$team/history'
+      fullPath: '/$team/history/'
+      preLoaderRoute: typeof TeamTeamHistoryIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/contacts/': {
+      id: '/_team/$team/contacts/'
+      path: '/$team/contacts'
+      fullPath: '/$team/contacts/'
+      preLoaderRoute: typeof TeamTeamContactsIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/companies/': {
+      id: '/_team/$team/companies/'
+      path: '/$team/companies'
+      fullPath: '/$team/companies/'
+      preLoaderRoute: typeof TeamTeamCompaniesIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/tasks/$task': {
+      id: '/_team/$team/tasks/$task'
+      path: '/$team/tasks/$task'
+      fullPath: '/$team/tasks/$task'
+      preLoaderRoute: typeof TeamTeamTasksTaskRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/settings/billing': {
@@ -757,6 +882,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamMasterListCreateRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/contacts/create': {
+      id: '/_team/$team/contacts/create'
+      path: '/$team/contacts/create'
+      fullPath: '/$team/contacts/create'
+      preLoaderRoute: typeof TeamTeamContactsCreateRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/companies/create': {
+      id: '/_team/$team/companies/create'
+      path: '/$team/companies/create'
+      fullPath: '/$team/companies/create'
+      preLoaderRoute: typeof TeamTeamCompaniesCreateRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/report/mileage/': {
       id: '/_team/$team/report/mileage/'
       path: '/$team/report/mileage'
@@ -776,13 +915,6 @@ declare module '@tanstack/react-router' {
       path: '/$team/report/expense'
       fullPath: '/$team/report/expense/'
       preLoaderRoute: typeof TeamTeamReportExpenseIndexRouteImport
-      parentRoute: typeof TeamRoute
-    }
-    '/_team/$team/master-list/history/': {
-      id: '/_team/$team/master-list/history/'
-      path: '/$team/master-list/history'
-      fullPath: '/$team/master-list/history/'
-      preLoaderRoute: typeof TeamTeamMasterListHistoryIndexRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/log/mileage/': {
@@ -848,6 +980,7 @@ interface AuthRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthOtpRoute: typeof AuthOtpRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthTwoFactorRoute: typeof AuthTwoFactorRoute
   AuthEmailVerificationRoute: typeof AuthEmailVerificationRoute
   AuthResetPasswordVerifyRoute: typeof AuthResetPasswordVerifyRoute
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
@@ -857,6 +990,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthOtpRoute: AuthOtpRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  AuthTwoFactorRoute: AuthTwoFactorRoute,
   AuthEmailVerificationRoute: AuthEmailVerificationRoute,
   AuthResetPasswordVerifyRoute: AuthResetPasswordVerifyRoute,
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
@@ -888,17 +1022,23 @@ interface TeamRouteChildren {
   TeamTeamSuccessRoute: typeof TeamTeamSuccessRoute
   TeamTeamTeamRoute: typeof TeamTeamTeamRoute
   TeamTeamIndexRoute: typeof TeamTeamIndexRoute
+  TeamTeamCompaniesCreateRoute: typeof TeamTeamCompaniesCreateRoute
+  TeamTeamContactsCreateRoute: typeof TeamTeamContactsCreateRoute
   TeamTeamMasterListCreateRoute: typeof TeamTeamMasterListCreateRoute
   TeamTeamReferralListCreateRoute: typeof TeamTeamReferralListCreateRoute
+  TeamTeamTasksTaskRoute: typeof TeamTeamTasksTaskRoute
+  TeamTeamCompaniesIndexRoute: typeof TeamTeamCompaniesIndexRoute
+  TeamTeamContactsIndexRoute: typeof TeamTeamContactsIndexRoute
+  TeamTeamHistoryIndexRoute: typeof TeamTeamHistoryIndexRoute
   TeamTeamImportIndexRoute: typeof TeamTeamImportIndexRoute
   TeamTeamMasterListIndexRoute: typeof TeamTeamMasterListIndexRoute
   TeamTeamReferralListIndexRoute: typeof TeamTeamReferralListIndexRoute
+  TeamTeamTasksIndexRoute: typeof TeamTeamTasksIndexRoute
   TeamTeamImportMasterListIndexRoute: typeof TeamTeamImportMasterListIndexRoute
   TeamTeamImportReferralListIndexRoute: typeof TeamTeamImportReferralListIndexRoute
   TeamTeamLogExpenseIndexRoute: typeof TeamTeamLogExpenseIndexRoute
   TeamTeamLogMarketingIndexRoute: typeof TeamTeamLogMarketingIndexRoute
   TeamTeamLogMileageIndexRoute: typeof TeamTeamLogMileageIndexRoute
-  TeamTeamMasterListHistoryIndexRoute: typeof TeamTeamMasterListHistoryIndexRoute
   TeamTeamReportExpenseIndexRoute: typeof TeamTeamReportExpenseIndexRoute
   TeamTeamReportMarketingIndexRoute: typeof TeamTeamReportMarketingIndexRoute
   TeamTeamReportMileageIndexRoute: typeof TeamTeamReportMileageIndexRoute
@@ -920,17 +1060,23 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamSuccessRoute: TeamTeamSuccessRoute,
   TeamTeamTeamRoute: TeamTeamTeamRoute,
   TeamTeamIndexRoute: TeamTeamIndexRoute,
+  TeamTeamCompaniesCreateRoute: TeamTeamCompaniesCreateRoute,
+  TeamTeamContactsCreateRoute: TeamTeamContactsCreateRoute,
   TeamTeamMasterListCreateRoute: TeamTeamMasterListCreateRoute,
   TeamTeamReferralListCreateRoute: TeamTeamReferralListCreateRoute,
+  TeamTeamTasksTaskRoute: TeamTeamTasksTaskRoute,
+  TeamTeamCompaniesIndexRoute: TeamTeamCompaniesIndexRoute,
+  TeamTeamContactsIndexRoute: TeamTeamContactsIndexRoute,
+  TeamTeamHistoryIndexRoute: TeamTeamHistoryIndexRoute,
   TeamTeamImportIndexRoute: TeamTeamImportIndexRoute,
   TeamTeamMasterListIndexRoute: TeamTeamMasterListIndexRoute,
   TeamTeamReferralListIndexRoute: TeamTeamReferralListIndexRoute,
+  TeamTeamTasksIndexRoute: TeamTeamTasksIndexRoute,
   TeamTeamImportMasterListIndexRoute: TeamTeamImportMasterListIndexRoute,
   TeamTeamImportReferralListIndexRoute: TeamTeamImportReferralListIndexRoute,
   TeamTeamLogExpenseIndexRoute: TeamTeamLogExpenseIndexRoute,
   TeamTeamLogMarketingIndexRoute: TeamTeamLogMarketingIndexRoute,
   TeamTeamLogMileageIndexRoute: TeamTeamLogMileageIndexRoute,
-  TeamTeamMasterListHistoryIndexRoute: TeamTeamMasterListHistoryIndexRoute,
   TeamTeamReportExpenseIndexRoute: TeamTeamReportExpenseIndexRoute,
   TeamTeamReportMarketingIndexRoute: TeamTeamReportMarketingIndexRoute,
   TeamTeamReportMileageIndexRoute: TeamTeamReportMileageIndexRoute,

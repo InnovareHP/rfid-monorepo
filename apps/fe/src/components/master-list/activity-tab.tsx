@@ -1,7 +1,12 @@
+import { resolveFaxAutofill } from "@/lib/helper/fax-autofill";
 import {
   createCalendarEvent,
   getCalendarConnectionStatus,
 } from "@/services/calendar/calendar-service";
+import {
+  getFaxIntegrationStatus,
+  sendFaxActivity,
+} from "@/services/fax/fax-service";
 import {
   completeActivity,
   createActivity,
@@ -9,8 +14,14 @@ import {
   getActivities,
   getGmailStatus,
   getOutlookStatus,
+  getSpecificLead,
+  updateLead,
   type Activity,
 } from "@/services/lead/lead-service";
+import {
+  getSpecificReferral,
+  updateReferral,
+} from "@/services/referral/referral-service";
 import { formatDateTime } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
@@ -40,10 +51,13 @@ import {
 import {
   CalendarIcon,
   Check,
+  CornerDownLeft,
+  Eye,
   Mail,
   MessageSquare,
   Phone,
   Plus,
+  Printer,
   Send,
   StickyNote,
   Trash2,
@@ -79,6 +93,12 @@ const activityTypeConfig = {
     color: "from-gray-500 to-slate-600",
     badge: "bg-gray-50 text-gray-700 border-gray-300",
   },
+  FAX: {
+    icon: Printer,
+    label: "Fax",
+    color: "from-teal-500 to-cyan-600",
+    badge: "bg-teal-50 text-teal-700 border-teal-300",
+  },
 };
 
 const statusConfig = {
@@ -96,7 +116,7 @@ const statusConfig = {
   },
 };
 
-type ActivityType = "CALL" | "EMAIL" | "MEETING" | "NOTE";
+type ActivityType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "FAX";
 
 type FormValues = {
   title: string;
@@ -109,14 +129,18 @@ type FormValues = {
   sendVia?: "AUTO" | "GMAIL" | "OUTLOOK";
   meetingEndDate?: Date;
   calendarProvider?: "google" | "outlook";
+  faxNumber?: string;
+  faxFile?: File;
 };
 
 export function ActivityTab({
   recordId,
   enabled,
+  moduleType,
 }: {
   recordId: string;
   enabled: boolean;
+  moduleType: "LEAD" | "REFERRAL";
 }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = React.useState(false);
@@ -136,8 +160,28 @@ export function ActivityTab({
     queryFn: getCalendarConnectionStatus,
   });
 
+  const { data: faxStatus } = useQuery({
+    queryKey: ["fax-integration-status"],
+    queryFn: getFaxIntegrationStatus,
+  });
+
+  const isReferral = moduleType === "REFERRAL";
+  const { data: recordData } = useQuery({
+    queryKey: [isReferral ? "referral" : "lead", recordId],
+    queryFn: () =>
+      isReferral
+        ? getSpecificReferral(recordId, "REFERRAL")
+        : getSpecificLead(recordId, "LEAD"),
+    enabled: enabled && !!recordId,
+  });
+  const { faxFieldId, existingFax } = resolveFaxAutofill(
+    recordData?.columns,
+    recordData?.data
+  );
+
   const hasCalendar =
     calendarStatus?.google?.connected || calendarStatus?.outlook?.connected;
+  const hasFax = faxStatus?.connected === true;
 
   const {
     data: activitiesData,
@@ -164,6 +208,43 @@ export function ActivityTab({
       resetForm();
     },
     onError: () => toast.error("Failed to create activity"),
+  });
+
+  const faxWriteBackMutation = useMutation({
+    mutationFn: ({ fieldId, value }: { fieldId: string; value: string }) =>
+      isReferral
+        ? updateReferral(recordId, fieldId, value, undefined)
+        : updateLead(recordId, fieldId, value, "LEAD"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [isReferral ? "referral" : "lead", recordId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [isReferral ? "referrals" : "leads"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [isReferral ? "referral-history" : "lead-history", recordId],
+      });
+    },
+    onError: () =>
+      toast.error("Fax sent, but failed to save the fax number to the record"),
+  });
+
+  const faxMutation = useMutation({
+    mutationFn: sendFaxActivity,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["activities", recordId] });
+      toast.success("Fax sent");
+      if (faxFieldId && !existingFax && variables.faxNumber.trim()) {
+        faxWriteBackMutation.mutate({
+          fieldId: faxFieldId,
+          value: variables.faxNumber.trim(),
+        });
+      }
+      resetForm();
+    },
+    onError: (error: any) =>
+      toast.error(error?.response?.data?.message ?? "Failed to send fax"),
   });
 
   const completeMutation = useMutation({
@@ -205,6 +286,8 @@ export function ActivityTab({
       emailSubject: "",
       emailBody: "",
       sendVia: "AUTO",
+      faxNumber: "",
+      faxFile: undefined,
       meetingEndDate: undefined,
       calendarProvider: calendarStatus?.google?.connected
         ? "google"
@@ -217,6 +300,17 @@ export function ActivityTab({
   const { handleSubmit, watch, control, reset } = form;
   const watchActivityType = watch("activityType");
 
+  React.useEffect(() => {
+    if (
+      showForm &&
+      watchActivityType === "FAX" &&
+      existingFax &&
+      !form.getValues("faxNumber")
+    ) {
+      form.setValue("faxNumber", existingFax);
+    }
+  }, [showForm, watchActivityType, existingFax]);
+
   const resetForm = () => {
     reset();
     setShowForm(false);
@@ -224,6 +318,25 @@ export function ActivityTab({
 
   const onSubmit = async (data: FormValues) => {
     if (!data.title.trim()) return;
+
+    if (data.activityType === "FAX") {
+      if (!data.faxNumber?.trim()) {
+        toast.error("Fax number is required");
+        return;
+      }
+      if (!data.faxFile) {
+        toast.error("Attach a document to fax");
+        return;
+      }
+      faxMutation.mutate({
+        recordId: recordId,
+        title: data.title.trim(),
+        description: data.description?.trim() || undefined,
+        faxNumber: data.faxNumber.trim(),
+        file: data.faxFile,
+      });
+      return;
+    }
 
     if (
       data.activityType === "MEETING" &&
@@ -345,6 +458,7 @@ export function ActivityTab({
                       <SelectContent>
                         {Object.keys(activityTypeConfig)
                           .filter((key) => key !== "MEETING" || hasCalendar)
+                          .filter((key) => key !== "FAX" || hasFax)
                           .map((key) => (
                             <SelectItem key={key} value={key}>
                               <span className="flex items-center gap-2">
@@ -468,6 +582,43 @@ export function ActivityTab({
                 </div>
               )}
 
+              {watchActivityType === "FAX" && hasFax && (
+                <div className="space-y-3 rounded-lg border border-teal-200 bg-teal-50/50 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-teal-600">
+                    Fax Details
+                  </p>
+
+                  <Controller
+                    control={control}
+                    name="faxNumber"
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="tel"
+                        placeholder="Fax number (E.164, e.g. +15551234567) *"
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    control={control}
+                    name="faxFile"
+                    render={({ field }) => (
+                      <Input
+                        type="file"
+                        accept=".pdf,.tiff,.tif,.png,.jpg,.jpeg,.gif,.bmp"
+                        onChange={(e) => field.onChange(e.target.files?.[0])}
+                      />
+                    )}
+                  />
+
+                  <p className="text-xs text-teal-700">
+                    The document is faxed immediately when you create this
+                    activity (max 25 MB).
+                  </p>
+                </div>
+              )}
+
               {watchActivityType === "MEETING" && hasCalendar && (
                 <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
                   <p className="text-xs font-bold uppercase tracking-wider text-amber-600">
@@ -553,10 +704,16 @@ export function ActivityTab({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || faxMutation.isPending}
                   className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold"
                 >
-                  {createMutation.isPending ? "Creating..." : "Create"}
+                  {faxMutation.isPending
+                    ? "Sending fax..."
+                    : createMutation.isPending
+                      ? "Creating..."
+                      : watchActivityType === "FAX"
+                        ? "Send Fax"
+                        : "Create"}
                 </Button>
               </div>
             </form>
@@ -676,6 +833,15 @@ function ActivityCard({
               >
                 {typeConfig.label}
               </Badge>
+              {activity.direction === "INBOUND" && (
+                <Badge
+                  variant="outline"
+                  className="bg-sky-50 text-sky-700 border-sky-200 text-xs font-semibold shrink-0"
+                >
+                  <CornerDownLeft className="h-3 w-3 mr-1" />
+                  Reply
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={`${status.badge} text-xs font-semibold shrink-0`}
@@ -770,10 +936,34 @@ function ActivityCard({
             </span>
           )}
 
+          {activity.activityType === "FAX" && activity.faxNumber && (
+            <span className="text-xs text-teal-600 bg-teal-50 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
+              <Printer className="h-3 w-3" />
+              {activity.faxNumber}
+            </span>
+          )}
+
+          {activity.faxSentAt && (
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              Faxed {formatDateTime(activity.faxSentAt)}
+            </span>
+          )}
+
           {activity.emailSentAt && (
             <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
               <Check className="h-3 w-3" />
               Sent{activity.senderEmail ? ` via ${activity.senderEmail}` : ""}
+            </span>
+          )}
+
+          {activity.openCount > 0 && (
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              Opened {activity.openCount}
+              {activity.lastOpenedAt
+                ? ` · ${formatDateTime(activity.lastOpenedAt)}`
+                : ""}
             </span>
           )}
         </div>

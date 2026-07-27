@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AuthModule } from "@thallesp/nestjs-better-auth";
 import { ApiModule } from "./api/api.module";
 import { appConfigSchema } from "./config/app-config";
@@ -19,11 +21,14 @@ import { QueueModule } from "./lib/queue/queue.module";
         return appConfigSchema.parse(env);
       },
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 300 }],
+    }),
     AuthModule.forRoot({ auth }),
     AuditModule,
     ApiModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

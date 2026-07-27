@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/lib/helper/helper";
 import {
   createMileageLog,
   deleteMileageLog,
@@ -5,18 +6,16 @@ import {
 } from "@/services/mileage/mileage-service";
 import type { MileageLogRow } from "@dashboard/shared";
 import { formatCapitalize } from "@dashboard/shared";
+import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
+import { Card } from "@dashboard/ui/components/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
-  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
 } from "@dashboard/ui/components/dialog";
 import {
   Form,
@@ -24,6 +23,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import {
@@ -35,26 +35,34 @@ import {
 } from "@dashboard/ui/components/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { DollarSign, Gauge, Loader2, Route } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
+import {
+  LogEmptyState,
+  LogPageHeader,
+  LogRowDelete,
+  LogStatCard,
+  LogTableSkeleton,
+} from "../log-shared/log-page-shell";
 import { ReusableTable } from "../reusable-table/generic-table";
 
-/* ✅ AUTO RATES */
 const FEDERAL_RATE = 0.67;
 const STATE_RATE = 0.5;
 
 export const MileageRateType = ["FEDERAL", "STATE"] as const;
 
 export const CreateMillageSchema = z.object({
-  destination: z.string().min(1),
-  countiesMarketed: z.string().min(1),
+  destination: z.string().min(1, "Enter a destination"),
+  countiesMarketed: z.string().min(1, "Enter counties marketed"),
   beginningMileage: z.number().min(0),
   endingMileage: z.number().min(0),
   totalMiles: z.number().min(0),
-  rateType: z.enum(MileageRateType),
+  rateType: z.enum(MileageRateType, {
+    errorMap: () => ({ message: "Select a rate type" }),
+  }),
   ratePerMile: z.number().min(0),
   reimbursementAmount: z.number().min(0),
 });
@@ -83,6 +91,9 @@ const MileageLogPage = () => {
       form.reset();
       setOpen(false);
     },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
 
   const deleteMileageMutation = useMutation({
@@ -90,6 +101,9 @@ const MileageLogPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
       toast.success("Mileage log deleted successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -111,47 +125,79 @@ const MileageLogPage = () => {
   const endingMileage = form.watch("endingMileage");
   const rateType = form.watch("rateType");
 
-  const totalMiles =
-    endingMileage >= beginningMileage ? endingMileage - beginningMileage : 0;
+  useEffect(() => {
+    const totalMiles =
+      endingMileage >= beginningMileage ? endingMileage - beginningMileage : 0;
+    const ratePerMile =
+      rateType === "FEDERAL"
+        ? FEDERAL_RATE
+        : rateType === "STATE"
+          ? STATE_RATE
+          : 0;
 
-  const ratePerMile =
-    rateType === "FEDERAL"
-      ? FEDERAL_RATE
-      : rateType === "STATE"
-        ? STATE_RATE
-        : 0;
-
-  const reimbursementAmount = Number((totalMiles * ratePerMile).toFixed(2));
-
-  form.setValue("totalMiles", totalMiles);
-  form.setValue("ratePerMile", ratePerMile);
-  form.setValue("reimbursementAmount", reimbursementAmount);
+    form.setValue("totalMiles", totalMiles);
+    form.setValue("ratePerMile", ratePerMile);
+    form.setValue(
+      "reimbursementAmount",
+      Number((totalMiles * ratePerMile).toFixed(2))
+    );
+  }, [beginningMileage, endingMileage, rateType, form]);
 
   const onSubmit = (values: CreateMileageFormValues) => {
     createMileageMutation.mutate(values);
   };
 
-  const handleDelete = (id: string) => {
-    deleteMileageMutation.mutate(id);
-  };
+  const rows: MileageLogRow[] = Array.isArray(mileageLogsData?.data)
+    ? mileageLogsData.data
+    : [];
+  const totalEntries = mileageLogsData?.total ?? 0;
+
+  const pageMiles = rows.reduce((sum, row) => sum + (row.totalMiles ?? 0), 0);
+  const pageReimbursement = rows.reduce(
+    (sum, row) => sum + (row.reimbursementAmount ?? 0),
+    0
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Mileage Log</h1>
+    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Card className="cursor-pointer border-2 border-dashed">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5" /> Create New Mileage Entry
-                </CardTitle>
-                <CardDescription>Add a Mileage Log</CardDescription>
-              </CardHeader>
-            </Card>
-          </DialogTrigger>
+        <LogPageHeader
+          icon={Route}
+          title="Mileage Log"
+          subtitle="Track trips, miles driven, and reimbursements"
+          actionLabel="Log Trip"
+          onAction={() => setOpen(true)}
+        />
 
+        <div className="grid gap-4 sm:grid-cols-3">
+          <LogStatCard
+            icon={Route}
+            label="Total Trips"
+            value={String(totalEntries)}
+          />
+          <LogStatCard
+            icon={Gauge}
+            label="Miles Driven"
+            value={pageMiles.toLocaleString()}
+            hint="on this page"
+          />
+          <LogStatCard
+            icon={DollarSign}
+            label="Reimbursement"
+            value={formatCurrency(pageReimbursement)}
+            hint="on this page"
+          />
+        </div>
+
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Log Trip</DialogTitle>
+              <DialogDescription>
+                Record a trip — total miles and reimbursement are calculated
+                automatically.
+              </DialogDescription>
+            </DialogHeader>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -166,6 +212,7 @@ const MileageLogPage = () => {
                       <FormControl>
                         <Input placeholder="Enter Destination" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -182,68 +229,54 @@ const MileageLogPage = () => {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="beginningMileage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Beginning Mileage</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                          placeholder="Enter Beginning Mileage"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="beginningMileage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Beginning Mileage</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                            placeholder="Enter Beginning Mileage"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="endingMileage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ending Mileage</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                          placeholder="Enter Ending Mileage"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                {/* ✅ AUTO FIELDS */}
-                <FormField
-                  control={form.control}
-                  name="totalMiles"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Miles</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          disabled
-                          placeholder="Enter Total Miles"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="endingMileage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ending Mileage</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                            placeholder="Enter Ending Mileage"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -265,114 +298,163 @@ const MileageLogPage = () => {
                           <SelectItem value="STATE">State</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="ratePerMile"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rate Per Mile</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} disabled />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                <div className="grid gap-4 sm:grid-cols-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <FormField
+                    control={form.control}
+                    name="totalMiles"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total Miles</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} disabled />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="reimbursementAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Cost</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} disabled />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="ratePerMile"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rate / Mile</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} disabled />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="reimbursementAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total Cost</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} disabled />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <DialogFooter>
-                  <Button type="submit">Create Entry</Button>
+                  <Button
+                    type="submit"
+                    disabled={createMileageMutation.isPending}
+                  >
+                    {createMileageMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
+                    Create Entry
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
+
         <Card className="overflow-hidden border border-gray-200">
           <div className="overflow-x-auto p-4">
             {isLoading ? (
-              <div className="p-8 text-center text-gray-500">
-                Loading mileage logs...
-              </div>
-            ) : mileageLogsData?.data &&
-              Array.isArray(mileageLogsData?.data) &&
-              mileageLogsData?.data?.length > 0 ? (
+              <LogTableSkeleton />
+            ) : rows.length > 0 ? (
               <ReusableTable<MileageLogRow>
-                data={
-                  Array.isArray(mileageLogsData?.data)
-                    ? mileageLogsData.data
-                    : []
-                }
+                data={rows}
                 columns={[
                   {
                     key: "destination",
                     header: "Destination",
-                    render: (row) => row.destination,
+                    render: (row) => (
+                      <span className="font-medium text-gray-900">
+                        {row.destination}
+                      </span>
+                    ),
                   },
                   {
                     key: "countiesMarketed",
                     header: "Counties Marketed",
-                    render: (row) => row.countiesMarketed,
+                    render: (row) => (
+                      <span
+                        className="block max-w-48 truncate text-gray-600"
+                        title={row.countiesMarketed ?? ""}
+                      >
+                        {row.countiesMarketed}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "totalMiles",
+                    header: "Miles",
+                    render: (row) => (
+                      <span className="tabular-nums">
+                        {row.totalMiles?.toLocaleString() ?? "—"}
+                      </span>
+                    ),
                   },
                   {
                     key: "rateType",
                     header: "Rate Type",
-                    render: (row) => formatCapitalize(row.rateType),
+                    render: (row) => (
+                      <Badge variant="outline" className="font-medium">
+                        {formatCapitalize(row.rateType)}
+                      </Badge>
+                    ),
                   },
                   {
                     key: "ratePerMile",
                     header: "Rate / Mile",
-                    render: (row) => `$${row.ratePerMile.toFixed(2)}`,
+                    render: (row) => (
+                      <span className="tabular-nums text-gray-600">
+                        {formatCurrency(row.ratePerMile)}
+                      </span>
+                    ),
                   },
                   {
                     key: "reimbursementAmount",
                     header: "Reimbursement",
-                    render: (row) => `$${row.reimbursementAmount}`,
+                    render: (row) => (
+                      <span className="font-semibold text-gray-900 tabular-nums">
+                        {formatCurrency(row.reimbursementAmount)}
+                      </span>
+                    ),
                   },
                   {
                     key: "action",
-                    header: "Action",
+                    header: "",
                     render: (row) => (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(row.id)}
-                      >
-                        Delete
-                      </Button>
+                      <LogRowDelete
+                        entityLabel="mileage entry"
+                        disabled={deleteMileageMutation.isPending}
+                        onDelete={() => deleteMileageMutation.mutate(row.id)}
+                      />
                     ),
                   },
                 ]}
                 currentPage={filterMeta.page}
                 itemsPerPage={filterMeta.limit}
                 onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-                totalCount={mileageLogsData?.total ?? 0}
+                totalCount={totalEntries}
                 emptyMessage="No mileage logs found"
                 isLoading={isLoading}
               />
             ) : (
-              <div className="p-10 text-center text-gray-500 text-sm">
-                No mileage logs found. Click the card above to create your first
-                entry.
-              </div>
+              <LogEmptyState
+                icon={Route}
+                title="No trips logged yet"
+                description="Log your first trip to start tracking miles and reimbursements."
+                actionLabel="Log Trip"
+                onAction={() => setOpen(true)}
+              />
             )}
           </div>
         </Card>
-        {/* TABLE LEFT UNCHANGED */}
       </div>
     </div>
   );

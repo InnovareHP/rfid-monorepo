@@ -19,21 +19,43 @@ type Plan = {
 
 const PLANS: Plan[] = [
   {
-    id: "professional",
-    name: "Pro Plan",
+    id: "essentials",
+    name: "Essentials",
     price: 49,
+    interval: "month",
+    features: [
+      "Up to 10 team members",
+      "Lead & referral management",
+      "Expense & mileage tracking",
+      "Core analytics dashboard",
+      "Email support",
+    ],
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    price: 99,
     interval: "month",
     isPopular: true,
     features: [
-      "Up to 15 team members",
-      "Advanced analytics & insights",
-      "Unlimited referrals",
+      "Up to 25 team members",
+      "Everything in Essentials",
+      "AI insights & lead analysis",
+      "CSV import & export",
+      "Advanced analytics & reporting",
       "Priority email support (24h response)",
-      "Advanced data export & API access",
+    ],
+  },
+  {
+    id: "scale",
+    name: "Scale",
+    price: 149,
+    interval: "month",
+    features: [
+      "Up to 50 team members",
+      "Everything in Growth",
       "Custom reporting & dashboards",
-      "Automated workflows",
-      "Integration with 10+ tools",
-      "Advanced security features",
+      "Priority support",
       "Monthly performance reports",
     ],
   },
@@ -72,14 +94,13 @@ export function PlansPage({
     },
   });
 
-  const SubscribePlan = async () => {
+  const SubscribePlan = async (plan: string) => {
     try {
       if (!activeOrganizationId) return;
 
       const { error } = await authClient.subscription.upgrade({
-        plan: "Dashboard",
+        plan,
         referenceId: activeOrganizationId,
-        seats: 10,
         successUrl: `${
           import.meta.env.VITE_APP_URL
         }/${activeOrganizationId}/success`,
@@ -119,16 +140,14 @@ export function PlansPage({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {PLANS.map((plan) => {
             const isSubscribed = subscriptionStatus === "active";
 
             return (
               <Card
                 key={plan.id}
-                className={cn(
-                  plan.id === "professional" && "border-primary shadow-lg"
-                )}
+                className={cn(plan.isPopular && "border-primary shadow-lg")}
               >
                 <CardHeader className="pb-4">
                   <div className="space-y-2">
@@ -184,9 +203,9 @@ export function PlansPage({
                     <Button
                       size="lg"
                       className="w-full"
-                      onClick={SubscribePlan}
+                      onClick={() => SubscribePlan(plan.id)}
                     >
-                      Upgrade to Pro
+                      Upgrade to {plan.name}
                     </Button>
                   )}
                 </CardContent>

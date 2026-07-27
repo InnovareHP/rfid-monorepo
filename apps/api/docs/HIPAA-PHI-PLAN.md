@@ -133,9 +133,25 @@ model AuditLog {
 }
 ```
 
+## 5a. Implemented 2026-07-08
+
+- Bull Board (`/api/queues`) now requires `super_admin`/`support` session; others get 404.
+- `AI_SCRUB_PHI` defaults **true** (config parse fixed — `z.coerce.boolean` treated `"false"` as true); vision prompt now scrubbed too (image bytes cannot be — BAA required for vision).
+- Global rate limiting (`@nestjs/throttler`, 300 req/min) + Better Auth `rateLimit` on Redis storage with strict rules for sign-in/sign-up/password endpoints.
+- `helmet` with HSTS (1y, includeSubDomains); `trust proxy = 1` so audit IPs can't be spoofed via `x-forwarded-for`.
+- WebSocket CORS restricted to `WEBSITE_URL`/`SUPPORT_URL` (was `*`).
+- AuditLog: per-row HMAC-SHA256 in `changeHash`; DB write failure now emits full entry to stdout (`AUDIT_FALLBACK`); append-only DB trigger in `prisma/migrations/audit_log_append_only/` (apply manually).
+- MFA: Better Auth `twoFactor` plugin + `TwoFactor` model (secret/backupCodes encrypted at rest). Frontend enrollment UI still TODO.
+- Redis cache payloads (board rows, AI results) encrypted with AES-256-GCM; BullMQ job retention cut to 1h complete / 24h fail.
+- Stripe webhook logs trimmed to event ids (no full event dumps); subscription hook `console.log`s removed.
+- Explicit `expense.export` audit event on PDF export.
+- Frontend auto-logoff: 15-min idle timer in `apps/fe` `_team` layout and `apps/fe-support` `_admin`/`_support` layouts.
+- **`FieldValue.value` + `Board.recordName` encrypted at rest** (AES-256-GCM via Prisma extension, now with nested-relation encrypt/decrypt). All matching moved app-layer: `getAllBoards` search/filter/sort/pagination runs on decrypted rows; analytics `groupBy`/raw-SQL aggregations rewritten to in-memory grouping (this also fixed `getAverageTimeByStatus`, broken since History encryption). Backfill: `pnpm --filter api crypto:encrypt-phi` (idempotent, now covers FieldValue + Board). Analytics Redis caches moved to encrypted `cacheData`/`getData`.
+- All Prisma `DateTime` columns annotated `@db.Timestamptz(3)`.
+
 ## 6a. Deferred / Known Limitations
 
-- `FieldValue.value` (EAV) and `LeadFlatView` are NOT yet encrypted. Encrypting breaks `LIKE`/`contains` search and any JSON view query. Requires deterministic encryption + searchable index redesign OR moving search to an app-layer encrypted index. Tracked separately.
+- ~~`FieldValue.value` not encrypted~~ — done 2026-07-08 (see §5a); search/filter/aggregation moved app-layer.
 - `User.email`, `Invitation.email` not encrypted — required by Better Auth for unique lookup. Treat row-level access controls as the mitigation.
 - `BoardCounty`, `Marketing.notes`, `Mileage.destination`, `Expense.description` not yet encrypted; covered in Phase 4 if they hold PHI per data steward review.
 - Audit log retention partitioning not yet implemented; single table for now.
