@@ -174,10 +174,16 @@ export function LoginForm({
 
   return (
     <>
-      <div className={cn("gap-0 p-0 lg:p-4", className)} {...props}>
-        <div className="flex items-stretch w-full lg:gap-6 lg:min-h-[42rem]">
+      <div
+        className={cn(
+          "[--panelw:clamp(26rem,30vw,34rem)] [--gapw:1rem] xl:[--gapw:1.5rem] [--framew:2rem] xl:[--framew:3rem] p-0 lg:p-4 xl:p-6",
+          className
+        )}
+        {...props}
+      >
+        <div className="flex items-stretch justify-center w-full mx-auto max-w-[96rem] lg:gap-[var(--gapw)] lg:h-[min(calc(100svh-var(--framew)),calc((100vw-var(--panelw)-var(--gapw)-var(--framew))*1.183),64rem)]">
           {/* Left Side - Design image */}
-          <div className="hidden lg:block lg:w-1/2 overflow-hidden rounded-3xl shadow-xl">
+          <div className="hidden lg:block h-full aspect-[1300/1538] shrink-0 overflow-hidden rounded-3xl shadow-xl">
             <img
               src="/login-page/Inner.png"
               alt="See every referral. Track every opportunity."
@@ -186,28 +192,28 @@ export function LoginForm({
           </div>
 
           {/* Right Side - Login Form */}
-          <div className="w-full lg:w-1/2 min-h-svh lg:min-h-0 rounded-none lg:rounded-3xl shadow-none lg:shadow-xl bg-gradient-to-b from-blue-900 via-blue-600 to-sky-300 lg:bg-gradient-to-br lg:from-sky-200 lg:via-blue-100 lg:to-blue-200 flex flex-col items-center justify-center gap-10 px-4 py-12 sm:px-8 lg:p-12">
+          <div className="w-full lg:w-[var(--panelw)] lg:shrink-0 min-h-svh lg:min-h-0 lg:h-full lg:overflow-y-auto rounded-none lg:rounded-3xl shadow-none lg:shadow-xl bg-gradient-to-b from-blue-900 via-blue-600 to-sky-300 lg:bg-gradient-to-br lg:from-sky-200 lg:via-blue-100 lg:to-blue-200 flex flex-col items-center justify-center gap-8 px-4 py-10 sm:px-8 lg:gap-6 lg:p-6 xl:p-8">
             <img
               src="/login-page/Refidly%20[Full]%20-%20White%201.png"
               alt="Refidly — See it. Track it. Move it."
-              className="w-44 sm:w-52 lg:hidden"
+              className="w-36 sm:w-44 lg:hidden"
             />
-            <div className="w-full max-w-md rounded-2xl bg-gradient-to-b from-white to-blue-50 shadow-lg p-6 sm:p-10">
+            <div className="w-full max-w-md lg:max-w-none rounded-2xl bg-gradient-to-b from-white to-blue-50 shadow-lg p-6 sm:p-8 lg:p-7 xl:p-9">
               <Form {...form}>
                 <form
-                  className="space-y-6"
+                  className="space-y-5"
                   onSubmit={form.handleSubmit(handleLogin)}
                 >
                   <div className="space-y-1 text-center">
-                    <h2 className="text-3xl font-bold text-blue-900">
+                    <h2 className="text-3xl xl:text-4xl font-bold text-blue-900 lg:whitespace-nowrap">
                       Welcome back!
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-sm xl:text-base text-gray-600">
                       Sign in to your account to continue.
                     </p>
                   </div>
 
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="email"
@@ -220,7 +226,7 @@ export function LoginForm({
                             <Input
                               {...field}
                               placeholder="m@example.com"
-                              className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors"
+                              className="h-10 xl:h-12 text-sm xl:text-base rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors"
                             />
                           </FormControl>
                           <FormMessage />
@@ -233,7 +239,7 @@ export function LoginForm({
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center justify-between mb-1.5">
                             <FormLabel className="text-sm font-medium text-gray-900">
                               Password
                             </FormLabel>
@@ -278,11 +284,11 @@ export function LoginForm({
                     <Button
                       disabled={form.formState.isSubmitting}
                       type="submit"
-                      className="w-full h-11 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+                      className="w-full h-10 xl:h-12 text-sm xl:text-base bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
                     >
                       {form.formState.isSubmitting ? (
                         <div className="flex items-center gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                           <span>Signing in...</span>
                         </div>
                       ) : (
@@ -298,7 +304,7 @@ export function LoginForm({
                       <div className="h-px flex-1 bg-gray-300" aria-hidden />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => handleSocialLogin("google")}
@@ -329,7 +335,7 @@ export function LoginForm({
                       </button>
                     </div>
 
-                    <div className="text-center text-sm text-gray-600 pt-2">
+                    <div className="text-center text-sm text-gray-600 pt-1">
                       Don't have an account?{" "}
                       <Link
                         to="/register"
@@ -341,7 +347,7 @@ export function LoginForm({
                   </div>
                 </form>
               </Form>
-              <div className="mt-8 text-center text-xs text-gray-500">
+              <div className="mt-6 text-center text-xs text-gray-500">
                 By continuing, you agree to our{" "}
                 <a
                   href="#"
