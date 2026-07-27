@@ -20,18 +20,24 @@ import {
   Calendar,
   CheckSquare,
   ChevronDown,
+  Building2,
   Hash,
   Mail,
   Phone,
   Plus,
+  User,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export function CreateColumnModal({
   isReferral = false,
+  moduleType,
+  queryKey,
 }: {
   isReferral?: boolean;
+  moduleType?: string;
+  queryKey?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -48,10 +54,14 @@ export function CreateColumnModal({
 
     setLoading(true);
     try {
-      await createColumn(type, name, isReferral ? "REFERRAL" : "LEAD");
+      await createColumn(
+        type,
+        name,
+        moduleType ?? (isReferral ? "REFERRAL" : "LEAD")
+      );
 
       queryClient.invalidateQueries({
-        queryKey: isReferral ? ["referrals"] : ["leads"],
+        queryKey: [queryKey ?? (isReferral ? "referrals" : "leads")],
       });
 
       toast.success("Column created successfully!");
@@ -82,6 +92,16 @@ export function CreateColumnModal({
       label: "Dropdown",
       value: "DROPDOWN",
       icon: <ChevronDown className="w-4 h-4" />,
+    },
+    {
+      label: "Contact Link",
+      value: "CONTACT_LINK",
+      icon: <User className="w-4 h-4" />,
+    },
+    {
+      label: "Company Link",
+      value: "COMPANY_LINK",
+      icon: <Building2 className="w-4 h-4" />,
     },
   ];
 

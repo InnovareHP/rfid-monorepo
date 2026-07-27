@@ -51,6 +51,8 @@ import {
 import {
   CalendarIcon,
   Check,
+  CornerDownLeft,
+  Eye,
   Mail,
   MessageSquare,
   Phone,
@@ -831,6 +833,15 @@ function ActivityCard({
               >
                 {typeConfig.label}
               </Badge>
+              {activity.direction === "INBOUND" && (
+                <Badge
+                  variant="outline"
+                  className="bg-sky-50 text-sky-700 border-sky-200 text-xs font-semibold shrink-0"
+                >
+                  <CornerDownLeft className="h-3 w-3 mr-1" />
+                  Reply
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={`${status.badge} text-xs font-semibold shrink-0`}
@@ -943,6 +954,16 @@ function ActivityCard({
             <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
               <Check className="h-3 w-3" />
               Sent{activity.senderEmail ? ` via ${activity.senderEmail}` : ""}
+            </span>
+          )}
+
+          {activity.openCount > 0 && (
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              Opened {activity.openCount}
+              {activity.lastOpenedAt
+                ? ` · ${formatDateTime(activity.lastOpenedAt)}`
+                : ""}
             </span>
           )}
         </div>

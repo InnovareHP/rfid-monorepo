@@ -41,7 +41,9 @@
       "WebFetch(domain:eldonfax.com)",
       "Bash(echo \"exit: $?\")",
       "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/report/marketing/**)",
-      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/report/**)"
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/report/**)",
+      "PowerShell(git config *)",
+      "PowerShell(\\(Get-Content \"apps\\\\api\\\\src\\\\api\\\\board\\\\board.service.ts\" | Measure-Object -Line\\).Lines)"
     ]
   }
 }

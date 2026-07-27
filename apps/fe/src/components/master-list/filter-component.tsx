@@ -2,6 +2,7 @@ import {
   getDropdownOptions,
   getLeadRecords,
 } from "@/services/lead/lead-service";
+import { getLinkCandidates } from "@/services/board/board-module-service";
 import type { OptionsResponse } from "@dashboard/shared";
 import { Input } from "@dashboard/ui/components/input";
 import {
@@ -52,10 +53,25 @@ export function FilterComponent({
     gcTime: 1000 * 60 * 5,
   });
 
+  const isLinkType =
+    col.type === "REFERRAL_LINK" ||
+    col.type === "CONTACT_LINK" ||
+    col.type === "COMPANY_LINK";
+
+  const linkTargetModule =
+    col.type === "CONTACT_LINK"
+      ? "CONTACT"
+      : col.type === "COMPANY_LINK"
+        ? "COMPANY"
+        : "LEAD";
+
   const { data: facilityRecords = [] } = useQuery({
-    queryKey: ["lead-records", 1, 500],
-    queryFn: () => getLeadRecords(1, 500),
-    enabled: col.type === "REFERRAL_LINK",
+    queryKey: ["link-records", linkTargetModule, 1, 500],
+    queryFn: () =>
+      linkTargetModule === "LEAD"
+        ? getLeadRecords(1, 500)
+        : getLinkCandidates(linkTargetModule, 1, 500),
+    enabled: isLinkType,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 5,
   });
@@ -95,6 +111,8 @@ export function FilterComponent({
       );
 
     case "REFERRAL_LINK":
+    case "CONTACT_LINK":
+    case "COMPANY_LINK":
       return (
         <Select value={localValue || undefined} onValueChange={handleChange}>
           <SelectTrigger className="w-full text-sm">

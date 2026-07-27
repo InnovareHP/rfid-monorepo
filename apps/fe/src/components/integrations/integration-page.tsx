@@ -13,6 +13,7 @@ import {
   getGoogleCalendarAuthUrl,
   getOutlookCalendarAuthUrl,
 } from "@/services/calendar/calendar-service";
+import { getEmailIngestAddress } from "@/services/email/email-service";
 import {
   connectFaxIntegration,
   disconnectFaxIntegration,
@@ -32,13 +33,29 @@ import { Separator } from "@dashboard/ui/components/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
-import { Calendar, Link, Loader2, Mail, PlugZap, Printer, Unlink } from "lucide-react";
+import {
+  Calendar,
+  Copy,
+  Inbox,
+  Link,
+  Loader2,
+  Mail,
+  PlugZap,
+  Printer,
+  Unlink,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function IntegrationPage() {
   const queryClient = useQueryClient();
   const search = useSearch({ strict: false }) as Record<string, string>;
+
+  const ingestAddressQuery = useQuery({
+    queryKey: ["email-ingest-address"],
+    queryFn: getEmailIngestAddress,
+    retry: false,
+  });
 
   // ---- Email: Gmail ----
   const gmailStatusQuery = useQuery({
@@ -389,6 +406,55 @@ export default function IntegrationPage() {
                     )}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-6 border-2 border-gray-300 shadow-sm">
+              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
+                <div className="flex items-center gap-2">
+                  <Inbox className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-foreground">Reply Logging</CardTitle>
+                    <CardDescription>
+                      BCC or forward mail to this address to log the thread on its record
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-3 p-6">
+                {ingestAddressQuery.isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                ) : ingestAddressQuery.data ? (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input
+                      readOnly
+                      value={ingestAddressQuery.data.address}
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-primary/40 hover:bg-primary/10"
+                      onClick={() => {
+                        navigator.clipboard.writeText(ingestAddressQuery.data.address);
+                        toast.success("Ingest address copied");
+                      }}
+                    >
+                      <Copy className="mr-1 h-4 w-4" />
+                      Copy
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    Reply logging is not configured for this environment.
+                  </p>
+                )}
+
+                <p className="text-sm text-gray-500">
+                  Only mail sent to this address is stored. Replies that match a record
+                  are logged on its timeline, everything else is discarded.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

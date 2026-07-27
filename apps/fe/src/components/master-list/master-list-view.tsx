@@ -48,6 +48,7 @@ import { RestoreHistoryModal } from "../history-report/restore-history-modal";
 import { EditableCell } from "../reusable-table/editable-cell";
 import { ActivityTab } from "./activity-tab";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
+import { RelatedRecords } from "../crm-list/related-records";
 
 function serializeValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
@@ -315,6 +316,9 @@ export function MasterListView({
                               value={serializeValue(record[col.name] ?? "")}
                               type={col.type}
                               isReferral={isReferral}
+                              linkTargetId={
+                                (record as any).linkIds?.[col.name]
+                              }
                             />
                           </div>
                         </div>
@@ -324,6 +328,12 @@ export function MasterListView({
                           No fields configured yet.
                         </p>
                       )}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Related records
+                      </span>
+                      <RelatedRecords recordId={leadId} />
                     </div>
                   </div>
                 </ScrollArea>
