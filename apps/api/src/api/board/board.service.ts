@@ -12,8 +12,6 @@ import { appConfig } from "src/config/app-config";
 import { aiGenerateVision } from "src/lib/aws/ai-guard";
 import { businessCardScanPrompt, followUpPrompt } from "src/lib/aws/prompts";
 import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
-import { sendEmail } from "src/lib/aws/ses";
-import { ActivityEmail } from "src/react-email/activity-email";
 import { v4 as uuidv4 } from "uuid";
 import { lookupByName } from "zipcodes-perogi";
 import { CACHE_PREFIX } from "../../lib/constant";
@@ -22,8 +20,7 @@ import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
 import { BoardGateway } from "./board.gateway";
 import { UpdateContactDto } from "./dto/board.schema";
-import { GmailService } from "./gmail.service";
-import { OutlookService } from "./outlook.service";
+import { EmailDispatchService } from "./email-dispatch.service";
 
 interface BoardFilters {
   filter?: Record<string, string>;
@@ -62,8 +59,7 @@ export class BoardService {
 
   constructor(
     private readonly boardGateway: BoardGateway,
-    private readonly gmailService: GmailService,
-    private readonly outlookService: OutlookService,
+    private readonly emailDispatchService: EmailDispatchService,
     private readonly faxService: FaxService,
     @InjectQueue(QUEUE_NAMES.BULK_EMAIL)
     private readonly bulkEmailQueue: Queue,
@@ -144,6 +140,40 @@ export class BoardService {
       }),
     ]);
 
+    // Link fields store the target board id; resolve to names for display
+    // and keep the ids so the frontend can navigate to the target record.
+    const linkFieldIds = new Set(
+      fields.filter((f) => this.isLinkFieldType(f.fieldType)).map((f) => f.id)
+    );
+
+    const linkTargetIds = new Set<string>();
+    for (const b of allBoards) {
+      for (const v of b.values) {
+        if (linkFieldIds.has(v.field.id) && v.value) linkTargetIds.add(v.value);
+      }
+    }
+
+    const linkTargets = linkTargetIds.size
+      ? await prisma.board.findMany({
+          where: { id: { in: [...linkTargetIds] }, organizationId },
+          select: { id: true, recordName: true },
+        })
+      : [];
+    const linkNameById = new Map(linkTargets.map((t) => [t.id, t.recordName]));
+
+    const linkIdsByBoard = new Map<string, Record<string, string>>();
+    for (const b of allBoards) {
+      for (const v of b.values) {
+        if (!linkFieldIds.has(v.field.id) || !v.value) continue;
+        const targetName = linkNameById.get(v.value);
+        if (targetName === undefined) continue;
+        const row = linkIdsByBoard.get(b.id) ?? {};
+        row[v.field.fieldName] = v.value;
+        linkIdsByBoard.set(b.id, row);
+        v.value = targetName;
+      }
+    }
+
     let boards = allBoards;
 
     if (search) {
@@ -199,6 +229,7 @@ export class BoardService {
         assignedTo: b.assignedTo ?? "",
         createdAt: b.createdAt,
         has_notification: b.notifications.length > 0,
+        linkIds: linkIdsByBoard.get(b.id) ?? {},
         ...dynamicData,
       };
     });
@@ -283,6 +314,63 @@ export class BoardService {
     return formatted;
   }
 
+  async getRelatedRecords(recordId: string, organizationId: string) {
+    await prisma.board.findFirstOrThrow({
+      where: { id: recordId, organizationId: organizationId },
+      select: { id: true },
+    });
+
+    const relations = await prisma.boardRelation.findMany({
+      where: {
+        OR: [{ sourceId: recordId }, { targetId: recordId }],
+      },
+      include: {
+        source: {
+          select: {
+            id: true,
+            recordName: true,
+            moduleType: true,
+            isDeleted: true,
+            organizationId: true,
+          },
+        },
+        target: {
+          select: {
+            id: true,
+            recordName: true,
+            moduleType: true,
+            isDeleted: true,
+            organizationId: true,
+          },
+        },
+      },
+    });
+
+    const seen = new Set<string>();
+    const related: {
+      id: string;
+      recordName: string;
+      moduleType: string;
+      relationType: string;
+    }[] = [];
+
+    for (const r of relations) {
+      const counterpart = r.source.id === recordId ? r.target : r.source;
+      if (counterpart.isDeleted) continue;
+      if (counterpart.organizationId !== organizationId) continue;
+      if (seen.has(counterpart.id)) continue;
+      seen.add(counterpart.id);
+      related.push({
+        id: counterpart.id,
+        recordName: counterpart.recordName,
+        moduleType: counterpart.moduleType,
+        relationType: r.relationType,
+      });
+    }
+
+    return related;
+  }
+
   async getAllRecordHistory(organizationId: string, filters: HistoryFilters) {
     const { page = 1, limit = 50, moduleType } = filters;
     const offset = (page - 1) * Number(limit);
@@ -320,6 +408,7 @@ export class BoardService {
         createdAt: h.createdAt,
         createdBy: h.user?.name,
         action: h.action,
+        recordId: h.recordId,
         recordName: h.record?.recordName,
         oldValue: h.oldValue,
         newValue: h.newValue,
@@ -688,6 +777,34 @@ export class BoardService {
       },
     });
 
+    // Resolve link field ids to target names, keeping ids for navigation
+    const linkFieldNames = new Set(
+      fields
+        .filter((f) => this.isLinkFieldType(f.fieldType))
+        .map((f) => f.fieldName)
+    );
+
+    const linkValueIds = record.values
+      .filter((v) => linkFieldNames.has(v.field.fieldName) && v.value)
+      .map((v) => v.value as string);
+
+    const linkTargets = linkValueIds.length
+      ? await prisma.board.findMany({
+          where: { id: { in: linkValueIds }, organizationId },
+          select: { id: true, recordName: true },
+        })
+      : [];
+    const linkNameById = new Map(linkTargets.map((t) => [t.id, t.recordName]));
+
+    const linkIds: Record<string, string> = {};
+    for (const v of record.values) {
+      if (!linkFieldNames.has(v.field.fieldName) || !v.value) continue;
+      const targetName = linkNameById.get(v.value);
+      if (targetName === undefined) continue;
+      linkIds[v.field.fieldName] = v.value;
+      v.value = targetName;
+    }
+
     // ✅ Build dynamic fields ONCE
     const dynamicData = record.values.reduce(
       (acc, curr) => {
@@ -702,6 +819,7 @@ export class BoardService {
       id: record.id,
       recordName: record.recordName,
       assignedTo: record.assignedUser?.name ?? null,
+      linkIds,
       ...dynamicData,
     };
 
@@ -915,7 +1033,7 @@ export class BoardService {
 
         const ctx: FieldUpdateContext = { ...baseCtx, field };
 
-        if (field.fieldType === BoardFieldType.REFERRAL_LINK) {
+        if (this.isLinkFieldType(field.fieldType)) {
           return this.updateReferralLinkValue(tx, ctx);
         }
 
@@ -1016,24 +1134,86 @@ export class BoardService {
     return { message: "Record name updated successfully" };
   }
 
+  private resolveLinkTarget(
+    moduleType: string,
+    fieldName: string,
+    fieldType: BoardFieldType
+  ) {
+    if (fieldType === BoardFieldType.CONTACT_LINK) {
+      return {
+        targetModule: "CONTACT" as const,
+        relation: "CONTACT_LINK" as const,
+      };
+    }
+    if (fieldType === BoardFieldType.COMPANY_LINK) {
+      return {
+        targetModule: "COMPANY" as const,
+        relation: "COMPANY_LINK" as const,
+      };
+    }
+    if (moduleType === "CONTACT") {
+      return fieldName === "Company"
+        ? {
+            targetModule: "COMPANY" as const,
+            relation: "COMPANY_LINK" as const,
+          }
+        : { targetModule: "LEAD" as const, relation: "CONTACT_LINK" as const };
+    }
+    if (moduleType === "COMPANY") {
+      return {
+        targetModule: "LEAD" as const,
+        relation: "COMPANY_LINK" as const,
+      };
+    }
+    return {
+      targetModule: "LEAD" as const,
+      relation: "REFERRAL_LINK" as const,
+    };
+  }
+
+  private isLinkFieldType(fieldType: BoardFieldType) {
+    return (
+      fieldType === BoardFieldType.REFERRAL_LINK ||
+      fieldType === BoardFieldType.CONTACT_LINK ||
+      fieldType === BoardFieldType.COMPANY_LINK
+    );
+  }
+
   private async updateReferralLinkValue(
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
     const { recordId, value, organizationId, memberId, moduleType, field } =
       ctx;
+    const { targetModule, relation } = this.resolveLinkTarget(
+      moduleType,
+      field.fieldName,
+      field.fieldType
+    );
 
-    if (field.fieldType === BoardFieldType.REFERRAL_LINK) {
+    if (this.isLinkFieldType(field.fieldType)) {
       if (!value) {
-        const existingRelation = await tx.boardRelation.findFirst({
+        const storedValue = await tx.fieldValue.findFirst({
+          where: { recordId: recordId, fieldId: field.id },
+          select: { value: true },
+        });
+
+        const relations = await tx.boardRelation.findMany({
           where: {
             sourceId: recordId,
-            relationType: "REFERRAL_LINK",
+            relationType: relation,
           },
           include: {
             target: { select: { id: true, recordName: true } },
           },
         });
+
+        const existingRelation =
+          relations.find(
+            (r) =>
+              r.target.id === storedValue?.value ||
+              r.target.recordName === storedValue?.value
+          ) ?? (relations.length === 1 ? relations[0] : undefined);
 
         if (!existingRelation)
           throw new NotFoundException("No linked record found");
@@ -1061,7 +1241,8 @@ export class BoardService {
           memberId,
           tx,
           "update",
-          field.fieldName
+          field.fieldName,
+          field.id
         );
 
         await purgeAllCacheKeys(
@@ -1090,23 +1271,53 @@ export class BoardService {
         select: { value: true },
       });
 
-      const leadCandidates = await tx.board.findMany({
+      // Value is the target board id; fall back to name matching for
+      // legacy clients and CSV imports that still send record names.
+      let record = await tx.board.findFirst({
         where: {
+          id: value,
           organizationId: organizationId,
-          moduleType: "LEAD",
+          moduleType: targetModule,
+          isDeleted: false,
         },
         select: { id: true, recordName: true },
       });
-      const record = leadCandidates.find((b) => b.recordName === value);
+
+      if (!record) {
+        const linkCandidates = await tx.board.findMany({
+          where: {
+            organizationId: organizationId,
+            moduleType: targetModule,
+            isDeleted: false,
+          },
+          select: { id: true, recordName: true },
+        });
+        record = linkCandidates.find((b) => b.recordName === value) ?? null;
+      }
 
       if (!record) throw new NotFoundException("Record not found");
+
+      const priorRelations = await tx.boardRelation.findMany({
+        where: { sourceId: recordId, relationType: relation },
+        include: { target: { select: { id: true, recordName: true } } },
+      });
+      const previousRelation = priorRelations.find(
+        (r) =>
+          r.target.id === existingRecordValue?.value ||
+          r.target.recordName === existingRecordValue?.value
+      );
+      if (previousRelation && previousRelation.target.id !== record.id) {
+        await tx.boardRelation.delete({
+          where: { id: previousRelation.id },
+        });
+      }
 
       await tx.boardRelation.upsert({
         where: {
           sourceId_targetId_relationType: {
             sourceId: recordId,
             targetId: record.id,
-            relationType: "REFERRAL_LINK",
+            relationType: relation,
           },
         },
         update: {
@@ -1115,7 +1326,7 @@ export class BoardService {
         create: {
           sourceId: recordId,
           targetId: record.id,
-          relationType: "REFERRAL_LINK",
+          relationType: relation,
           organizationId: organizationId,
         },
       });
@@ -1124,23 +1335,24 @@ export class BoardService {
         where: {
           recordId_fieldId: { recordId: recordId, fieldId: field.id },
         },
-        update: { value },
+        update: { value: record.id },
         create: {
           recordId: recordId,
           fieldId: field.id,
-          value,
+          value: record.id,
           organizationId: organizationId,
         },
       });
 
       await this.createRecordHistory(
         recordId,
-        existingRecordValue?.value ?? "",
-        value,
+        previousRelation?.target.recordName ?? existingRecordValue?.value ?? "",
+        record.recordName,
         memberId,
         tx,
         "update",
-        field.fieldName
+        field.fieldName,
+        field.id
       );
 
       await purgeAllCacheKeys(
@@ -1151,7 +1363,7 @@ export class BoardService {
         organizationId,
         recordId,
         field.fieldName,
-        value,
+        record.recordName,
         moduleType
       );
 
@@ -1424,7 +1636,8 @@ export class BoardService {
       memberId,
       tx,
       "update",
-      field.fieldName
+      field.fieldName,
+      field.id
     );
 
     await purgeAllCacheKeys(
@@ -1612,10 +1825,40 @@ export class BoardService {
         orderBy: { fieldOrder: "asc" },
       });
 
+      // Preload link target candidates so create-time link values (id or
+      // name) resolve to the target board id, matching the update path.
+      const linkFields = fields.filter((f) =>
+        this.isLinkFieldType(f.fieldType)
+      );
+      const linkTargetsByModule = new Map<
+        string,
+        { id: string; recordName: string }[]
+      >();
+      for (const field of linkFields) {
+        const { targetModule } = this.resolveLinkTarget(
+          moduleType,
+          field.fieldName,
+          field.fieldType
+        );
+        if (linkTargetsByModule.has(targetModule)) continue;
+        linkTargetsByModule.set(
+          targetModule,
+          await tx.board.findMany({
+            where: {
+              organizationId: organizationId,
+              moduleType: targetModule,
+              isDeleted: false,
+            },
+            select: { id: true, recordName: true },
+          })
+        );
+      }
+
       const createdReferrals: any = [];
       const allReferralValues: any[] = [];
       const allHistoryEntries: any[] = [];
       const allNotificationStates: any[] = [];
+      const allRelations: any[] = [];
 
       for (const referralData of referralItems) {
         const referral = await tx.board.create({
@@ -1646,6 +1889,27 @@ export class BoardService {
                       .filter(Boolean)
                   : [];
               value = JSON.stringify(normalizedValue);
+            } else if (this.isLinkFieldType(field.fieldType)) {
+              const { targetModule, relation } = this.resolveLinkTarget(
+                moduleType,
+                field.fieldName,
+                field.fieldType
+              );
+              const candidates = linkTargetsByModule.get(targetModule) ?? [];
+              const raw = String(customValue);
+              const target =
+                candidates.find((c) => c.id === raw) ??
+                candidates.find((c) => c.recordName === raw);
+              // Store the target board id; skip unresolved names silently
+              value = target?.id ?? null;
+              if (target) {
+                allRelations.push({
+                  sourceId: referral.id,
+                  targetId: target.id,
+                  relationType: relation,
+                  organizationId: organizationId,
+                });
+              }
             } else {
               value = String(customValue);
             }
@@ -1669,7 +1933,7 @@ export class BoardService {
           newValue: referralData.referral_name,
           action: "create",
           createdBy: memberId,
-          column: "Referral Name",
+          column: moduleType === "REFERRAL" ? "Referral Name" : "Name",
           organizationId: organizationId,
         });
 
@@ -1701,6 +1965,14 @@ export class BoardService {
         });
       }
 
+      // Bulk insert link relations
+      if (allRelations.length > 0) {
+        await tx.boardRelation.createMany({
+          data: allRelations,
+          skipDuplicates: true,
+        });
+      }
+
       return {
         message: `${createdReferrals.length} referral(s) created successfully`,
         count: createdReferrals.length,
@@ -1711,7 +1983,7 @@ export class BoardService {
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
     for (const referral of result.referrals) {
-      this.boardGateway.emitRecordCreated(organizationId, referral, "REFERRAL");
+      this.boardGateway.emitRecordCreated(organizationId, referral, moduleType);
     }
 
     return result;
@@ -1751,6 +2023,7 @@ export class BoardService {
       where: { id: history_id },
       select: {
         column: true,
+        fieldId: true,
         oldValue: true,
         newValue: true,
         recordId: true,
@@ -1767,11 +2040,15 @@ export class BoardService {
         throw new NotFoundException("Record is deleted");
       }
 
+      // History rows written before fieldId existed are still matched by name
       const field = await prisma.field.findFirstOrThrow({
         where: {
-          fieldName: history.column ?? "",
+          ...(history.fieldId
+            ? { id: history.fieldId }
+            : { fieldName: history.column ?? "" }),
           organizationId: organizationId,
           isDeleted: false,
+          moduleType: moduleType as ModuleType,
         },
       });
 
@@ -1792,6 +2069,7 @@ export class BoardService {
             newValue: history.oldValue,
             action: "restore",
             column: history.column,
+            fieldId: history.fieldId,
             createdBy: userId,
             organizationId: organizationId,
           },
@@ -1825,6 +2103,7 @@ export class BoardService {
             newValue: history.oldValue,
             action: "restore",
             column: history.column,
+            fieldId: history.fieldId,
             createdBy: userId,
             organizationId: organizationId,
           },
@@ -2199,7 +2478,8 @@ export class BoardService {
     createdBy: string,
     tx: Prisma.TransactionClient,
     action?: string,
-    column?: string
+    column?: string,
+    fieldId?: string
   ) {
     const record = await tx.board.findUnique({
       where: { id: recordId },
@@ -2214,6 +2494,7 @@ export class BoardService {
         action: action ?? "create",
         createdBy: createdBy,
         column: column,
+        fieldId: fieldId,
         organizationId: record?.organizationId ?? null,
       },
     });
@@ -2306,86 +2587,6 @@ export class BoardService {
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
   }
 
-  private async sendEmailWithProvider(
-    userId: string,
-    to: string,
-    subject: string,
-    recipientName: string,
-    body: string,
-    senderName: string,
-    sendVia?: string
-  ): Promise<string> {
-    const gmailStatus = await this.gmailService.getConnectionStatus(userId);
-    const outlookStatus = await this.outlookService.getConnectionStatus(userId);
-
-    if (sendVia === "GMAIL") {
-      const sent = await this.gmailService.trySendViaGmail(
-        userId,
-        to,
-        subject,
-        recipientName,
-        body,
-        senderName
-      );
-      if (sent && gmailStatus.email) return gmailStatus.email;
-      await sendEmail({
-        to,
-        subject,
-        html: ActivityEmail({ recipientName, body }),
-        from: appConfig.APP_EMAIL,
-      });
-      return appConfig.APP_EMAIL;
-    }
-
-    if (sendVia === "OUTLOOK") {
-      const sent = await this.outlookService.trySendViaOutlook(
-        userId,
-        to,
-        subject,
-        recipientName,
-        body,
-        senderName
-      );
-      if (sent && outlookStatus.email) return outlookStatus.email;
-      await sendEmail({
-        to,
-        subject,
-        html: ActivityEmail({ recipientName, body }),
-        from: appConfig.APP_EMAIL,
-      });
-      return appConfig.APP_EMAIL;
-    }
-
-    // AUTO: Gmail → Outlook → SES
-    const sentViaGmail = await this.gmailService.trySendViaGmail(
-      userId,
-      to,
-      subject,
-      recipientName,
-      body,
-      senderName
-    );
-    if (sentViaGmail && gmailStatus.email) return gmailStatus.email;
-
-    const sentViaOutlook = await this.outlookService.trySendViaOutlook(
-      userId,
-      to,
-      subject,
-      recipientName,
-      body,
-      senderName
-    );
-    if (sentViaOutlook && outlookStatus.email) return outlookStatus.email;
-
-    await sendEmail({
-      to,
-      subject,
-      html: ActivityEmail({ recipientName, body }),
-      from: appConfig.APP_EMAIL,
-    });
-    return appConfig.APP_EMAIL;
-  }
-
   async sendBulkEmail(
     recordIds: string[],
     emailSubject: string,
@@ -2456,6 +2657,11 @@ export class BoardService {
         faxNumber: a.faxNumber,
         faxId: a.faxId,
         faxSentAt: a.faxSentAt,
+        direction: a.direction,
+        threadToken: a.threadToken,
+        openCount: a.openCount,
+        firstOpenedAt: a.firstOpenedAt,
+        lastOpenedAt: a.lastOpenedAt,
         createdAt: a.createdAt,
         createdBy: a.creator.name,
         creator_email: a.creator.email,
@@ -2647,21 +2853,23 @@ export class BoardService {
         );
       }
 
-      const senderEmail = await this.sendEmailWithProvider(
+      const { senderEmail, trackingId } = await this.emailDispatchService.send({
         userId,
-        recipientEmail,
+        to: recipientEmail,
         subject,
-        activity.record.recordName,
+        recipientName: activity.record.recordName,
         body,
-        activity.creator.name,
-        emailOverrides?.send_via
-      );
+        senderName: activity.creator.name,
+        sendVia: emailOverrides?.send_via,
+      });
 
       updateData.emailSentAt = new Date();
       updateData.recipientEmail = recipientEmail;
       updateData.emailSubject = subject;
       updateData.emailBody = body;
       updateData.senderEmail = senderEmail;
+      updateData.trackingId = trackingId;
+      updateData.threadToken = activity.threadToken ?? trackingId;
     }
 
     const updated = await prisma.activity.update({
@@ -2730,6 +2938,81 @@ export class BoardService {
     await prisma.activity.delete({ where: { id: activityId } });
 
     return { message: "Activity deleted successfully" };
+  }
+
+  async findDuplicateRecords(
+    organizationId: string,
+    moduleType: string,
+    email?: string,
+    phone?: string,
+    excludeRecordId?: string
+  ) {
+    if (!email && !phone) {
+      return { duplicates: [] };
+    }
+
+    const fields = await prisma.field.findMany({
+      where: {
+        organizationId,
+        moduleType: moduleType as ModuleType,
+        isDeleted: false,
+        fieldType: { in: [BoardFieldType.EMAIL, BoardFieldType.PHONE] },
+      },
+      select: { id: true, fieldType: true, fieldName: true },
+    });
+
+    const checks = fields.flatMap((field) => {
+      if (field.fieldType === BoardFieldType.EMAIL && email) {
+        return [{ fieldId: field.id, value: email.trim() }];
+      }
+      if (field.fieldType === BoardFieldType.PHONE && phone) {
+        return [{ fieldId: field.id, value: phone.trim() }];
+      }
+      return [];
+    });
+
+    if (checks.length === 0) {
+      return { duplicates: [] };
+    }
+
+    // FieldValue.value is encrypted at rest, so matching runs on decrypted
+    // rows here, not in Postgres
+    const candidates = await prisma.fieldValue.findMany({
+      where: {
+        fieldId: { in: checks.map((check) => check.fieldId) },
+        record: {
+          organizationId,
+          isDeleted: false,
+          ...(excludeRecordId ? { id: { not: excludeRecordId } } : {}),
+        },
+      },
+      select: {
+        value: true,
+        fieldId: true,
+        field: { select: { fieldName: true } },
+        record: { select: { id: true, recordName: true } },
+      },
+    });
+
+    const wanted = new Map(
+      checks.map((check) => [check.fieldId, check.value.toLowerCase()])
+    );
+
+    const duplicates = candidates
+      .filter(
+        (candidate) =>
+          candidate.value &&
+          wanted.get(candidate.fieldId) === candidate.value.trim().toLowerCase()
+      )
+      .slice(0, 10)
+      .map((match) => ({
+        recordId: match.record.id,
+        recordName: match.record.recordName,
+        matchedField: match.field.fieldName,
+        matchedValue: match.value,
+      }));
+
+    return { duplicates };
   }
 }
 

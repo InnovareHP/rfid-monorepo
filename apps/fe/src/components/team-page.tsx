@@ -364,7 +364,7 @@ const TeamPage = () => {
       <div className="max-w-8xl mx-auto space-y-8">
         <div className="flex flex-wrap space-y-4 items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold page-title">
               Team Management
             </h1>
             <p className="text-gray-600 mt-1">

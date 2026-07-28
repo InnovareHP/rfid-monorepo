@@ -133,7 +133,7 @@ export default function MasterListImportPage() {
   return (
     <div className="container max-w-3xl mx-auto py-12 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-2 text-center sm:text-left">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl page-title">
           Master List
         </h1>
         <p className="text-lg text-muted-foreground">

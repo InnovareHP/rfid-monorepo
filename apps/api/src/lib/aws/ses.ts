@@ -26,6 +26,7 @@ export interface SendEmailInput {
   html: React.ReactNode | string;
   from?: string;
   replyTo?: string;
+  references?: string | null;
   attachments?: SesAttachment[];
 }
 
@@ -71,6 +72,7 @@ function buildRawMime(params: {
   subject: string;
   html: string;
   replyTo?: string;
+  references?: string | null;
   attachments?: SesAttachment[];
 }): Buffer {
   const uid = `${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
@@ -85,6 +87,8 @@ function buildRawMime(params: {
     `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
   ];
   if (params.replyTo) headers.push(`Reply-To: ${escapeHeader(params.replyTo)}`);
+  if (params.references)
+    headers.push(`References: ${escapeHeader(params.references)}`);
 
   const alternative = [
     `--${altBoundary}`,
@@ -138,6 +142,7 @@ export async function sendEmail(input: SendEmailInput) {
       subject: input.subject,
       html,
       replyTo: input.replyTo,
+      references: input.references,
       attachments: input.attachments,
     });
 

@@ -2,14 +2,10 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
-import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
-import { sendEmail } from "../../lib/aws/ses";
-import { ActivityEmail } from "../../react-email/activity-email";
 import { BoardGateway } from "./board.gateway";
-import { GmailService } from "./gmail.service";
-import { OutlookService } from "./outlook.service";
+import { EmailDispatchService } from "./email-dispatch.service";
 
 export interface BulkEmailJobData {
   recordIds: string[];
@@ -27,8 +23,7 @@ export class BulkEmailProcessor extends WorkerHost {
 
   constructor(
     private readonly boardGateway: BoardGateway,
-    private readonly gmailService: GmailService,
-    private readonly outlookService: OutlookService
+    private readonly emailDispatchService: EmailDispatchService
   ) {
     super();
   }
@@ -96,15 +91,16 @@ export class BulkEmailProcessor extends WorkerHost {
       }
 
       try {
-        const senderEmail = await this.sendEmailWithProvider(
-          userId,
-          recipientEmail,
-          emailSubject,
-          record.recordName,
-          emailBody,
-          creator.name,
-          sendVia
-        );
+        const { senderEmail, trackingId } =
+          await this.emailDispatchService.send({
+            userId,
+            to: recipientEmail,
+            subject: emailSubject,
+            recipientName: record.recordName,
+            body: emailBody,
+            senderName: creator.name,
+            sendVia,
+          });
 
         await prisma.activity.create({
           data: {
@@ -118,6 +114,8 @@ export class BulkEmailProcessor extends WorkerHost {
             emailBody: emailBody,
             emailSentAt: new Date(),
             senderEmail: senderEmail,
+            trackingId: trackingId,
+            threadToken: trackingId,
             recordId: record.id,
             createdBy: userId,
             organizationId: organizationId,
@@ -149,85 +147,5 @@ export class BulkEmailProcessor extends WorkerHost {
       .emit("board:bulk-email-complete", { jobId: job.id, ...result });
 
     return result;
-  }
-
-  private async sendEmailWithProvider(
-    userId: string,
-    to: string,
-    subject: string,
-    recipientName: string,
-    body: string,
-    senderName: string,
-    sendVia?: string
-  ): Promise<string> {
-    const gmailStatus = await this.gmailService.getConnectionStatus(userId);
-    const outlookStatus = await this.outlookService.getConnectionStatus(userId);
-
-    if (sendVia === "GMAIL") {
-      const sent = await this.gmailService.trySendViaGmail(
-        userId,
-        to,
-        subject,
-        recipientName,
-        body,
-        senderName
-      );
-      if (sent && gmailStatus.email) return gmailStatus.email;
-      await sendEmail({
-        to,
-        subject,
-        html: ActivityEmail({ recipientName, body }),
-        from: appConfig.APP_EMAIL,
-      });
-      return appConfig.APP_EMAIL;
-    }
-
-    if (sendVia === "OUTLOOK") {
-      const sent = await this.outlookService.trySendViaOutlook(
-        userId,
-        to,
-        subject,
-        recipientName,
-        body,
-        senderName
-      );
-      if (sent && outlookStatus.email) return outlookStatus.email;
-      await sendEmail({
-        to,
-        subject,
-        html: ActivityEmail({ recipientName, body }),
-        from: appConfig.APP_EMAIL,
-      });
-      return appConfig.APP_EMAIL;
-    }
-
-    // AUTO: Gmail → Outlook → SES
-    const sentViaGmail = await this.gmailService.trySendViaGmail(
-      userId,
-      to,
-      subject,
-      recipientName,
-      body,
-      senderName
-    );
-    if (sentViaGmail && gmailStatus.email) return gmailStatus.email;
-
-    const sentViaOutlook = await this.outlookService.trySendViaOutlook(
-      userId,
-      to,
-      subject,
-      recipientName,
-      body,
-      senderName
-    );
-    if (sentViaOutlook && outlookStatus.email) return outlookStatus.email;
-
-    await sendEmail({
-      to,
-      subject,
-      html: ActivityEmail({ recipientName, body }),
-      from: appConfig.APP_EMAIL,
-    });
-    return appConfig.APP_EMAIL;
   }
 }

@@ -9,6 +9,7 @@ import { ImageModule } from "./image/image.module";
 import { LiaisonModule } from "./liaison/liaison.module";
 import { ManualModule } from "./manual/manual.module";
 import { OptionsModule } from "./options/options.module";
+import { PipelineModule } from "./pipeline/pipeline.module";
 import { PlacesModule } from "./places/places.module";
 import { PlanModule } from "./plan/plan.module";
 import { SupportModule } from "./support/support.module";
@@ -31,6 +32,7 @@ import { UserModule } from "./user/user.module";
     SupportModule,
     ManualModule,
     PlacesModule,
+    PipelineModule,
     TaskModule,
   ],
   controllers: [],

@@ -330,7 +330,7 @@ export function ProfilePage({
               <User className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+              <h1 className="text-3xl font-bold tracking-tight page-title">
                 Profile Settings
               </h1>
               <p className="text-sm text-gray-600 mt-0.5">

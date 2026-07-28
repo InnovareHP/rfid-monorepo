@@ -365,9 +365,7 @@ export class TaskService {
         uploadedBy: attachment.uploadedBy,
         createdAt: attachment.createdAt.toISOString(),
       })),
-      subtasks: task.subtasks.map((subtask) =>
-        this.toListItem(subtask as TaskWithListRelations)
-      ),
+      subtasks: task.subtasks.map((subtask) => this.toListItem(subtask)),
       blockedBy: task.blockedBy.map((dep) => ({
         id: dep.id,
         blockerTaskId: dep.blockerTaskId,
@@ -518,7 +516,11 @@ export class TaskService {
 
       if (dto.name !== undefined && dto.name !== existing.name) {
         data.name = dto.name;
-        changes.push({ field: "name", oldValue: existing.name, newValue: dto.name });
+        changes.push({
+          field: "name",
+          oldValue: existing.name,
+          newValue: dto.name,
+        });
       }
 
       if (
@@ -566,7 +568,9 @@ export class TaskService {
 
       if (dto.startDate !== undefined) {
         const next = dto.startDate ? new Date(dto.startDate) : null;
-        if ((next?.getTime() ?? null) !== (existing.startDate?.getTime() ?? null)) {
+        if (
+          (next?.getTime() ?? null) !== (existing.startDate?.getTime() ?? null)
+        ) {
           data.startDate = next;
           changes.push({
             field: "startDate",
@@ -578,7 +582,9 @@ export class TaskService {
 
       if (dto.dueDate !== undefined) {
         const next = dto.dueDate ? new Date(dto.dueDate) : null;
-        if ((next?.getTime() ?? null) !== (existing.dueDate?.getTime() ?? null)) {
+        if (
+          (next?.getTime() ?? null) !== (existing.dueDate?.getTime() ?? null)
+        ) {
           data.dueDate = next;
           changes.push({
             field: "dueDate",
@@ -826,8 +832,7 @@ export class TaskService {
             "beforeTaskId is not in the target list"
           );
         }
-        const lower =
-          insertIndex > 0 ? siblings[insertIndex - 1].position : 0;
+        const lower = insertIndex > 0 ? siblings[insertIndex - 1].position : 0;
         const upper = siblings[insertIndex].position;
         position = (lower + upper) / 2;
         if (upper - lower < MIN_POSITION_GAP) {
@@ -1311,9 +1316,7 @@ export class TaskService {
           userId,
           organizationId,
           startedAt,
-          endedAt: new Date(
-            startedAt.getTime() + dto.durationMinutes * 60_000
-          ),
+          endedAt: new Date(startedAt.getTime() + dto.durationMinutes * 60_000),
           durationMinutes: dto.durationMinutes,
           note: dto.note ?? null,
         },

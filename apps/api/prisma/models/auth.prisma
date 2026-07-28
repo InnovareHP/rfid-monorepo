@@ -112,6 +112,8 @@ model Organization {
   Field           Field[]
   BoardCounty     BoardCounty[]
   Activity        Activity[]
+  emailOpenEvents EmailOpenEvent[]
+  emailIngest     EmailIngestAddress?
   integrations    OrgIntegration[]
   taskProjects    TaskProject[]
   taskLists       TaskList[]

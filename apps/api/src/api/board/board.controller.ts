@@ -160,6 +160,28 @@ export class BoardController {
     }
   }
 
+  @Get("/duplicates")
+  async findDuplicates(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string,
+    @Query("email") email?: string,
+    @Query("phone") phone?: string,
+    @Query("excludeRecordId") excludeRecordId?: string
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.findDuplicateRecords(
+        organizationId,
+        moduleType || "CONTACT",
+        email,
+        phone,
+        excludeRecordId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/column")
   async getColumns(
     @Session() session: AuthenticatedSession,
@@ -303,6 +325,21 @@ export class BoardController {
     }
   }
 
+  @Get("/:recordId/related")
+  async getRelatedRecords(
+    @Param("recordId") recordId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getRelatedRecords(
+        recordId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/:recordId/activities")
   async getActivities(
     @Param("recordId") recordId: string,
@@ -365,7 +402,7 @@ export class BoardController {
     const organizationId = session.session.activeOrganizationId;
 
     try {
-      if (dto.moduleType === "REFERRAL") {
+      if (["REFERRAL", "CONTACT", "COMPANY"].includes(dto.moduleType ?? "")) {
         return this.boardService.createReferral(
           dto.data,
           organizationId,

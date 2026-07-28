@@ -60,6 +60,7 @@ export function generateLeadColumns(
           fieldName={col.name}
           value={row.original[col.name] ?? ""}
           type={col.type}
+          linkTargetId={(row.original as any).linkIds?.[col.name]}
         />
       ),
       size: 180,

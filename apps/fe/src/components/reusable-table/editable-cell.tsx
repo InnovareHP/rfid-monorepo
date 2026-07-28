@@ -10,6 +10,12 @@ import {
   updateReferral,
 } from "@/services/referral/referral-service";
 import {
+  CRM_QUERY_KEYS,
+  getLinkCandidates,
+  updateModuleRecord,
+  type CrmModuleType,
+} from "@/services/board/board-module-service";
+import {
   formatPhoneNumber,
   type LeadRow,
   type OptionsResponse,
@@ -38,6 +44,7 @@ import {
   AlertCircle,
   CalendarIcon,
   Check,
+  ExternalLink,
   Loader2,
   XCircle,
 } from "lucide-react";
@@ -56,6 +63,8 @@ type EditableCellProps = {
   value: string;
   type: string; // Should match FieldType enum
   isReferral?: boolean;
+  moduleType?: CrmModuleType;
+  linkTargetId?: string;
 };
 
 const validateEmail = (email: string): boolean => {
@@ -80,12 +89,18 @@ export function EditableCell({
   value,
   type,
   isReferral = false,
+  moduleType,
+  linkTargetId,
 }: EditableCellProps) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
   const [validationError, setValidationError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const isreferralKey = isReferral ? "referrals" : "leads";
+  const isreferralKey = moduleType
+    ? CRM_QUERY_KEYS[moduleType]
+    : isReferral
+      ? "referrals"
+      : "leads";
 
   // Sync value when prop changes
   useEffect(() => {
@@ -106,11 +121,14 @@ export function EditableCell({
       value: string;
       reason?: string;
       previousValue?: string;
+      displayValue?: string;
     }) =>
-      isReferral
-        ? await updateReferral(id, field, value, reason, previousValue)
-        : await updateLead(id, field, value),
-    onMutate: async ({ id, fieldName: patchKey, value }) => {
+      moduleType
+        ? await updateModuleRecord(moduleType, id, field, value, previousValue)
+        : isReferral
+          ? await updateReferral(id, field, value, reason, previousValue)
+          : await updateLead(id, field, value),
+    onMutate: async ({ id, fieldName: patchKey, value, displayValue }) => {
       await queryClient.cancelQueries({ queryKey: [isreferralKey] });
       const previous = queryClient.getQueriesData({ queryKey: [isreferralKey] });
       queryClient.setQueriesData({ queryKey: [isreferralKey] }, (old: any) => {
@@ -118,7 +136,7 @@ export function EditableCell({
         return {
           ...old,
           data: old.data.map((r: LeadRow) =>
-            r.id === id ? { ...r, [patchKey]: value } : r
+            r.id === id ? { ...r, [patchKey]: displayValue ?? value } : r
           ),
         };
       });
@@ -138,10 +156,11 @@ export function EditableCell({
     newVal: string,
     _location?: boolean,
     reason?: string,
-    previousValue?: string
+    previousValue?: string,
+    displayValue?: string
   ) => {
     // Don't update if value hasn't changed
-    if (newVal === value) {
+    if (newVal === value || (displayValue && displayValue === value)) {
       setEditing(false);
       return;
     }
@@ -161,7 +180,7 @@ export function EditableCell({
     }
 
     setValidationError("");
-    setVal(newVal);
+    setVal(displayValue ?? newVal);
     setIsUpdating(true);
 
     try {
@@ -173,6 +192,7 @@ export function EditableCell({
           value: newVal,
           reason,
           previousValue,
+          displayValue,
         });
       } else {
         updateLeadMutation.mutate({
@@ -180,6 +200,7 @@ export function EditableCell({
           field: fieldKey,
           fieldName,
           value: newVal,
+          displayValue,
         });
       }
       // Only show success toast for significant changes, not for every edit
@@ -290,6 +311,7 @@ export function EditableCell({
         entityId={fieldKey}
         initialValue={val}
         fieldName={fieldName}
+        onNameChange={(name) => handleUpdate(name, undefined, undefined, value)}
       />
     );
   }
@@ -391,10 +413,27 @@ export function EditableCell({
       enabled: type === "ASSIGNED_TO" || fieldName === "account_manager",
     });
 
+  const isLinkType =
+    type === "REFERRAL_LINK" ||
+    type === "CONTACT_LINK" ||
+    type === "COMPANY_LINK";
+
+  const linkTargetModule =
+    type === "CONTACT_LINK"
+      ? "CONTACT"
+      : type === "COMPANY_LINK"
+        ? "COMPANY"
+        : moduleType === "CONTACT" && fieldName === "Company"
+          ? "COMPANY"
+          : "LEAD";
+
   const { data: records, isLoading: isLoadingRecords } = useQuery({
-    queryKey: ["lead-records", 1, 500],
-    queryFn: () => getLeadRecords(1, 500),
-    enabled: type === "REFERRAL_LINK",
+    queryKey: ["link-records", linkTargetModule, 1, 500],
+    queryFn: () =>
+      linkTargetModule === "LEAD"
+        ? getLeadRecords(1, 500)
+        : getLinkCandidates(linkTargetModule, 1, 500),
+    enabled: isLinkType,
   });
 
   if (type === "ASSIGNED_TO" || fieldName === "account_manager") {
@@ -654,7 +693,7 @@ export function EditableCell({
     );
   }
 
-  if (type === "REFERRAL_LINK") {
+  if (isLinkType) {
     const [searchQuery, setSearchQuery] = useState("");
     const hasCurrentVal =
       !!val &&
@@ -669,10 +708,24 @@ export function EditableCell({
         record.value.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
+    const selectedId =
+      (records ?? []).find((record: any) => record.value === val)?.id ?? "";
+
+    const linkRoute =
+      linkTargetModule === "CONTACT"
+        ? "/$team/contacts"
+        : linkTargetModule === "COMPANY"
+          ? "/$team/companies"
+          : "/$team/master-list";
+
     return (
+      <div className="flex items-center gap-1 min-w-0">
       <Select
-        value={val || ""}
-        onValueChange={(v) => handleUpdate(String(v))}
+        value={selectedId || val || ""}
+        onValueChange={(v) => {
+          const record = (records ?? []).find((r: any) => r.id === v);
+          handleUpdate(String(v), undefined, undefined, undefined, record?.value);
+        }}
         disabled={isUpdating}
       >
         <SelectTrigger
@@ -708,7 +761,7 @@ export function EditableCell({
               <div className="max-h-[200px] overflow-y-auto">
                 {filteredRecords.length > 0 ? (
                   filteredRecords.map((record: any) => (
-                    <SelectItem key={record.id} value={record.value}>
+                    <SelectItem key={record.id} value={record.id}>
                       <div className="flex items-center justify-between w-full">
                         <span>{record.value}</span>
                         {record.value === val && (
@@ -760,6 +813,18 @@ export function EditableCell({
           )}
         </SelectContent>
       </Select>
+      {!!val && !!linkTargetId && (
+        <Link
+          to={linkRoute as any}
+          search={{ q: val } as any}
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 text-gray-400 hover:text-primary"
+          title={`Open ${val}`}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      )}
+      </div>
     );
   }
 

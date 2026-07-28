@@ -8,11 +8,16 @@ model Field {
   moduleType ModuleType     @default(LEAD)
   isDeleted  Boolean        @default(false)
 
+  // Marks which STATUS field drives the pipeline and which NUMBER field holds deal value
+  isPipelineStage  Boolean @default(false)
+  isPipelineAmount Boolean @default(false)
+
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   options FieldOption[]
   values  FieldValue[]
+  history History[]
 
   @@index([organizationId, moduleType, isDeleted, fieldOrder])
   @@schema("board_schema")
@@ -63,13 +68,16 @@ model FieldValue {
 }
 
 model FieldOption {
-  id             String  @id @default(uuid())
+  id             String    @id @default(uuid())
   optionName     String
   color          String?
-  isDeleted      Boolean @default(false)
+  isDeleted      Boolean   @default(false)
+  optionOrder    Int       @default(0)
+  stageType      StageType @default(OPEN)
+  probability    Int?
   fieldId        String
   organizationId String?
-  field          Field   @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  field          Field     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
   @@index([fieldId])
   @@index([organizationId])
@@ -82,16 +90,19 @@ model History {
   oldValue       String?
   newValue       String?
   column         String?
+  fieldId        String?
   action         String
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
   createdBy      String?
   organizationId String?
 
-  record Board @relation(fields: [recordId], references: [id], onDelete: Cascade)
-  user   User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  record Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  field  Field? @relation(fields: [fieldId], references: [id], onDelete: SetNull)
 
   @@index([recordId, createdAt])
   @@index([organizationId])
+  @@index([fieldId])
   @@schema("board_schema")
 }
 
@@ -181,6 +192,16 @@ model Activity {
   faxId          String?
   faxSentAt      DateTime?      @db.Timestamptz(3)
 
+  direction     EmailDirection @default(OUTBOUND)
+  trackingId    String?        @unique
+  threadToken   String?
+  messageId     String?
+  openCount     Int            @default(0)
+  firstOpenedAt DateTime?      @db.Timestamptz(3)
+  lastOpenedAt  DateTime?      @db.Timestamptz(3)
+
+  openEvents EmailOpenEvent[]
+
   recordId String
   record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
@@ -193,6 +214,43 @@ model Activity {
   @@index([recordId])
   @@index([organizationId])
   @@index([dueDate])
+  @@index([threadToken])
+  @@index([organizationId, messageId])
+  @@schema("board_schema")
+}
+
+enum EmailDirection {
+  OUTBOUND
+  INBOUND
+
+  @@schema("board_schema")
+}
+
+model EmailOpenEvent {
+  id         String   @id @default(uuid())
+  occurredAt DateTime @default(now()) @db.Timestamptz(3)
+  ipHash     String?
+  clientType String?
+
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+  @@index([organizationId])
+  @@schema("board_schema")
+}
+
+model EmailIngestAddress {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  ingestKey String   @unique
+
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@schema("board_schema")
 }
 
@@ -245,6 +303,16 @@ model BoardRelation {
 enum ModuleType {
   LEAD
   REFERRAL
+  CONTACT
+  COMPANY
+
+  @@schema("board_schema")
+}
+
+enum StageType {
+  OPEN
+  WON
+  LOST
 
   @@schema("board_schema")
 }
@@ -252,6 +320,8 @@ enum ModuleType {
 enum RelationType {
   REFERRAL_LINK
   FACILITY_LINK
+  CONTACT_LINK
+  COMPANY_LINK
 
   @@schema("board_schema")
 }
@@ -270,6 +340,8 @@ enum BoardFieldType {
   MULTISELECT
   ASSIGNED_TO
   REFERRAL_LINK
+  CONTACT_LINK
+  COMPANY_LINK
   PERSON
 
   @@schema("board_schema")

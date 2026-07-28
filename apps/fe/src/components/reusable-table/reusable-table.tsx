@@ -82,6 +82,7 @@ type Props<T> = {
   onRowOpen?: (id: string) => void;
   totalCount?: number;
   isReferral?: boolean;
+  moduleType?: string;
   emptyMessage?: string;
   errorMessage?: string;
   isError?: boolean;
@@ -102,6 +103,7 @@ const ReusableTable = <T extends { id: string }>({
   onRowOpen,
   totalCount,
   isReferral = false,
+  moduleType,
   emptyMessage = "No data found.",
   errorMessage = "Failed to load data. Please try again.",
   isError = false,
@@ -177,7 +179,7 @@ const ReusableTable = <T extends { id: string }>({
         recordIds: selectedIds,
         emailSubject: values.subject,
         emailBody: values.body,
-        moduleType: isReferral ? "REFERRAL" : "LEAD",
+        moduleType: moduleType ?? (isReferral ? "REFERRAL" : "LEAD"),
         send_via: values.sendVia,
       });
 
@@ -484,7 +486,9 @@ const ReusableTable = <T extends { id: string }>({
 
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
             <div className="flex items-center gap-3">
-              <AddRow isReferral={isReferral} />
+              <AddRow
+                isReferral={isReferral || (!!moduleType && moduleType !== "LEAD")}
+              />
               {onPageSizeChange && (
                 <div className="flex items-center gap-2">
                   <span className="hidden text-sm text-muted-foreground whitespace-nowrap sm:inline">

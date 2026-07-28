@@ -355,6 +355,11 @@ export interface Activity {
   faxNumber: string | null;
   faxId: string | null;
   faxSentAt: string | null;
+  direction: "OUTBOUND" | "INBOUND";
+  threadToken: string | null;
+  openCount: number;
+  firstOpenedAt: string | null;
+  lastOpenedAt: string | null;
   createdAt: string;
   createdBy: string;
   creator_email: string;

@@ -1,5 +1,47 @@
-import { BoardFieldType, Prisma, TaskStatusCategory } from "@prisma/client";
+import {
+  BoardFieldType,
+  Prisma,
+  StageType,
+  TaskStatusCategory,
+} from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
+
+export const LEAD_PIPELINE_STAGE_FIELD = "Pipeline Stage";
+export const LEAD_PIPELINE_AMOUNT_FIELD = "Deal Value";
+
+export const DEFAULT_LEAD_PIPELINE_STAGES = [
+  { name: "New", color: "#3b82f6", stageType: StageType.OPEN, probability: 10 },
+  {
+    name: "Contacted",
+    color: "#6366f1",
+    stageType: StageType.OPEN,
+    probability: 25,
+  },
+  {
+    name: "Qualified",
+    color: "#eab308",
+    stageType: StageType.OPEN,
+    probability: 50,
+  },
+  {
+    name: "Proposal",
+    color: "#f97316",
+    stageType: StageType.OPEN,
+    probability: 75,
+  },
+  {
+    name: "Won",
+    color: "#22c55e",
+    stageType: StageType.WON,
+    probability: null,
+  },
+  {
+    name: "Lost",
+    color: "#ef4444",
+    stageType: StageType.LOST,
+    probability: null,
+  },
+];
 
 export const DEFAULT_TASK_STATUSES = [
   {
@@ -45,6 +87,60 @@ export const DEFAULT_TASK_STATUSES = [
     category: TaskStatusCategory.CANCELLED,
   },
 ];
+
+// Seeds the default stages and points the pipeline at the lead stage and value fields
+export const configureLeadPipeline = async (organizationId: string) => {
+  const [stageField, amountField] = await Promise.all([
+    prisma.field.findFirst({
+      where: {
+        organizationId,
+        moduleType: "LEAD",
+        fieldName: LEAD_PIPELINE_STAGE_FIELD,
+        isDeleted: false,
+      },
+    }),
+    prisma.field.findFirst({
+      where: {
+        organizationId,
+        moduleType: "LEAD",
+        fieldName: LEAD_PIPELINE_AMOUNT_FIELD,
+        isDeleted: false,
+      },
+    }),
+  ]);
+
+  if (!stageField || !amountField) return null;
+
+  const existingOptions = await prisma.fieldOption.count({
+    where: { fieldId: stageField.id, isDeleted: false },
+  });
+
+  if (!existingOptions) {
+    await prisma.fieldOption.createMany({
+      data: DEFAULT_LEAD_PIPELINE_STAGES.map((stage, index) => ({
+        fieldId: stageField.id,
+        optionName: stage.name,
+        color: stage.color,
+        optionOrder: index,
+        stageType: stage.stageType,
+        probability: stage.probability,
+      })),
+    });
+  }
+
+  await prisma.$transaction([
+    prisma.field.update({
+      where: { id: stageField.id },
+      data: { isPipelineStage: true },
+    }),
+    prisma.field.update({
+      where: { id: amountField.id },
+      data: { isPipelineAmount: true },
+    }),
+  ]);
+
+  return { stageFieldId: stageField.id, amountFieldId: amountField.id };
+};
 
 export const OnboardingSeeding = async (organizationId: string) => {
   console.log("🌱 Seeding start");
@@ -277,11 +373,13 @@ export const OnboardingSeeding = async (organizationId: string) => {
     ["Zip Code", BoardFieldType.TEXT, 9],
     ["Phone", BoardFieldType.PHONE, 10],
     ["Fax", BoardFieldType.TEXT, 11],
-    ["Medical Director", BoardFieldType.PERSON, 12],
-    ["Director of Nursing", BoardFieldType.PERSON, 13],
-    ["Admissions/Marketing", BoardFieldType.PERSON, 14],
+    ["Medical Director", BoardFieldType.CONTACT_LINK, 12],
+    ["Director of Nursing", BoardFieldType.CONTACT_LINK, 13],
+    ["Admissions/Marketing", BoardFieldType.CONTACT_LINK, 14],
     ["Psychiatric Services", BoardFieldType.TEXT, 15],
     ["Notes", BoardFieldType.TEXT, 16],
+    [LEAD_PIPELINE_STAGE_FIELD, BoardFieldType.STATUS, 17],
+    [LEAD_PIPELINE_AMOUNT_FIELD, BoardFieldType.NUMBER, 18],
   ].map(([name, type, order]) => ({
     fieldName: name,
     fieldType: type,
@@ -294,6 +392,8 @@ export const OnboardingSeeding = async (organizationId: string) => {
     data: leadFields as any,
     skipDuplicates: true,
   });
+
+  await configureLeadPipeline(organizationId);
 
   //
   // Seed Leads
@@ -335,6 +435,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
     "Zip Code": ["62704", "45802", "50613"],
     Fax: ["(555) 201-9001", "(555) 318-9002", "(555) 476-9003"],
     "Psychiatric Services": ["Yes", "No", "Yes"],
+    [LEAD_PIPELINE_AMOUNT_FIELD]: ["25000", "18000", "32000"],
     Notes: [
       "Strong referral partner, monthly check-in",
       "New contact, intro call scheduled",
@@ -356,6 +457,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
 
       switch (field.fieldType) {
         case "TEXT":
+        case "NUMBER":
           value = leadTextSamples[field.fieldName]
             ? pick(leadTextSamples[field.fieldName], index)
             : "";
@@ -367,7 +469,7 @@ export const OnboardingSeeding = async (organizationId: string) => {
         case "PHONE":
           value = pick(phoneSamples, index);
           break;
-        case "PERSON":
+        case "CONTACT_LINK":
           value = pick(personSamples, index + field.fieldOrder);
           break;
         case "TIMELINE":
@@ -401,6 +503,198 @@ export const OnboardingSeeding = async (organizationId: string) => {
     data: leadValues,
     skipDuplicates: true,
   });
+
+  //
+  // ============================================
+  // CONTACTS AND COMPANIES
+  // ============================================
+  //
+
+  const contactFields = [
+    ["Title", BoardFieldType.TEXT],
+    ["Email", BoardFieldType.EMAIL],
+    ["Phone", BoardFieldType.PHONE],
+    ["Company", BoardFieldType.COMPANY_LINK],
+    ["Related Lead", BoardFieldType.REFERRAL_LINK],
+    ["Address", BoardFieldType.LOCATION],
+    ["Lifecycle Stage", BoardFieldType.STATUS],
+    ["Notes", BoardFieldType.TEXT],
+  ].map(([name, type], index) => ({
+    fieldName: name,
+    fieldType: type,
+    fieldOrder: index + 1,
+    organizationId,
+    moduleType: "CONTACT",
+  }));
+
+  const companyFields = [
+    ["Website", BoardFieldType.TEXT],
+    ["Industry", BoardFieldType.DROPDOWN],
+    ["Phone", BoardFieldType.PHONE],
+    ["Address", BoardFieldType.LOCATION],
+    ["Status", BoardFieldType.STATUS],
+    ["Notes", BoardFieldType.TEXT],
+  ].map(([name, type], index) => ({
+    fieldName: name,
+    fieldType: type,
+    fieldOrder: index + 1,
+    organizationId,
+    moduleType: "COMPANY",
+  }));
+
+  await prisma.field.createMany({
+    data: [...contactFields, ...companyFields] as any,
+    skipDuplicates: true,
+  });
+
+  const crmFields = await prisma.field.findMany({
+    where: { organizationId, moduleType: { in: ["CONTACT", "COMPANY"] } },
+  });
+
+  const crmOptionsMap: Record<string, { name: string; color?: string }[]> = {
+    "Lifecycle Stage": [
+      { name: "New", color: "#3b82f6" },
+      { name: "Active", color: "#22c55e" },
+      { name: "Inactive", color: "#9ca3af" },
+    ],
+    Status: [
+      { name: "Prospect", color: "#eab308" },
+      { name: "Active", color: "#22c55e" },
+      { name: "Inactive", color: "#9ca3af" },
+    ],
+    Industry: [
+      { name: "Healthcare" },
+      { name: "Insurance" },
+      { name: "Other" },
+    ],
+  };
+
+  const crmFieldOptions = crmFields
+    .filter(
+      (f) =>
+        f.fieldType === BoardFieldType.DROPDOWN ||
+        f.fieldType === BoardFieldType.STATUS
+    )
+    .flatMap(
+      (field) =>
+        crmOptionsMap[field.fieldName]?.map((opt) => ({
+          fieldId: field.id,
+          optionName: opt.name,
+          color: opt.color,
+        })) ?? []
+    );
+
+  if (crmFieldOptions.length > 0) {
+    await prisma.fieldOption.createMany({
+      data: crmFieldOptions,
+      skipDuplicates: true,
+    });
+  }
+
+  //
+  // Seed contact and company records
+  //
+  await prisma.board.createMany({
+    data: [
+      ...personSamples.map((name) => ({
+        recordName: name,
+        moduleType: "CONTACT" as const,
+        organizationId,
+      })),
+      {
+        recordName: "CarePoint Group",
+        moduleType: "COMPANY" as const,
+        organizationId,
+      },
+      {
+        recordName: "Harbor Health Partners",
+        moduleType: "COMPANY" as const,
+        organizationId,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  const contacts = await prisma.board.findMany({
+    where: { organizationId, moduleType: "CONTACT" },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const contactFieldRows = crmFields.filter((f) => f.moduleType === "CONTACT");
+  const contactValues: Prisma.FieldValueCreateManyInput[] = [];
+
+  contacts.forEach((contact, index) => {
+    for (const field of contactFieldRows) {
+      let value: string | null = null;
+
+      if (field.fieldType === BoardFieldType.EMAIL) {
+        value =
+          contact.recordName.toLowerCase().replace(/[^a-z]+/g, ".") +
+          "@example.com";
+      }
+      if (field.fieldType === BoardFieldType.PHONE) {
+        value = pick(phoneSamples, index);
+      }
+      if (value === null) continue;
+
+      contactValues.push({
+        recordId: contact.id,
+        fieldId: field.id,
+        value,
+        organizationId,
+      });
+    }
+  });
+
+  await prisma.fieldValue.createMany({
+    data: contactValues,
+    skipDuplicates: true,
+  });
+
+  //
+  // Link lead contact fields to seeded contact records
+  //
+  const contactByName = new Map(contacts.map((c) => [c.recordName, c.id]));
+  const contactLinkFieldIds = new Set(
+    dbLeadFields
+      .filter((f) => f.fieldType === BoardFieldType.CONTACT_LINK)
+      .map((f) => f.id)
+  );
+
+  const leadContactValues = leadValues.filter(
+    (v) => contactLinkFieldIds.has(v.fieldId) && v.value
+  );
+
+  const leadContactRelations = leadContactValues
+    .map((v) => ({
+      sourceId: v.recordId,
+      targetId: contactByName.get(v.value as string) as string,
+      relationType: "CONTACT_LINK" as const,
+      organizationId,
+    }))
+    .filter((r) => r.targetId);
+
+  if (leadContactRelations.length > 0) {
+    await prisma.boardRelation.createMany({
+      data: leadContactRelations,
+      skipDuplicates: true,
+    });
+  }
+
+  // Link values store the target board id, not the display name
+  for (const v of leadContactValues) {
+    const targetId = contactByName.get(v.value as string);
+    if (!targetId) continue;
+    await prisma.fieldValue.update({
+      where: {
+        recordId_fieldId: {
+          recordId: v.recordId,
+          fieldId: v.fieldId,
+        },
+      },
+      data: { value: targetId },
+    });
+  }
 
   await prisma.taskStatus.createMany({
     data: DEFAULT_TASK_STATUSES.map((status) => ({

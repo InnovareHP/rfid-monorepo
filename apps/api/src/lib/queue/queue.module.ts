@@ -22,6 +22,7 @@ import { QUEUE_NAMES } from "./queue.constants";
     BullModule.registerQueue(
       { name: QUEUE_NAMES.EMAIL },
       { name: QUEUE_NAMES.BULK_EMAIL },
+      { name: QUEUE_NAMES.EMAIL_INGEST },
       { name: QUEUE_NAMES.CSV_IMPORT },
       { name: QUEUE_NAMES.GEMINI }
     ),
