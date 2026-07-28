@@ -144,7 +144,7 @@ export default function MileageReportPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-primary/5 to-gray-50">
       <div className="p-6 sm:p-8">
-        <h1 className="text-3xl font-bold text-gray-900">Mileage Report</h1>
+        <h1 className="text-3xl font-bold page-title">Mileage Report</h1>
         <p className="text-sm text-gray-600 mt-1">
           Track and manage mileage reimbursements
         </p>

@@ -175,6 +175,7 @@ export type AnalyticsResponse = {
   totalCounts: TotalCounts;
   statusBreakdown: StatusBreakdownItem[];
   avgTimeByStatus: AvgTimeByStatus[];
+  avgTimeTrend?: MonthlyTotal[]; // weighted avg days per month
   admissionTypes: AdmissionTypeAnalytics[];
   clinicians: ClinicianAnalytics[];
   conversion: ConversionAnalytics;
@@ -213,10 +214,17 @@ export type AdmissionTypeAnalytics = {
   _count: { value: number };
 };
 
+export type MonthlyTotal = {
+  month: string; // e.g. "2025-11"
+  total: number;
+};
+
 export type ConversionAnalytics = {
   totalReferrals: number;
   admitted: number;
   conversionRate: number; // percentage
+  monthlyAdmitted?: MonthlyTotal[];
+  monthlyRate?: MonthlyTotal[]; // conversion rate per month, percentage
 };
 
 export type FacilityAnalytics = {

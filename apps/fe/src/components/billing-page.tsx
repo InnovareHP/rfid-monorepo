@@ -91,7 +91,7 @@ export function BillingPage({
       {...props}
     >
       <div className="text-center space-y-2 mb-12">
-        <h1 className="text-4xl font-bold tracking-tight">
+        <h1 className="text-4xl font-bold tracking-tight page-title">
           Billing & Subscription
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">

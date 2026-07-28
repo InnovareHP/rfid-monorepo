@@ -1,6 +1,6 @@
+import type { OptionsResponse } from "@dashboard/shared";
 import { FileTerminal } from "lucide-react";
 import Papa from "papaparse";
-import type { OptionsResponse } from "@dashboard/shared";
 
 export const FILETYPE = {
   create: FileTerminal,
