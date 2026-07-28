@@ -1,37 +1,4 @@
-import { format } from "date-fns";
-import { useState } from "react";
-
-import { Badge } from "@dashboard/ui/components/badge";
-import { Button } from "@dashboard/ui/components/button";
-import { Calendar } from "@dashboard/ui/components/calendar";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@dashboard/ui/components/popover";
-
-import {
-  Activity,
-  ArrowUpRight,
-  Building2,
-  CalendarIcon,
-  ClipboardList,
-  Clock,
-  CreditCard,
-  Globe,
-  MapPin,
-  ShieldAlert,
-  Star,
-  TrendingDown,
-  TrendingUp,
-  UserRound,
-} from "lucide-react";
+import { lazy, Suspense, useState } from "react";
 
 import {
   getAnalytics,
@@ -39,71 +6,33 @@ import {
 } from "@/services/analytics/analytics-service";
 import type { AnalyticsResponse } from "@dashboard/shared";
 
+import {
+  buildAnalyticsChartData,
+  formatDays,
+} from "@/lib/helper/analytics-chart-data";
 import { useQuery } from "@tanstack/react-query";
-import * as Recharts from "recharts";
 import AiSumary from "./ai-sumary";
-import CountyHeatMap from "./county-heat-map";
+import {
+  AnalyticsDateFilter,
+  type AnalyticsDateRange,
+} from "./charts/analytics-date-filter";
+import { CategoryPie } from "./charts/category-pie";
+import { ChartCard } from "./charts/chart-card";
+import { ConversionGauge } from "./charts/conversion-gauge";
+import { EmergingSourcesCard } from "./charts/emerging-sources-card";
+import { KpiStatTile } from "./charts/kpi-stat-tile";
+import { RankedBar } from "./charts/ranked-bar";
+import { ScorecardCard } from "./charts/scorecard-card";
+import { StatusBreakdownCard } from "./charts/status-breakdown-card";
+import { TrendLine } from "./charts/trend-line";
+import { TrendPill } from "./charts/trend-pill";
+import { DenialReasonsTable } from "./denial-reasons-table";
 
-function DateRangeFilter({
-  onChange,
-}: {
-  onChange: (value: { start: Date | null; end: Date | null }) => void;
-}) {
-  const [date, setDate] = useState<{ start: Date | null; end: Date | null }>({
-    start: null,
-    end: null,
-  });
-
-  const handleSelect = (selected: any) => {
-    setDate(selected);
-    onChange(selected);
-  };
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className="w-[280px] justify-start text-left font-normal border-2 border-gray-200 hover:border-primary/50 transition-colors"
-        >
-          <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
-          {date.start ? (
-            date.end ? (
-              <span className="text-gray-900 font-medium">
-                {format(date.start, "LLL dd, y")} —{" "}
-                {format(date.end, "LLL dd, y")}
-              </span>
-            ) : (
-              <span className="text-gray-900 font-medium">
-                {format(date.start, "LLL dd, y")}
-              </span>
-            )
-          ) : (
-            <span className="text-gray-500">Select date range</span>
-          )}
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent className="w-auto p-0" align="end">
-        <Calendar
-          mode="range"
-          selected={{
-            from: date.start ?? undefined,
-            to: date.end ?? undefined,
-          }}
-          onSelect={handleSelect}
-          numberOfMonths={2}
-        />
-      </PopoverContent>
-    </Popover>
-  );
-}
+// Mapbox is the heaviest dependency on the page, so it loads on demand.
+const CountyHeatMap = lazy(() => import("./county-heat-map"));
 
 export default function ReferralAnalyticsDashboard() {
-  const [dateRange, setDateRange] = useState<{
-    start: Date | null;
-    end: Date | null;
-  }>({
+  const [dateRange, setDateRange] = useState<AnalyticsDateRange>({
     start: null,
     end: null,
   });
@@ -125,99 +54,29 @@ export default function ReferralAnalyticsDashboard() {
     },
   });
 
-  const barData =
-    analytics?.facilities?.map((f) => ({
-      name: f.value ?? "Unknown Facility",
-      count: f._count.value,
-    })) ?? [];
+  const charts = buildAnalyticsChartData(analytics);
+  const hasPeriodFilter = Boolean(dateRange.start && dateRange.end);
 
-  const payerPieData =
-    analytics?.payers?.map((p) => ({
-      name: p.value ?? "Unknown",
-      value: p._count.value,
-    })) ?? [];
-
-  const sourcePieData =
-    analytics?.sources?.map((s) => ({
-      name: s.value ?? "Unknown",
-      value: s._count.value,
-    })) ?? [];
-
-  const monthlyTrendData =
-    analytics?.discharge?.map((d) => ({
-      month: d.month,
-      total: d.total,
-    })) ?? [];
-
-  const admissionTypeData =
-    analytics?.admissionTypes?.map((a) => ({
-      name: a.value ?? "Unknown",
-      value: a._count.value,
-    })) ?? [];
-
-  const emergingData = analytics?.outreach ?? [];
-  const scorecardData = analytics?.scorecard ?? [];
-  const denialReasonData =
-    analytics?.denials?.reasons?.map((d) => ({
-      name: d.reason,
-      count: d.count,
-    })) ?? [];
-  const denialTrendData = analytics?.denials?.monthlyTrend ?? [];
-  const hasPeriodFilter = dateRange.start && dateRange.end;
-
-  const COLORS = [
-    "#0088FE",
-    "#00C49F",
-    "#FFBB28",
-    "#FF8042",
-    "#8884d8",
-    "#82ca9d",
-    "#ffc658",
-    "#ff7300",
-  ];
-
-  const TIER_CONFIG = {
-    "Tier 1": {
-      color: "bg-emerald-100 text-emerald-700",
-      label: "Always Refers",
-    },
-    "Tier 2": {
-      color: "bg-amber-100 text-amber-700",
-      label: "Frequently Refers",
-    },
-    Infrequent: { color: "bg-gray-100 text-gray-600", label: "Infrequent" },
-  } as const;
-
-  const {
-    ResponsiveContainer,
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    Tooltip,
-    PieChart,
-    Pie,
-    Cell,
-    LineChart,
-    Line,
-    CartesianGrid,
-  } = Recharts;
+  const totalReferrals = analytics?.totalCounts?.totalReferrals ?? 0;
+  const referralsThisPeriod = analytics?.totalCounts?.referralsThisPeriod ?? 0;
+  const admitted = analytics?.conversion?.admitted ?? 0;
+  const conversionRate = analytics?.conversion?.conversionRate ?? 0;
 
   return (
-    <div className="min-h-full bg-gray-50 p-8">
+    <div className="min-h-full bg-white p-8">
       <div className="space-y-6">
         {/* HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              Referral Intelligence Dashboard
+            <h1 className="page-title text-4xl font-bold tracking-tight">
+              Referral Analytics Dashboard
             </h1>
-            <p className="text-gray-500 mt-1">
-              Track key outreach and referral performance metrics
+            <p className="mt-1 text-sm text-muted-foreground">
+              Track key outreach and referral performance metrics.
             </p>
           </div>
 
-          <DateRangeFilter
+          <AnalyticsDateFilter
             onChange={(range) => {
               setDateRange(range);
               refetchAnalytics();
@@ -225,693 +84,164 @@ export default function ReferralAnalyticsDashboard() {
           />
         </div>
 
-        {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-          <Card className="border shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/15">
-                  <ClipboardList className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Referrals</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {analytics?.totalCounts?.totalReferrals ?? 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-100">
-                  <TrendingUp className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    {hasPeriodFilter ? "Referrals (Period)" : "Referrals"}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {analytics?.totalCounts?.referralsThisPeriod ?? 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* STATUS BREAKDOWN + CONVERSION + AVG TIME BY STATUS */}
+        {/* KPI TILES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Status Breakdown */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/15 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary">
-                  <Activity className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Status Breakdown
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {(analytics?.statusBreakdown?.length ?? 0) > 0 ? (
-                <div className="space-y-3">
-                  {analytics?.statusBreakdown?.map((item) => {
-                    const total =
-                      analytics?.statusBreakdown?.reduce(
-                        (sum, s) => sum + s.count,
-                        0
-                      ) ?? 1;
-                    const pct = ((item.count / total) * 100).toFixed(1);
-                    return (
-                      <div key={item.status} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="inline-block size-3 rounded-full"
-                              style={{
-                                backgroundColor: item.color ?? "#94a3b8",
-                              }}
-                            />
-                            <span className="font-medium text-gray-700">
-                              {item.status}
-                            </span>
-                          </div>
-                          <span className="text-gray-500">
-                            {item.count} ({pct}%)
-                          </span>
-                        </div>
-                        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: item.color ?? "#94a3b8",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No status data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Conversion Rate */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-600">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Conversion-to-Admission Rate
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="flex items-baseline gap-2">
-                <p className="text-5xl font-bold text-emerald-600">
-                  {analytics?.conversion?.conversionRate ?? 0}%
-                </p>
-                <ArrowUpRight className="h-6 w-6 text-emerald-600" />
-              </div>
-              <p className="text-sm text-gray-500 mt-3">
-                {analytics?.conversion?.admitted ?? 0} admitted out of{" "}
-                {analytics?.conversion?.totalReferrals ?? 0} referrals
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Average Time by Status */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-600">
-                  <Clock className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Average Time by Status
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {(analytics?.avgTimeByStatus?.length ?? 0) > 0 ? (
-                <div className="space-y-4">
-                  {analytics?.avgTimeByStatus?.map((item) => (
-                    <div
-                      key={item.status}
-                      className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 border border-gray-100"
-                    >
-                      <span className="text-sm font-medium text-gray-700">
-                        {item.status}
-                      </span>
-                      <div className="text-right">
-                        <span className="text-lg font-bold text-amber-600">
-                          {item.averageDays}
-                        </span>
-                        <span className="text-xs text-gray-500 ml-1">days</span>
-                        <span className="text-xs text-gray-400 ml-2">
-                          ({item.count})
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No status transition data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <KpiStatTile
+            label="Total Referrals"
+            value={(hasPeriodFilter
+              ? referralsThisPeriod
+              : totalReferrals
+            ).toLocaleString()}
+            delta={charts.referralTrendDelta}
+            series={charts.referralTrend}
+          />
+          <KpiStatTile
+            label="Converted"
+            value={admitted.toLocaleString()}
+            seriesLabel="Admitted"
+            delta={charts.convertedDelta}
+            series={charts.convertedTrend}
+          />
+          <KpiStatTile
+            label="Avg. Time by Status"
+            value={formatDays(charts.avgDays)}
+            seriesLabel="Avg days"
+            delta={charts.avgTimeDelta}
+            series={charts.avgTimeTrend}
+          />
         </div>
 
-        {/* AI SUMMARY CARD */}
+        {/* MIX + CONVERSION + STATUS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ChartCard title="Payer Source Mix">
+            <CategoryPie
+              data={charts.payers}
+              variant="pie"
+              emptyMessage="No payer data available"
+            />
+          </ChartCard>
+
+          <ChartCard title="Conversion-to-Admission Rate">
+            <ConversionGauge
+              rate={conversionRate}
+              caption={`${admitted.toLocaleString()} admitted`}
+              delta={charts.conversionRateDelta}
+            />
+          </ChartCard>
+
+          <StatusBreakdownCard slices={charts.statusSlices} />
+        </div>
+
+        {/* TRENDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ChartCard
+            title="Monthly Referral Trend"
+            action={
+              charts.referralTrendDelta ? (
+                <TrendPill delta={charts.referralTrendDelta} />
+              ) : undefined
+            }
+          >
+            <TrendLine data={charts.referralTrend} />
+          </ChartCard>
+
+          <ChartCard
+            title="Monthly Denial Trend"
+            action={
+              charts.denialTrendDelta ? (
+                <TrendPill
+                  delta={charts.denialTrendDelta}
+                  positiveDirection="down"
+                />
+              ) : undefined
+            }
+          >
+            <TrendLine
+              data={charts.denialTrend}
+              emptyMessage="No denial trend data available"
+            />
+          </ChartCard>
+        </div>
+
+        {/* COUNTIES + DENIAL REASONS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ChartCard
+            title="Top 10 Counties Generating Referrals"
+            className="md:col-span-2"
+          >
+            <RankedBar
+              data={charts.counties}
+              emptyMessage="No county data available"
+            />
+          </ChartCard>
+
+          <ChartCard title="Top 5 Denial Reasons">
+            <DenialReasonsTable reasons={charts.denialReasons} />
+          </ChartCard>
+        </div>
+
+        {/* SOURCES + TYPES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <ChartCard title="Top 10 Referring Facilities">
+            <RankedBar
+              data={charts.facilities}
+              layout="horizontal"
+              emptyMessage="No facility data available"
+            />
+          </ChartCard>
+
+          <ChartCard title="Top 10 Referring Clinicians">
+            <RankedBar
+              data={charts.clinicians}
+              layout="horizontal"
+              emptyMessage="No clinician data available"
+            />
+          </ChartCard>
+
+          <ChartCard title="Referral Source Type Breakdown">
+            <CategoryPie
+              data={charts.sources}
+              emptyMessage="No source data available"
+            />
+          </ChartCard>
+
+          <ChartCard title="Admission Type">
+            <CategoryPie
+              data={charts.admissionTypes}
+              emptyMessage="No admission type data available"
+            />
+          </ChartCard>
+
+          <EmergingSourcesCard sources={charts.emergingSources} />
+
+          <ScorecardCard sources={charts.scorecard} />
+        </div>
+
+        {/* COUNTY HEAT MAP */}
+        <ChartCard title="Referral Density by County">
+          <Suspense
+            fallback={
+              <div className="flex h-[450px] items-center justify-center text-sm text-muted-foreground">
+                Loading map...
+              </div>
+            }
+          >
+            <CountyHeatMap
+              counties={
+                analytics?.counties?.map((county) => ({
+                  value: county.value ?? "",
+                  _count: { value: county._count.value },
+                })) ?? []
+              }
+            />
+          </Suspense>
+        </ChartCard>
+
+        {/* AI SUMMARY */}
         <AiSumary
           isLoadingSummary={isLoadingSummary}
           summary={analyticsSummary}
         />
-
-        {/* ANALYTICS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Top Facilities */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/15 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Top 10 Referring Facilities
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {barData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={barData.slice(0, 10)}>
-                    <XAxis dataKey="name" hide />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill="var(--primary)"
-                      radius={[6, 6, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No facility data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Clinicians */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-cyan-50 to-cyan-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-600">
-                  <UserRound className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Top 10 Referring Clinicians
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {(analytics?.clinicians?.length ?? 0) > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart
-                    data={analytics?.clinicians?.slice(0, 10).map((c) => ({
-                      name: c.value ?? "Unknown",
-                      count: c._count.value,
-                    }))}
-                  >
-                    <XAxis dataKey="name" hide />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar dataKey="count" fill="#0891b2" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No clinician data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Counties */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-green-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-600">
-                  <MapPin className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Top 10 Counties Generating Referrals
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {(analytics?.counties?.length ?? 0) > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart
-                    data={analytics?.counties?.slice(0, 10).map((c) => ({
-                      name: c.value ?? "Unknown",
-                      count: c._count.value,
-                    }))}
-                  >
-                    <XAxis dataKey="name" hide />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No county data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Referral Source Breakdown */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-600">
-                  <Activity className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Referral Source Type Breakdown
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {sourcePieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={sourcePieData}
-                      dataKey="value"
-                      outerRadius={80}
-                      label
-                    >
-                      {sourcePieData.map((_, index) => (
-                        <Cell
-                          key={index}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No referral source data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Admission Type */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-rose-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-rose-600">
-                  <ClipboardList className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Admission Type
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {admissionTypeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={admissionTypeData}
-                      dataKey="value"
-                      outerRadius={80}
-                      label
-                    >
-                      {admissionTypeData.map((_, index) => (
-                        <Cell
-                          key={index}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No admission type data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Payer Mix */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/15 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary">
-                  <CreditCard className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Payer Source Mix
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {payerPieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={payerPieData}
-                      dataKey="value"
-                      outerRadius={80}
-                      label
-                    >
-                      {payerPieData.map((_, index) => (
-                        <Cell
-                          key={index}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No payer data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Monthly Referral Trend */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow xl:col-span-2">
-            <CardHeader className="bg-gradient-to-r from-sky-50 to-sky-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-sky-600">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Monthly Referral Trend
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {monthlyTrendData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={monthlyTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="total"
-                      stroke="#0284c7"
-                      strokeWidth={2}
-                      dot={{ fill: "#0284c7", r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No monthly trend data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Emerging Referral Sources */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-teal-50 to-teal-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-teal-600">
-                  <ArrowUpRight className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Emerging Referral Sources
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {emergingData.length > 0 ? (
-                <div className="space-y-3 max-h-[250px] overflow-y-auto">
-                  {emergingData.map((source, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 border border-gray-100"
-                    >
-                      <span className="text-sm font-medium text-gray-700 truncate mr-2">
-                        {source.facility ?? "Unknown"}
-                      </span>
-                      <span className="text-sm font-semibold text-teal-600 bg-teal-50 px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                        {source.recent_referrals}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No emerging sources detected
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Referral Source Scorecard */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow xl:col-span-2">
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-600">
-                  <Star className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Referral Source Scorecard
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {scorecardData.length > 0 ? (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  <div className="grid grid-cols-4 gap-2 text-xs font-medium text-gray-500 px-3 pb-2 border-b">
-                    <span>Source</span>
-                    <span>Tier</span>
-                    <span className="text-right">Referrals</span>
-                    <span className="text-right">Per Week</span>
-                  </div>
-                  {scorecardData.map((source, i) => (
-                    <div
-                      key={i}
-                      className="grid grid-cols-4 gap-2 items-center py-2 px-3 rounded-lg hover:bg-gray-50"
-                    >
-                      <span
-                        className="text-sm font-medium text-gray-700 truncate"
-                        title={source.sourceName}
-                      >
-                        {source.sourceName}
-                      </span>
-                      <Badge
-                        className={`text-[10px] px-1.5 py-0 w-fit ${TIER_CONFIG[source.tier].color}`}
-                      >
-                        {TIER_CONFIG[source.tier].label}
-                      </Badge>
-                      <span className="text-sm text-gray-900 text-right font-semibold">
-                        {source.referralCount}
-                      </span>
-                      <span className="text-sm text-gray-500 text-right">
-                        {source.referralsPerWeek}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No scorecard data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Denial Reasons */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-red-50 to-red-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-600">
-                  <ShieldAlert className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Denial Reasons
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    ({analytics?.denials?.totalDenials ?? 0} total)
-                  </span>
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {denialReasonData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart
-                    data={denialReasonData}
-                    layout="vertical"
-                    margin={{ left: 80 }}
-                  >
-                    <XAxis type="number" />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      width={75}
-                      tick={{ fontSize: 11 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No denial data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Monthly Denial Trend */}
-          <Card className="border shadow-sm hover:shadow-md transition-shadow xl:col-span-2">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100/50 border-b">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-600">
-                  <TrendingDown className="h-5 w-5 text-white" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Monthly Denial Trend
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {denialTrendData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={denialTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="total"
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      dot={{ fill: "#ef4444", r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-12">
-                  No denial trend data available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* COUNTY HEAT MAP */}
-        <Card className="border shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-green-100/50 border-b">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-600">
-                <Globe className="h-5 w-5 text-white" />
-              </div>
-              <CardTitle className="text-lg font-semibold text-gray-900">
-                Referral Density by County
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6 px-0 pb-0">
-            <CountyHeatMap
-              counties={
-                analytics?.counties?.map((c) => ({
-                  value: c.value ?? "",
-                  _count: { value: c._count.value },
-                })) ?? []
-              }
-            />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

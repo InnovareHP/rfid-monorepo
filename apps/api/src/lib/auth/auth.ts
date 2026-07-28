@@ -50,6 +50,12 @@ import {
 import { ac, liaison, owner, super_admin, support } from "./permission";
 import type { BetterAuthOptions } from "better-auth";
 
+// Local dev runs over http, so secure and cross-subdomain cookies must be off.
+const isLocalDev = process.env.NODE_ENV !== "production";
+
+// Dev-only: vite serves the apps on these origins regardless of the configured URLs.
+const DEV_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
+
 const socialProviders: BetterAuthOptions["socialProviders"] = {
   google: {
     clientId: appConfig.GOOGLE_CLIENT_ID,
@@ -73,19 +79,18 @@ export const auth = betterAuth({
   }),
   advanced: {
     cookiePrefix: `${appConfig.APP_NAME}-AUTH`,
-    useSecureCookies: true,
+    useSecureCookies: !isLocalDev,
     defaultCookieAttributes: {
-      sameSite: appConfig.WEBSITE_URL.includes("localhost") ? "lax" : "none",
+      sameSite: isLocalDev ? "lax" : "none",
     },
     crossSubDomainCookies: {
-      enabled: true,
-      domain: appConfig.WEBSITE_URL.includes("localhost")
-        ? "localhost"
-        : "refidly.com",
+      enabled: !isLocalDev,
+      domain: "refidly.com",
     },
   },
 
   trustedOrigins: [
+    ...(isLocalDev ? DEV_ORIGINS : []),
     appConfig.SUPPORT_URL,
     appConfig.WEBSITE_URL,
     appConfig.API_URL,

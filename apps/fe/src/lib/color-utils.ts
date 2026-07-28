@@ -68,3 +68,32 @@ export function removeBrandColor() {
     el.style.removeProperty(v);
   }
 }
+
+// Sequential ramp, light to dark. Mirrors --chart-seq-1..4 in styles.css.
+// Kept as hex here so magnitude can be sampled at arbitrary step counts.
+const SEQUENTIAL_RAMP = ["#64d1f4", "#2c86d9", "#0d3185", "#01184d"] as const;
+
+function mixHex(from: string, to: string, ratio: number): string {
+  const channel = (hex: string, offset: number) =>
+    parseInt(hex.slice(offset, offset + 2), 16);
+
+  const blended = [1, 3, 5].map((offset) => {
+    const start = channel(from, offset);
+    const end = channel(to, offset);
+    return Math.round(start + (end - start) * ratio);
+  });
+
+  return `#${blended.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Darkest for rank 0 (largest magnitude), lightening down the list.
+export function sequentialRampColor(index: number, count: number): string {
+  if (count <= 1) return SEQUENTIAL_RAMP[SEQUENTIAL_RAMP.length - 1];
+
+  const position =
+    (1 - index / (count - 1)) * (SEQUENTIAL_RAMP.length - 1);
+  const lower = Math.floor(position);
+  const upper = Math.min(lower + 1, SEQUENTIAL_RAMP.length - 1);
+
+  return mixHex(SEQUENTIAL_RAMP[lower], SEQUENTIAL_RAMP[upper], position - lower);
+}

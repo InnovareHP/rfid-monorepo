@@ -13,10 +13,16 @@ body {
 body {
   @apply m-0;
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@utility page-title {
+  font-family: var(--font-display);
+  color: var(--color-brand);
 }
 
 code {
@@ -26,6 +32,7 @@ code {
 
 :root {
   --radius: 0.65rem;
+  --brand: #0d3185;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -44,11 +51,21 @@ code {
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.623 0.214 259.815);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Categorical — identity. Fixed slot order, never cycled. Validated:
+     lightness band, chroma floor, CVD + normal-vision separation all pass.
+     Slots 3-5 sit below 3:1 on a light surface, so charts using them must
+     carry direct labels or a table view. */
+  --chart-1: #2c86d9;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+
+  /* Sequential — magnitude. Brand ramp, light to dark, monotonic lightness. */
+  --chart-seq-1: #64d1f4;
+  --chart-seq-2: #2c86d9;
+  --chart-seq-3: #0d3185;
+  --chart-seq-4: #01184d;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: oklch(0.623 0.214 259.815);
@@ -94,6 +111,12 @@ code {
 }
 
 @theme inline {
+  --font-sans:
+    "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:
+    "Red Hat Display", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --color-brand: var(--brand);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -118,6 +141,10 @@ code {
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-seq-1: var(--chart-seq-1);
+  --color-chart-seq-2: var(--chart-seq-2);
+  --color-chart-seq-3: var(--chart-seq-3);
+  --color-chart-seq-4: var(--chart-seq-4);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -138,6 +165,27 @@ code {
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Tailwind v4 preflight drops the pointer on interactive controls. */
+  button:not(:disabled),
+  summary,
+  label[for],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+  [role="menuitemradio"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
   }
 }
 

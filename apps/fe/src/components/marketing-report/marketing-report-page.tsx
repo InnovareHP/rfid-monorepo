@@ -104,7 +104,7 @@ export default function MarketingReportPage() {
 
   return (
     <div className="p-8 bg-gray-50 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Marketing Report</h1>
+      <h1 className="text-3xl font-bold page-title">Marketing Report</h1>
 
       <div className="flex justify-end">
         <Button variant="outline" onClick={handleExportCSV}>

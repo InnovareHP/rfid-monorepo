@@ -113,7 +113,7 @@ export function CalendarPage() {
               <Calendar className="size-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+              <h1 className="text-2xl font-bold tracking-tight page-title">
                 Calendar
               </h1>
               {/* Legend */}
