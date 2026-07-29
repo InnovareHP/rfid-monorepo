@@ -53,9 +53,10 @@ export function NavUser({ user, activeOrganizationId }: NavUserProps) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
+              tooltip={user?.name ?? undefined}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
+              <Avatar className="size-8 rounded-lg">
                 <AvatarImage
                   src={user?.image ?? undefined}
                   alt={user?.name ?? undefined}
@@ -64,7 +65,8 @@ export function NavUser({ user, activeOrganizationId }: NavUserProps) {
                   {user?.name?.charAt(0) ?? undefined}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-medium">
                   {user?.name ?? undefined}
                 </span>
@@ -72,7 +74,7 @@ export function NavUser({ user, activeOrganizationId }: NavUserProps) {
                   {user?.email ?? undefined}
                 </span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

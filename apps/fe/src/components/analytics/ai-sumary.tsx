@@ -1,7 +1,30 @@
 import { Button } from "@dashboard/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/ui/components/card";
-import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Sparkles } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@dashboard/ui/components/card";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useState } from "react";
+
+type AnalyticsSummary = {
+  executive_summary?: string;
+  key_insights?: string[];
+  bottlenecks?: string[];
+  opportunities?: string[];
+  recommended_strategy?: {
+    short_term?: string[];
+    long_term?: string[];
+  };
+  final_recommendations?: string;
+};
 
 function useTypewriter(text: string, speed = 12) {
   const [displayed, setDisplayed] = useState("");
@@ -81,7 +104,7 @@ export default function AiSummary({
   onRegenerate,
 }: {
   isLoadingSummary: boolean;
-  summary: any;
+  summary: AnalyticsSummary | undefined;
   error?: string | null;
   onRegenerate?: () => void;
 }) {

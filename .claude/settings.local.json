@@ -47,7 +47,8 @@
       "Read(//c/Users/Deeezy/OneDrive/Desktop/ivorzero/rfid-monorepo/apps/fe/src/routes/_team/\\\\$team/settings/**)",
       "Bash(powershell -c \"\\(Get-Content 'docs/activity-log.md' | Measure-Object -Line\\).Lines\")",
       "Bash(pnpm build:fe)",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" http://localhost:8080/api/marketing/public/pages/test)"
     ]
   }
 }

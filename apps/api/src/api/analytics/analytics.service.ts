@@ -166,18 +166,76 @@ export class AnalyticsService {
           field: { fieldName: "Status" },
           record: recordWhere,
         },
-        select: { value: true },
+        select: { value: true, record: { select: { createdAt: true } } },
       }),
     ]);
     const admitted = statusRows.filter((r) => r.value === "Admitted").length;
+
+    // Month buckets keyed on the referral creation date, not the status change.
+    const monthly = new Map<string, { total: number; admitted: number }>();
+    for (const row of statusRows) {
+      const month = row.record.createdAt.toISOString().slice(0, 7);
+      const entry = monthly.get(month) ?? { total: 0, admitted: 0 };
+      entry.total += 1;
+      if (row.value === "Admitted") entry.admitted += 1;
+      monthly.set(month, entry);
+    }
+    const months = [...monthly.entries()].sort(([a], [b]) =>
+      a.localeCompare(b)
+    );
 
     return {
       totalReferrals,
       admitted,
       conversionRate: totalReferrals
-        ? ((admitted / totalReferrals) * 100).toFixed(2)
+        ? Number(((admitted / totalReferrals) * 100).toFixed(2))
         : 0,
+      monthlyAdmitted: months.map(([month, m]) => ({
+        month,
+        total: m.admitted,
+      })),
+      monthlyRate: months.map(([month, m]) => ({
+        month,
+        total: m.total ? Number(((m.admitted / m.total) * 100).toFixed(2)) : 0,
+      })),
     };
+  }
+
+  // Weighted average days to a status change, bucketed by month.
+  async getAvgTimeTrend(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const rows = await prisma.history.findMany({
+      where: {
+        column: "Status",
+        action: "update",
+        record: this.referralRecordWhere(organizationId, startDate, endDate),
+      },
+      select: {
+        createdAt: true,
+        record: { select: { createdAt: true } },
+      },
+    });
+
+    const monthly = new Map<string, { totalDays: number; count: number }>();
+    for (const row of rows) {
+      const month = row.createdAt.toISOString().slice(0, 7);
+      const days =
+        (row.createdAt.getTime() - row.record.createdAt.getTime()) / 86400000;
+      const entry = monthly.get(month) ?? { totalDays: 0, count: 0 };
+      entry.totalDays += days;
+      entry.count += 1;
+      monthly.set(month, entry);
+    }
+
+    return [...monthly.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, m]) => ({
+        month,
+        total: Number((m.totalDays / m.count).toFixed(1)),
+      }));
   }
 
   // 6️⃣ Average Time per Status (how long it took to reach each status)
@@ -511,6 +569,7 @@ export class AnalyticsService {
       totalCounts,
       statusBreakdown,
       avgTimeByStatus,
+      avgTimeTrend,
       admissionTypes,
       facilities,
       clinicians,
@@ -526,6 +585,7 @@ export class AnalyticsService {
       this.getTotalCounts(organizationId, startDate, endDate),
       this.getStatusBreakdown(organizationId, startDate, endDate),
       this.getAverageTimeByStatus(organizationId, startDate, endDate),
+      this.getAvgTimeTrend(organizationId, startDate, endDate),
       this.getAdmissionTypeBreakdown(organizationId, startDate, endDate),
       this.getTopFacilities(organizationId, startDate, endDate),
       this.getTopClinicians(organizationId, startDate, endDate),
@@ -543,6 +603,7 @@ export class AnalyticsService {
       totalCounts,
       statusBreakdown,
       avgTimeByStatus,
+      avgTimeTrend,
       admissionTypes,
       facilities,
       clinicians,

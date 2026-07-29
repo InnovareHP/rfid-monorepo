@@ -2,19 +2,19 @@ import { authClient } from "@/lib/auth-client";
 import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from "@dashboard/ui/components/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { cn } from "@dashboard/ui/lib/utils";
@@ -256,22 +256,20 @@ export function LoginForm({
                                 {...field}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
-                                className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors pr-11"
+                                className="h-10 xl:h-12 text-sm xl:text-base rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors pr-10"
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowPassword((v) => !v)}
                                 aria-label={
-                                  showPassword
-                                    ? "Hide password"
-                                    : "Show password"
+                                  showPassword ? "Hide password" : "Show password"
                                 }
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 transition-colors"
                               >
                                 {showPassword ? (
-                                  <EyeOff className="w-5 h-5" />
+                                  <EyeOff className="w-4 h-4" />
                                 ) : (
-                                  <Eye className="w-5 h-5" />
+                                  <Eye className="w-4 h-4" />
                                 )}
                               </button>
                             </div>
@@ -310,28 +308,18 @@ export function LoginForm({
                         onClick={() => handleSocialLogin("google")}
                         disabled={socialLoading !== null}
                         aria-label="Continue with Google"
-                        className="flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                        className="flex h-10 xl:h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
                       >
-                        {socialLoading === "google" ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <GoogleIcon className="w-5 h-5" />
-                        )}
-                        Google
+                        <GoogleIcon className="w-4 h-4 xl:w-5 xl:h-5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleSocialLogin("microsoft")}
                         disabled={socialLoading !== null}
                         aria-label="Continue with Microsoft"
-                        className="flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                        className="flex h-10 xl:h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
                       >
-                        {socialLoading === "microsoft" ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <MicrosoftIcon className="w-5 h-5" />
-                        )}
-                        Microsoft
+                        <MicrosoftIcon className="w-4 h-4 xl:w-5 xl:h-5" />
                       </button>
                     </div>
 

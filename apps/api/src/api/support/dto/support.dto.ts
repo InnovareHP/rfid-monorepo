@@ -7,6 +7,7 @@ export const CreateTicketSchema = z.object({
   description: z.string(),
   category: z.enum(TicketCategory).optional(),
   priority: z.enum(Priority).optional(),
+  imageUrl: z.array(z.url()).default([]),
 });
 
 export const UpdateTicketSchema = z.object({

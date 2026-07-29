@@ -73,7 +73,7 @@ export default function HelpPage() {
                 <CircleHelp className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                <h1 className="text-3xl font-bold tracking-tight page-title">
                   Help Center
                 </h1>
                 <p className="mt-0.5 text-sm text-gray-600">
@@ -108,7 +108,7 @@ export default function HelpPage() {
               <CircleHelp className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              <h1 className="text-3xl font-bold tracking-tight page-title">
                 Help Center
               </h1>
               <p className="mt-0.5 text-sm text-gray-600">
