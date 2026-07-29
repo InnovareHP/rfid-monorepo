@@ -52,8 +52,14 @@ export const getColumnOptions = async (moduleType?: string) => {
   return response.data;
 };
 
-export const getFollowUpSuggestions = async (recordId: string) => {
-  const response = await axiosClient.get(`/api/boards/${recordId}/suggestions`);
+export const getFollowUpSuggestions = async (
+  recordId: string,
+  force = false
+) => {
+  const response = await axiosClient.get(
+    `/api/boards/${recordId}/suggestions`,
+    { params: force ? { force: true } : undefined }
+  );
 
   return response.data as {
     suggestions: {

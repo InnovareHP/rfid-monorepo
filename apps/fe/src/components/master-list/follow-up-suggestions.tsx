@@ -1,5 +1,9 @@
-import { getFollowUpSuggestions } from "@/services/lead/lead-service";
+import {
+  createActivity,
+  getFollowUpSuggestions,
+} from "@/services/lead/lead-service";
 import { Badge } from "@dashboard/ui/components/badge";
+import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
   CardContent,
@@ -7,15 +11,22 @@ import {
   CardTitle,
 } from "@dashboard/ui/components/card";
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowRight,
   Clock,
   Lightbulb,
+  ListChecks,
+  RefreshCw,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const priorityConfig = {
   high: {
@@ -42,11 +53,35 @@ export function FollowUpSuggestions({
   recordId: string;
   enabled: boolean;
 }) {
-  const { data, isLoading, isError, error } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["follow-up-suggestions", recordId],
     queryFn: () => getFollowUpSuggestions(recordId),
     enabled: enabled && !!recordId,
     staleTime: 1000 * 60 * 10,
+  });
+
+  const regenerateMutation = useMutation({
+    mutationFn: () => getFollowUpSuggestions(recordId, true),
+    onSuccess: (fresh) => {
+      queryClient.setQueryData(["follow-up-suggestions", recordId], fresh);
+      toast.success("Suggestions refreshed");
+    },
+    onError: (err: any) =>
+      toast.error(
+        err?.response?.data?.message ?? "Failed to refresh suggestions"
+      ),
+  });
+
+  const createActivityMutation = useMutation({
+    mutationFn: createActivity,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activities", recordId] });
+      toast.success("Activity created");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message ?? "Failed to create activity"),
   });
 
   if (isLoading) {
@@ -69,15 +104,17 @@ export function FollowUpSuggestions({
   if (isError) {
     return (
       <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="p-4 rounded-full bg-red-50 mb-3">
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <div className="p-4 rounded-full bg-red-50">
             <AlertTriangle className="h-8 w-8 text-red-400" />
           </div>
           <p className="text-sm text-red-600 font-medium">
-            {error instanceof Error
-              ? error.message
-              : "Failed to load suggestions"}
+            {(error as any)?.response?.data?.message ??
+              "Failed to load suggestions"}
           </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Try again
+          </Button>
         </div>
       </ScrollArea>
     );
@@ -88,6 +125,20 @@ export function FollowUpSuggestions({
   return (
     <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
       <div className="space-y-5">
+        <div className="flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={regenerateMutation.isPending}
+            onClick={() => regenerateMutation.mutate()}
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${regenerateMutation.isPending ? "animate-spin" : ""}`}
+            />
+            Regenerate
+          </Button>
+        </div>
+
         {/* Summary Card */}
         <Card className="border-l-4 border-l-primary shadow-md bg-gradient-to-r from-primary/5 to-primary/5">
           <CardContent className="p-5">
@@ -118,9 +169,18 @@ export function FollowUpSuggestions({
             </h3>
           </div>
 
-          <div className="space-y-3">
-            {data &&
-              data?.suggestions?.map((suggestion, i) => {
+          {data.suggestions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <p className="text-sm text-gray-500 font-medium">
+                No suggestions right now
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Check back after there's more activity on this record.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {data.suggestions.map((suggestion, i) => {
                 const config =
                   priorityConfig[suggestion.priority] || priorityConfig.medium;
 
@@ -152,15 +212,34 @@ export function FollowUpSuggestions({
                         {suggestion.reasoning}
                       </p>
 
-                      <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-lg font-semibold w-fit ml-[18px]">
-                        <Clock className="h-3.5 w-3.5" />
-                        {suggestion.timing}
+                      <div className="flex items-center justify-between gap-2 ml-[18px]">
+                        <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-lg font-semibold w-fit">
+                          <Clock className="h-3.5 w-3.5" />
+                          {suggestion.timing}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={createActivityMutation.isPending}
+                          onClick={() =>
+                            createActivityMutation.mutate({
+                              recordId,
+                              title: suggestion.action,
+                              description: `${suggestion.reasoning}\n\nSuggested timing: ${suggestion.timing}`,
+                              activityType: "NOTE",
+                            })
+                          }
+                        >
+                          <ListChecks className="h-3.5 w-3.5" />
+                          Create Activity
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Risk Factors */}

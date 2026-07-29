@@ -1,5 +1,6 @@
+import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/ui/components/card";
-import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
 function useTypewriter(text: string, speed = 12) {
@@ -76,9 +77,13 @@ function renderAIContent(content: any): React.ReactNode {
 export default function AiSummary({
   isLoadingSummary,
   summary,
+  error,
+  onRegenerate,
 }: {
   isLoadingSummary: boolean;
   summary: any;
+  error?: string | null;
+  onRegenerate?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -100,19 +105,34 @@ export default function AiSummary({
   return (
     <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-white to-primary/10 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="border-b bg-gradient-to-r from-primary/20 to-primary/10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary">
-            <Sparkles className="h-5 w-5 text-white" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <CardTitle className="text-xl font-bold text-gray-900">
+              AI-Powered Insights
+            </CardTitle>
           </div>
-          <CardTitle className="text-xl font-bold text-gray-900">
-            AI-Powered Insights
-          </CardTitle>
+          {onRegenerate && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isLoadingSummary}
+              onClick={onRegenerate}
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isLoadingSummary ? "animate-spin" : ""}`}
+              />
+              Regenerate
+            </Button>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="pt-6">
         {/* Loading */}
-        {isLoadingSummary && !summary && (
+        {isLoadingSummary && !summary && !error && (
           <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
             <p className="text-sm text-primary font-medium">
@@ -121,8 +141,21 @@ export default function AiSummary({
           </div>
         )}
 
+        {/* Error */}
+        {!isLoadingSummary && error && (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <AlertTriangle className="h-8 w-8 text-red-400" />
+            <p className="text-sm text-red-600 font-medium">{error}</p>
+            {onRegenerate && (
+              <Button variant="outline" size="sm" onClick={onRegenerate}>
+                Try again
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Render object */}
-        {!isLoadingSummary && summary && (
+        {!isLoadingSummary && !error && summary && (
           <div className="space-y-4">
             {renderAIContent(parsed)}
 

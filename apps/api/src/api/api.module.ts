@@ -2,12 +2,14 @@ import { Module } from "@nestjs/common";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuthModule } from "./auth/auth.module";
 import { BoardModule } from "./board/board.module";
+import { BookingModule } from "./booking/booking.module";
 import { CalendarModule } from "./calendar/calendar.module";
 import { EmailModule } from "./email/email.module";
 import { FaxModule } from "./fax/fax.module";
 import { ImageModule } from "./image/image.module";
 import { LiaisonModule } from "./liaison/liaison.module";
 import { ManualModule } from "./manual/manual.module";
+import { MarketingModule } from "./marketing/marketing.module";
 import { OptionsModule } from "./options/options.module";
 import { PipelineModule } from "./pipeline/pipeline.module";
 import { PlacesModule } from "./places/places.module";
@@ -25,6 +27,7 @@ import { UserModule } from "./user/user.module";
     UserModule,
     PlanModule,
     BoardModule,
+    BookingModule,
     CalendarModule,
     AnalyticsModule,
     OptionsModule,
@@ -34,6 +37,7 @@ import { UserModule } from "./user/user.module";
     PlacesModule,
     PipelineModule,
     TaskModule,
+    MarketingModule,
   ],
   controllers: [],
   providers: [],

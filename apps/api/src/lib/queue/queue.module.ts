@@ -24,7 +24,8 @@ import { QUEUE_NAMES } from "./queue.constants";
       { name: QUEUE_NAMES.BULK_EMAIL },
       { name: QUEUE_NAMES.EMAIL_INGEST },
       { name: QUEUE_NAMES.CSV_IMPORT },
-      { name: QUEUE_NAMES.GEMINI }
+      { name: QUEUE_NAMES.GEMINI },
+      { name: QUEUE_NAMES.BLAST_SEND }
     ),
   ],
   providers: [GeminiProcessor],

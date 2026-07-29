@@ -6,12 +6,17 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { BoardFieldType, ModuleType, Prisma } from "@prisma/client";
+import { Board, BoardFieldType, ModuleType, Prisma } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
 import { aiGenerateVision } from "src/lib/aws/ai-guard";
 import { businessCardScanPrompt, followUpPrompt } from "src/lib/aws/prompts";
-import { cacheData, getData, purgeAllCacheKeys } from "src/lib/redis/redis";
+import {
+  cacheData,
+  deleteData,
+  getData,
+  purgeAllCacheKeys,
+} from "src/lib/redis/redis";
 import { v4 as uuidv4 } from "uuid";
 import { lookupByName } from "zipcodes-perogi";
 import { CACHE_PREFIX } from "../../lib/constant";
@@ -591,10 +596,16 @@ export class BoardService {
     };
   }
 
-  async getFollowUpSuggestions(recordId: string, organizationId: string) {
+  async getFollowUpSuggestions(
+    recordId: string,
+    organizationId: string,
+    force = false
+  ) {
     const cacheKey = `followup:${recordId}`;
-    const cached = await getData(cacheKey);
-    if (cached) return cached;
+    if (!force) {
+      const cached = await getData(cacheKey);
+      if (cached) return cached;
+    }
 
     const record = await prisma.board.findFirstOrThrow({
       where: { id: recordId, organizationId: organizationId },
@@ -1052,6 +1063,8 @@ export class BoardService {
         return this.updateGenericValue(tx, ctx);
       });
 
+      await deleteData(`followup:${recordId}`);
+
       return recordValue;
     } catch (error) {
       throw new NotFoundException(error.message);
@@ -1083,6 +1096,7 @@ export class BoardService {
     });
 
     await this.purgeBoardCache(organizationId, moduleType);
+    await deleteData(`followup:${recordId}`);
 
     this.boardGateway.emitRecordValueLocation(
       organizationId,
@@ -1717,6 +1731,110 @@ export class BoardService {
     };
   }
 
+  async insertBoardRecord(
+    tx: Prisma.TransactionClient,
+    params: {
+      recordName: string;
+      organizationId: string;
+      memberId: string | null;
+      moduleType: string;
+      initialValues?: Record<string, string | null>;
+      personContact?: {
+        fieldId: string;
+        contactNumber?: string;
+        email?: string;
+        address?: string;
+      };
+    }
+  ) {
+    const {
+      recordName,
+      organizationId,
+      memberId,
+      moduleType,
+      initialValues,
+      personContact,
+    } = params;
+
+    const board = await tx.board.create({
+      data: {
+        recordName: recordName ?? "",
+        organizationId: organizationId,
+        moduleType: moduleType as ModuleType,
+      },
+    });
+
+    const fields = await tx.field.findMany({
+      where: {
+        organizationId: organizationId,
+        moduleType: moduleType as ModuleType,
+        isDeleted: false,
+      },
+    });
+
+    const fieldValues = fields.map((f) => ({
+      recordId: board.id,
+      fieldId: f.id,
+      value: initialValues?.[f.id] ?? null,
+      organizationId: organizationId,
+    }));
+
+    await tx.fieldValue.createMany({ data: fieldValues });
+
+    if (personContact?.fieldId) {
+      const personFieldValue = await tx.fieldValue.findUnique({
+        where: {
+          recordId_fieldId: {
+            recordId: board.id,
+            fieldId: personContact.fieldId,
+          },
+        },
+      });
+
+      if (personFieldValue) {
+        await tx.fieldPersonInformation.create({
+          data: {
+            fieldValueId: personFieldValue.id,
+            contactNumber: formatPhoneNumber(personContact.contactNumber ?? ""),
+            email: personContact.email ?? "",
+            address: personContact.address ?? "",
+          },
+        });
+      }
+    }
+
+    await tx.history.create({
+      data: {
+        recordId: board.id,
+        oldValue: "",
+        newValue: recordName,
+        action: "create",
+        createdBy: memberId,
+        organizationId: organizationId,
+      },
+    });
+
+    await tx.boardNotificationState.create({
+      data: {
+        recordId: board.id,
+        lastSeen: new Date(),
+      },
+    });
+
+    return board;
+  }
+
+  async afterRecordCreated(
+    record: Board,
+    organizationId: string,
+    moduleType: string
+  ) {
+    await purgeAllCacheKeys(
+      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+    );
+    this.boardGateway.emitRecordCreated(organizationId, record, moduleType);
+  }
+
   async createRecord(
     recordName: string,
     organizationId: string,
@@ -1731,80 +1849,17 @@ export class BoardService {
     }
   ) {
     const record = await prisma.$transaction(async (tx) => {
-      const board = await tx.board.create({
-        data: {
-          recordName: recordName ?? "",
-          organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
-        },
+      return this.insertBoardRecord(tx, {
+        recordName,
+        organizationId,
+        memberId,
+        moduleType,
+        initialValues,
+        personContact,
       });
-
-      const fields = await tx.field.findMany({
-        where: {
-          organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
-          isDeleted: false,
-        },
-      });
-
-      const fieldValues = fields.map((f) => ({
-        recordId: board.id,
-        fieldId: f.id,
-        value: initialValues?.[f.id] ?? null,
-        organizationId: organizationId,
-      }));
-
-      await tx.fieldValue.createMany({ data: fieldValues });
-
-      if (personContact?.fieldId) {
-        const personFieldValue = await tx.fieldValue.findUnique({
-          where: {
-            recordId_fieldId: {
-              recordId: board.id,
-              fieldId: personContact.fieldId,
-            },
-          },
-        });
-
-        if (personFieldValue) {
-          await tx.fieldPersonInformation.create({
-            data: {
-              fieldValueId: personFieldValue.id,
-              contactNumber: formatPhoneNumber(
-                personContact.contactNumber ?? ""
-              ),
-              email: personContact.email ?? "",
-              address: personContact.address ?? "",
-            },
-          });
-        }
-      }
-
-      await tx.history.create({
-        data: {
-          recordId: board.id,
-          oldValue: "",
-          newValue: recordName,
-          action: "create",
-          createdBy: memberId,
-          organizationId: organizationId,
-        },
-      });
-
-      await tx.boardNotificationState.create({
-        data: {
-          recordId: board.id,
-          lastSeen: new Date(),
-        },
-      });
-
-      return board;
     });
 
-    await purgeAllCacheKeys(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-    );
-    this.boardGateway.emitRecordCreated(organizationId, record, moduleType);
+    await this.afterRecordCreated(record, organizationId, moduleType);
 
     return record;
   }

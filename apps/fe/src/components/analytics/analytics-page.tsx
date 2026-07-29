@@ -39,8 +39,9 @@ import {
 } from "@/services/analytics/analytics-service";
 import type { AnalyticsResponse } from "@dashboard/shared";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Recharts from "recharts";
+import { toast } from "sonner";
 import AiSumary from "./ai-sumary";
 import CountyHeatMap from "./county-heat-map";
 
@@ -108,6 +109,8 @@ export default function ReferralAnalyticsDashboard() {
     end: null,
   });
 
+  const queryClient = useQueryClient();
+
   const { data: analytics, refetch: refetchAnalytics } = useQuery({
     queryKey: ["analytics", dateRange],
     queryFn: async () => {
@@ -117,12 +120,49 @@ export default function ReferralAnalyticsDashboard() {
     },
   });
 
-  const { data: analyticsSummary, isLoading: isLoadingSummary } = useQuery({
-    queryKey: ["analyticsSummary", analytics?.analytics],
+  const summaryQueryKey = [
+    "analyticsSummary",
+    dateRange.start?.toISOString() ?? null,
+    dateRange.end?.toISOString() ?? null,
+  ];
+
+  const {
+    data: analyticsSummary,
+    isLoading: isLoadingSummary,
+    isError: isErrorSummary,
+    error: summaryError,
+  } = useQuery({
+    queryKey: summaryQueryKey,
     enabled: !!analytics,
     queryFn: async () => {
-      return await getAnalyticsSummary(analytics ?? ({} as AnalyticsResponse));
+      const start = dateRange.start ? dateRange.start.toISOString() : null;
+      const end = dateRange.end ? dateRange.end.toISOString() : null;
+      return await getAnalyticsSummary(
+        analytics ?? ({} as AnalyticsResponse),
+        start,
+        end
+      );
     },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const regenerateSummaryMutation = useMutation({
+    mutationFn: async () => {
+      const start = dateRange.start ? dateRange.start.toISOString() : null;
+      const end = dateRange.end ? dateRange.end.toISOString() : null;
+      return await getAnalyticsSummary(
+        analytics ?? ({} as AnalyticsResponse),
+        start,
+        end,
+        true
+      );
+    },
+    onSuccess: (fresh) => {
+      queryClient.setQueryData(summaryQueryKey, fresh);
+      toast.success("Insights refreshed");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message ?? "Failed to refresh insights"),
   });
 
   const barData =
@@ -397,8 +437,15 @@ export default function ReferralAnalyticsDashboard() {
 
         {/* AI SUMMARY CARD */}
         <AiSumary
-          isLoadingSummary={isLoadingSummary}
+          isLoadingSummary={isLoadingSummary || regenerateSummaryMutation.isPending}
           summary={analyticsSummary}
+          error={
+            isErrorSummary
+              ? ((summaryError as any)?.response?.data?.message ??
+                "Failed to load insights")
+              : null
+          }
+          onRegenerate={() => regenerateSummaryMutation.mutate()}
         />
 
         {/* ANALYTICS GRID */}

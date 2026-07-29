@@ -23,5 +23,6 @@ import { OutlookService } from "./outlook.service";
     BulkEmailProcessor,
     CsvImportProcessor,
   ],
+  exports: [BoardService, BoardGateway, EmailDispatchService],
 })
 export class BoardModule {}

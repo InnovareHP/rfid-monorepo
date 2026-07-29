@@ -14,7 +14,10 @@ import { Route as BillingRouteImport } from './routes/billing'
 import { Route as TeamRouteImport } from './routes/_team'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LSlugRouteImport } from './routes/l/$slug'
 import { Route as InvitationActionRouteImport } from './routes/invitation.$action'
+import { Route as FSlugRouteImport } from './routes/f/$slug'
+import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthOtpRouteImport } from './routes/_auth/otp'
@@ -42,6 +45,7 @@ import { Route as TeamTeamHistoryIndexRouteImport } from './routes/_team/$team/h
 import { Route as TeamTeamContactsIndexRouteImport } from './routes/_team/$team/contacts/index'
 import { Route as TeamTeamCompaniesIndexRouteImport } from './routes/_team/$team/companies/index'
 import { Route as TeamTeamTasksTaskRouteImport } from './routes/_team/$team/tasks/$task'
+import { Route as TeamTeamSettingsBookingRouteImport } from './routes/_team/$team/settings/booking'
 import { Route as TeamTeamSettingsBillingRouteImport } from './routes/_team/$team/settings/billing'
 import { Route as TeamTeamReferralListCreateRouteImport } from './routes/_team/$team/referral-list/create'
 import { Route as TeamTeamMasterListCreateRouteImport } from './routes/_team/$team/master-list/create'
@@ -50,11 +54,18 @@ import { Route as TeamTeamCompaniesCreateRouteImport } from './routes/_team/$tea
 import { Route as TeamTeamReportMileageIndexRouteImport } from './routes/_team/$team/report/mileage/index'
 import { Route as TeamTeamReportMarketingIndexRouteImport } from './routes/_team/$team/report/marketing/index'
 import { Route as TeamTeamReportExpenseIndexRouteImport } from './routes/_team/$team/report/expense/index'
+import { Route as TeamTeamMarketingLandingPagesIndexRouteImport } from './routes/_team/$team/marketing/landing-pages/index'
+import { Route as TeamTeamMarketingFormsIndexRouteImport } from './routes/_team/$team/marketing/forms/index'
+import { Route as TeamTeamMarketingCampaignsIndexRouteImport } from './routes/_team/$team/marketing/campaigns/index'
+import { Route as TeamTeamMarketingBlastsIndexRouteImport } from './routes/_team/$team/marketing/blasts/index'
 import { Route as TeamTeamLogMileageIndexRouteImport } from './routes/_team/$team/log/mileage/index'
 import { Route as TeamTeamLogMarketingIndexRouteImport } from './routes/_team/$team/log/marketing/index'
 import { Route as TeamTeamLogExpenseIndexRouteImport } from './routes/_team/$team/log/expense/index'
 import { Route as TeamTeamImportReferralListIndexRouteImport } from './routes/_team/$team/import/referral-list/index'
 import { Route as TeamTeamImportMasterListIndexRouteImport } from './routes/_team/$team/import/master-list/index'
+import { Route as TeamTeamMarketingLandingPagesPageIdRouteImport } from './routes/_team/$team/marketing/landing-pages/$pageId'
+import { Route as TeamTeamMarketingFormsFormIdRouteImport } from './routes/_team/$team/marketing/forms/$formId'
+import { Route as TeamTeamMarketingBlastsBlastIdRouteImport } from './routes/_team/$team/marketing/blasts/$blastId'
 import { Route as TeamTeamReferralListOptionOptionIndexRouteImport } from './routes/_team/$team/referral-list/option/$option/index'
 import { Route as TeamTeamMasterListLeadsLeadTimelineRouteImport } from './routes/_team/$team/master-list/leads/$lead/timeline'
 import { Route as TeamTeamMasterListLeadsOptionOptionIndexRouteImport } from './routes/_team/$team/master-list/leads/option/$option/index'
@@ -82,9 +93,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LSlugRoute = LSlugRouteImport.update({
+  id: '/l/$slug',
+  path: '/l/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvitationActionRoute = InvitationActionRouteImport.update({
   id: '/invitation/$action',
   path: '/invitation/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FSlugRoute = FSlugRouteImport.update({
+  id: '/f/$slug',
+  path: '/f/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookSlugRoute = BookSlugRouteImport.update({
+  id: '/book/$slug',
+  path: '/book/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
@@ -225,6 +251,11 @@ const TeamTeamTasksTaskRoute = TeamTeamTasksTaskRouteImport.update({
   path: '/$team/tasks/$task',
   getParentRoute: () => TeamRoute,
 } as any)
+const TeamTeamSettingsBookingRoute = TeamTeamSettingsBookingRouteImport.update({
+  id: '/booking',
+  path: '/booking',
+  getParentRoute: () => TeamTeamSettingsRoute,
+} as any)
 const TeamTeamSettingsBillingRoute = TeamTeamSettingsBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -270,6 +301,30 @@ const TeamTeamReportExpenseIndexRoute =
     path: '/$team/report/expense/',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamMarketingLandingPagesIndexRoute =
+  TeamTeamMarketingLandingPagesIndexRouteImport.update({
+    id: '/$team/marketing/landing-pages/',
+    path: '/$team/marketing/landing-pages/',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamMarketingFormsIndexRoute =
+  TeamTeamMarketingFormsIndexRouteImport.update({
+    id: '/$team/marketing/forms/',
+    path: '/$team/marketing/forms/',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamMarketingCampaignsIndexRoute =
+  TeamTeamMarketingCampaignsIndexRouteImport.update({
+    id: '/$team/marketing/campaigns/',
+    path: '/$team/marketing/campaigns/',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamMarketingBlastsIndexRoute =
+  TeamTeamMarketingBlastsIndexRouteImport.update({
+    id: '/$team/marketing/blasts/',
+    path: '/$team/marketing/blasts/',
+    getParentRoute: () => TeamRoute,
+  } as any)
 const TeamTeamLogMileageIndexRoute = TeamTeamLogMileageIndexRouteImport.update({
   id: '/$team/log/mileage/',
   path: '/$team/log/mileage/',
@@ -296,6 +351,24 @@ const TeamTeamImportMasterListIndexRoute =
   TeamTeamImportMasterListIndexRouteImport.update({
     id: '/$team/import/master-list/',
     path: '/$team/import/master-list/',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamMarketingLandingPagesPageIdRoute =
+  TeamTeamMarketingLandingPagesPageIdRouteImport.update({
+    id: '/$team/marketing/landing-pages/$pageId',
+    path: '/$team/marketing/landing-pages/$pageId',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamMarketingFormsFormIdRoute =
+  TeamTeamMarketingFormsFormIdRouteImport.update({
+    id: '/$team/marketing/forms/$formId',
+    path: '/$team/marketing/forms/$formId',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamMarketingBlastsBlastIdRoute =
+  TeamTeamMarketingBlastsBlastIdRouteImport.update({
+    id: '/$team/marketing/blasts/$blastId',
+    path: '/$team/marketing/blasts/$blastId',
     getParentRoute: () => TeamRoute,
   } as any)
 const TeamTeamReferralListOptionOptionIndexRoute =
@@ -325,7 +398,10 @@ export interface FileRoutesByFullPath {
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
   '/two-factor': typeof AuthTwoFactorRoute
+  '/book/$slug': typeof BookSlugRoute
+  '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
+  '/l/$slug': typeof LSlugRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
@@ -346,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
   '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/companies/': typeof TeamTeamCompaniesIndexRoute
   '/$team/contacts/': typeof TeamTeamContactsIndexRoute
@@ -354,11 +431,18 @@ export interface FileRoutesByFullPath {
   '/$team/master-list/': typeof TeamTeamMasterListIndexRoute
   '/$team/referral-list/': typeof TeamTeamReferralListIndexRoute
   '/$team/tasks/': typeof TeamTeamTasksIndexRoute
+  '/$team/marketing/blasts/$blastId': typeof TeamTeamMarketingBlastsBlastIdRoute
+  '/$team/marketing/forms/$formId': typeof TeamTeamMarketingFormsFormIdRoute
+  '/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
   '/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
   '/$team/log/marketing/': typeof TeamTeamLogMarketingIndexRoute
   '/$team/log/mileage/': typeof TeamTeamLogMileageIndexRoute
+  '/$team/marketing/blasts/': typeof TeamTeamMarketingBlastsIndexRoute
+  '/$team/marketing/campaigns/': typeof TeamTeamMarketingCampaignsIndexRoute
+  '/$team/marketing/forms/': typeof TeamTeamMarketingFormsIndexRoute
+  '/$team/marketing/landing-pages/': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
@@ -374,7 +458,10 @@ export interface FileRoutesByTo {
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
   '/two-factor': typeof AuthTwoFactorRoute
+  '/book/$slug': typeof BookSlugRoute
+  '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
+  '/l/$slug': typeof LSlugRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
@@ -395,6 +482,7 @@ export interface FileRoutesByTo {
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
   '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/companies': typeof TeamTeamCompaniesIndexRoute
   '/$team/contacts': typeof TeamTeamContactsIndexRoute
@@ -403,11 +491,18 @@ export interface FileRoutesByTo {
   '/$team/master-list': typeof TeamTeamMasterListIndexRoute
   '/$team/referral-list': typeof TeamTeamReferralListIndexRoute
   '/$team/tasks': typeof TeamTeamTasksIndexRoute
+  '/$team/marketing/blasts/$blastId': typeof TeamTeamMarketingBlastsBlastIdRoute
+  '/$team/marketing/forms/$formId': typeof TeamTeamMarketingFormsFormIdRoute
+  '/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/$team/import/master-list': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list': typeof TeamTeamImportReferralListIndexRoute
   '/$team/log/expense': typeof TeamTeamLogExpenseIndexRoute
   '/$team/log/marketing': typeof TeamTeamLogMarketingIndexRoute
   '/$team/log/mileage': typeof TeamTeamLogMileageIndexRoute
+  '/$team/marketing/blasts': typeof TeamTeamMarketingBlastsIndexRoute
+  '/$team/marketing/campaigns': typeof TeamTeamMarketingCampaignsIndexRoute
+  '/$team/marketing/forms': typeof TeamTeamMarketingFormsIndexRoute
+  '/$team/marketing/landing-pages': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/$team/report/expense': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage': typeof TeamTeamReportMileageIndexRoute
@@ -426,7 +521,10 @@ export interface FileRoutesById {
   '/_auth/otp': typeof AuthOtpRoute
   '/_auth/register': typeof AuthRegisterRoute
   '/_auth/two-factor': typeof AuthTwoFactorRoute
+  '/book/$slug': typeof BookSlugRoute
+  '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
+  '/l/$slug': typeof LSlugRoute
   '/_auth/email/verification': typeof AuthEmailVerificationRoute
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/_team/$team/calendar': typeof TeamTeamCalendarRoute
@@ -447,6 +545,7 @@ export interface FileRoutesById {
   '/_team/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
   '/_team/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/_team/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
+  '/_team/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
   '/_team/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/_team/$team/companies/': typeof TeamTeamCompaniesIndexRoute
   '/_team/$team/contacts/': typeof TeamTeamContactsIndexRoute
@@ -455,11 +554,18 @@ export interface FileRoutesById {
   '/_team/$team/master-list/': typeof TeamTeamMasterListIndexRoute
   '/_team/$team/referral-list/': typeof TeamTeamReferralListIndexRoute
   '/_team/$team/tasks/': typeof TeamTeamTasksIndexRoute
+  '/_team/$team/marketing/blasts/$blastId': typeof TeamTeamMarketingBlastsBlastIdRoute
+  '/_team/$team/marketing/forms/$formId': typeof TeamTeamMarketingFormsFormIdRoute
+  '/_team/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/_team/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/_team/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
   '/_team/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
   '/_team/$team/log/marketing/': typeof TeamTeamLogMarketingIndexRoute
   '/_team/$team/log/mileage/': typeof TeamTeamLogMileageIndexRoute
+  '/_team/$team/marketing/blasts/': typeof TeamTeamMarketingBlastsIndexRoute
+  '/_team/$team/marketing/campaigns/': typeof TeamTeamMarketingCampaignsIndexRoute
+  '/_team/$team/marketing/forms/': typeof TeamTeamMarketingFormsIndexRoute
+  '/_team/$team/marketing/landing-pages/': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/_team/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/_team/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/_team/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
@@ -477,7 +583,10 @@ export interface FileRouteTypes {
     | '/otp'
     | '/register'
     | '/two-factor'
+    | '/book/$slug'
+    | '/f/$slug'
     | '/invitation/$action'
+    | '/l/$slug'
     | '/email/verification'
     | '/reset-password/verify'
     | '/$team/calendar'
@@ -498,6 +607,7 @@ export interface FileRouteTypes {
     | '/$team/master-list/create'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
+    | '/$team/settings/booking'
     | '/$team/tasks/$task'
     | '/$team/companies/'
     | '/$team/contacts/'
@@ -506,11 +616,18 @@ export interface FileRouteTypes {
     | '/$team/master-list/'
     | '/$team/referral-list/'
     | '/$team/tasks/'
+    | '/$team/marketing/blasts/$blastId'
+    | '/$team/marketing/forms/$formId'
+    | '/$team/marketing/landing-pages/$pageId'
     | '/$team/import/master-list/'
     | '/$team/import/referral-list/'
     | '/$team/log/expense/'
     | '/$team/log/marketing/'
     | '/$team/log/mileage/'
+    | '/$team/marketing/blasts/'
+    | '/$team/marketing/campaigns/'
+    | '/$team/marketing/forms/'
+    | '/$team/marketing/landing-pages/'
     | '/$team/report/expense/'
     | '/$team/report/marketing/'
     | '/$team/report/mileage/'
@@ -526,7 +643,10 @@ export interface FileRouteTypes {
     | '/otp'
     | '/register'
     | '/two-factor'
+    | '/book/$slug'
+    | '/f/$slug'
     | '/invitation/$action'
+    | '/l/$slug'
     | '/email/verification'
     | '/reset-password/verify'
     | '/$team/calendar'
@@ -547,6 +667,7 @@ export interface FileRouteTypes {
     | '/$team/master-list/create'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
+    | '/$team/settings/booking'
     | '/$team/tasks/$task'
     | '/$team/companies'
     | '/$team/contacts'
@@ -555,11 +676,18 @@ export interface FileRouteTypes {
     | '/$team/master-list'
     | '/$team/referral-list'
     | '/$team/tasks'
+    | '/$team/marketing/blasts/$blastId'
+    | '/$team/marketing/forms/$formId'
+    | '/$team/marketing/landing-pages/$pageId'
     | '/$team/import/master-list'
     | '/$team/import/referral-list'
     | '/$team/log/expense'
     | '/$team/log/marketing'
     | '/$team/log/mileage'
+    | '/$team/marketing/blasts'
+    | '/$team/marketing/campaigns'
+    | '/$team/marketing/forms'
+    | '/$team/marketing/landing-pages'
     | '/$team/report/expense'
     | '/$team/report/marketing'
     | '/$team/report/mileage'
@@ -577,7 +705,10 @@ export interface FileRouteTypes {
     | '/_auth/otp'
     | '/_auth/register'
     | '/_auth/two-factor'
+    | '/book/$slug'
+    | '/f/$slug'
     | '/invitation/$action'
+    | '/l/$slug'
     | '/_auth/email/verification'
     | '/_auth/reset-password/verify'
     | '/_team/$team/calendar'
@@ -598,6 +729,7 @@ export interface FileRouteTypes {
     | '/_team/$team/master-list/create'
     | '/_team/$team/referral-list/create'
     | '/_team/$team/settings/billing'
+    | '/_team/$team/settings/booking'
     | '/_team/$team/tasks/$task'
     | '/_team/$team/companies/'
     | '/_team/$team/contacts/'
@@ -606,11 +738,18 @@ export interface FileRouteTypes {
     | '/_team/$team/master-list/'
     | '/_team/$team/referral-list/'
     | '/_team/$team/tasks/'
+    | '/_team/$team/marketing/blasts/$blastId'
+    | '/_team/$team/marketing/forms/$formId'
+    | '/_team/$team/marketing/landing-pages/$pageId'
     | '/_team/$team/import/master-list/'
     | '/_team/$team/import/referral-list/'
     | '/_team/$team/log/expense/'
     | '/_team/$team/log/marketing/'
     | '/_team/$team/log/mileage/'
+    | '/_team/$team/marketing/blasts/'
+    | '/_team/$team/marketing/campaigns/'
+    | '/_team/$team/marketing/forms/'
+    | '/_team/$team/marketing/landing-pages/'
     | '/_team/$team/report/expense/'
     | '/_team/$team/report/marketing/'
     | '/_team/$team/report/mileage/'
@@ -625,7 +764,10 @@ export interface RootRouteChildren {
   TeamRoute: typeof TeamRouteWithChildren
   BillingRoute: typeof BillingRoute
   OnboardingRoute: typeof OnboardingRoute
+  BookSlugRoute: typeof BookSlugRoute
+  FSlugRoute: typeof FSlugRoute
   InvitationActionRoute: typeof InvitationActionRoute
+  LSlugRoute: typeof LSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -665,11 +807,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/l/$slug': {
+      id: '/l/$slug'
+      path: '/l/$slug'
+      fullPath: '/l/$slug'
+      preLoaderRoute: typeof LSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invitation/$action': {
       id: '/invitation/$action'
       path: '/invitation/$action'
       fullPath: '/invitation/$action'
       preLoaderRoute: typeof InvitationActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$slug': {
+      id: '/f/$slug'
+      path: '/f/$slug'
+      fullPath: '/f/$slug'
+      preLoaderRoute: typeof FSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$slug': {
+      id: '/book/$slug'
+      path: '/book/$slug'
+      fullPath: '/book/$slug'
+      preLoaderRoute: typeof BookSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/two-factor': {
@@ -861,6 +1024,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamTasksTaskRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/settings/booking': {
+      id: '/_team/$team/settings/booking'
+      path: '/booking'
+      fullPath: '/$team/settings/booking'
+      preLoaderRoute: typeof TeamTeamSettingsBookingRouteImport
+      parentRoute: typeof TeamTeamSettingsRoute
+    }
     '/_team/$team/settings/billing': {
       id: '/_team/$team/settings/billing'
       path: '/billing'
@@ -917,6 +1087,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamReportExpenseIndexRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/marketing/landing-pages/': {
+      id: '/_team/$team/marketing/landing-pages/'
+      path: '/$team/marketing/landing-pages'
+      fullPath: '/$team/marketing/landing-pages/'
+      preLoaderRoute: typeof TeamTeamMarketingLandingPagesIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/marketing/forms/': {
+      id: '/_team/$team/marketing/forms/'
+      path: '/$team/marketing/forms'
+      fullPath: '/$team/marketing/forms/'
+      preLoaderRoute: typeof TeamTeamMarketingFormsIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/marketing/campaigns/': {
+      id: '/_team/$team/marketing/campaigns/'
+      path: '/$team/marketing/campaigns'
+      fullPath: '/$team/marketing/campaigns/'
+      preLoaderRoute: typeof TeamTeamMarketingCampaignsIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/marketing/blasts/': {
+      id: '/_team/$team/marketing/blasts/'
+      path: '/$team/marketing/blasts'
+      fullPath: '/$team/marketing/blasts/'
+      preLoaderRoute: typeof TeamTeamMarketingBlastsIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/log/mileage/': {
       id: '/_team/$team/log/mileage/'
       path: '/$team/log/mileage'
@@ -950,6 +1148,27 @@ declare module '@tanstack/react-router' {
       path: '/$team/import/master-list'
       fullPath: '/$team/import/master-list/'
       preLoaderRoute: typeof TeamTeamImportMasterListIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/marketing/landing-pages/$pageId': {
+      id: '/_team/$team/marketing/landing-pages/$pageId'
+      path: '/$team/marketing/landing-pages/$pageId'
+      fullPath: '/$team/marketing/landing-pages/$pageId'
+      preLoaderRoute: typeof TeamTeamMarketingLandingPagesPageIdRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/marketing/forms/$formId': {
+      id: '/_team/$team/marketing/forms/$formId'
+      path: '/$team/marketing/forms/$formId'
+      fullPath: '/$team/marketing/forms/$formId'
+      preLoaderRoute: typeof TeamTeamMarketingFormsFormIdRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/marketing/blasts/$blastId': {
+      id: '/_team/$team/marketing/blasts/$blastId'
+      path: '/$team/marketing/blasts/$blastId'
+      fullPath: '/$team/marketing/blasts/$blastId'
+      preLoaderRoute: typeof TeamTeamMarketingBlastsBlastIdRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/referral-list/option/$option/': {
@@ -1000,10 +1219,12 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface TeamTeamSettingsRouteChildren {
   TeamTeamSettingsBillingRoute: typeof TeamTeamSettingsBillingRoute
+  TeamTeamSettingsBookingRoute: typeof TeamTeamSettingsBookingRoute
 }
 
 const TeamTeamSettingsRouteChildren: TeamTeamSettingsRouteChildren = {
   TeamTeamSettingsBillingRoute: TeamTeamSettingsBillingRoute,
+  TeamTeamSettingsBookingRoute: TeamTeamSettingsBookingRoute,
 }
 
 const TeamTeamSettingsRouteWithChildren =
@@ -1034,11 +1255,18 @@ interface TeamRouteChildren {
   TeamTeamMasterListIndexRoute: typeof TeamTeamMasterListIndexRoute
   TeamTeamReferralListIndexRoute: typeof TeamTeamReferralListIndexRoute
   TeamTeamTasksIndexRoute: typeof TeamTeamTasksIndexRoute
+  TeamTeamMarketingBlastsBlastIdRoute: typeof TeamTeamMarketingBlastsBlastIdRoute
+  TeamTeamMarketingFormsFormIdRoute: typeof TeamTeamMarketingFormsFormIdRoute
+  TeamTeamMarketingLandingPagesPageIdRoute: typeof TeamTeamMarketingLandingPagesPageIdRoute
   TeamTeamImportMasterListIndexRoute: typeof TeamTeamImportMasterListIndexRoute
   TeamTeamImportReferralListIndexRoute: typeof TeamTeamImportReferralListIndexRoute
   TeamTeamLogExpenseIndexRoute: typeof TeamTeamLogExpenseIndexRoute
   TeamTeamLogMarketingIndexRoute: typeof TeamTeamLogMarketingIndexRoute
   TeamTeamLogMileageIndexRoute: typeof TeamTeamLogMileageIndexRoute
+  TeamTeamMarketingBlastsIndexRoute: typeof TeamTeamMarketingBlastsIndexRoute
+  TeamTeamMarketingCampaignsIndexRoute: typeof TeamTeamMarketingCampaignsIndexRoute
+  TeamTeamMarketingFormsIndexRoute: typeof TeamTeamMarketingFormsIndexRoute
+  TeamTeamMarketingLandingPagesIndexRoute: typeof TeamTeamMarketingLandingPagesIndexRoute
   TeamTeamReportExpenseIndexRoute: typeof TeamTeamReportExpenseIndexRoute
   TeamTeamReportMarketingIndexRoute: typeof TeamTeamReportMarketingIndexRoute
   TeamTeamReportMileageIndexRoute: typeof TeamTeamReportMileageIndexRoute
@@ -1072,11 +1300,20 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamMasterListIndexRoute: TeamTeamMasterListIndexRoute,
   TeamTeamReferralListIndexRoute: TeamTeamReferralListIndexRoute,
   TeamTeamTasksIndexRoute: TeamTeamTasksIndexRoute,
+  TeamTeamMarketingBlastsBlastIdRoute: TeamTeamMarketingBlastsBlastIdRoute,
+  TeamTeamMarketingFormsFormIdRoute: TeamTeamMarketingFormsFormIdRoute,
+  TeamTeamMarketingLandingPagesPageIdRoute:
+    TeamTeamMarketingLandingPagesPageIdRoute,
   TeamTeamImportMasterListIndexRoute: TeamTeamImportMasterListIndexRoute,
   TeamTeamImportReferralListIndexRoute: TeamTeamImportReferralListIndexRoute,
   TeamTeamLogExpenseIndexRoute: TeamTeamLogExpenseIndexRoute,
   TeamTeamLogMarketingIndexRoute: TeamTeamLogMarketingIndexRoute,
   TeamTeamLogMileageIndexRoute: TeamTeamLogMileageIndexRoute,
+  TeamTeamMarketingBlastsIndexRoute: TeamTeamMarketingBlastsIndexRoute,
+  TeamTeamMarketingCampaignsIndexRoute: TeamTeamMarketingCampaignsIndexRoute,
+  TeamTeamMarketingFormsIndexRoute: TeamTeamMarketingFormsIndexRoute,
+  TeamTeamMarketingLandingPagesIndexRoute:
+    TeamTeamMarketingLandingPagesIndexRoute,
   TeamTeamReportExpenseIndexRoute: TeamTeamReportExpenseIndexRoute,
   TeamTeamReportMarketingIndexRoute: TeamTeamReportMarketingIndexRoute,
   TeamTeamReportMileageIndexRoute: TeamTeamReportMileageIndexRoute,
@@ -1096,7 +1333,10 @@ const rootRouteChildren: RootRouteChildren = {
   TeamRoute: TeamRouteWithChildren,
   BillingRoute: BillingRoute,
   OnboardingRoute: OnboardingRoute,
+  BookSlugRoute: BookSlugRoute,
+  FSlugRoute: FSlugRoute,
   InvitationActionRoute: InvitationActionRoute,
+  LSlugRoute: LSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

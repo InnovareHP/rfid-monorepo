@@ -362,12 +362,14 @@ export class BoardController {
   @Get("/:recordId/suggestions")
   async getFollowUpSuggestions(
     @Param("recordId") recordId: string,
+    @Query("force") force: string,
     @Session() session: AuthenticatedSession
   ) {
     try {
       return await this.boardService.getFollowUpSuggestions(
         recordId,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        force === "true"
       );
     } catch (error) {
       throw new BadRequestException(error.message);

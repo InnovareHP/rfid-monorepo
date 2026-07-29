@@ -1,0 +1,46 @@
+import { axiosClient } from "@/lib/axios-client";
+
+export interface PublicBookingPage {
+  title: string;
+  description: string | null;
+  durationMinutes: number;
+  locationLabel: string | null;
+  timezone: string;
+  hostName: string;
+  organizationName: string | null;
+}
+
+export const getPublicBookingPage = async (
+  slug: string
+): Promise<PublicBookingPage> => {
+  const response = await axiosClient.get(`/api/booking/public/${slug}`);
+  return response.data;
+};
+
+export const getPublicBookingSlots = async (
+  slug: string,
+  date: string
+): Promise<string[]> => {
+  const response = await axiosClient.get(
+    `/api/booking/public/${slug}/slots`,
+    { params: { date } }
+  );
+  return response.data;
+};
+
+export const createPublicBooking = async (
+  slug: string,
+  data: {
+    startTime: string;
+    inviteeName: string;
+    inviteeEmail: string;
+    inviteeNotes?: string;
+    boardId?: string;
+  }
+) => {
+  const response = await axiosClient.post(
+    `/api/booking/public/${slug}/bookings`,
+    data
+  );
+  return response.data;
+};
