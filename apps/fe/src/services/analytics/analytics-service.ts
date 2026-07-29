@@ -15,10 +15,18 @@ export const getAnalytics = async (
   return response.data;
 };
 
-export const getAnalyticsSummary = async (analytics: AnalyticsResponse) => {
+export const getAnalyticsSummary = async (
+  analytics: AnalyticsResponse,
+  start: string | null,
+  end: string | null,
+  force = false
+) => {
   const response = await axiosClient.get(`/api/analytics/summary`, {
     params: {
       analytics,
+      start,
+      end,
+      ...(force ? { force: true } : {}),
     },
   });
 

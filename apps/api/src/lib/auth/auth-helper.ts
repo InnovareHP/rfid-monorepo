@@ -384,9 +384,14 @@ export const afterRemoveMember = async ({
   organization,
 }: {
   member: any;
-  user: { email: string };
-  organization: { name: string };
+  user: { email: string; id: string };
+  organization: { name: string; id: string };
 }) => {
+  await prisma.bookingPage.updateMany({
+    where: { organizationId: organization.id, userId: user.id },
+    data: { isActive: false },
+  });
+
   console.log(
     `[org-hook] Member ${user.email} removed from ${organization.name}`
   );

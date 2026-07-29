@@ -42,6 +42,9 @@ model Board {
   activities        Activity[]
   relationsAsSource BoardRelation[]          @relation("RelationSource")
   relationsAsTarget BoardRelation[]          @relation("RelationTarget")
+  bookings          Booking[]
+  formSubmissions   FormSubmission[]
+  blastRecipients   BlastRecipient[]
 
   @@index([organizationId, recordName])
   @@index([organizationId, moduleType, isDeleted, createdAt])

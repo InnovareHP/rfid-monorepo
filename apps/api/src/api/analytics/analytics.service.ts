@@ -626,7 +626,19 @@ export class AnalyticsService {
     return result;
   }
 
-  async getAnalyticsByGemini(analytics: any) {
+  async getAnalyticsByGemini(
+    organizationId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    analytics: any,
+    force = false
+  ) {
+    const cacheKey = `analytics_summary:${organizationId}:${startDate}:${endDate}`;
+    if (!force) {
+      const cached = await getData(cacheKey);
+      if (cached) return cached;
+    }
+
     const prompt = analyticsPrompt(analytics);
     const job = await this.geminiQueue.add("gemini", {
       type: "analytics-summary",
@@ -634,6 +646,7 @@ export class AnalyticsService {
     });
 
     const result = await job.waitUntilFinished(this.geminiQueueEvents, 30000);
+    await cacheData(cacheKey, result, 60 * 5);
     return result;
   }
 

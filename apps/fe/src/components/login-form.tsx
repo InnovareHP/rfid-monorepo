@@ -2,19 +2,19 @@ import { authClient } from "@/lib/auth-client";
 import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from "@dashboard/ui/components/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { cn } from "@dashboard/ui/lib/utils";
@@ -81,6 +81,9 @@ export function LoginForm({
   const queryClient = useQueryClient();
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<
+    "google" | "microsoft" | null
+  >(null);
 
   const formSchema = z.object({
     email: z.string().email(),
@@ -311,10 +314,12 @@ export function LoginForm({
                       </button>
                       <button
                         type="button"
-                        aria-label="More sign-in options"
+                        onClick={() => handleSocialLogin("microsoft")}
+                        disabled={socialLoading !== null}
+                        aria-label="Continue with Microsoft"
                         className="flex h-10 xl:h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
                       >
-                        <LayoutGrid className="w-4 h-4 xl:w-5 xl:h-5" />
+                        <MicrosoftIcon className="w-4 h-4 xl:w-5 xl:h-5" />
                       </button>
                     </div>
 

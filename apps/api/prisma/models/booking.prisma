@@ -1,0 +1,76 @@
+model BookingPage {
+  id                   String   @id @default(uuid())
+  createdAt            DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(3)
+  userId               String
+  organizationId       String
+  slug                 String   @unique
+  title                String
+  description          String?
+  locationLabel        String?
+  durationMinutes      Int      @default(30)
+  timezone             String
+  bufferBeforeMinutes  Int      @default(0)
+  bufferAfterMinutes   Int      @default(0)
+  minNoticeHours       Int      @default(4)
+  isActive             Boolean  @default(true)
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availability AvailabilityRule[]
+  bookings     Booking[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@schema("booking_schema")
+}
+
+model AvailabilityRule {
+  id            String   @id @default(uuid())
+  bookingPageId String
+  dayOfWeek     Int
+  startMinute   Int
+  endMinute     Int
+
+  bookingPage BookingPage @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
+
+  @@index([bookingPageId, dayOfWeek])
+  @@schema("booking_schema")
+}
+
+model Booking {
+  id                 String        @id @default(uuid())
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  bookingPageId      String
+  organizationId     String
+  userId             String
+  boardId            String?
+  inviteeName        String
+  inviteeEmail       String
+  inviteeNotes       String?
+  startTime          DateTime      @db.Timestamptz(3)
+  endTime            DateTime      @db.Timestamptz(3)
+  status             BookingStatus @default(CONFIRMED)
+  calendarProvider   String?
+  externalEventId    String?
+  calendarSyncFailed Boolean       @default(false)
+
+  bookingPage BookingPage @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
+  board       Board?      @relation(fields: [boardId], references: [id], onDelete: SetNull)
+
+  // No plain @@unique here: Prisma can't express a partial index. The real
+  // constraint — unique (bookingPageId, startTime) among CONFIRMED rows only,
+  // so a cancelled slot can be rebooked — lives in a raw-SQL migration as
+  // "Booking_bookingPageId_startTime_confirmed_key".
+  @@index([bookingPageId, startTime])
+  @@index([organizationId])
+  @@index([boardId])
+  @@index([userId])
+  @@schema("booking_schema")
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+
+  @@schema("booking_schema")
+}

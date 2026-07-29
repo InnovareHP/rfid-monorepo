@@ -1,4 +1,18 @@
-import { AiSummaryCard, type AiInsightSection } from "./ai-summary-card";
+import { Button } from "@dashboard/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@dashboard/ui/components/card";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 type AnalyticsSummary = {
   executive_summary?: string;
@@ -12,36 +26,182 @@ type AnalyticsSummary = {
   final_recommendations?: string;
 };
 
-function toSections(summary: AnalyticsSummary | undefined): AiInsightSection[] {
-  return [
-    { title: "Key Insights", items: summary?.key_insights },
-    { title: "Bottlenecks", items: summary?.bottlenecks },
-    { title: "Opportunities", items: summary?.opportunities },
-    {
-      title: "Short-Term Strategy",
-      items: summary?.recommended_strategy?.short_term,
-    },
-    {
-      title: "Long-Term Strategy",
-      items: summary?.recommended_strategy?.long_term,
-    },
-    { title: "Final Recommendations", text: summary?.final_recommendations },
-  ];
+function useTypewriter(text: string, speed = 12) {
+  const [displayed, setDisplayed] = useState("");
+
+  useEffect(() => {
+    if (!text) return setDisplayed("");
+
+    let i = 0;
+    setDisplayed("");
+
+    const interval = setInterval(() => {
+      setDisplayed((prev) => prev + text[i]);
+      i++;
+      if (i >= text.length) clearInterval(interval);
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return displayed;
+}
+
+function trimObject(obj: any, maxKeys = 5) {
+  if (typeof obj !== "object" || obj === null) return obj;
+  const keys = Object.keys(obj);
+  if (keys.length <= maxKeys) return obj;
+  const trimmed: any = {};
+  keys.slice(0, maxKeys).forEach((key) => (trimmed[key] = obj[key]));
+  return trimmed;
+}
+
+function renderAIContent(content: any): React.ReactNode {
+  const formatKey = (key: string) =>
+    key
+      .replace(/_/g, " ") // replace underscores
+      .replace(
+        /\w\S*/g,
+        (
+          w // capitalize every word
+        ) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+      );
+
+  if (typeof content === "string") {
+    return <p className="text-sm text-gray-700 leading-relaxed">{content}</p>;
+  }
+
+  if (Array.isArray(content)) {
+    return (
+      <ul className="list-disc ml-5 text-sm text-gray-700 space-y-2">
+        {content.map((item, i) => (
+          <li key={i} className="leading-relaxed">{renderAIContent(item)}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (typeof content === "object" && content !== null) {
+    return (
+      <div className="ml-2 space-y-4">
+        {Object.entries(content).map(([key, value]) => (
+          <div key={key} className="bg-white/50 rounded-lg p-3 border border-primary/15">
+            <h4 className="font-bold text-sm text-foreground mb-2">{formatKey(key)}</h4>
+            <div className="ml-2">{renderAIContent(value)}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <p className="text-sm text-gray-700">{String(content)}</p>;
 }
 
 export default function AiSummary({
   isLoadingSummary,
   summary,
+  error,
+  onRegenerate,
 }: {
   isLoadingSummary: boolean;
   summary: AnalyticsSummary | undefined;
+  error?: string | null;
+  onRegenerate?: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const summaryStr = summary ? JSON.stringify(summary) : "";
+  const isLong = summaryStr.length > 600;
+
+  const shownSummary = expanded ? summary : trimObject(summary, 5);
+  const typewriterRaw = JSON.stringify(shownSummary);
+
+  const typed = useTypewriter(typewriterRaw);
+
+  let parsed: any = shownSummary;
+  try {
+    parsed = JSON.parse(typed);
+  } catch {
+    // partial JSON while typing
+  }
+
   return (
-    <AiSummaryCard
-      isLoading={isLoadingSummary}
-      preview={summary?.executive_summary}
-      sections={toSections(summary)}
-      fallbackPreview="The Behavioral Referral Intelligence Report analyzes referral behavior across your organization."
-    />
+    <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-white to-primary/10 shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="border-b bg-gradient-to-r from-primary/20 to-primary/10">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <CardTitle className="text-xl font-bold text-gray-900">
+              AI-Powered Insights
+            </CardTitle>
+          </div>
+          {onRegenerate && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isLoadingSummary}
+              onClick={onRegenerate}
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isLoadingSummary ? "animate-spin" : ""}`}
+              />
+              Regenerate
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-6">
+        {/* Loading */}
+        {isLoadingSummary && !summary && !error && (
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-primary font-medium">
+              Analyzing your analytics data and generating insights...
+            </p>
+          </div>
+        )}
+
+        {/* Error */}
+        {!isLoadingSummary && error && (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <AlertTriangle className="h-8 w-8 text-red-400" />
+            <p className="text-sm text-red-600 font-medium">{error}</p>
+            {onRegenerate && (
+              <Button variant="outline" size="sm" onClick={onRegenerate}>
+                Try again
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Render object */}
+        {!isLoadingSummary && !error && summary && (
+          <div className="space-y-4">
+            {renderAIContent(parsed)}
+
+            {/* Show more toggle */}
+            {isLong && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="flex items-center gap-2 text-primary hover:text-primary font-semibold text-sm transition-colors mt-4 group"
+              >
+                {expanded ? (
+                  <>
+                    Show less <ChevronUp className="h-4 w-4 group-hover:-translate-y-0.5 transition-transform" />
+                  </>
+                ) : (
+                  <>
+                    Show more <ChevronDown className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

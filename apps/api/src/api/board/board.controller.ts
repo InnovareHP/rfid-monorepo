@@ -362,12 +362,14 @@ export class BoardController {
   @Get("/:recordId/suggestions")
   async getFollowUpSuggestions(
     @Param("recordId") recordId: string,
+    @Query("force") force: string,
     @Session() session: AuthenticatedSession
   ) {
     try {
       return await this.boardService.getFollowUpSuggestions(
         recordId,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        force === "true"
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -403,8 +405,13 @@ export class BoardController {
 
     try {
       if (["REFERRAL", "CONTACT", "COMPANY"].includes(dto.moduleType ?? "")) {
+        if (!dto.data?.length) {
+          throw new BadRequestException(
+            "data is required for this module type"
+          );
+        }
         return this.boardService.createReferral(
-          dto.data,
+          dto.data as { referral_name: string; [key: string]: any }[],
           organizationId,
           session.user.id,
           dto.moduleType

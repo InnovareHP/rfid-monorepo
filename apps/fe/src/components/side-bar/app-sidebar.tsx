@@ -13,6 +13,7 @@ import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
   Building2,
+  CalendarClock,
   CircuitBoard,
   ClipboardList,
   Contact,
@@ -20,6 +21,9 @@ import {
   FileText,
   Folder,
   HistoryIcon,
+  LayoutTemplate,
+  Megaphone,
+  MailPlus,
   Route,
   Settings,
   SquareTerminal,
@@ -99,6 +103,32 @@ export function AppSidebar({
               title: "Tasks",
               url: `/${activeOrganizationId}/tasks`,
               icon: ClipboardList,
+            },
+          ],
+        },
+        {
+          title: "Marketing Hub",
+          icon: MailPlus,
+          items: [
+            {
+              title: "Forms",
+              url: `/${activeOrganizationId}/marketing/forms`,
+              icon: FileText,
+            },
+            {
+              title: "Campaigns",
+              url: `/${activeOrganizationId}/marketing/campaigns`,
+              icon: Megaphone,
+            },
+            {
+              title: "Blasts",
+              url: `/${activeOrganizationId}/marketing/blasts`,
+              icon: MailPlus,
+            },
+            {
+              title: "Landing Pages",
+              url: `/${activeOrganizationId}/marketing/landing-pages`,
+              icon: LayoutTemplate,
             },
           ],
         },
@@ -190,6 +220,11 @@ export function AppSidebar({
               title: "County Configuration",
               url: `/${activeOrganizationId}/county-config`,
               icon: Settings,
+            },
+            {
+              title: "Booking",
+              url: `/${activeOrganizationId}/settings/booking`,
+              icon: CalendarClock,
             },
             ...(memberData?.role === ROLES.OWNER
               ? [

@@ -133,6 +133,16 @@ export class EmailTrackingService {
         where: { id: activity.id, firstOpenedAt: null },
         data: { firstOpenedAt: now },
       }),
+      // updateMany (not update): trackingId usually belongs to a non-blast
+      // Activity, so zero matching rows here must be a no-op, not a throw.
+      prisma.blastRecipient.updateMany({
+        where: { trackingId },
+        data: { openCount: { increment: 1 }, lastOpenedAt: now },
+      }),
+      prisma.blastRecipient.updateMany({
+        where: { trackingId, firstOpenedAt: null },
+        data: { firstOpenedAt: now },
+      }),
     ]);
 
     await this.auditService.record({
