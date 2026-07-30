@@ -76,12 +76,12 @@ export function ReusableTable<T>({
       <ScrollArea>
         <Table className="border-0 w-full">
           <TableHeader>
-            <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50">
+            <TableRow className="border-b border-gray-200 bg-table-header hover:bg-table-header">
               {columns.map((col, idx) => (
                 <TableHead
                   key={idx}
                   className={cn(
-                    "text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground border-r border-gray-200 last:border-r-0 px-4 py-3",
+                    "text-left text-sm font-semibold text-gray-900 px-4 py-3",
                     col.className
                   )}
                 >
@@ -142,13 +142,13 @@ export function ReusableTable<T>({
               data.map((row, rowIndex) => (
                 <TableRow
                   key={rowIndex}
-                  className="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                  className="border-b border-gray-100 bg-white hover:bg-gray-50 transition-colors"
                 >
                   {columns.map((col, colIndex) => (
                     <TableCell
                       key={colIndex}
                       className={cn(
-                        "border-r border-gray-200 last:border-r-0 px-4 py-2.5 text-sm",
+                        "px-4 py-3 text-sm",
                         col.className
                       )}
                     >

@@ -46,12 +46,12 @@ export function ReportTable<T>({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-gray-200 bg-brand/5">
+            <tr className="border-b border-gray-200 bg-table-header">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={cn(
-                    "px-4 py-3 text-sm font-semibold whitespace-nowrap text-brand",
+                    "px-4 py-3 text-sm font-semibold whitespace-nowrap text-gray-900",
                     column.className
                   )}
                 >
