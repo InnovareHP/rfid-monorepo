@@ -98,6 +98,17 @@ export type LeadRow = {
   [key: string]: string | number;
 };
 
+export type BoardStatMetric = {
+  value: number;
+  previous: number;
+};
+
+export type BoardStats = {
+  totalFacilities: BoardStatMetric;
+  activePartners: BoardStatMetric;
+  countiesCovered: BoardStatMetric;
+};
+
 export type ReferralRow = {
   id: string;
   [key: string]: string | number;
