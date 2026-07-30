@@ -13,10 +13,15 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@dashboard/ui/components/input-otp";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useRouter } from "@tanstack/react-router";
-import { Fingerprint, KeyRound, Loader2, Mail, User } from "lucide-react";
+import { Fingerprint, Loader2, Mail, User } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -28,7 +33,7 @@ const detailsSchema = z.object({
 });
 
 const codeSchema = z.object({
-  code: z.string().length(6),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 export function RegisterForm({
@@ -138,7 +143,7 @@ export function RegisterForm({
               </div>
 
               {!details ? (
-                <Form {...detailsForm}>
+                <Form key="details" {...detailsForm}>
                   <form
                     className="space-y-4"
                     onSubmit={detailsForm.handleSubmit(handleSendCode)}
@@ -221,7 +226,7 @@ export function RegisterForm({
                   </form>
                 </Form>
               ) : (
-                <Form {...codeForm}>
+                <Form key="code" {...codeForm}>
                   <form
                     className="space-y-4"
                     onSubmit={codeForm.handleSubmit(handleVerifyAndEnroll)}
@@ -230,28 +235,26 @@ export function RegisterForm({
                       control={codeForm.control}
                       name="code"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="items-center">
                           <FormLabel className="text-sm font-semibold text-blue-900">
                             Verification code
                           </FormLabel>
-                          <div className="relative">
-                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            <FormControl>
-                              <Input
-                                {...field}
-                                inputMode="numeric"
-                                autoComplete="one-time-code"
-                                maxLength={6}
-                                placeholder="123456"
-                                onChange={(e) =>
-                                  field.onChange(
-                                    e.target.value.replace(/\D/g, "")
-                                  )
-                                }
-                                className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors tracking-widest"
-                              />
-                            </FormControl>
-                          </div>
+                          <FormControl>
+                            <InputOTP
+                              {...field}
+                              maxLength={6}
+                              containerClassName="justify-center"
+                            >
+                              <InputOTPGroup>
+                                <InputOTPSlot index={0} />
+                                <InputOTPSlot index={1} />
+                                <InputOTPSlot index={2} />
+                                <InputOTPSlot index={3} />
+                                <InputOTPSlot index={4} />
+                                <InputOTPSlot index={5} />
+                              </InputOTPGroup>
+                            </InputOTP>
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

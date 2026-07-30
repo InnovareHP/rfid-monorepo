@@ -11,7 +11,7 @@ import {
 } from "@dashboard/ui/components/dialog";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { Fingerprint, HeadphonesIcon, LayoutDashboard, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -152,6 +152,16 @@ export function LoginForm({
                   >
                     Set it up here.
                   </button>
+                </div>
+
+                <div className="text-center text-sm text-gray-600">
+                  Don't have an account?{" "}
+                  <Link
+                    to="/register"
+                    className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Create one.
+                  </Link>
                 </div>
               </div>
 
