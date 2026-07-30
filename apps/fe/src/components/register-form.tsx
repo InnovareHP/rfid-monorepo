@@ -1,4 +1,8 @@
 import { authClient } from "@/lib/auth-client";
+import {
+  sendSignupOtp,
+  verifySignupOtp,
+} from "@/services/passkeys/passkeys-service";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
@@ -12,58 +16,95 @@ import {
 import { Input } from "@dashboard/ui/components/input";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Loader2, Lock, Mail, User, Zap } from "lucide-react";
+import { Link, useRouter } from "@tanstack/react-router";
+import {
+  CheckCircle2,
+  Fingerprint,
+  KeyRound,
+  Loader2,
+  Mail,
+  User,
+  Zap,
+} from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
+
+const detailsSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+const codeSchema = z.object({
+  code: z.string().length(6),
+});
 
 export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const formSchema = z
-    .object({
-      email: z.string().email(),
-      password: z.string().min(8),
-      confirmPassword: z.string().min(8),
-      name: z.string().min(1),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: "Password and confirm password must match",
-      path: ["confirmPassword"],
-    });
+  const navigate = useRouter();
+  const [details, setDetails] = useState<z.infer<typeof detailsSchema> | null>(
+    null
+  );
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      name: "",
-    },
+  const detailsForm = useForm<z.infer<typeof detailsSchema>>({
+    resolver: zodResolver(detailsSchema),
+    defaultValues: { name: "", email: "" },
   });
 
-  const handleRegister = async (values: z.infer<typeof formSchema>) => {
+  const codeForm = useForm<z.infer<typeof codeSchema>>({
+    resolver: zodResolver(codeSchema),
+    defaultValues: { code: "" },
+  });
+
+  const handleSendCode = async (values: z.infer<typeof detailsSchema>) => {
     try {
-      const { error } = await authClient.signUp.email({
-        email: values.email,
-        password: values.password,
-        name: values.name,
-        callbackURL: `${import.meta.env.VITE_APP_URL}/onboarding`,
-      });
+      await sendSignupOtp(values.email);
+      setDetails(values);
+      toast.success("We sent a verification code to your email.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not send a code."
+      );
+    }
+  };
 
-      if (error) {
-        return toast.error(error.message);
-      }
+  // The code buys an enrollment grant, never a session — the passkey ceremony
+  // is what creates the account.
+  const handleVerifyAndEnroll = async (values: z.infer<typeof codeSchema>) => {
+    if (!details) return;
 
-      toast.success(
-        "Account created successfully, check your email to verify your account."
+    try {
+      const grant = await verifySignupOtp(
+        details.email,
+        details.name,
+        values.code
       );
 
-      form.reset();
+      const { error } = await authClient.passkey.addPasskey({
+        context: grant.context,
+      });
+      if (error) {
+        toast.error(error.message ?? "Could not register your passkey.");
+        return;
+      }
+
+      const { error: signInError } = await authClient.signIn.passkey();
+      if (signInError) {
+        toast.success("Account created. Sign in with your new passkey.");
+        await navigate.navigate({ to: "/login", replace: true });
+        return;
+      }
+
+      await navigate.navigate({ to: "/onboarding", replace: true });
     } catch (error) {
-      return toast.error("Failed to create account");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "That code is invalid or has expired."
+      );
     }
   };
 
@@ -118,11 +159,10 @@ export function RegisterForm({
                   </div>
                   <div>
                     <h3 className="font-bold text-white mb-2 text-lg">
-                      Instant Access
+                      No Password to Steal
                     </h3>
                     <p className="text-white/95 leading-relaxed">
-                      Start tracking metrics and analytics immediately after
-                      signup
+                      Your account is protected by a passkey bound to your device
                     </p>
                   </div>
                 </div>
@@ -135,147 +175,163 @@ export function RegisterForm({
         <div className="w-full lg:w-2/5">
           <Card className="border-2 border-l-0 lg:border-l-2 shadow-none rounded-none lg:rounded-r-2xl h-full">
             <CardContent className="p-8">
-              <Form {...form}>
-                <form
-                  className="space-y-6"
-                  onSubmit={form.handleSubmit(handleRegister)}
-                >
-                  <div className="space-y-2 text-center">
-                    <img
-                      src="/login-page/tarsier.png"
-                      alt=""
-                      className="w-16 h-16 mx-auto mb-4 object-contain"
-                    />
-                    <h2 className="text-3xl font-bold text-gray-900">
-                      Create Account
-                    </h2>
-                    <p className="text-gray-600">
-                      Sign up to get started with your free account
-                    </p>
-                  </div>
+              <div className="space-y-2 text-center">
+                <img
+                  src="/login-page/tarsier.png"
+                  alt=""
+                  className="w-16 h-16 mx-auto mb-4 object-contain"
+                />
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Create Account
+                </h2>
+                <p className="text-gray-600">
+                  {details
+                    ? "Enter the code we emailed, then register your passkey."
+                    : "Sign up to get started with your free account"}
+                </p>
+              </div>
 
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-semibold text-gray-700">
-                            Full Name
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <Input
-                                {...field}
-                                placeholder="John Doe"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              {!details ? (
+                <Form {...detailsForm}>
+                  <form
+                    className="space-y-6 mt-6"
+                    onSubmit={detailsForm.handleSubmit(handleSendCode)}
+                  >
+                    <div className="space-y-4">
+                      <FormField
+                        control={detailsForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold text-gray-700">
+                              Full Name
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Input
+                                  {...field}
+                                  placeholder="John Doe"
+                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-semibold text-gray-700">
-                            Email Address
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <Input
-                                {...field}
-                                placeholder="you@example.com"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={detailsForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold text-gray-700">
+                              Email Address
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Input
+                                  {...field}
+                                  placeholder="you@example.com"
+                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-semibold text-gray-700">
-                            Password
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <Input
-                                {...field}
-                                placeholder="••••••••"
-                                type="password"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-semibold text-gray-700">
-                            Confirm Password
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <Input
-                                {...field}
-                                placeholder="••••••••"
-                                type="password"
-                                className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      disabled={form.formState.isSubmitting}
-                      type="submit"
-                      className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
-                    >
-                      {form.formState.isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>Creating account...</span>
-                        </div>
-                      ) : (
-                        "Create Account"
-                      )}
-                    </Button>
-
-                    <div className="text-center text-sm text-gray-600 pt-4">
-                      Already have an account?{" "}
-                      <Link
-                        to="/"
-                        className="font-semibold text-primary hover:text-primary transition-colors"
+                      <Button
+                        disabled={detailsForm.formState.isSubmitting}
+                        type="submit"
+                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
                       >
-                        Sign in instead
-                      </Link>
+                        {detailsForm.formState.isSubmitting ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Sending code...</span>
+                          </div>
+                        ) : (
+                          "Send verification code"
+                        )}
+                      </Button>
+
+                      <div className="text-center text-sm text-gray-600 pt-4">
+                        Already have an account?{" "}
+                        <Link
+                          to="/"
+                          className="font-semibold text-primary hover:text-primary transition-colors"
+                        >
+                          Sign in instead
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                </form>
-              </Form>
+                  </form>
+                </Form>
+              ) : (
+                <Form {...codeForm}>
+                  <form
+                    className="space-y-6 mt-6"
+                    onSubmit={codeForm.handleSubmit(handleVerifyAndEnroll)}
+                  >
+                    <div className="space-y-4">
+                      <FormField
+                        control={codeForm.control}
+                        name="code"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold text-gray-700">
+                              Verification Code
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Input
+                                  {...field}
+                                  inputMode="numeric"
+                                  maxLength={6}
+                                  placeholder="123456"
+                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button
+                        disabled={codeForm.formState.isSubmitting}
+                        type="submit"
+                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
+                      >
+                        {codeForm.formState.isSubmitting ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Creating account...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Fingerprint className="w-5 h-5" />
+                            <span>Create passkey</span>
+                          </div>
+                        )}
+                      </Button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDetails(null)}
+                        className="w-full text-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        Use a different email
+                      </button>
+                    </div>
+                  </form>
+                </Form>
+              )}
             </CardContent>
             <div className="mt-6 text-center text-xs text-gray-500 px-4">
               By creating an account, you agree to our{" "}

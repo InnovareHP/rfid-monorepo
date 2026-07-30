@@ -16,6 +16,18 @@ model Subscription {
   @@schema("stripe_schema")
 }
 
+// Provider-agnostic webhook dedupe. The unique constraint is the claim: insert
+// first and let parallel deliveries race at the database, never find-then-insert.
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  provider  String
+  eventId   String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([provider, eventId])
+  @@schema("stripe_schema")
+}
+
 model Plan {
   id            String    @id @default(uuid())
   name          String

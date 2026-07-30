@@ -26,11 +26,21 @@ export const appConfigSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
 
+  // Registrable domain of WEBSITE_URL, or a registrable parent for subdomains.
+  PASSKEY_RP_ID: z.string().min(1).default("localhost"),
+  // Empty or unparseable leaves the pre-passkey migration path open indefinitely.
+  PASSKEY_MIGRATION_DEADLINE: z.string().default(""),
+
   MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
   MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Live per-seat price IDs. Only read when NODE_ENV=production; dev and
+  // staging fall back to the test IDs inline in lib/stripe/plans.ts.
+  STRIPE_PRICE_ESSENTIALS_SEAT: z.string().min(1).optional(),
+  STRIPE_PRICE_GROWTH_SEAT: z.string().min(1).optional(),
+  STRIPE_PRICE_SCALE_SEAT: z.string().min(1).optional(),
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),

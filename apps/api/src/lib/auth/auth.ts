@@ -1,21 +1,22 @@
+import { passkey } from "@better-auth/passkey";
 import { stripe } from "@better-auth/stripe";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth/minimal";
 import {
   admin,
   customSession,
-  haveIBeenPwned,
   oneTimeToken,
   openAPI,
   organization,
   twoFactor,
 } from "better-auth/plugins";
 import { appConfig } from "../../config/app-config";
-import { StripeHelper } from "../helper.js";
 import { prisma } from "../prisma/prisma";
 import { redis } from "../redis/redis";
 import { BETTER_AUTH_PLANS } from "../stripe/plans";
 import { stripe as stripeClient } from "../stripe/stripe";
+import { StripeHelper } from "../stripe/stripe-events";
+import { persistSubscriptionPaymentSettings } from "../stripe/subscription-payment-settings";
 import { TAX_CHECKOUT_BASE } from "../stripe/stripe-tax";
 import {
   afterAcceptInvitation,
@@ -39,16 +40,17 @@ import {
   beforeUpdateOrganization,
   beforeUpdateTeam,
   customSessionHandler,
-  onPasswordReset,
   sendInvitationEmail,
-  sendMagicLink,
-  sendResetPassword,
-  sendVerificationEmail,
   stripeAuthorizeReference,
   subscriptionAuthorizeReference,
 } from "./auth-helper";
+import {
+  afterPasskeyAuthentication,
+  afterPasskeyRegistration,
+  resolvePasskeyRegistrationUser,
+} from "./passkey-hooks";
 import { ac, liaison, owner, super_admin, support } from "./permission";
-import type { BetterAuthOptions } from "better-auth";
+import { blockSessionGrantingEmailPaths } from "./session-path-guard";
 
 // Local dev runs over http, so secure and cross-subdomain cookies must be off.
 const isLocalDev = process.env.NODE_ENV !== "production";
@@ -56,21 +58,24 @@ const isLocalDev = process.env.NODE_ENV !== "production";
 // Dev-only: vite serves the apps on these origins regardless of the configured URLs.
 const DEV_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
 
-const socialProviders: BetterAuthOptions["socialProviders"] = {
-  google: {
-    clientId: appConfig.GOOGLE_CLIENT_ID,
-    clientSecret: appConfig.GOOGLE_CLIENT_SECRET,
-  },
-};
-
-if (appConfig.MICROSOFT_CLIENT_ID && appConfig.MICROSOFT_CLIENT_SECRET) {
-  socialProviders.microsoft = {
-    clientId: appConfig.MICROSOFT_CLIENT_ID,
-    clientSecret: appConfig.MICROSOFT_CLIENT_SECRET,
-    tenantId: "common",
-    prompt: "select_account",
-  };
-}
+// Passkeys are the only credential. A Google or Microsoft password is as
+// forwardable as ours, so social sign-in is off. Kept commented so the previous
+// configuration stays recoverable if the passkey rollout is reversed.
+// const socialProviders: BetterAuthOptions["socialProviders"] = {
+//   google: {
+//     clientId: appConfig.GOOGLE_CLIENT_ID,
+//     clientSecret: appConfig.GOOGLE_CLIENT_SECRET,
+//   },
+// };
+//
+// if (appConfig.MICROSOFT_CLIENT_ID && appConfig.MICROSOFT_CLIENT_SECRET) {
+//   socialProviders.microsoft = {
+//     clientId: appConfig.MICROSOFT_CLIENT_ID,
+//     clientSecret: appConfig.MICROSOFT_CLIENT_SECRET,
+//     tenantId: "common",
+//     prompt: "select_account",
+//   };
+// }
 
 export const auth = betterAuth({
   appName: appConfig.APP_NAME,
@@ -101,11 +106,14 @@ export const auth = betterAuth({
     window: 60,
     max: 100,
     customRules: {
-      "/sign-in/email": { window: 60, max: 5 },
-      "/sign-up/email": { window: 60, max: 5 },
-      "/forget-password": { window: 300, max: 3 },
-      "/reset-password": { window: 300, max: 5 },
+      "/passkey/generate-authenticate-options": { window: 60, max: 10 },
+      "/passkey/verify-authentication": { window: 60, max: 10 },
+      "/passkey/generate-register-options": { window: 300, max: 10 },
+      "/passkey/verify-registration": { window: 300, max: 10 },
     },
+  },
+  hooks: {
+    before: blockSessionGrantingEmailPaths,
   },
   databaseHooks: {
     session: {
@@ -181,22 +189,44 @@ export const auth = betterAuth({
       cancelAtPeriodEnd: "cancelAtPeriodEnd",
     },
   },
-  socialProviders,
-  emailVerification: {
-    sendOnSignUp: true,
-    autoSignInAfterVerification: true,
-    expiresIn: 1000 * 60 * 10, // 10 minutes
-    sendVerificationEmail,
-  },
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-    expiresIn: 1000 * 60 * 10, // 10 minutes
-    sendResetPassword,
-    onPasswordReset,
-    sendMagicLink,
-  },
+  // socialProviders,
+  // Passkey signup marks the address verified at creation, and an emailed
+  // verification link that auto-signs-in is a mailbox-to-session path.
+  // emailVerification: {
+  //   sendOnSignUp: true,
+  //   autoSignInAfterVerification: true,
+  //   expiresIn: 1000 * 60 * 10, // 10 minutes
+  //   sendVerificationEmail,
+  // },
+  // emailAndPassword: {
+  //   enabled: true,
+  //   requireEmailVerification: true,
+  //   expiresIn: 1000 * 60 * 10, // 10 minutes
+  //   sendResetPassword,
+  //   onPasswordReset,
+  //   sendMagicLink,
+  // },
   plugins: [
+    passkey({
+      rpID: appConfig.PASSKEY_RP_ID,
+      rpName: appConfig.APP_NAME,
+      // The ceremony runs in the browser and the verifier compares against the
+      // browser origin, so this must be the frontend origin, never API_URL.
+      origin: isLocalDev ? DEV_ORIGINS : appConfig.WEBSITE_URL,
+      authenticatorSelection: {
+        // Discoverable so sign-in types no email; user verification on every use.
+        residentKey: "required",
+        userVerification: "required",
+      },
+      registration: {
+        requireSession: false,
+        resolveUser: resolvePasskeyRegistrationUser,
+        afterVerification: afterPasskeyRegistration,
+      },
+      authentication: {
+        afterVerification: afterPasskeyAuthentication,
+      },
+    }),
     twoFactor({
       issuer: appConfig.APP_NAME,
       schema: {
@@ -297,7 +327,8 @@ export const auth = betterAuth({
         },
       },
     }),
-    haveIBeenPwned(),
+    // Password breach checks have nothing to check once passwords are gone.
+    // haveIBeenPwned(),
     openAPI(),
     stripe({
       schema: {
@@ -330,15 +361,26 @@ export const auth = betterAuth({
         await StripeHelper(event);
       },
       stripeWebhookSecret: appConfig.STRIPE_WEBHOOK_SECRET!,
-      createCustomerOnSignUp: true,
+      // The billing customer is the organization, so no per-user customer.
+      createCustomerOnSignUp: false,
       authorizeReference: stripeAuthorizeReference,
+      organization: {
+        enabled: true,
+      },
       subscription: {
         enabled: true,
         plans: BETTER_AUTH_PLANS,
         authorizeReference: subscriptionAuthorizeReference,
         getCheckoutSessionParams: () => ({
-          params: TAX_CHECKOUT_BASE,
+          params: {
+            ...TAX_CHECKOUT_BASE,
+            payment_method_types: ["card", "us_bank_account"],
+          },
         }),
+        // Session-level payment_method_types covers only the first charge, and
+        // Checkout's subscription_data has no payment_settings, so ACH is
+        // carried onto renewals here or renewals silently fall back to card.
+        onSubscriptionComplete: persistSubscriptionPaymentSettings,
       },
     }),
     customSession(customSessionHandler),

@@ -1,3 +1,4 @@
+import { passkeyClient } from "@better-auth/passkey/client";
 import { stripeClient } from "@better-auth/stripe/client";
 import type {
   Organization,
@@ -34,6 +35,7 @@ type CustomSessionServer = {
 
 export const authClient = createAuthClient({
   plugins: [
+    passkeyClient(),
     stripeClient({
       subscription: true,
     }),

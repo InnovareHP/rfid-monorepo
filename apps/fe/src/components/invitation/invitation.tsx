@@ -1,5 +1,5 @@
 import { authClient } from "@/lib/auth-client";
-import { verifyInviteEmail } from "@/services/invitation/invitation-service";
+import { getInvitationContext } from "@/services/passkeys/passkeys-service";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -8,32 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@dashboard/ui/components/form";
-import { Input } from "@dashboard/ui/components/input";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   ArrowRight,
   CheckCircle2,
+  Fingerprint,
   Loader2,
-  Lock,
   Mail,
   ShieldCheck,
-  User,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import z from "zod/v3";
 
 type InvitationData = {
   email: string;
@@ -44,7 +31,7 @@ type InvitationData = {
 type PageState =
   | { step: "loading" }
   | { step: "accepting" }
-  | { step: "form"; mode: "login" | "register"; invitation: InvitationData }
+  | { step: "form"; invitation: InvitationData }
   | { step: "success"; organizationId: string }
   | { step: "rejected" }
   | { step: "error"; message: string };
@@ -56,11 +43,11 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [state, setState] = useState<PageState>({ step: "loading" });
+  const [pending, setPending] = useState(false);
 
   const acceptAndRedirect = async () => {
     setState({ step: "accepting" });
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
       const { data: acceptData, error } =
         await authClient.organization.acceptInvitation({
           invitationId: token,
@@ -112,7 +99,6 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
         }
         setState({
           step: "form",
-          mode: "login",
           invitation: {
             email: email || "",
             organizationName: orgName || "the team",
@@ -128,6 +114,49 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
     };
     init();
   }, [token, action]);
+
+  const handleSignInWithPasskey = async () => {
+    setPending(true);
+    const { error } = await authClient.signIn.passkey();
+    setPending(false);
+
+    if (error) {
+      toast.error(error.message ?? "Could not sign in with a passkey.");
+      return;
+    }
+    await acceptAndRedirect();
+  };
+
+  // Holding a valid invitation already proves mailbox control, so no code is
+  // emailed — the invitation id buys the enrollment grant directly.
+  const handleEnrollAndJoin = async () => {
+    setPending(true);
+    try {
+      const grant = await getInvitationContext(token);
+      const { error } = await authClient.passkey.addPasskey({
+        context: grant.context,
+      });
+      if (error) {
+        toast.error(error.message ?? "Could not register your passkey.");
+        return;
+      }
+
+      const { error: signInError } = await authClient.signIn.passkey();
+      if (signInError) {
+        toast.error("Passkey registered. Sign in to finish joining.");
+        return;
+      }
+      await acceptAndRedirect();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "This invitation is no longer valid."
+      );
+    } finally {
+      setPending(false);
+    }
+  };
 
   // --- UI States ---
 
@@ -147,6 +176,21 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
             : "Checking invitation..."}
         </h2>
         <p className="mt-2 text-slate-500">This will only take a moment.</p>
+      </div>
+    );
+  }
+
+  if (state.step === "rejected") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+        <Card className="w-full max-w-md shadow-xl border-none">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">Invitation declined</CardTitle>
+            <CardDescription className="mt-2">
+              You can close this page.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
@@ -212,291 +256,71 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
     );
   }
 
-  // Only render the form step if in "form", ensure type safety (fixes lint error)
-  if (state.step === "form") {
-    const { invitation, mode } = state;
+  const { invitation } = state;
 
-    return (
-      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-slate-50 to-slate-100">
-        <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-slate-200">
-          <CardHeader className="space-y-1 text-center pb-8">
-            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-              <ShieldCheck className="w-8 h-8 text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">
-              Join the team
-            </CardTitle>
-            <CardDescription className="text-slate-500 text-base">
-              <span className="font-semibold text-slate-900">
-                {invitation.inviterName}
-              </span>{" "}
-              has invited you to join{" "}
-              <span className="font-semibold text-slate-900">
-                {invitation.organizationName}
-              </span>
-              .
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-slate-50 rounded-lg p-3 mb-6 flex items-center gap-3 border border-slate-100">
-              <Mail className="w-5 h-5 text-slate-400" />
-              <span className="text-sm font-medium text-slate-600">
-                {invitation.email || "Your Email"}
-              </span>
-            </div>
+  return (
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-slate-50 to-slate-100">
+      <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-slate-200">
+        <CardHeader className="space-y-1 text-center pb-8">
+          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+            <ShieldCheck className="w-8 h-8 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            Join the team
+          </CardTitle>
+          <CardDescription className="text-slate-500 text-base">
+            <span className="font-semibold text-slate-900">
+              {invitation.inviterName}
+            </span>{" "}
+            has invited you to join{" "}
+            <span className="font-semibold text-slate-900">
+              {invitation.organizationName}
+            </span>
+            .
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-slate-50 rounded-lg p-3 mb-6 flex items-center gap-3 border border-slate-100">
+            <Mail className="w-5 h-5 text-slate-400" />
+            <span className="text-sm font-medium text-slate-600">
+              {invitation.email || "Your Email"}
+            </span>
+          </div>
 
-            {mode === "login" ? (
-              <LoginForm
-                email={invitation.email}
-                onSuccess={acceptAndRedirect}
-              />
-            ) : (
-              <RegisterForm
-                email={invitation.email}
-                token={token}
-                onSuccess={acceptAndRedirect}
-                onSwitchToLogin={() =>
-                  setState((s) =>
-                    s.step === "form" ? { ...s, mode: "login" } : s
-                  )
-                }
-              />
-            )}
-
-            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-              <p className="text-sm text-slate-500">
-                {mode === "login"
-                  ? "Don't have an account yet?"
-                  : "Already have an account?"}
-                <button
-                  className="ml-2 font-semibold text-primary hover:underline"
-                  onClick={() =>
-                    setState((s) =>
-                      s.step === "form"
-                        ? {
-                            ...s,
-                            mode: s.mode === "login" ? "register" : "login",
-                          }
-                        : s
-                    )
-                  }
-                >
-                  {mode === "login" ? "Create one now" : "Sign in here"}
-                </button>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // --- Form Components with Icons ---
-
-  function LoginForm({
-    email: initialEmail,
-    onSuccess,
-  }: {
-    email: string;
-    onSuccess: () => Promise<void>;
-  }) {
-    const form = useForm({
-      resolver: zodResolver(
-        z.object({ email: z.string().email(), password: z.string().min(8) })
-      ),
-      defaultValues: { email: initialEmail, password: "" },
-    });
-
-    const onSubmit = async (values: any) => {
-      const { error } = await authClient.signIn.email({
-        email: values.email,
-        password: values.password,
-      });
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      await onSuccess();
-    };
-
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {!initialEmail && (
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email address</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                      <Input
-                        placeholder="name@company.com"
-                        className="pl-10"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+          <div className="space-y-3">
+            <Button
+              className="w-full h-11"
+              disabled={pending}
+              onClick={handleEnrollAndJoin}
+            >
+              {pending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Fingerprint className="mr-2 w-4 h-4" />
+                  Create a passkey and join
+                </>
               )}
-            />
-          )}
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-10"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button
-            className="w-full h-11"
-            type="submit"
-            disabled={form.formState.isSubmitting}
-          >
-            {form.formState.isSubmitting
-              ? "Authenticating..."
-              : "Sign In & Accept"}
-          </Button>
-        </form>
-      </Form>
-    );
-  }
+            </Button>
 
-  function RegisterForm({
-    email: initialEmail,
-    token,
-    onSuccess,
-    onSwitchToLogin,
-  }: any) {
-    const form = useForm({
-      resolver: zodResolver(
-        z.object({
-          name: z.string().min(2),
-          email: z.string().email(),
-          password: z.string().min(8),
-        })
-      ),
-      defaultValues: { name: "", email: initialEmail, password: "" },
-    });
+            <Button
+              variant="outline"
+              className="w-full h-11"
+              disabled={pending}
+              onClick={handleSignInWithPasskey}
+            >
+              I already have a passkey
+            </Button>
+          </div>
 
-    const onSubmit = async (values: any) => {
-      const { error } = await authClient.signUp.email({
-        email: values.email,
-        password: values.password,
-        name: values.name,
-      });
-      if (error) {
-        if (error.code === "USER_ALREADY_EXISTS") {
-          toast.info("User exists, switching to login.");
-          onSwitchToLogin();
-          return;
-        }
-        toast.error(error.message);
-        return;
-      }
-      try {
-        await verifyInviteEmail(token);
-        await authClient.signIn.email({
-          email: values.email,
-          password: values.password,
-        });
-        await onSuccess();
-      } catch (e) {
-        onSwitchToLogin();
-      }
-    };
-
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <Input
-                      placeholder="John Doe"
-                      className="pl-10"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email Address</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <Input
-                      placeholder="name@company.com"
-                      className="pl-10"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Create Password</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-10"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <Button
-            className="w-full h-11"
-            type="submit"
-            disabled={form.formState.isSubmitting}
-          >
-            {form.formState.isSubmitting
-              ? "Creating account..."
-              : "Register & Join"}
-          </Button>
-        </form>
-      </Form>
-    );
-  }
+          <p className="mt-6 text-center text-xs text-slate-500">
+            Passkeys stay on your device and are unlocked with your fingerprint,
+            face, or device PIN. There is no password to set.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
 export default AcceptInvitation;

@@ -2,8 +2,9 @@ import z from "zod";
 
 export const OnboardingSchema = z.object({
   foundUsOn: z.string(),
-  purpose: z.string(),
-  interests: z.array(z.string()),
+  organizationName: z.string(),
+  brandColor: z.string(),
+  logo: z.string().optional(),
 });
 
 export type OnboardingData = z.infer<typeof OnboardingSchema>;

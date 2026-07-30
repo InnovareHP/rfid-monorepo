@@ -1,3 +1,4 @@
+import { PasskeysCard } from "@/components/passkeys/passkeys-card";
 import { TwoFactorSettings } from "@/components/two-factor/two-factor-settings";
 import { authClient } from "@/lib/auth-client";
 import { uploadImage } from "@/services/image/image-service";
@@ -16,11 +17,8 @@ import {
   CardTitle,
 } from "@dashboard/ui/components/card";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import { Separator } from "@dashboard/ui/components/separator";
-import { Switch } from "@dashboard/ui/components/switch";
 import { cn } from "@dashboard/ui/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouteContext, useRouter } from "@tanstack/react-router";
 import type { User as BetterAuthUser } from "better-auth";
@@ -30,9 +28,6 @@ import {
   Camera,
   Check,
   CheckCircle,
-  Eye,
-  EyeOff,
-  KeyRound,
   Laptop,
   Loader2,
   LogOut,
@@ -46,9 +41,7 @@ import {
   X,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 
 type SessionRow = {
   id: string;
@@ -66,28 +59,6 @@ interface RouteContext {
   };
   memberData: Member & { createdAt?: string | Date; role?: string };
 }
-
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-      .string()
-      .min(8, "New password must be at least 8 characters"),
-    confirmPassword: z.string(),
-  })
-  .refine((values) => values.newPassword === values.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type PasswordFormValues = z.infer<typeof passwordSchema>;
-
-const PASSWORD_RULES = [
-  { label: "At least 8 characters", test: (v: string) => v.length >= 8 },
-  { label: "One uppercase letter", test: (v: string) => /[A-Z]/.test(v) },
-  { label: "One lowercase letter", test: (v: string) => /[a-z]/.test(v) },
-  { label: "One number", test: (v: string) => /\d/.test(v) },
-];
 
 function describeUserAgent(userAgent?: string | null) {
   if (!userAgent) return "Unknown device";
@@ -161,21 +132,8 @@ export function ProfilePage({
   const [isUploading, setIsUploading] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(user?.name ?? "");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [signOutOthers, setSignOutOthers] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
-  const newPasswordValue = passwordForm.watch("newPassword");
 
   const sessionsQuery = useQuery({
     queryKey: ["profile-sessions"],
@@ -219,23 +177,6 @@ export function ProfilePage({
       toast.success("Name updated");
       setIsEditingName(false);
       router.invalidate();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const changePasswordMutation = useMutation({
-    mutationFn: async (values: PasswordFormValues) => {
-      const { error } = await authClient.changePassword({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-        revokeOtherSessions: signOutOthers,
-      });
-      if (error) throw new Error(error.message ?? "Failed to change password");
-    },
-    onSuccess: () => {
-      toast.success("Password changed successfully!");
-      passwordForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["profile-sessions"] });
     },
     onError: (error) => toast.error(error.message),
   });
@@ -643,160 +584,14 @@ export function ProfilePage({
                 <div>
                   <CardTitle className="text-foreground">Security</CardTitle>
                   <CardDescription>
-                    Password and two-factor authentication
+                    Passkeys and two-factor authentication
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
 
             <CardContent className="space-y-4 p-6">
-              {/* Change Password */}
-              <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">
-                  Change Password
-                </span>
-              </div>
-
-              <form
-                onSubmit={passwordForm.handleSubmit((values) =>
-                  changePasswordMutation.mutate(values)
-                )}
-                className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
-              >
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium">
-                    Current Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type={showCurrent ? "text" : "password"}
-                      autoComplete="current-password"
-                      className="border-primary/40 focus:ring-2 focus:ring-primary pr-10 bg-white"
-                      {...passwordForm.register("currentPassword")}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowCurrent((v) => !v)}
-                      aria-label={
-                        showCurrent ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showCurrent ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  {passwordForm.formState.errors.currentPassword && (
-                    <p className="text-sm text-red-600 font-medium">
-                      {passwordForm.formState.errors.currentPassword.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium">
-                    New Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type={showNew ? "text" : "password"}
-                      autoComplete="new-password"
-                      className="border-primary/40 focus:ring-2 focus:ring-primary pr-10 bg-white"
-                      {...passwordForm.register("newPassword")}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowNew((v) => !v)}
-                      aria-label={showNew ? "Hide password" : "Show password"}
-                    >
-                      {showNew ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  {newPasswordValue && (
-                    <ul className="space-y-1 mt-2">
-                      {PASSWORD_RULES.map((rule) => {
-                        const passed = rule.test(newPasswordValue);
-                        return (
-                          <li
-                            key={rule.label}
-                            className={cn(
-                              "flex items-center gap-2 text-xs",
-                              passed ? "text-green-700" : "text-gray-500"
-                            )}
-                          >
-                            {passed ? (
-                              <Check className="h-3 w-3" />
-                            ) : (
-                              <X className="h-3 w-3" />
-                            )}
-                            {rule.label}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                  {passwordForm.formState.errors.newPassword && (
-                    <p className="text-sm text-red-600 font-medium">
-                      {passwordForm.formState.errors.newPassword.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium">
-                    Confirm New Password
-                  </Label>
-                  <Input
-                    type={showNew ? "text" : "password"}
-                    autoComplete="new-password"
-                    className="border-primary/40 focus:ring-2 focus:ring-primary bg-white"
-                    {...passwordForm.register("confirmPassword")}
-                  />
-                  {passwordForm.formState.errors.confirmPassword && (
-                    <p className="text-sm text-red-600 font-medium">
-                      {passwordForm.formState.errors.confirmPassword.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <Label
-                    htmlFor="revoke-sessions"
-                    className="text-sm text-gray-700 font-normal"
-                  >
-                    Sign out other devices
-                  </Label>
-                  <Switch
-                    id="revoke-sessions"
-                    checked={signOutOthers}
-                    onCheckedChange={setSignOutOthers}
-                  />
-                </div>
-
-                <Button
-                  className="w-full bg-primary hover:bg-primary/90"
-                  type="submit"
-                  disabled={changePasswordMutation.isPending}
-                >
-                  {changePasswordMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    "Update Password"
-                  )}
-                </Button>
-              </form>
+              <PasskeysCard />
 
               <Separator className="bg-gray-300" />
 

@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { getPlanCard } from "@/services/billing/billing-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent, CardHeader } from "@dashboard/ui/components/card";
@@ -21,7 +22,7 @@ const PLANS: Plan[] = [
   {
     id: "essentials",
     name: "Essentials",
-    price: 49,
+    price: 20,
     interval: "month",
     features: [
       "Up to 10 team members",
@@ -34,7 +35,7 @@ const PLANS: Plan[] = [
   {
     id: "growth",
     name: "Growth",
-    price: 99,
+    price: 49,
     interval: "month",
     isPopular: true,
     features: [
@@ -49,7 +50,7 @@ const PLANS: Plan[] = [
   {
     id: "scale",
     name: "Scale",
-    price: 149,
+    price: 79,
     interval: "month",
     features: [
       "Up to 50 team members",
@@ -76,6 +77,14 @@ export function PlansPage({
 
   const location = useLocation();
 
+  const { data: planCard } = useQuery({
+    queryKey: ["billing-plan", activeOrganizationId],
+    enabled: !!activeOrganizationId,
+    queryFn: getPlanCard,
+  });
+
+  const seatCount = planCard?.seats ?? 1;
+
   const { data: subscriptionStatus = "none", isLoading } = useQuery({
     queryKey: ["subscription-status", activeOrganizationId],
     enabled: !!activeOrganizationId,
@@ -101,6 +110,7 @@ export function PlansPage({
       const { error } = await authClient.subscription.upgrade({
         plan,
         referenceId: activeOrganizationId,
+        customerType: "organization",
         successUrl: `${
           import.meta.env.VITE_APP_URL
         }/${activeOrganizationId}/success`,
@@ -165,9 +175,13 @@ export function PlansPage({
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-bold">${plan.price}</span>
                       <span className="text-muted-foreground">
-                        /{plan.interval}
+                        per seat/{plan.interval}
                       </span>
                     </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {seatCount} {seatCount === 1 ? "seat" : "seats"} today ={" "}
+                      <strong>${plan.price * seatCount}</strong>/{plan.interval}
+                    </p>
                   </div>
                 </CardHeader>
 

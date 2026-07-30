@@ -34,5 +34,15 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-return": "off",
     },
+  },
+  {
+    // Better Auth declares APIError as a const with a constructor type rather
+    // than a class, so the rule cannot see that it derives from Error. Its
+    // hooks and middleware must also be async even when nothing is awaited.
+    files: ["src/lib/auth/**/*.ts"],
+    rules: {
+      "@typescript-eslint/only-throw-error": "off",
+      "@typescript-eslint/require-await": "off",
+    },
   }
 );

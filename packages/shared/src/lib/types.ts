@@ -518,3 +518,8 @@ export type TicketDetail = {
   SupportHistory: TicketHistoryEntry[];
   SupportTicketRating: TicketRating | null;
 };
+
+export type OnboardingStreamEvent =
+  | { type: "progress"; step: string; label: string }
+  | { type: "done"; organizationId: string }
+  | { type: "error"; message: string };

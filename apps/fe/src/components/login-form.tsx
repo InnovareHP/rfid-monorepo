@@ -1,77 +1,25 @@
+import { DeviceSetupModal } from "@/components/passkeys/device-setup-modal";
 import { authClient } from "@/lib/auth-client";
 import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@dashboard/ui/components/dialog";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@dashboard/ui/components/form";
-import { Input } from "@dashboard/ui/components/input";
 import { cn } from "@dashboard/ui/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
-import type { ErrorContext } from "better-auth/react";
-import {
-  Eye,
-  EyeOff,
-  HeadphonesIcon,
-  LayoutDashboard,
-  Loader2,
-} from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
+import { Fingerprint, HeadphonesIcon, LayoutDashboard, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import z from "zod/v3";
 
 type PendingNav = {
   activeOrganizationId: string | null | undefined;
   role: string;
 };
-
-function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" {...props}>
-      <path
-        fill="#4285F4"
-        d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.57 5.57 0 0 1-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.27 14.29a7.16 7.16 0 0 1 0-4.58V6.62H1.29a11.99 11.99 0 0 0 0 10.76l3.98-3.09Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42A11.53 11.53 0 0 0 12 0 11.99 11.99 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75Z"
-      />
-    </svg>
-  );
-}
-
-function MicrosoftIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" {...props}>
-      <path fill="#F25022" d="M2 2h9.5v9.5H2z" />
-      <path fill="#7FBA00" d="M12.5 2H22v9.5h-9.5z" />
-      <path fill="#00A4EF" d="M2 12.5h9.5V22H2z" />
-      <path fill="#FFB900" d="M12.5 12.5H22V22h-9.5z" />
-    </svg>
-  );
-}
 
 export function LoginForm({
   className,
@@ -80,23 +28,8 @@ export function LoginForm({
   const navigate = useRouter();
   const queryClient = useQueryClient();
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<
-    "google" | "microsoft" | null
-  >(null);
-
-  const formSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8),
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  const [signingIn, setSigningIn] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   const goToMainDashboard = async (data: PendingNav) => {
     setPendingNav(null);
@@ -118,58 +51,35 @@ export function LoginForm({
     window.location.href = supportUrl;
   };
 
-  const handleSocialLogin = async (provider: "google" | "microsoft") => {
-    setSocialLoading(provider);
-    await authClient.signIn.social(
-      {
-        provider,
-        callbackURL: `${import.meta.env.VITE_APP_URL}/login`,
-      },
-      {
-        onError: (ctx: ErrorContext): void => {
-          setSocialLoading(null);
-          toast.error(ctx.error.message);
-        },
-      }
-    );
-  };
+  // Discoverable credentials let the browser offer the accounts it holds, so
+  // there is no email field to fill in.
+  const handlePasskeyLogin = async () => {
+    setSigningIn(true);
+    const { error } = await authClient.signIn.passkey();
 
-  const handleLogin = async (values: z.infer<typeof formSchema>) => {
-    try {
-      await authClient.signIn.email(
-        {
-          email: values.email,
-          password: values.password,
-        },
-        {
-          onError: (ctx: ErrorContext): void => {
-            toast.error(ctx.error.message);
-          },
-          onSuccess: async () => {
-            const { data: freshSession } = await authClient.getSession();
-            queryClient.setQueryData(["session"], freshSession);
-
-            const role = freshSession?.user?.role as string;
-            const navData: PendingNav = {
-              activeOrganizationId: freshSession?.session?.activeOrganizationId,
-              role: role,
-            };
-
-            if (
-              (role && role === ROLES.SUPPORT) ||
-              role === ROLES.SUPER_ADMIN
-            ) {
-              setPendingNav(navData);
-              return;
-            }
-
-            await goToMainDashboard(navData);
-          },
-        }
-      );
-    } catch (error) {
-      return toast.error("Failed to login");
+    if (error) {
+      setSigningIn(false);
+      toast.error(error.message ?? "Could not sign in with a passkey.");
+      return;
     }
+
+    const { data: freshSession } = await authClient.getSession();
+    queryClient.setQueryData(["session"], freshSession);
+
+    const role = freshSession?.user?.role as string;
+    const navData: PendingNav = {
+      activeOrganizationId: freshSession?.session?.activeOrganizationId,
+      role,
+    };
+
+    setSigningIn(false);
+
+    if ((role && role === ROLES.SUPPORT) || role === ROLES.SUPER_ADMIN) {
+      setPendingNav(navData);
+      return;
+    }
+
+    await goToMainDashboard(navData);
   };
 
   return (
@@ -191,7 +101,7 @@ export function LoginForm({
             />
           </div>
 
-          {/* Right Side - Login Form */}
+          {/* Right Side - Login Panel */}
           <div className="w-full lg:w-[var(--panelw)] lg:shrink-0 min-h-svh lg:min-h-0 lg:h-full lg:overflow-y-auto rounded-none lg:rounded-3xl shadow-none lg:shadow-xl bg-gradient-to-b from-blue-900 via-blue-600 to-sky-300 lg:bg-gradient-to-br lg:from-sky-200 lg:via-blue-100 lg:to-blue-200 flex flex-col items-center justify-center gap-8 px-4 py-10 sm:px-8 lg:gap-6 lg:p-6 xl:p-8">
             <img
               src="/login-page/Refidly%20[Full]%20-%20White%201.png"
@@ -199,142 +109,52 @@ export function LoginForm({
               className="w-36 sm:w-44 lg:hidden"
             />
             <div className="w-full max-w-md lg:max-w-none rounded-2xl bg-gradient-to-b from-white to-blue-50 shadow-lg p-6 sm:p-8 lg:p-7 xl:p-9">
-              <Form {...form}>
-                <form
-                  className="space-y-5"
-                  onSubmit={form.handleSubmit(handleLogin)}
+              <div className="space-y-5">
+                <div className="space-y-1 text-center">
+                  <h2 className="text-3xl xl:text-4xl font-bold text-blue-900 lg:whitespace-nowrap">
+                    Welcome back!
+                  </h2>
+                  <p className="text-sm xl:text-base text-gray-600">
+                    Sign in with your passkey to continue.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  disabled={signingIn}
+                  onClick={handlePasskeyLogin}
+                  className="w-full h-10 xl:h-12 text-sm xl:text-base bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
                 >
-                  <div className="space-y-1 text-center">
-                    <h2 className="text-3xl xl:text-4xl font-bold text-blue-900 lg:whitespace-nowrap">
-                      Welcome back!
-                    </h2>
-                    <p className="text-sm xl:text-base text-gray-600">
-                      Sign in to your account to continue.
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-900">
-                            Email Address
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="m@example.com"
-                              className="h-10 xl:h-12 text-sm xl:text-base rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <FormLabel className="text-sm font-medium text-gray-900">
-                              Password
-                            </FormLabel>
-                            <Link
-                              to="/reset-password"
-                              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                            >
-                              Forgot password?
-                            </Link>
-                          </div>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Enter your password"
-                                className="h-10 xl:h-12 text-sm xl:text-base rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors pr-10"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword((v) => !v)}
-                                aria-label={
-                                  showPassword ? "Hide password" : "Show password"
-                                }
-                                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 transition-colors"
-                              >
-                                {showPassword ? (
-                                  <EyeOff className="w-4 h-4" />
-                                ) : (
-                                  <Eye className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      disabled={form.formState.isSubmitting}
-                      type="submit"
-                      className="w-full h-10 xl:h-12 text-sm xl:text-base bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
-                    >
-                      {form.formState.isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Signing in...</span>
-                        </div>
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-
-                    <div className="flex items-center gap-3">
-                      <div className="h-px flex-1 bg-gray-300" aria-hidden />
-                      <span className="text-xs font-medium tracking-wider text-gray-500 whitespace-nowrap">
-                        OR CONTINUE WITH
-                      </span>
-                      <div className="h-px flex-1 bg-gray-300" aria-hidden />
+                  {signingIn ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Signing in...</span>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleSocialLogin("google")}
-                        disabled={socialLoading !== null}
-                        aria-label="Continue with Google"
-                        className="flex h-10 xl:h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
-                      >
-                        <GoogleIcon className="w-4 h-4 xl:w-5 xl:h-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSocialLogin("microsoft")}
-                        disabled={socialLoading !== null}
-                        aria-label="Continue with Microsoft"
-                        className="flex h-10 xl:h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
-                      >
-                        <MicrosoftIcon className="w-4 h-4 xl:w-5 xl:h-5" />
-                      </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Fingerprint className="w-4 h-4 xl:w-5 xl:h-5" />
+                      <span>Sign in with a passkey</span>
                     </div>
+                  )}
+                </Button>
 
-                    <div className="text-center text-sm text-gray-600 pt-1">
-                      Don't have an account?{" "}
-                      <Link
-                        to="/register"
-                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                      >
-                        Sign up for free.
-                      </Link>
-                    </div>
-                  </div>
-                </form>
-              </Form>
+                <p className="text-center text-xs text-gray-500">
+                  Your passkey stays on this device and is unlocked with your
+                  fingerprint, face, or device PIN.
+                </p>
+
+                <div className="text-center text-sm text-gray-600 pt-1">
+                  New device?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setSetupOpen(true)}
+                    className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Set it up here.
+                  </button>
+                </div>
+              </div>
+
               <div className="mt-6 text-center text-xs text-gray-500">
                 By continuing, you agree to our{" "}
                 <a
@@ -356,6 +176,12 @@ export function LoginForm({
           </div>
         </div>
       </div>
+
+      <DeviceSetupModal
+        open={setupOpen}
+        onOpenChange={setSetupOpen}
+        onEnrolled={() => setSetupOpen(false)}
+      />
 
       {/* Dashboard selection dialog for support / super_admin roles */}
       <Dialog

@@ -17,6 +17,7 @@ model User {
   invitations      Invitation[]
   members          Member[]
   accounts         UserAccount[]
+  passkeys         Passkey[]
   onboarding       UserOnboarding?
   Board            Board[]
   History          History[]
@@ -110,6 +111,9 @@ model Organization {
   logo      String?
   createdAt DateTime @db.Timestamptz(3)
   metadata  String?
+
+  // Billing is org-level: one Stripe customer per organization, never per user.
+  stripeCustomerId String? @unique
 
   invitations     Invitation[]
   members         Member[]
@@ -235,5 +239,24 @@ model AdminActivityLog {
   adminUser    User        @relation("AdminActivityLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
   targetUser   User?       @relation("AdminActivityLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
 
+  @@schema("auth_schema")
+}
+
+// Better Auth passkey table plus aaguid, resolved to a device label at read time.
+model Passkey {
+  id           String    @id
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String    @unique
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime? @db.Timestamptz(3)
+  aaguid       String?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@schema("auth_schema")
 }

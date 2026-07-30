@@ -21,13 +21,14 @@ const PRESET_COLORS = [
 type StepFourProps = {
   register: UseFormRegister<FormValues>;
   isSubmitting: boolean;
+  progress: string;
   logoFile: File | null;
   onLogoChange: (file: File | null) => void;
   primaryColor: string;
   onColorChange: (color: string) => void;
 };
 
-const StepFour = ({ register, isSubmitting, logoFile, onLogoChange, primaryColor, onColorChange }: StepFourProps) => {
+const StepFour = ({ register, isSubmitting, progress, logoFile, onLogoChange, primaryColor, onColorChange }: StepFourProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +132,7 @@ const StepFour = ({ register, isSubmitting, logoFile, onLogoChange, primaryColor
         </div>
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex flex-col items-center gap-2">
         <Button type="submit" variant="secondary" disabled={isSubmitting}>
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -139,6 +140,9 @@ const StepFour = ({ register, isSubmitting, logoFile, onLogoChange, primaryColor
             "Continue"
           )}
         </Button>
+        {isSubmitting && progress && (
+          <p className="text-sm text-muted-foreground">{progress}</p>
+        )}
       </div>
     </div>
   );

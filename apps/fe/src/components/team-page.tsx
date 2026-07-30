@@ -1,3 +1,4 @@
+import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
 import {
   Award,
   Camera,
@@ -226,6 +227,11 @@ const TeamPage = () => {
       toast.error("Failed to cancel invitation");
     }
   };
+
+  const [passkeyResetTarget, setPasskeyResetTarget] = useState<{
+    memberId: string;
+    email: string;
+  } | null>(null);
 
   const handleRemoveFromTeam = async (memberId: string) => {
     try {
@@ -747,6 +753,18 @@ const TeamPage = () => {
                                 >
                                   Edit Role
                                 </DropdownMenuItem>
+
+                                {/* Passkey reset */}
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    setPasskeyResetTarget({
+                                      memberId: row.id,
+                                      email: row.user.email,
+                                    })
+                                  }
+                                >
+                                  Reset Passkeys
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
 
@@ -902,6 +920,12 @@ const TeamPage = () => {
           )}
         </Tabs>
       </div>
+
+      <PasskeyResetModal
+        memberId={passkeyResetTarget?.memberId ?? null}
+        memberEmail={passkeyResetTarget?.email ?? null}
+        onClose={() => setPasskeyResetTarget(null)}
+      />
     </div>
   );
 };

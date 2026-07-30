@@ -1,10 +1,7 @@
-import { authClient, useSession } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 import { pageVariants } from "@/lib/framer";
 import { uploadImage } from "@/services/image/image-service";
 import { onboardUser } from "@/services/user/user-service";
-import { toSlug } from "@dashboard/shared";
-import { useNavigate } from "@tanstack/react-router";
-import type { ErrorContext } from "better-auth/client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -32,10 +29,7 @@ const OnBoardingPage = () => {
   const [selectedUsage, setSelectedUsage] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [primaryColor, setPrimaryColor] = useState("#3b82f6");
-
-  const { data: session, refetch } = useSession();
-
-  const navigate = useNavigate();
+  const [progress, setProgress] = useState("");
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -177,48 +171,29 @@ const OnBoardingPage = () => {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      let logoUrl: string | undefined;
+      let logo: string | undefined;
 
       if (logoFile) {
+        setProgress("Uploading your logo");
         const uploadRes = await uploadImage(logoFile);
-        logoUrl = uploadRes.url;
+        logo = uploadRes.url;
       }
 
-      const { data: createRes } = await authClient.organization.create(
+      const organizationId = await onboardUser(
         {
-          name: data.organizationName.trim(),
-          slug: toSlug(data.organizationName.trim()),
-          metadata: {
-            user_id: session?.user?.id,
-            brandColor: primaryColor,
-          },
-          logo: logoUrl,
-          userId: session?.user?.id,
-          keepCurrentActiveOrganization: false,
+          foundUsOn: data.foundUsOn,
+          organizationName: data.organizationName.trim(),
+          brandColor: primaryColor,
+          logo,
         },
-        {
-          onSuccess: () => {
-            refetch();
-            window.location.reload();
-          },
-          onError: (ctx: ErrorContext) => {
-            form.setError("root", {
-              message:
-                ctx.error.message ?? "Something went wrong during onboarding.",
-            });
-          },
-        }
+        setProgress
       );
 
-      if (!createRes?.id) return;
+      await authClient.organization.setActive({ organizationId });
 
-      await onboardUser(data);
-
-      await refetch();
-
-      window.location.reload();
-      navigate({ to: `/${createRes.id}` });
+      window.location.href = `/${organizationId}`;
     } catch (err: unknown) {
+      setProgress("");
       const message =
         err instanceof Error
           ? err.message
@@ -284,6 +259,7 @@ const OnBoardingPage = () => {
                 <StepFour
                   register={register}
                   isSubmitting={isSubmitting}
+                  progress={progress}
                   logoFile={logoFile}
                   onLogoChange={setLogoFile}
                   primaryColor={primaryColor}
