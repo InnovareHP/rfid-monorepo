@@ -30,7 +30,10 @@ export const super_admin = ac.newRole({
 });
 
 export const admin = ac.newRole({
-  ...AdminAccess.statements, // limited admin powers, can customize if needed
+  ...orgAccess.statements,
+  organization: ["update"], // no delete, no billing or license
+  app: ["view", "connect_integration", "disconnect_integration", "configure"],
+  project: ["create", "share", "update", "delete"],
 });
 
 export const owner = ac.newRole({
@@ -47,6 +50,10 @@ export const owner = ac.newRole({
 });
 
 export const liaison = ac.newRole({
+  project: ["create", "update"], // limited operational
+});
+
+export const admission_manager = ac.newRole({
   project: ["create", "update"], // limited operational
 });
 

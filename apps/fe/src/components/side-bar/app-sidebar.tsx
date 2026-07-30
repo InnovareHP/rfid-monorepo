@@ -1,7 +1,7 @@
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
-import { ROLES } from "@dashboard/shared";
+import { isOrgAdmin, ROLES } from "@dashboard/shared";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +17,7 @@ import {
   CircuitBoard,
   ClipboardList,
   Contact,
+  CreditCard,
   DollarSign,
   FileText,
   Folder,
@@ -26,6 +27,7 @@ import {
   MailPlus,
   Route,
   Settings,
+  Sparkles,
   SquareTerminal,
   Target,
   Upload,
@@ -145,7 +147,7 @@ export function AppSidebar({
                   },
                 ]
               : []),
-            ...(memberData?.role !== ROLES.OWNER
+            ...(!isOrgAdmin(memberData?.role)
               ? [
                   {
                     title: "Mileage Log",
@@ -166,7 +168,7 @@ export function AppSidebar({
               : []),
           ],
         },
-        ...(memberData?.role === ROLES.OWNER
+        ...(isOrgAdmin(memberData?.role)
           ? [
               {
                 title: "Reports",
@@ -191,7 +193,7 @@ export function AppSidebar({
               },
             ]
           : []),
-        ...(memberData?.role === ROLES.OWNER
+        ...(isOrgAdmin(memberData?.role)
           ? [
               {
                 title: "Import",
@@ -228,16 +230,16 @@ export function AppSidebar({
             },
             ...(memberData?.role === ROLES.OWNER
               ? [
-                  // {
-                  //   title: "Plans",
-                  //   url: `/${activeOrganizationId}/plans`,
-                  //   icon: Sparkles,
-                  // },
-                  // {
-                  //   title: "Billing",
-                  //   url: `/${activeOrganizationId}/settings/billing`,
-                  //   icon: CreditCard,
-                  // },
+                  {
+                    title: "Plans",
+                    url: `/${activeOrganizationId}/plans`,
+                    icon: Sparkles,
+                  },
+                  {
+                    title: "Billing",
+                    url: `/${activeOrganizationId}/settings/billing`,
+                    icon: CreditCard,
+                  },
                 ]
               : []),
           ],

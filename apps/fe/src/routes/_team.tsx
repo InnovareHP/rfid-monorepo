@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 
 import Loader from "@/components/loader";
+import { NotificationBell } from "@/components/notification/notification-bell";
 import { AppSidebar } from "@/components/side-bar/app-sidebar";
 import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
@@ -38,6 +39,14 @@ export const Route = createFileRoute("/_team")({
 
     if (params.team !== session.activeOrganizationId) {
       throw redirect({ to: `/${session.activeOrganizationId}` as any });
+    }
+
+    // No paid seat means no team routes; billing is outside this layout so this cannot loop.
+    if (
+      !subscription ||
+      (subscription.status !== "active" && subscription.status !== "trialing")
+    ) {
+      throw redirect({ to: "/billing" });
     }
 
     return {
@@ -81,11 +90,16 @@ function TeamLayout() {
 
   const queryClient = useQueryClient();
 
-  const memberData = member
-    ? ({ ...member, memberRole: member.role } as unknown as Member & {
-        memberRole: string;
-      })
-    : undefined;
+  // Stable identity: a fresh object here re-fires the cache sync on every render.
+  const memberData = useMemo(
+    () =>
+      member
+        ? ({ ...member, memberRole: member.role } as unknown as Member & {
+            memberRole: string;
+          })
+        : undefined,
+    [member]
+  );
   const activeSubscription = subscription;
 
   useEffect(() => {
@@ -96,40 +110,10 @@ function TeamLayout() {
     );
   }, [queryClient, activeOrganizationId, memberData, activeSubscription]);
 
-  // useEffect(() => {
-  //   if (subscriptionLoading) return;
-  //   if (
-  //     activeSubscription &&
-  //     activeSubscription.status !== "active" &&
-  //     activeSubscription.status !== "trialing"
-  //   ) {
-  //     window.location.href = "/billing";
-  //   } else if (!activeSubscription) {
-  //     window.location.href = "/billing";
-  //   }
-  // }, [subscriptionLoading, activeSubscription]);
-
-  const isLoading = orgLoading;
-  const hasError = orgError;
-  const isReady = !isLoading && !hasError && organizations && memberData;
-
-  const ctxValue = useMemo(() => {
-    if (!isReady) return null;
-    return {
-      user,
-      activeOrganizationId,
-      organizations: organizations as unknown as Organization[],
-      memberData: memberData as Member,
-      activeSubscription: activeSubscription as Subscription | null,
-    };
-  }, [
-    isReady,
-    user,
-    activeOrganizationId,
-    organizations,
-    memberData,
-    activeSubscription,
-  ]);
+  // Only the sidebars need the org list; page content renders without it.
+  const sidebarsReady = Boolean(
+    !orgLoading && !orgError && organizations && memberData
+  );
 
   const brandColor = useMemo(() => {
     if (!organizations) return null;
@@ -159,9 +143,7 @@ function TeamLayout() {
 
   return (
     <SidebarProvider className="h-full">
-      <Loader isLoading={!isReady} />
-
-      {isReady && ctxValue && (
+      {sidebarsReady && (
         <>
           <PrimarySidebar activeOrganizationId={activeOrganizationId} />
           <AppSidebar
@@ -170,27 +152,33 @@ function TeamLayout() {
             organizations={organizations as unknown as Organization[]}
             user={user}
           />
-
-          <SidebarInset className="min-h-0 overflow-hidden">
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-              <div className="flex items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
-
-                <Separator
-                  orientation="vertical"
-                  className="mr-2 data-[orientation=vertical]:h-4"
-                />
-
-                <DynamicBreadcrumb />
-              </div>
-            </header>
-
-            <div className="flex-1 overflow-auto">
-              <Outlet />
-            </div>
-          </SidebarInset>
         </>
       )}
+
+      <SidebarInset className="relative min-h-0 overflow-hidden">
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+
+            <DynamicBreadcrumb />
+          </div>
+
+          <div className="ml-auto flex items-center px-4">
+            <NotificationBell />
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
+
+        <Loader isLoading={orgLoading} />
+      </SidebarInset>
     </SidebarProvider>
   );
 }

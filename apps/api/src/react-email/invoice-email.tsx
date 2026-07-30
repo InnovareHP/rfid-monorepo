@@ -14,16 +14,22 @@ interface InvoiceEmailProps {
   nextAttempt?: string | null;
 }
 
-const COPY: Record<InvoiceEmailKind, { heading: string; body: string }> = {
+const COPY: Record<
+  InvoiceEmailKind,
+  { eyebrow: string; heading: string; body: string }
+> = {
   paid: {
+    eyebrow: "Billing",
     heading: "Payment received",
     body: "Thanks — your subscription is paid and active.",
   },
   failed: {
+    eyebrow: "Action required",
     heading: "Payment failed",
     body: "We could not collect payment for your subscription.",
   },
   upcoming: {
+    eyebrow: "Billing",
     heading: "Upcoming renewal",
     body: "Your subscription renews soon. No action is needed if your payment details are current.",
   },
@@ -42,28 +48,32 @@ export const InvoiceEmail = ({
 
   return (
     <EmailLayout preview={`${copy.heading} for ${organizationName}`}>
+      <Text style={emailStyles.eyebrow}>{copy.eyebrow}</Text>
+
       <Heading style={emailStyles.heading}>{copy.heading}</Heading>
 
       <Text style={emailStyles.paragraph}>{copy.body}</Text>
 
-      <Text style={emailStyles.paragraph}>
-        Organization: <strong>{organizationName}</strong>
-        <br />
-        Plan: <strong>{planLabel}</strong>
-        <br />
-        Seats: <strong>{seats}</strong>
-        <br />
-        Amount: <strong>{amount}</strong>
-        {nextAttempt ? (
-          <>
-            <br />
-            Next attempt: {nextAttempt}
-          </>
-        ) : null}
-      </Text>
+      <Section style={emailStyles.detailBox}>
+        <Text style={emailStyles.detailText}>
+          Organization: <strong>{organizationName}</strong>
+          <br />
+          Plan: <strong>{planLabel}</strong>
+          <br />
+          Seats: <strong>{seats}</strong>
+          <br />
+          Amount: <strong>{amount}</strong>
+          {nextAttempt ? (
+            <>
+              <br />
+              Next attempt: <strong>{nextAttempt}</strong>
+            </>
+          ) : null}
+        </Text>
+      </Section>
 
       {invoiceUrl ? (
-        <Section style={{ textAlign: "start", margin: "24px 0" }}>
+        <Section style={emailStyles.buttonWrapper}>
           <Button href={invoiceUrl} style={emailStyles.button}>
             View invoice
           </Button>

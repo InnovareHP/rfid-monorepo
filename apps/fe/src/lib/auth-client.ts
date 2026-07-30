@@ -14,7 +14,7 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import type { Session, User } from "better-auth";
-import { ac, admission_manager, liaison, owner } from "./permissions";
+import { ac, admin, admission_manager, liaison, owner } from "./permissions";
 
 type EnrichedSession = {
   user: User & { isOnboarded: boolean };
@@ -45,6 +45,7 @@ export const authClient = createAuthClient({
       ac,
       roles: {
         owner,
+        admin,
         liason: liaison,
         admission_manager,
       },

@@ -5,7 +5,7 @@ import {
   getBlasts,
   type MarketingBlast,
 } from "@/services/marketing/blast-service";
-import { ROLES } from "@dashboard/shared";
+import { isOrgAdmin } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -37,7 +37,7 @@ export const MarketingBlastsListPage = () => {
     "member-data",
     organizationData?.id,
   ]);
-  const isOwner = memberData?.role === ROLES.OWNER;
+  const isOwner = isOrgAdmin(memberData?.role);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");

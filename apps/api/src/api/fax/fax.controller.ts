@@ -1,3 +1,4 @@
+import { isOrgAdmin } from "@dashboard/shared";
 import {
   BadRequestException,
   Body,
@@ -39,9 +40,9 @@ export class FaxController {
   }
 
   private assertOwner(session: MemberSession) {
-    if (session.session.memberRole !== "owner") {
+    if (!isOrgAdmin(session.session.memberRole)) {
       throw new ForbiddenException(
-        "Only the organization owner can manage integrations"
+        "Only an organization owner or admin can manage integrations"
       );
     }
   }

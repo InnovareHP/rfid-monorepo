@@ -106,7 +106,9 @@ export class PlacesService {
       city: pick(COMPONENT_TYPES.city),
       state: pick(COMPONENT_TYPES.state),
       zipCode: pick(COMPONENT_TYPES.zipCode),
-      county: pick(COMPONENT_TYPES.county).replace(/ county$/i, "").trim(),
+      county: pick(COMPONENT_TYPES.county)
+        .replace(/ county$/i, "")
+        .trim(),
     };
   }
 }

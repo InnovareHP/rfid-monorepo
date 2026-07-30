@@ -320,32 +320,37 @@ export class BoardService {
       select: { id: true },
     });
 
-    const [total, totalBeforeThisMonth, activeRecords, previousActiveRecords, countyValues] =
-      await Promise.all([
-        prisma.board.count({ where: recordWhere }),
-        prisma.board.count({
-          where: { ...recordWhere, createdAt: { lt: monthStart } },
-        }),
-        prisma.activity.findMany({
-          where: { record: recordWhere, createdAt: { gte: activeSince } },
-          select: { recordId: true },
-          distinct: ["recordId"],
-        }),
-        prisma.activity.findMany({
-          where: {
-            record: recordWhere,
-            createdAt: { gte: previousActiveSince, lt: activeSince },
-          },
-          select: { recordId: true },
-          distinct: ["recordId"],
-        }),
-        countyField
-          ? prisma.fieldValue.findMany({
-              where: { fieldId: countyField.id, record: recordWhere },
-              select: { value: true, record: { select: { createdAt: true } } },
-            })
-          : [],
-      ]);
+    const [
+      total,
+      totalBeforeThisMonth,
+      activeRecords,
+      previousActiveRecords,
+      countyValues,
+    ] = await Promise.all([
+      prisma.board.count({ where: recordWhere }),
+      prisma.board.count({
+        where: { ...recordWhere, createdAt: { lt: monthStart } },
+      }),
+      prisma.activity.findMany({
+        where: { record: recordWhere, createdAt: { gte: activeSince } },
+        select: { recordId: true },
+        distinct: ["recordId"],
+      }),
+      prisma.activity.findMany({
+        where: {
+          record: recordWhere,
+          createdAt: { gte: previousActiveSince, lt: activeSince },
+        },
+        select: { recordId: true },
+        distinct: ["recordId"],
+      }),
+      countyField
+        ? prisma.fieldValue.findMany({
+            where: { fieldId: countyField.id, record: recordWhere },
+            select: { value: true, record: { select: { createdAt: true } } },
+          })
+        : [],
+    ]);
 
     const counties = new Set<string>();
     const previousCounties = new Set<string>();

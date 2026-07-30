@@ -13,6 +13,8 @@ export const ResetPasswordEmail = ({
 }: ResetPasswordEmail) => {
   return (
     <EmailLayout preview="Reset your password">
+      <Text style={emailStyles.eyebrow}>Account security</Text>
+
       <Heading style={emailStyles.heading}>Reset your password</Heading>
 
       <Text style={emailStyles.paragraph}>Hi {name},</Text>
@@ -21,14 +23,15 @@ export const ResetPasswordEmail = ({
         Click the button below to securely reset your password.
       </Text>
 
-      <Section style={{ textAlign: "start", margin: "24px 0" }}>
+      <Section style={emailStyles.buttonWrapper}>
         <Button href={magicLink} style={emailStyles.button}>
-          Reset My Password
+          Reset my password
         </Button>
       </Section>
 
-      <Text style={emailStyles.paragraph}>
-        This link will expire in 10 minutes for your security.
+      <Text style={emailStyles.muted}>
+        This link expires in 10 minutes. If you did not request a reset, you can
+        safely ignore this email.
       </Text>
     </EmailLayout>
   );

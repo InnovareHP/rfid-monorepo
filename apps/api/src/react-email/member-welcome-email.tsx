@@ -17,7 +17,11 @@ export const MemberWelcomeEmail = ({
 }: MemberWelcomeEmailProps) => {
   return (
     <EmailLayout preview={`Welcome to ${organizationName}`}>
-      <Heading style={emailStyles.heading}>Welcome aboard!</Heading>
+      <Text style={emailStyles.eyebrow}>Welcome aboard</Text>
+
+      <Heading style={emailStyles.heading}>
+        You are now part of {organizationName}
+      </Heading>
 
       <Text style={emailStyles.paragraph}>
         Hi {email},
@@ -26,13 +30,13 @@ export const MemberWelcomeEmail = ({
         <strong>{role}</strong>.
       </Text>
 
-      <Section style={{ textAlign: "start", margin: "24px 0" }}>
+      <Section style={emailStyles.buttonWrapper}>
         <Button href={loginUrl} style={emailStyles.button}>
-          Go to Dashboard
+          Go to dashboard
         </Button>
       </Section>
 
-      <Text style={emailStyles.paragraph}>
+      <Text style={emailStyles.muted}>
         If you were not expecting this, please contact your organization
         administrator.
       </Text>

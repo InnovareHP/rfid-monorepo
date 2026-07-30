@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { applyBrandColor } from "@/lib/color-utils";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
-import { formatCapitalize, ROLES } from "@dashboard/shared";
+import { formatCapitalize, isOrgAdmin, ROLES } from "@dashboard/shared";
 import {
   Avatar,
   AvatarFallback,
@@ -78,7 +78,7 @@ import { ReusableTable } from "./reusable-table/generic-table";
 
 const formSchema = z.object({
   email: z.email(),
-  role: z.enum([ROLES.LIAISON, ROLES.OWNER, ROLES.ADMISSION_MANAGER]),
+  role: z.enum([ROLES.LIAISON, ROLES.ADMIN, ROLES.ADMISSION_MANAGER]),
   message: z.string(),
 });
 
@@ -268,7 +268,7 @@ const TeamPage = () => {
   };
 
   const handleLogoClick = () => {
-    if (memberData?.role === ROLES.OWNER) {
+    if (isOrgAdmin(memberData?.role)) {
       logoInputRef.current?.click();
     }
   };
@@ -377,7 +377,7 @@ const TeamPage = () => {
               Manage your team members and collaborate effectively
             </p>
           </div>
-          {memberData?.role === ROLES.OWNER && (
+          {isOrgAdmin(memberData?.role) && (
             <Dialog
               open={isInviteDialogOpen}
               onOpenChange={setIsInviteDialogOpen}
@@ -413,7 +413,7 @@ const TeamPage = () => {
                           "role",
                           value as Exclude<
                             (typeof ROLES)[keyof typeof ROLES],
-                            "support" | "user" | "super_admin"
+                            "owner" | "support" | "user" | "super_admin"
                           >
                         )
                       }
@@ -424,7 +424,7 @@ const TeamPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={ROLES.LIAISON}>Liaison</SelectItem>
-                        <SelectItem value={ROLES.OWNER}>Owner</SelectItem>
+                        <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
                         <SelectItem value={ROLES.ADMISSION_MANAGER}>
                           Admission Manager
                         </SelectItem>
@@ -474,7 +474,7 @@ const TeamPage = () => {
                     <div
                       onClick={handleLogoClick}
                       className={`relative w-16 h-16 rounded-full bg-transparent overflow-hidden border-2 border-gray-200 ${
-                        memberData?.role === ROLES.OWNER
+                        isOrgAdmin(memberData?.role)
                           ? "cursor-pointer hover:border-primary transition-all"
                           : ""
                       }`}
@@ -490,7 +490,7 @@ const TeamPage = () => {
                           <User className="w-8 h-8 text-gray-400" />
                         </div>
                       )}
-                      {memberData?.role === "owner" &&
+                      {isOrgAdmin(memberData?.role) &&
                         !organizationData?.logo && (
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
                             <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -514,7 +514,7 @@ const TeamPage = () => {
                     <h2 className="text-2xl font-bold text-gray-900">
                       {organizationData?.name.replaceAll("-", " ")}
                     </h2>
-                    {memberData?.role === ROLES.OWNER && (
+                    {isOrgAdmin(memberData?.role) && (
                       <p className="text-xs text-gray-500">
                         Click logo to upload
                       </p>
@@ -534,7 +534,7 @@ const TeamPage = () => {
           </CardContent>
         </Card>
 
-        {memberData?.role === ROLES.OWNER && (
+        {isOrgAdmin(memberData?.role) && (
           <Card className="shadow-lg border-0">
             <CardHeader>
               <CardTitle className="text-lg">Branding</CardTitle>
@@ -649,7 +649,7 @@ const TeamPage = () => {
 
         <Tabs defaultValue="members" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
-            {memberData?.role === ROLES.OWNER && (
+            {isOrgAdmin(memberData?.role) && (
               <>
                 <TabsTrigger value="members">Team Members</TabsTrigger>
                 <TabsTrigger value="invitations">
@@ -659,7 +659,7 @@ const TeamPage = () => {
             )}
           </TabsList>
 
-          {memberData?.role === ROLES.OWNER && (
+          {isOrgAdmin(memberData?.role) && (
             <TabsContent value="members" className="space-y-6">
               <Card className="bg-white/95 backdrop-blur border-0">
                 <CardHeader>
@@ -796,8 +796,8 @@ const TeamPage = () => {
                                     <SelectItem value={ROLES.LIAISON}>
                                       {formatCapitalize(ROLES.LIAISON)}
                                     </SelectItem>
-                                    <SelectItem value={ROLES.OWNER}>
-                                      {formatCapitalize(ROLES.OWNER)}
+                                    <SelectItem value={ROLES.ADMIN}>
+                                      {formatCapitalize(ROLES.ADMIN)}
                                     </SelectItem>
                                     <SelectItem value={ROLES.ADMISSION_MANAGER}>
                                       {formatCapitalize(
@@ -828,7 +828,7 @@ const TeamPage = () => {
               </Card>
             </TabsContent>
           )}
-          {memberData?.role === ROLES.OWNER && (
+          {isOrgAdmin(memberData?.role) && (
             <TabsContent value="invitations" className="space-y-6">
               <Card className="shadow-lg border-0">
                 <CardHeader>

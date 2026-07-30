@@ -1,72 +1,39 @@
-import { Button, Heading, Img, Section, Text } from "@react-email/components";
+import { Button, Heading, Section, Text } from "@react-email/components";
 import * as React from "react";
-import { EmailLayout, emailStyles } from "./email-layout";
+import { BRAND_NAME, EmailLayout, emailStyles } from "./email-layout";
 
-type ReferralDashboardEmailProps = {
+type ConfirmationEmailProps = {
   magicLink: string;
   name?: string;
-  logoUrl: string;
 };
 
 export const ReferralDashboardEmail = ({
   magicLink,
   name = "there",
-  logoUrl,
-}: ReferralDashboardEmailProps) => {
+}: ConfirmationEmailProps) => {
   return (
     <EmailLayout preview="Verify your account">
-      <Section style={heroSection}>
-        <Img
-          src={logoUrl}
-          alt="Innovare HP Referral Intelligence Dashboard"
-          style={logo}
-        />
-      </Section>
+      <Text style={emailStyles.eyebrow}>Verify your account</Text>
 
-      <Heading style={emailStyles.heading}>
-        Innovare HP Referral Intelligence Dashboard
-      </Heading>
+      <Heading style={emailStyles.heading}>Welcome to {BRAND_NAME}</Heading>
 
       <Text style={emailStyles.paragraph}>Hi {name},</Text>
 
       <Text style={emailStyles.paragraph}>
-        Welcome! To complete your registration and verify your email address,
-        please click the button below:
+        Confirm your email address to finish setting up your account.
       </Text>
 
-      <Section style={buttonSection}>
-        <Button href={magicLink} style={verifyButton}>
-          Verify Email
+      <Section style={emailStyles.buttonWrapper}>
+        <Button href={magicLink} style={emailStyles.button}>
+          Verify email
         </Button>
       </Section>
 
-      <Text style={emailStyles.paragraph}>
-        This link will expire in 10 minutes for your security.
+      <Text style={emailStyles.muted}>
+        This link expires in 10 minutes for your security.
       </Text>
     </EmailLayout>
   );
 };
 
 export default ReferralDashboardEmail;
-
-const heroSection: React.CSSProperties = {
-  textAlign: "center",
-  marginBottom: "8px",
-};
-
-const logo: React.CSSProperties = {
-  width: "100%",
-  maxWidth: "340px",
-  height: "auto",
-  margin: "0 auto",
-};
-
-const buttonSection: React.CSSProperties = {
-  textAlign: "start",
-  margin: "24px 0",
-};
-
-const verifyButton: React.CSSProperties = {
-  ...emailStyles.button,
-  backgroundColor: "#155dfc",
-};

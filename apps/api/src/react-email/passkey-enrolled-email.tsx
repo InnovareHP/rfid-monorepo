@@ -1,4 +1,4 @@
-import { Heading, Text } from "@react-email/components";
+import { Heading, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { EmailLayout, emailStyles } from "./email-layout";
 
@@ -19,6 +19,8 @@ export const PasskeyEnrolledEmail = ({
 }: PasskeyEnrolledEmailProps) => {
   return (
     <EmailLayout preview={`New passkey registered for ${memberEmail}`}>
+      <Text style={emailStyles.eyebrow}>Security alert</Text>
+
       <Heading style={emailStyles.heading}>A new passkey was added</Heading>
 
       <Text style={emailStyles.paragraph}>
@@ -26,15 +28,17 @@ export const PasskeyEnrolledEmail = ({
         <strong>{organizationName}</strong>.
       </Text>
 
-      <Text style={emailStyles.paragraph}>
-        Device: <strong>{deviceLabel}</strong>
-        <br />
-        Registered: {enrolledAt}
-        <br />
-        Passkeys on this account: <strong>{deviceCount}</strong>
-      </Text>
+      <Section style={emailStyles.detailBox}>
+        <Text style={emailStyles.detailText}>
+          Device: <strong>{deviceLabel}</strong>
+          <br />
+          Registered: <strong>{enrolledAt}</strong>
+          <br />
+          Passkeys on this account: <strong>{deviceCount}</strong>
+        </Text>
+      </Section>
 
-      <Text style={emailStyles.paragraph}>
+      <Text style={emailStyles.muted}>
         If this member did not add a device, reset their passkeys from Settings
         then Team and ask them to enroll again.
       </Text>

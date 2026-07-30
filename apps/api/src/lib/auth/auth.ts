@@ -49,7 +49,15 @@ import {
   afterPasskeyRegistration,
   resolvePasskeyRegistrationUser,
 } from "./passkey-hooks";
-import { ac, liaison, owner, super_admin, support } from "./permission";
+import {
+  ac,
+  admin as orgAdmin,
+  admission_manager,
+  liaison,
+  owner,
+  super_admin,
+  support,
+} from "./permission";
 import { blockSessionGrantingEmailPaths } from "./session-path-guard";
 
 // Local dev runs over http, so secure and cross-subdomain cookies must be off.
@@ -267,6 +275,8 @@ export const auth = betterAuth({
       ac,
       roles: {
         owner,
+        admin: orgAdmin,
+        admission_manager,
         liason: liaison,
       },
       organizationHooks: {

@@ -48,7 +48,9 @@
       "Bash(powershell -c \"\\(Get-Content 'docs/activity-log.md' | Measure-Object -Line\\).Lines\")",
       "Bash(pnpm build:fe)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" http://localhost:8080/api/marketing/public/pages/test)"
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" http://localhost:8080/api/marketing/public/pages/test)",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/**)",
+      "Bash(sed -i 's|AuthorizedRole\\(context, \\\\[ROLES.OWNER, ROLES.ADMISSION_MANAGER\\\\]\\)|AuthorizedRole\\(context, [ROLES.OWNER, ROLES.ADMIN, ROLES.ADMISSION_MANAGER]\\)|' history/index.tsx report/expense/index.tsx report/marketing/index.tsx report/mileage/index.tsx)"
     ]
   }
 }

@@ -1,3 +1,4 @@
+import { isOrgAdmin } from "@dashboard/shared";
 import {
   BadRequestException,
   Body,
@@ -64,7 +65,7 @@ export class LiaisonController {
         limit: Number(limit),
       };
 
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
 
       return await this.liaisonService.getMillage(
         isOwner ? null : session.session.memberId,
@@ -135,7 +136,7 @@ export class LiaisonController {
     try {
       const filter = filtersQuery ? JSON.parse(filtersQuery) : {};
 
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
       const memberId = isOwner ? null : session.session.memberId;
       const filters = {
         filter,
@@ -215,7 +216,7 @@ export class LiaisonController {
     };
 
     try {
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
       const organizationId = session.session.activeOrganizationId;
       return await this.liaisonService.getExpense(
         isOwner ? null : session.session.memberId,
@@ -243,7 +244,7 @@ export class LiaisonController {
         limit: 10000,
       };
 
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
       const organizationId = session.session.activeOrganizationId;
       const pdfBuffer = await this.liaisonService.getExpenseExport(
         isOwner ? null : session.session.memberId,

@@ -23,6 +23,8 @@ export const InvitationResponseEmail = ({
     <EmailLayout
       preview={`${inviteeEmail} ${response} your invitation to ${organizationName}`}
     >
+      <Text style={emailStyles.eyebrow}>Invitation update</Text>
+
       <Heading style={emailStyles.heading}>
         Invitation {accepted ? "accepted" : "declined"}
       </Heading>
@@ -42,7 +44,7 @@ export const InvitationResponseEmail = ({
       </Text>
 
       {!accepted && (
-        <Text style={emailStyles.paragraph}>
+        <Text style={emailStyles.muted}>
           You can send a new invitation from your team settings at any time.
         </Text>
       )}

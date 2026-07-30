@@ -6,7 +6,7 @@ import {
   type AudienceFilter,
   type MarketingBlast,
 } from "@/services/marketing/blast-service";
-import { ROLES } from "@dashboard/shared";
+import { isOrgAdmin } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Input } from "@dashboard/ui/components/input";
@@ -57,7 +57,7 @@ export const BlastEditorPage = () => {
     "member-data",
     organizationData?.id,
   ]);
-  const isOwner = memberData?.role === ROLES.OWNER;
+  const isOwner = isOrgAdmin(memberData?.role);
 
   const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>({
     filter: {},

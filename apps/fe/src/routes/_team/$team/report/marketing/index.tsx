@@ -5,7 +5,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_team/$team/report/marketing/")({
   beforeLoad: async (context) => {
-    return AuthorizedRole(context, [ROLES.OWNER, ROLES.ADMISSION_MANAGER]);
+    return AuthorizedRole(context, [
+      ROLES.OWNER,
+      ROLES.ADMIN,
+      ROLES.ADMISSION_MANAGER,
+    ]);
   },
   component: RouteComponent,
 });

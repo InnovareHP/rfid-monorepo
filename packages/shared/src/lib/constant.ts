@@ -1,11 +1,16 @@
 export const ROLES = {
   OWNER: "owner",
+  ADMIN: "admin",
   LIAISON: "liason",
   ADMISSION_MANAGER: "admission_manager",
   SUPPORT: "support",
   USER: "user",
   SUPER_ADMIN: "super_admin",
 } as const;
+
+// Owner and admin share elevated org access; billing and org deletion stay owner-only.
+export const isOrgAdmin = (role?: string | null) =>
+  role === ROLES.OWNER || role === ROLES.ADMIN;
 
 export const KNOWLEDGE_BASE_ITEMS = [
   {

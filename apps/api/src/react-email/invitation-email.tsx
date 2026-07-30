@@ -17,7 +17,11 @@ export const InvitationEmail = ({ invitation }: InvitationEmailProps) => {
     <EmailLayout
       preview={`You're invited to join ${invitation.organizationName}`}
     >
-      <Heading style={emailStyles.heading}>You&apos;re invited!</Heading>
+      <Text style={emailStyles.eyebrow}>Team invitation</Text>
+
+      <Heading style={emailStyles.heading}>
+        Join {invitation.organizationName}
+      </Heading>
 
       <Text style={emailStyles.paragraph}>
         Hi {invitation.email},
@@ -26,22 +30,22 @@ export const InvitationEmail = ({ invitation }: InvitationEmailProps) => {
         <strong>{invitation.organizationName}</strong>.
       </Text>
 
-      <Section style={{ textAlign: "start", margin: "24px 0" }}>
+      <Section style={emailStyles.buttonWrapper}>
         <Button href={invitation.inviteLink} style={emailStyles.button}>
-          Accept Invitation
+          Accept invitation
         </Button>
       </Section>
 
       {invitation.rejectLink && (
         <Text style={emailStyles.paragraph}>
           Don&apos;t want to join?{" "}
-          <Link href={invitation.rejectLink} style={rejectLink}>
+          <Link href={invitation.rejectLink} style={emailStyles.link}>
             Reject this invitation
           </Link>
         </Text>
       )}
 
-      <Text style={emailStyles.paragraph}>
+      <Text style={emailStyles.muted}>
         If you did not expect this invitation, you can safely ignore this email.
       </Text>
     </EmailLayout>
@@ -49,9 +53,3 @@ export const InvitationEmail = ({ invitation }: InvitationEmailProps) => {
 };
 
 export default InvitationEmail;
-
-const rejectLink: React.CSSProperties = {
-  color: "#414b57",
-  fontWeight: 700,
-  textDecoration: "underline",
-};

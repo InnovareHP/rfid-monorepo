@@ -217,7 +217,10 @@ export class LiaisonService {
         where,
       }),
       prisma.marketing.count({
-        where: { ...where, reasonForVisit: { contains: "referral", mode: "insensitive" } },
+        where: {
+          ...where,
+          reasonForVisit: { contains: "referral", mode: "insensitive" },
+        },
       }),
     ]);
 

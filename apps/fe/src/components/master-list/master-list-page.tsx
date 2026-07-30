@@ -3,7 +3,11 @@ import ReusableTable from "@/components/reusable-table/reusable-table";
 import { authClient } from "@/lib/auth-client";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { deleteLead, getLeads } from "@/services/lead/lead-service";
-import { ROLES, type LeadRow, type OptionsResponse } from "@dashboard/shared";
+import {
+  isOrgAdmin,
+  type LeadRow,
+  type OptionsResponse,
+} from "@dashboard/shared";
 import type { Member } from "better-auth/plugins/organization";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,7 +51,7 @@ export default function MasterListPage() {
     "member-data",
     organizationData?.id,
   ]);
-  const isOwner = memberData?.role === ROLES.OWNER;
+  const isOwner = isOrgAdmin(memberData?.role);
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 

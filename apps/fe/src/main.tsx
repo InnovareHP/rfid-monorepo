@@ -17,7 +17,8 @@ const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0,
+  // Zero made every hover-preload stale on arrival, so beforeLoad ran twice per navigation.
+  defaultPreloadStaleTime: 30_000,
   defaultPendingComponent: () => <Loader isLoading />,
   defaultPendingMs: 300,
   defaultPendingMinMs: 200,

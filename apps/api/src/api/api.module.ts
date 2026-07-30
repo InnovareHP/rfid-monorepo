@@ -11,6 +11,7 @@ import { ImageModule } from "./image/image.module";
 import { LiaisonModule } from "./liaison/liaison.module";
 import { ManualModule } from "./manual/manual.module";
 import { MarketingModule } from "./marketing/marketing.module";
+import { NotificationModule } from "./notification/notification.module";
 import { OptionsModule } from "./options/options.module";
 import { PasskeysModule } from "./passkeys/passkeys.module";
 import { PipelineModule } from "./pipeline/pipeline.module";
@@ -44,6 +45,7 @@ import { UserModule } from "./user/user.module";
     PipelineModule,
     TaskModule,
     MarketingModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [],

@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
-import { AdminRoleGuard } from "../../guard/role/role.guard";
+import { OwnerRoleGuard } from "../../guard/role/role.guard";
 import { BillingService } from "./billing.service";
 
 // Org id always comes from the session, never the body, so there is no
@@ -41,13 +41,13 @@ export class BillingController {
   }
 
   @Post("cancel")
-  @UseGuards(AdminRoleGuard)
+  @UseGuards(OwnerRoleGuard)
   cancel(@Session() session: MemberSession) {
     return this.billingService.cancel(session.session.activeOrganizationId);
   }
 
   @Post("resume")
-  @UseGuards(AdminRoleGuard)
+  @UseGuards(OwnerRoleGuard)
   resume(@Session() session: MemberSession) {
     return this.billingService.resume(session.session.activeOrganizationId);
   }

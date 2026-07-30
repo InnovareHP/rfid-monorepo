@@ -635,7 +635,7 @@ export class BoardController {
     const organizationId = session.session.activeOrganizationId;
     try {
       return await this.boardService.createRecordDataFromCSV(
-        dto.excelData as Record<string, unknown>[],
+        dto.excelData,
         organizationId,
         dto.moduleType
       );

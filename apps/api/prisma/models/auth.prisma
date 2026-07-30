@@ -44,6 +44,7 @@ model User {
   taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
+  notificationsActed        Notification[]              @relation("NotificationActor")
   createdCampaigns          Campaign[]
   createdBlasts             Blast[]
   createdForms              Form[]
@@ -134,6 +135,7 @@ model Organization {
   blasts          Blast[]
   forms           Form[]
   landingPages    LandingPage[]
+  notifications   Notification[]
 
   @@schema("auth_schema")
 }
@@ -167,6 +169,7 @@ model Member {
   taskAssignees  TaskAssignee[]
   taskWatchers   TaskWatcher[]
   taskComments   TaskComment[]
+  notifications  Notification[]
 
   @@schema("auth_schema")
 }

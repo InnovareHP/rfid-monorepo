@@ -155,13 +155,10 @@ export const sendVerificationEmail = async ({
   token: string;
 }) => {
   const tokenUrl = `${url}?token=${token}`;
-  const emailLogoUrl =
-    appConfig.EMAIL_LOGO_URL ?? `${appConfig.WEBSITE_URL}/login-page/rfid.png`;
   const html = await renderEmailHtml(
     ReferralDashboardEmail({
       magicLink: tokenUrl,
       name: user.name,
-      logoUrl: emailLogoUrl,
     })
   );
   await emailQueue.add("send", {
@@ -219,12 +216,9 @@ export const sendMagicLink = async ({
   token: string;
 }) => {
   const tokenUrl = `${url}?token=${token}`;
-  const emailLogoUrl =
-    appConfig.EMAIL_LOGO_URL ?? `${appConfig.WEBSITE_URL}/login-page/rfid.png`;
   const html = await renderEmailHtml(
     ReferralDashboardEmail({
       magicLink: tokenUrl,
-      logoUrl: emailLogoUrl,
     })
   );
   await emailQueue.add("send", {

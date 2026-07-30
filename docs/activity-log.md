@@ -254,3 +254,32 @@ Behavior preserved deliberately: both dialogs still reset row selection through 
 Not done, still needs a data change: referral City/State/ZIP `Field` rows, and the label mismatches (`Zip Code`/`Fax`, `Facility`/`Number`).
 
 Verified: `tsc --noEmit` clean, `pnpm build:fe` and `pnpm build:api` pass. The four filter paths (date range on both lists, referral advanced filters, referral KPI date scoping) are code-level fixes confirmed against the controller's parameter names — none exercised against a running server.
+
+### In-app notification system (generic core, task as first consumer)
+
+New `notification_schema` with one `Notification` table: `type` (string machine key, no enum so features add types without a migration), `title`, `body`, `link`, `entityType`/`entityId`, `readAt`, `organizationId`, `recipientId` (Member), `actorUserId`. Manual SQL migration in `prisma/migrations/add_notification_schema/` following the marketing/booking convention. Not applied yet.
+
+Backend `apps/api/src/api/notification/`:
+- `NotificationService.notify(input)` is the entry point for any feature: takes `recipientMemberIds`, validates they belong to the org, drops the actor's own member row, bulk-inserts. Title and body are encrypted with `lib/crypto` because task names and comment bodies can carry PHI.
+- Read side is member-scoped: list (paginated, `unreadOnly`), unread count, mark read, mark all read, delete one, clear read.
+- Module exports the service; `TaskModule` imports it.
+
+Task emitters (all fired after the transaction commits, never inside `$transaction`):
+- `createTask` -> `task.assigned` for `assigneeMemberIds`
+- `syncTaskMembers` -> `task.assigned` for newly added assignees only (tx now returns `addedAssignees`)
+- `addComment` -> `task.commented` to assignees + watchers minus the author
+- `completeTask` -> `task.completed` to assignees + watchers + the creator's member
+
+Frontend: `services/notification/notification-service.ts`, `hooks/use-notifications.ts` (unread count polls every 60s, mark-read is optimistic with rollback), `components/notification/notification-bell.tsx` + `notification-item.tsx`, mounted right-aligned in the `_team.tsx` header.
+
+Verified: `pnpm build:api` passes, `pnpm --filter fe exec tsc --noEmit` clean, api eslint clean on the new files. Nothing exercised against a running server, and the migration has not been run.
+
+### Unified Refidly email template
+
+`src/react-email/email-layout.tsx` rewritten as the single branded shell every template renders through: gradient accent bar (sky `#5cc3f0` -> blue `#155dfc` -> deep `#123a8a`, with a solid `background-color` fallback for Outlook), Refidly logo header, white card on `#f4f7fb`, hairline divider, and a footer carrying support link, abuse-report link, and copyright. Exports `BRAND_NAME`, a `brand` token object, and an expanded `emailStyles` set (`eyebrow`, `heading`, `paragraph`, `muted`, `link`, `buttonWrapper`, `button`, `detailBox`, `detailText`, `codeBox`, `codeText`).
+
+Logo asset: `apps/fe/public/branding/email-logo.png`, generated from `branding/Full/Refidly [Full] - Colored 1.png` by trimming the transparent padding and flattening onto white (640x206). The layout resolves it as `EMAIL_LOGO_URL ?? ${WEBSITE_URL}/branding/email-logo.png`, so individual templates no longer take a `logoUrl` prop.
+
+All 11 templates ported onto the shared styles: every ad-hoc local `CSSProperties` block removed, each email now leads with an eyebrow + heading, key/value blocks (invoice, booking, passkey, new device) moved into `detailBox`, and the two `process.env.APP_NAME ?? "Dashboard"` sign-offs replaced with `BRAND_NAME`. `confirmation-email.tsx` lost its Innovare HP hero image and heading; `auth-helper.ts` drops the two `emailLogoUrl` locals that fed it. `new-device-sign-in-email.tsx` now renders `settingsUrl` as a button instead of a bare URL in prose.
+
+Verified: `pnpm build:api` passes, api eslint reports no new errors (its glob is `*.ts`, so it does not cover these `.tsx` files), and all 11 templates were rendered to HTML through `@react-email/render` against dummy config. Two render bugs found that way and fixed: react-email's default 24px `Text` line-height was clipping the 34px OTP digits, and a `{" "}` before the footer support link collapsed. Nothing sent through SES.
