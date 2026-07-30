@@ -151,16 +151,16 @@ export function RegisterForm({
                           <FormLabel className="text-sm font-semibold text-blue-900">
                             Full name
                           </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <FormControl>
                               <Input
                                 {...field}
                                 placeholder="John Doe"
                                 className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors"
                               />
-                            </div>
-                          </FormControl>
+                            </FormControl>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -174,16 +174,16 @@ export function RegisterForm({
                           <FormLabel className="text-sm font-semibold text-blue-900">
                             Email address
                           </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <FormControl>
                               <Input
                                 {...field}
                                 placeholder="you@example.com"
                                 className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors"
                               />
-                            </div>
-                          </FormControl>
+                            </FormControl>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -234,18 +234,24 @@ export function RegisterForm({
                           <FormLabel className="text-sm font-semibold text-blue-900">
                             Verification code
                           </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <FormControl>
                               <Input
                                 {...field}
                                 inputMode="numeric"
+                                autoComplete="one-time-code"
                                 maxLength={6}
                                 placeholder="123456"
-                                className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors"
+                                onChange={(e) =>
+                                  field.onChange(
+                                    e.target.value.replace(/\D/g, "")
+                                  )
+                                }
+                                className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors tracking-widest"
                               />
-                            </div>
-                          </FormControl>
+                            </FormControl>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
