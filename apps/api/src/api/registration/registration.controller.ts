@@ -5,6 +5,7 @@ import {
   Post,
   Req,
 } from "@nestjs/common";
+import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import type { Request } from "express";
 import { consumeSlidingLimit } from "../../lib/auth/sliding-limiter";
 import {
@@ -17,6 +18,7 @@ import {
 import { RegistrationService } from "./registration.service";
 
 // Unauthenticated by design: these are the only ways to obtain a first passkey.
+@AllowAnonymous()
 @Controller("registration")
 export class RegistrationController {
   constructor(private readonly registrationService: RegistrationService) {}

@@ -4,7 +4,6 @@ import {
   verifySignupOtp,
 } from "@/services/passkeys/passkeys-service";
 import { Button } from "@dashboard/ui/components/button";
-import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
   Form,
   FormControl,
@@ -17,15 +16,7 @@ import { Input } from "@dashboard/ui/components/input";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useRouter } from "@tanstack/react-router";
-import {
-  CheckCircle2,
-  Fingerprint,
-  KeyRound,
-  Loader2,
-  Mail,
-  User,
-  Zap,
-} from "lucide-react";
+import { Fingerprint, KeyRound, Loader2, Mail, User } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -109,248 +100,212 @@ export function RegisterForm({
   };
 
   return (
-    <div className={cn("gap-0 p-4", className)} {...props}>
-      <div className="flex items-stretch w-full overflow-hidden rounded-2xl shadow-xl">
-        {/* Left Side - Image background + text */}
-        <div className="hidden lg:block relative lg:w-3/5 min-h-[28rem]">
-          <div
-            className="absolute inset-0 bg-cover bg-center brightness-95"
-            style={{ backgroundImage: "url(/login-page/login-img-2.jpg)" }}
-            aria-hidden
+    <div
+      className={cn(
+        "[--panelw:clamp(26rem,30vw,34rem)] [--gapw:1rem] xl:[--gapw:1.5rem] [--framew:2rem] xl:[--framew:3rem] p-0 lg:p-4 xl:p-6",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex items-stretch justify-center w-full mx-auto max-w-[96rem] lg:gap-[var(--gapw)] lg:h-[min(calc(100svh-var(--framew)),calc((100vw-var(--panelw)-var(--gapw)-var(--framew))*1.183),64rem)]">
+        {/* Left Side - Design image */}
+        <div className="hidden lg:block h-full aspect-[1300/1538] shrink-0 overflow-hidden rounded-3xl shadow-xl">
+          <img
+            src="/login-page/Inner.png"
+            alt="See every referral. Track every opportunity."
+            className="h-full w-full object-cover"
           />
-          <div
-            className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/75"
-            aria-hidden
-          />
-          <div className="relative z-10 flex flex-col justify-center h-full p-10 text-white">
-            <div className="flex flex-col gap-0 space-y-10 [text-shadow:_0_1px_2px_rgba(0,0,0,0.3)]">
-              <div className="flex flex-col gap-0">
-                <img
-                  src="/login-page/rfid.png"
-                  alt="Innovare HP Referral Intelligence"
-                  className="w-full h-auto object-contain max-h-52 invert brightness-0 drop-shadow-md"
-                />
-                <div className="space-y-6 mt-4">
-                  <p className="text-xl text-white leading-relaxed">
-                    Start optimizing your healthcare marketing today
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
-                    <CheckCircle2 className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white mb-2 text-lg">
-                      Get Started in Minutes
-                    </h3>
-                    <p className="text-white/95 leading-relaxed">
-                      Simple setup process to get your team up and running
-                      quickly
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/10 flex-shrink-0">
-                    <Zap className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white mb-2 text-lg">
-                      No Password to Steal
-                    </h3>
-                    <p className="text-white/95 leading-relaxed">
-                      Your account is protected by a passkey bound to your device
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Right Side - Register Form */}
-        <div className="w-full lg:w-2/5">
-          <Card className="border-2 border-l-0 lg:border-l-2 shadow-none rounded-none lg:rounded-r-2xl h-full">
-            <CardContent className="p-8">
-              <div className="space-y-2 text-center">
-                <img
-                  src="/login-page/tarsier.png"
-                  alt=""
-                  className="w-16 h-16 mx-auto mb-4 object-contain"
-                />
-                <h2 className="text-3xl font-bold text-gray-900">
-                  Create Account
+        {/* Right Side - Register Panel */}
+        <div className="w-full lg:w-[var(--panelw)] lg:shrink-0 min-h-svh lg:min-h-0 lg:h-full lg:overflow-y-auto rounded-none lg:rounded-3xl shadow-none lg:shadow-xl bg-gradient-to-b from-blue-900 via-blue-600 to-sky-300 lg:bg-gradient-to-br lg:from-sky-200 lg:via-blue-100 lg:to-blue-200 flex flex-col items-center justify-center gap-8 px-4 py-10 sm:px-8 lg:gap-6 lg:p-6 xl:p-8">
+          <img
+            src="/login-page/Refidly%20[Full]%20-%20White%201.png"
+            alt="Refidly — See it. Track it. Move it."
+            className="w-36 sm:w-44 lg:hidden"
+          />
+          <div className="w-full max-w-md lg:max-w-none rounded-2xl bg-gradient-to-b from-white to-blue-50 shadow-lg p-6 sm:p-8 lg:p-7 xl:p-9">
+            <div className="space-y-5">
+              <div className="space-y-1 text-center">
+                <h2 className="text-3xl xl:text-4xl font-bold text-blue-900 lg:whitespace-nowrap">
+                  Create account
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-sm xl:text-base text-gray-600">
                   {details
                     ? "Enter the code we emailed, then register your passkey."
-                    : "Sign up to get started with your free account"}
+                    : "Sign up to get started with your free account."}
                 </p>
               </div>
 
               {!details ? (
                 <Form {...detailsForm}>
                   <form
-                    className="space-y-6 mt-6"
+                    className="space-y-4"
                     onSubmit={detailsForm.handleSubmit(handleSendCode)}
                   >
-                    <div className="space-y-4">
-                      <FormField
-                        control={detailsForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-semibold text-gray-700">
-                              Full Name
-                            </FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <Input
-                                  {...field}
-                                  placeholder="John Doe"
-                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={detailsForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-blue-900">
+                            Full name
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <Input
+                                {...field}
+                                placeholder="John Doe"
+                                className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={detailsForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-semibold text-gray-700">
-                              Email Address
-                            </FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <Input
-                                  {...field}
-                                  placeholder="you@example.com"
-                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={detailsForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-blue-900">
+                            Email address
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <Input
+                                {...field}
+                                placeholder="you@example.com"
+                                className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <Button
-                        disabled={detailsForm.formState.isSubmitting}
-                        type="submit"
-                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
+                    <Button
+                      disabled={detailsForm.formState.isSubmitting}
+                      type="submit"
+                      className="w-full h-10 xl:h-12 text-sm xl:text-base bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+                    >
+                      {detailsForm.formState.isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Sending code...</span>
+                        </div>
+                      ) : (
+                        "Send verification code"
+                      )}
+                    </Button>
+
+                    <p className="text-center text-xs text-gray-500">
+                      No password is created. Your account is protected by a
+                      passkey bound to this device.
+                    </p>
+
+                    <div className="text-center text-sm text-gray-600 pt-1">
+                      Already have an account?{" "}
+                      <Link
+                        to="/login"
+                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                       >
-                        {detailsForm.formState.isSubmitting ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>Sending code...</span>
-                          </div>
-                        ) : (
-                          "Send verification code"
-                        )}
-                      </Button>
-
-                      <div className="text-center text-sm text-gray-600 pt-4">
-                        Already have an account?{" "}
-                        <Link
-                          to="/"
-                          className="font-semibold text-primary hover:text-primary transition-colors"
-                        >
-                          Sign in instead
-                        </Link>
-                      </div>
+                        Sign in instead.
+                      </Link>
                     </div>
                   </form>
                 </Form>
               ) : (
                 <Form {...codeForm}>
                   <form
-                    className="space-y-6 mt-6"
+                    className="space-y-4"
                     onSubmit={codeForm.handleSubmit(handleVerifyAndEnroll)}
                   >
-                    <div className="space-y-4">
-                      <FormField
-                        control={codeForm.control}
-                        name="code"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-semibold text-gray-700">
-                              Verification Code
-                            </FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <Input
-                                  {...field}
-                                  inputMode="numeric"
-                                  maxLength={6}
-                                  placeholder="123456"
-                                  className="h-12 pl-11 border-2 border-gray-200 focus:border-primary rounded-lg transition-colors"
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={codeForm.control}
+                      name="code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-blue-900">
+                            Verification code
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <Input
+                                {...field}
+                                inputMode="numeric"
+                                maxLength={6}
+                                placeholder="123456"
+                                className="h-10 xl:h-12 pl-10 bg-white border-gray-200 focus-visible:border-blue-600 rounded-lg transition-colors"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <Button
-                        disabled={codeForm.formState.isSubmitting}
-                        type="submit"
-                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm mt-2"
-                      >
-                        {codeForm.formState.isSubmitting ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>Creating account...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Fingerprint className="w-5 h-5" />
-                            <span>Create passkey</span>
-                          </div>
-                        )}
-                      </Button>
+                    <Button
+                      disabled={codeForm.formState.isSubmitting}
+                      type="submit"
+                      className="w-full h-10 xl:h-12 text-sm xl:text-base bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+                    >
+                      {codeForm.formState.isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Creating account...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Fingerprint className="w-4 h-4 xl:w-5 xl:h-5" />
+                          <span>Create passkey</span>
+                        </div>
+                      )}
+                    </Button>
 
+                    <p className="text-center text-xs text-gray-500">
+                      Your passkey stays on this device and is unlocked with
+                      your fingerprint, face, or device PIN.
+                    </p>
+
+                    <div className="text-center text-sm text-gray-600 pt-1">
                       <button
                         type="button"
                         onClick={() => setDetails(null)}
-                        className="w-full text-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                        className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                       >
-                        Use a different email
+                        Use a different email.
                       </button>
                     </div>
                   </form>
                 </Form>
               )}
-            </CardContent>
-            <div className="mt-6 text-center text-xs text-gray-500 px-4">
+            </div>
+
+            <div className="mt-6 text-center text-xs text-gray-500">
               By creating an account, you agree to our{" "}
               <a
                 href="#"
-                className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
+                className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
               >
                 Terms of Service
               </a>{" "}
               and{" "}
               <a
                 href="#"
-                className="text-primary hover:text-primary underline underline-offset-2 transition-colors"
+                className="text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
               >
                 Privacy Policy
               </a>
               .
             </div>
-          </Card>
+          </div>
         </div>
       </div>
     </div>
