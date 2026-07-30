@@ -170,7 +170,7 @@ const ReusableTable = <T extends { id: string }>({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
                     key={headerGroup.id}
-                    className="border-b border-gray-200 bg-blue-50 hover:bg-blue-50"
+                    className="border-b border-gray-200 bg-table-header hover:bg-table-header"
                   >
                     {headerGroup.headers.map((header, headerIndex) => {
                       const stickyLeft = headerIndex < 2;
@@ -181,7 +181,7 @@ const ReusableTable = <T extends { id: string }>({
                       return (
                       <TableHead
                         className={cn(
-                          "text-left text-sm font-semibold text-brand border-r border-gray-200 last:border-r-0 px-4 py-3 relative group/header overflow-visible sticky top-0 bg-blue-50",
+                          "text-left text-sm font-semibold text-gray-900 px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
                           stickyLeft ? "z-30" : "z-20"
                         )}
                         key={header.id}
@@ -227,13 +227,13 @@ const ReusableTable = <T extends { id: string }>({
                   Array.from({ length: 8 }).map((_, rowIdx) => (
                     <TableRow
                       key={`skeleton-${rowIdx}`}
-                      className="border-b border-gray-200 bg-white"
+                      className="border-b border-gray-100 bg-white"
                     >
                       {table.getAllLeafColumns().map((col) => (
                         <TableCell
                           key={col.id}
                           style={{ width: col.getSize(), maxWidth: col.getSize() }}
-                          className="border-r border-gray-200 last:border-r-0 px-4 py-3"
+                          className="px-4 py-3"
                         >
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -269,7 +269,7 @@ const ReusableTable = <T extends { id: string }>({
                     return (
                     <TableRow
                       className={cn(
-                        "border-b border-gray-200 transition-colors duration-150 group w-full",
+                        "border-b border-gray-100 transition-colors duration-150 group w-full",
                         rowBg,
                         isSelected
                           ? "border-primary/30 hover:bg-primary/10"
@@ -303,7 +303,7 @@ const ReusableTable = <T extends { id: string }>({
                               : {}),
                           }}
                           className={cn(
-                            "border-r border-gray-200 last:border-r-0 px-4 py-2.5 text-sm overflow-hidden text-ellipsis",
+                            "px-4 py-3 text-sm overflow-hidden text-ellipsis",
                             cellIndex === 0 && "font-medium text-gray-900",
                             stickyLeft && rowBg,
                             stickyLeft && !isSelected && "group-hover:bg-gray-50"

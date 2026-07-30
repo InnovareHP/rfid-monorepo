@@ -33,6 +33,7 @@ code {
 :root {
   --radius: 0.65rem;
   --brand: #0d3185;
+  --table-header: #f4f9ff;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -117,6 +118,7 @@ code {
     "Red Hat Display", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     sans-serif;
   --color-brand: var(--brand);
+  --color-table-header: var(--table-header);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
