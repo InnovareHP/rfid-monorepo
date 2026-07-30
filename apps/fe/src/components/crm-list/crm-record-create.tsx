@@ -30,6 +30,7 @@ type CrmRecordCreateProps = {
   title: string;
   description: string;
   entityLabel: string;
+  entityLabelPlural: string;
   nameLabel: string;
   onBack: () => void;
 };
@@ -39,6 +40,7 @@ export default function CrmRecordCreate({
   title,
   description,
   entityLabel,
+  entityLabelPlural,
   nameLabel,
   onBack,
 }: CrmRecordCreateProps) {
@@ -136,6 +138,7 @@ export default function CrmRecordCreate({
         title={title}
         description={description}
         entityLabel={entityLabel}
+        entityLabelPlural={entityLabelPlural}
         nameLabel={nameLabel}
         columns={columns}
         isLoadingColumns={isLoadingColumns}

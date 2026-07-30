@@ -160,6 +160,22 @@ export class BoardController {
     }
   }
 
+  @Get("/stats")
+  async getBoardStats(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.getBoardStats(
+        organizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/duplicates")
   async findDuplicates(
     @Session() session: AuthenticatedSession,

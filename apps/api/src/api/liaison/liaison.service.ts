@@ -69,7 +69,7 @@ export class LiaisonService {
 
     const offset = (filter.page - 1) * filter.limit;
 
-    const [data, total] = await Promise.all([
+    const [data, total, sums] = await Promise.all([
       prisma.mileage.findMany({
         where,
         skip: offset,
@@ -79,10 +79,19 @@ export class LiaisonService {
       prisma.mileage.count({
         where,
       }),
+      prisma.mileage.aggregate({
+        where,
+        _sum: { reimbursementAmount: true, totalMiles: true },
+      }),
     ]);
     return {
       data,
       total,
+      totals: {
+        reimbursement: sums._sum.reimbursementAmount ?? 0,
+        miles: sums._sum.totalMiles ?? 0,
+        trips: total,
+      },
       nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
     };
   }
@@ -196,20 +205,33 @@ export class LiaisonService {
 
     const offset = (filter.page - 1) * filter.limit;
 
-    const [data, total] = await Promise.all([
+    const [data, total, referrals] = await Promise.all([
       prisma.marketing.findMany({
         where,
         skip: offset,
         take: filter.limit,
         orderBy: { createdAt: "desc" },
+        include: { member: { select: { user: { select: { name: true } } } } },
       }),
       prisma.marketing.count({
         where,
       }),
+      prisma.marketing.count({
+        where: { ...where, reasonForVisit: { contains: "referral", mode: "insensitive" } },
+      }),
     ]);
+
     return {
-      data,
+      data: data.map(({ member, ...row }) => ({
+        ...row,
+        liaisonName: member.user.name,
+      })),
       total,
+      totals: {
+        outreach: total,
+        referrals,
+        conversionRate: total ? Math.round((referrals / total) * 100) : 0,
+      },
       nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
     };
   }
@@ -277,7 +299,7 @@ export class LiaisonService {
 
     const offset = (filter.page - 1) * filter.limit;
 
-    const [data, total] = await Promise.all([
+    const [data, total, sums, missingReceipts] = await Promise.all([
       prisma.expense.findMany({
         where,
         skip: offset,
@@ -285,14 +307,28 @@ export class LiaisonService {
         orderBy: {
           createdAt: "desc",
         },
+        include: { member: { select: { user: { select: { name: true } } } } },
       }),
       prisma.expense.count({
         where,
       }),
+      prisma.expense.aggregate({ where, _sum: { amount: true } }),
+      prisma.expense.count({ where: { ...where, imageUrl: "" } }),
     ]);
+
+    const totalAmount = sums._sum.amount ?? 0;
+
     return {
-      data,
+      data: data.map(({ member, ...row }) => ({
+        ...row,
+        liaisonName: member.user.name,
+      })),
       total,
+      totals: {
+        amount: totalAmount,
+        missingReceipts,
+        averageAmount: total ? totalAmount / total : 0,
+      },
       nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
     };
   }

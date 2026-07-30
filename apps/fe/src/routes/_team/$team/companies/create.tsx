@@ -15,6 +15,7 @@ function RouteComponent() {
       title="Create Companies"
       description="Add one or multiple companies to your list"
       entityLabel="Company"
+      entityLabelPlural="Companies"
       nameLabel="Company Name"
       onBack={() => navigate({ to: "/$team/companies", params: { team } })}
     />

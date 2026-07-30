@@ -148,8 +148,12 @@ export function EditableCell({
       );
       toast.error("Failed to update.");
     },
-    // No invalidate: the optimistic write is authoritative locally and the
-    // board socket reconciles other clients + server-derived fields.
+    // No board-list invalidate: the optimistic write is authoritative locally
+    // and the board socket reconciles other clients + server-derived fields.
+    // Stat tiles are aggregates, so they still need a refetch.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board-stats"] });
+    },
   });
 
   const handleUpdate = async (

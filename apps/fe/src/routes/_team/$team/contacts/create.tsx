@@ -15,6 +15,7 @@ function RouteComponent() {
       title="Create Contacts"
       description="Add one or multiple contacts to your list"
       entityLabel="Contact"
+      entityLabelPlural="Contacts"
       nameLabel="Contact Name"
       onBack={() => navigate({ to: "/$team/contacts", params: { team } })}
     />

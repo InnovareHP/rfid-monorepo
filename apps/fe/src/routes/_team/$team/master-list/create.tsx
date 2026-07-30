@@ -1,3 +1,4 @@
+import { FACILITY_FORM_SECTIONS } from "@/components/master-list/facility-form-sections";
 import RecordCreatePage, {
   type CreatedRecord,
   type RecordColumn,
@@ -40,6 +41,7 @@ function RouteComponent() {
     onSuccess: () => {
       toast.success("Facilities created successfully");
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["board-stats"] });
       goBack();
     },
     onError: () => {
@@ -50,10 +52,12 @@ function RouteComponent() {
   return (
     <RecordCreatePage
       title="Create Facilities"
-      description="Add one or multiple facilities to your master list"
+      description="Add one or multiple facilities to your master list."
       entityLabel="Facility"
+      entityLabelPlural="Facilities"
       nameLabel="Facility Name"
       columns={columns}
+      sections={FACILITY_FORM_SECTIONS}
       isLoadingColumns={isLoadingColumns}
       isSubmitting={createFacilitiesMutation.isPending}
       fetchDropdownOptions={getDropdownOptions}

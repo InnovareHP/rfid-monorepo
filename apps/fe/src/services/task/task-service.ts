@@ -126,7 +126,7 @@ export const getTaskById = async (id: string) => {
 
 export const createTask = async (data: CreateTaskPayload) => {
   const response = await axiosClient.post("/api/task", data);
-  return response.data;
+  return response.data as TaskDto;
 };
 
 export const updateTask = async (id: string, data: UpdateTaskPayload) => {
