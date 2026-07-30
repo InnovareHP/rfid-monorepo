@@ -6,9 +6,24 @@ type PlacePrediction = {
   place_id: string;
 };
 
+type PlaceComponents = {
+  city: string;
+  state: string;
+  zipCode: string;
+  county: string;
+};
+
 type PlaceDetail = {
   formatted_address: string;
   place_id: string;
+  components: PlaceComponents;
+};
+
+const COMPONENT_TYPES: Record<keyof PlaceComponents, string> = {
+  city: "locality",
+  state: "administrative_area_level_1",
+  zipCode: "postal_code",
+  county: "administrative_area_level_2",
 };
 
 @Injectable()
@@ -54,7 +69,7 @@ export class PlacesService {
   ): Promise<PlaceDetail> {
     const params = new URLSearchParams({
       place_id: placeId,
-      fields: "formatted_address",
+      fields: "formatted_address,address_components",
       key: this.apiKey,
     });
 
@@ -75,6 +90,23 @@ export class PlacesService {
     return {
       formatted_address: data.result.formatted_address,
       place_id: placeId,
+      components: this.extractComponents(data.result.address_components ?? []),
+    };
+  }
+
+  // Google returns components as an unordered list tagged by type
+  private extractComponents(
+    components: { long_name: string; types: string[] }[]
+  ): PlaceComponents {
+    const pick = (type: string) =>
+      components.find((component) => component.types.includes(type))
+        ?.long_name ?? "";
+
+    return {
+      city: pick(COMPONENT_TYPES.city),
+      state: pick(COMPONENT_TYPES.state),
+      zipCode: pick(COMPONENT_TYPES.zipCode),
+      county: pick(COMPONENT_TYPES.county).replace(/ county$/i, "").trim(),
     };
   }
 }

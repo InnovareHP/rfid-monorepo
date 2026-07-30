@@ -19,8 +19,8 @@ import { toast } from "sonner";
 import ColumnFilter from "../master-list/column-filter";
 import { MasterListFilters } from "../master-list/master-list-filter";
 import { MasterListView } from "../master-list/master-list-view";
-import ReferralAnalyticsStrip from "./referral-analytics-strip";
 import { generateReferralColumns } from "./referral-list-column";
+import { ReferralStatsStrip } from "./referral-stats-strip";
 
 interface RouteContext {
   activeOrganizationId: string;
@@ -30,21 +30,19 @@ export default function ReferralListPage() {
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const activeOrganizationId = ctx?.activeOrganizationId ?? "";
 
-  console.log(activeOrganizationId);
-
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [openMasterListView, setOpenMasterListView] = useState(false);
   const queryClient = useQueryClient();
   const [filterMeta, setFilterMeta] = useState<{
-    dateFrom: null | string;
-    dateTo: null | string;
+    boardDateFrom: null | Date;
+    boardDateTo: null | Date;
     filter: Record<string, string>;
     limit: number;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }>({
-    dateFrom: null,
-    dateTo: null,
+    boardDateFrom: null,
+    boardDateTo: null,
     filter: {},
     limit: 10,
   });
@@ -271,58 +269,51 @@ export default function ReferralListPage() {
           }
           initialTab="history"
         />
-        <div className="space-y-6">
-          {/* Header Section */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight page-title">
-                Referral
-              </h1>
-              <p className="text-gray-500 mt-1">
-                Manage your referrals and export data for reporting.
-              </p>
-            </div>
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight page-title">
+              Referral
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">
+              Manage your referrals and export data for reporting.
+            </p>
+          </div>
 
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={handleExportCSV}
-                className="flex items-center gap-2 border-gray-300 hover:bg-white hover:text-primary transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
-              <ColumnFilter tableColumns={tableColumns as any} />
-              <Link
-                to="/$team/referral-list/create"
-                params={{ team: activeOrganizationId }}
-                className="flex items-center gap-2 shadow-sm"
-              >
-                <Button
-                  variant="default"
-                  className="flex items-center gap-2 shadow-sm"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Referral
-                </Button>
-              </Link>
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <ColumnFilter tableColumns={tableColumns as any} />
+            <Button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
           </div>
         </div>
 
-        <div className="bg-white">
-          <MasterListFilters
-            columns={data?.columns ?? []}
-            filterMeta={filterMeta}
-            refetch={refetch}
-            setFilterMeta={setFilterMeta}
-            isReferral={true}
-          />
-        </div>
+        <ReferralStatsStrip
+          dateFrom={filterMeta.boardDateFrom}
+          dateTo={filterMeta.boardDateTo}
+        />
 
-        <ReferralAnalyticsStrip
-          dateFrom={filterMeta.dateFrom}
-          dateTo={filterMeta.dateTo}
+        <MasterListFilters
+          columns={data?.columns ?? []}
+          filterMeta={filterMeta}
+          refetch={refetch}
+          setFilterMeta={setFilterMeta}
+          isReferral={true}
+          actions={
+            <Link
+              to="/$team/referral-list/create"
+              params={{ team: activeOrganizationId }}
+            >
+              <Button className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90">
+                <Plus className="h-4 w-4" />
+                Add Referral
+              </Button>
+            </Link>
+          }
         />
 
         <ReusableTable

@@ -9,6 +9,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@dashboard/ui/components/chart";
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { useId } from "react";
 import { Area, AreaChart, CartesianGrid } from "recharts";
 import { TrendPill } from "./trend-pill";
@@ -19,6 +20,8 @@ type KpiStatTileProps = {
   seriesLabel?: string;
   delta?: TrendDelta;
   series?: MonthlyPoint[];
+  isLoading?: boolean;
+  positiveDirection?: "up" | "down";
 };
 
 export function KpiStatTile({
@@ -27,6 +30,8 @@ export function KpiStatTile({
   seriesLabel = "Referrals",
   delta,
   series,
+  isLoading = false,
+  positiveDirection = "up",
 }: KpiStatTileProps) {
   const chartConfig = {
     total: { label: seriesLabel, color: "var(--color-chart-seq-3)" },
@@ -40,12 +45,18 @@ export function KpiStatTile({
       <CardContent className="flex h-full flex-col px-5 py-0">
         <div className="flex items-center justify-between gap-3">
           <p className="text-base font-medium text-foreground">{label}</p>
-          {delta ? <TrendPill delta={delta} /> : null}
+          {delta ? (
+            <TrendPill delta={delta} positiveDirection={positiveDirection} />
+          ) : null}
         </div>
 
-        <p className="page-title mt-0.5 pb-3 text-[2.5rem] leading-tight font-bold tabular-nums">
-          {value}
-        </p>
+        {isLoading ? (
+          <Skeleton className="mt-1 mb-3 h-10 w-24" />
+        ) : (
+          <p className="page-title mt-0.5 pb-3 text-[2.5rem] leading-tight font-bold tabular-nums">
+            {value}
+          </p>
+        )}
 
         {hasSeries ? (
           <ChartContainer

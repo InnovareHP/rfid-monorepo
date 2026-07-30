@@ -9,6 +9,7 @@ export const getReferral = async (filterMeta: any) => {
   const response = await axiosClient.get("/api/boards", {
     params: {
       ...filterMeta,
+      filter: JSON.stringify(filterMeta.filter),
       moduleType: "REFERRAL",
     },
   });

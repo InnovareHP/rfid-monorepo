@@ -1,13 +1,11 @@
-import LocationCell from "@/components/reusable-table/location-cell";
+import LocationCell, {
+  type AddressComponents,
+} from "@/components/reusable-table/location-cell";
 import { getLinkCandidates } from "@/services/board/board-module-service";
+import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
+import { Card, CardContent } from "@dashboard/ui/components/card";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import {
   Form,
@@ -30,12 +28,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
+import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ArrowLeft, CalendarIcon, Loader2, Plus, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import {
+  ArrowLeft,
+  CalendarIcon,
+  ChevronRight,
+  Loader2,
+  Plus,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useFieldArray, useForm, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
@@ -50,10 +59,31 @@ export interface CreatedRecord {
   values: Record<string, string>;
 }
 
+// Sentinel so a section can position the record name alongside dynamic fields
+export const RECORD_NAME_FIELD = "__record_name__";
+
+export type RecordFieldSpan = "full" | "half" | "third";
+
+export type RecordFieldLayout = {
+  name: string;
+  span?: RecordFieldSpan;
+  required?: boolean;
+  multiline?: boolean;
+  helperText?: string;
+  // Column names to populate when an address is picked
+  autoFill?: Partial<Record<keyof AddressComponents, string>>;
+};
+
+export type RecordFormSection = {
+  title: string;
+  fields: RecordFieldLayout[];
+};
+
 interface RecordCreatePageProps {
   title: string;
   description: string;
   entityLabel: string;
+  entityLabelPlural: string;
   nameLabel: string;
   columns: RecordColumn[];
   isLoadingColumns: boolean;
@@ -61,14 +91,23 @@ interface RecordCreatePageProps {
   fetchDropdownOptions: (fieldId: string) => Promise<any>;
   onSubmit: (records: CreatedRecord[]) => void;
   onBack: () => void;
+  sections?: RecordFormSection[];
 }
 
 type FormValues = { records: Record<string, any>[] };
+
+// Thirds collapse to halves at md so three inputs never share a tablet row
+const SPAN_CLASS: Record<RecordFieldSpan, string> = {
+  full: "md:col-span-6",
+  half: "md:col-span-3",
+  third: "md:col-span-3 lg:col-span-2",
+};
 
 const RecordCreatePage = ({
   title,
   description,
   entityLabel,
+  entityLabelPlural,
   nameLabel,
   columns,
   isLoadingColumns,
@@ -76,6 +115,7 @@ const RecordCreatePage = ({
   fetchDropdownOptions,
   onSubmit,
   onBack,
+  sections,
 }: RecordCreatePageProps) => {
   if (isLoadingColumns) {
     return (
@@ -90,41 +130,111 @@ const RecordCreatePage = ({
       title={title}
       description={description}
       entityLabel={entityLabel}
+      entityLabelPlural={entityLabelPlural}
       nameLabel={nameLabel}
       columns={columns}
       isSubmitting={isSubmitting}
       fetchDropdownOptions={fetchDropdownOptions}
       onSubmit={onSubmit}
       onBack={onBack}
+      sections={sections}
     />
   );
 };
+
+function isOptionBacked(columnType: string) {
+  return columnType === "DROPDOWN" || columnType === "STATUS";
+}
+
+// Returns the option whose value matches, so auto-fill never writes an unselectable value
+function matchOption(
+  queryClient: QueryClient,
+  columnId: string,
+  value: string
+): string | null {
+  const options = queryClient.getQueryData<{ value: string }[]>([
+    "record-dropdown-options",
+    columnId,
+  ]);
+  if (!options) return null;
+
+  const match = options.find(
+    (option) => option.value.toLowerCase() === value.toLowerCase()
+  );
+  return match?.value ?? null;
+}
+
+// Appends any column the caller's sections do not mention, so dynamic fields are never dropped
+function resolveSections(
+  sections: RecordFormSection[],
+  columns: RecordColumn[]
+): RecordFormSection[] {
+  const placed = new Set(
+    sections.flatMap((section) => section.fields.map((field) => field.name))
+  );
+  const leftovers = columns
+    .filter((column) => !placed.has(column.name))
+    .map((column) => ({ name: column.name, span: "half" as RecordFieldSpan }));
+
+  if (leftovers.length === 0) return sections;
+
+  return sections.map((section, index) =>
+    index === sections.length - 1
+      ? { ...section, fields: [...section.fields, ...leftovers] }
+      : section
+  );
+}
 
 const RecordCreateForm = ({
   title,
   description,
   entityLabel,
+  entityLabelPlural,
   nameLabel,
   columns,
   isSubmitting,
   fetchDropdownOptions,
   onSubmit,
   onBack,
+  sections,
 }: Omit<RecordCreatePageProps, "isLoadingColumns">) => {
+  const resolvedSections = useMemo(
+    () => (sections ? resolveSections(sections, columns) : undefined),
+    [sections, columns]
+  );
+
+  const layoutByName = useMemo(() => {
+    const map = new Map<string, RecordFieldLayout>();
+    resolvedSections?.forEach((section) =>
+      section.fields.forEach((field) => map.set(field.name, field))
+    );
+    return map;
+  }, [resolvedSections]);
+
+  const columnsByName = useMemo(
+    () => new Map(columns.map((column) => [column.name, column])),
+    [columns]
+  );
+
   const formSchema = useMemo(() => {
     const fieldSchemas: Record<string, z.ZodTypeAny> = {
       record_name: z.string().min(1, `${nameLabel} is required`),
     };
     columns.forEach((col) => {
-      fieldSchemas[col.id] =
-        col.type === "CHECKBOX" ? z.boolean().optional() : z.string().optional();
+      if (col.type === "CHECKBOX") {
+        fieldSchemas[col.id] = z.boolean().optional();
+        return;
+      }
+      fieldSchemas[col.id] = layoutByName.get(col.name)?.required
+        ? z.string().min(1, `${col.name} is required`)
+        : z.string().optional();
     });
     return z.object({
       records: z
         .array(z.object(fieldSchemas))
         .min(1, `At least one ${entityLabel.toLowerCase()} is required`),
     });
-  }, [columns, nameLabel, entityLabel]);
+  }, [columns, nameLabel, entityLabel, layoutByName]);
 
   const emptyRecord = useMemo(
     () => ({
@@ -147,6 +257,20 @@ const RecordCreateForm = ({
     name: "records",
   });
 
+  const [expandedIndex, setExpandedIndex] = useState(0);
+
+  const handleAppend = () => {
+    append(emptyRecord);
+    setExpandedIndex(fields.length);
+  };
+
+  const handleRemove = (index: number) => {
+    remove(index);
+    setExpandedIndex((current) =>
+      current >= index ? Math.max(current - 1, 0) : current
+    );
+  };
+
   const handleSubmit = (values: FormValues) => {
     const records: CreatedRecord[] = values.records.map((record) => {
       const fieldValues: Record<string, string> = {};
@@ -160,137 +284,235 @@ const RecordCreateForm = ({
     onSubmit(records);
   };
 
+  const renderNameField = (index: number, layout?: RecordFieldLayout) => (
+    <FormField
+      control={form.control}
+      name={`records.${index}.record_name`}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="text-sm font-semibold text-gray-700">
+            {nameLabel} <span className="text-red-500">*</span>
+          </FormLabel>
+          {layout?.helperText && (
+            <p className="text-xs text-muted-foreground">{layout.helperText}</p>
+          )}
+          <FormControl>
+            <Input
+              {...field}
+              value={field.value as string}
+              placeholder={`Enter ${nameLabel.toLowerCase()}`}
+              className="h-11"
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
+  const renderColumnField = (
+    column: RecordColumn,
+    index: number,
+    layout?: RecordFieldLayout
+  ) => (
+    <RecordField
+      column={column}
+      index={index}
+      form={form}
+      layout={layout}
+      columnsByName={columnsByName}
+      fetchDropdownOptions={fetchDropdownOptions}
+    />
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="w-full space-y-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={onBack}
-            className="border-gray-300 hover:bg-white"
+            className="shrink-0 border-gray-300 hover:bg-white"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight page-title">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight page-title">
               {title}
             </h1>
-            <p className="text-gray-500 mt-1">{description}</p>
+            <p className="text-sm sm:text-base text-gray-500 mt-1">
+              {description}
+            </p>
           </div>
         </div>
 
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
+            className="space-y-4"
           >
-            {fields.map((field, index) => (
-              <Card key={field.id} className="border shadow-sm">
-                <CardHeader className="bg-gray-50 border-b">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold text-gray-900">
-                      {entityLabel} #{index + 1}
-                    </CardTitle>
-                    {fields.length > 1 && (
+            {fields.map((field, index) => {
+              const isExpanded = index === expandedIndex;
+              const recordName = form.watch(`records.${index}.record_name`);
+
+              return (
+                <Card
+                  key={field.id}
+                  className="border shadow-sm gap-0 overflow-hidden py-0"
+                >
+                  <div className="flex items-center justify-between gap-2 bg-blue-50 px-4 py-3 sm:px-6 sm:py-4">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                      <h2 className="text-base sm:text-lg font-semibold text-brand whitespace-nowrap">
+                        {entityLabel} No. {index + 1}
+                      </h2>
+                      {!isExpanded && recordName ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-white font-normal truncate max-w-[10rem] sm:max-w-xs"
+                        >
+                          {recordName}
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1">
+                      {fields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemove(index)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-100"
+                        >
+                          Remove
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
-                        onClick={() => remove(index)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        size="icon"
+                        aria-label={isExpanded ? "Collapse" : "Expand"}
+                        onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
+                        className="hover:bg-blue-100"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <FormField
-                    control={form.control}
-                    name={`records.${index}.record_name`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-semibold text-gray-700">
-                          {nameLabel} <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={field.value as string}
-                            placeholder={`Enter ${nameLabel.toLowerCase()}`}
-                            className="h-11"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {columns
-                      .filter((column) => column.type !== "CHECKBOX")
-                      .map((column) => (
-                        <RecordField
-                          key={column.id}
-                          column={column}
-                          index={index}
-                          form={form}
-                          fetchDropdownOptions={fetchDropdownOptions}
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            isExpanded && "rotate-90"
+                          )}
                         />
-                      ))}
+                      </Button>
+                    </div>
                   </div>
 
-                  {columns.some((column) => column.type === "CHECKBOX") && (
-                    <div className="space-y-3">
-                      {columns
-                        .filter((column) => column.type === "CHECKBOX")
-                        .map((column) => (
-                          <RecordField
-                            key={column.id}
-                            column={column}
-                            index={index}
-                            form={form}
-                            fetchDropdownOptions={fetchDropdownOptions}
-                          />
-                        ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  {isExpanded && (
+                    <CardContent className="p-4 sm:p-6 space-y-6 sm:space-y-8">
+                      {resolvedSections
+                        ? resolvedSections.map((section) => (
+                            <section key={section.title} className="space-y-4">
+                              <h3 className="border-b pb-2 text-base font-semibold text-gray-900">
+                                {section.title}
+                              </h3>
+                              <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-6">
+                                {section.fields.map((layout) => {
+                                  const spanClass =
+                                    SPAN_CLASS[layout.span ?? "half"];
 
-            <div className="flex items-center justify-between gap-4 pt-4">
+                                  if (layout.name === RECORD_NAME_FIELD) {
+                                    return (
+                                      <div
+                                        key={layout.name}
+                                        className={spanClass}
+                                      >
+                                        {renderNameField(index, layout)}
+                                      </div>
+                                    );
+                                  }
+
+                                  const column = columnsByName.get(layout.name);
+                                  if (!column) return null;
+
+                                  return (
+                                    <div key={column.id} className={spanClass}>
+                                      {renderColumnField(column, index, layout)}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </section>
+                          ))
+                        : (
+                          <>
+                            {renderNameField(index)}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {columns
+                                .filter((column) => column.type !== "CHECKBOX")
+                                .map((column) => (
+                                  <div key={column.id}>
+                                    {renderColumnField(column, index)}
+                                  </div>
+                                ))}
+                            </div>
+
+                            {columns.some(
+                              (column) => column.type === "CHECKBOX"
+                            ) && (
+                              <div className="space-y-3">
+                                {columns
+                                  .filter((column) => column.type === "CHECKBOX")
+                                  .map((column) => (
+                                    <div key={column.id}>
+                                      {renderColumnField(column, index)}
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAppend}
+              className="w-full border-dashed bg-white text-brand hover:text-brand"
+            >
+              <Plus className="h-4 w-4" />
+              Add Another {entityLabel}
+            </Button>
+
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => append(emptyRecord)}
-                className="flex items-center gap-2"
+                onClick={onBack}
+                className="w-full sm:w-auto"
               >
-                <Plus className="h-4 w-4" />
-                Add Another {entityLabel}
+                Cancel
               </Button>
-
-              <div className="flex items-center gap-3">
-                <Button type="button" variant="outline" onClick={onBack}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="min-w-[120px]"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Creating...</span>
-                    </div>
-                  ) : (
-                    `Create ${entityLabel}s`
-                  )}
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto sm:min-w-[120px] bg-brand text-white hover:bg-brand/90"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Creating...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Create {entityLabelPlural}
+                  </>
+                )}
+              </Button>
             </div>
           </form>
         </Form>
@@ -303,14 +525,19 @@ const RecordField = ({
   column,
   index,
   form,
+  layout,
+  columnsByName,
   fetchDropdownOptions,
 }: {
   column: RecordColumn;
   index: number;
   form: UseFormReturn<FormValues>;
+  layout?: RecordFieldLayout;
+  columnsByName: Map<string, RecordColumn>;
   fetchDropdownOptions: (fieldId: string) => Promise<any>;
 }) => {
   const fieldName = `records.${index}.${column.id}` as const;
+  const queryClient = useQueryClient();
 
   const { data: dropdownOptions } = useQuery({
     queryKey: ["record-dropdown-options", column.id],
@@ -331,6 +558,55 @@ const RecordField = ({
     enabled: !!linkTargetModule,
   });
 
+  const label = (
+    <FormLabel className="text-sm font-semibold text-gray-700">
+      {column.name}
+      {layout?.required && <span className="text-red-500"> *</span>}
+    </FormLabel>
+  );
+
+  const helperText = layout?.helperText ? (
+    <p className="text-xs text-muted-foreground">{layout.helperText}</p>
+  ) : null;
+
+  // A required select with nothing to pick would block submission with no explanation
+  const hasNoOptions =
+    isOptionBacked(column.type) &&
+    !!dropdownOptions &&
+    dropdownOptions.length === 0;
+
+  const optionsWarning =
+    hasNoOptions && layout?.required ? (
+      <p className="text-xs text-amber-600">
+        No {column.name.toLowerCase()} options configured yet - add them in
+        settings before creating.
+      </p>
+    ) : null;
+
+  // Address selection fills the sibling columns the caller mapped
+  const applyAddressComponents = (components: AddressComponents) => {
+    if (!layout?.autoFill) return;
+
+    (Object.entries(layout.autoFill) as [
+      keyof AddressComponents,
+      string,
+    ][]).forEach(([componentKey, columnName]) => {
+      const target = columnsByName.get(columnName);
+      const value = components[componentKey];
+      if (!target || !value) return;
+
+      // A geocoded value the org has no option for would leave the select blank
+      const resolved = isOptionBacked(target.type)
+        ? matchOption(queryClient, target.id, value)
+        : value;
+      if (!resolved) return;
+
+      form.setValue(`records.${index}.${target.id}`, resolved, {
+        shouldValidate: true,
+      });
+    });
+  };
+
   switch (column.type) {
     case "CONTACT_LINK":
     case "COMPANY_LINK":
@@ -340,9 +616,8 @@ const RecordField = ({
           name={fieldName}
           render={({ field }) => (
             <FormItem className="w-full">
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                {column.name}
-              </FormLabel>
+              {label}
+              {helperText}
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="w-full">
@@ -372,9 +647,8 @@ const RecordField = ({
           name={fieldName}
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                {column.name}
-              </FormLabel>
+              {label}
+              {helperText}
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -419,9 +693,8 @@ const RecordField = ({
           name={fieldName}
           render={({ field }) => (
             <FormItem className="w-full">
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                {column.name}
-              </FormLabel>
+              {label}
+              {helperText}
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="w-full">
@@ -438,6 +711,7 @@ const RecordField = ({
                   ))}
                 </SelectContent>
               </Select>
+              {optionsWarning}
               <FormMessage />
             </FormItem>
           )}
@@ -472,11 +746,15 @@ const RecordField = ({
           name={fieldName}
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                {column.name}
-              </FormLabel>
+              {label}
+              {helperText}
               <FormControl>
-                <LocationCell value={field.value} onChange={field.onChange} />
+                <LocationCell
+                  value={field.value}
+                  onChange={field.onChange}
+                  onSelectComponents={applyAddressComponents}
+                  className="w-full"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -491,14 +769,21 @@ const RecordField = ({
           name={fieldName}
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">
-                {column.name}
-              </FormLabel>
+              {label}
+              {helperText}
               <FormControl>
-                <Input
-                  {...field}
-                  placeholder={`Enter ${column.name.toLowerCase()}`}
-                />
+                {layout?.multiline ? (
+                  <Textarea
+                    {...field}
+                    rows={4}
+                    placeholder={`Enter any additional information about this ${column.name.toLowerCase()}...`}
+                  />
+                ) : (
+                  <Input
+                    {...field}
+                    placeholder={`Enter ${column.name.toLowerCase()}`}
+                  />
+                )}
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -196,6 +196,20 @@ export function monthOverMonthDelta(
   };
 }
 
+export function countDelta(
+  current: number,
+  previous: number
+): TrendDelta | undefined {
+  if (previous === 0) return undefined;
+
+  const percent = ((current - previous) / previous) * 100;
+
+  return {
+    percent: Math.abs(percent),
+    direction: percent > 0 ? "up" : percent < 0 ? "down" : "flat",
+  };
+}
+
 export function weightedAverageDays(
   analytics: AnalyticsResponse | undefined
 ): number {

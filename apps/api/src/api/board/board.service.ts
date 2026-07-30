@@ -27,6 +27,9 @@ import { BoardGateway } from "./board.gateway";
 import { UpdateContactDto } from "./dto/board.schema";
 import { EmailDispatchService } from "./email-dispatch.service";
 
+// Trailing window that marks a record as an active partner
+const ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
 interface BoardFilters {
   filter?: Record<string, string>;
   boardDateFrom?: string;
@@ -286,6 +289,91 @@ export class BoardService {
     );
 
     return data;
+  }
+
+  async getBoardStats(organizationId: string, moduleType: string) {
+    const cacheKey = `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:stats`;
+    const cachedStats = await getData(cacheKey);
+
+    if (cachedStats) {
+      return cachedStats;
+    }
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const activeSince = new Date(now.getTime() - ACTIVE_WINDOW_MS);
+    const previousActiveSince = new Date(now.getTime() - ACTIVE_WINDOW_MS * 2);
+
+    const recordWhere: Prisma.BoardWhereInput = {
+      organizationId,
+      isDeleted: false,
+      moduleType: moduleType as ModuleType,
+    };
+
+    const countyField = await prisma.field.findFirst({
+      where: {
+        organizationId,
+        moduleType: moduleType as ModuleType,
+        isDeleted: false,
+        fieldName: "County",
+      },
+      select: { id: true },
+    });
+
+    const [total, totalBeforeThisMonth, activeRecords, previousActiveRecords, countyValues] =
+      await Promise.all([
+        prisma.board.count({ where: recordWhere }),
+        prisma.board.count({
+          where: { ...recordWhere, createdAt: { lt: monthStart } },
+        }),
+        prisma.activity.findMany({
+          where: { record: recordWhere, createdAt: { gte: activeSince } },
+          select: { recordId: true },
+          distinct: ["recordId"],
+        }),
+        prisma.activity.findMany({
+          where: {
+            record: recordWhere,
+            createdAt: { gte: previousActiveSince, lt: activeSince },
+          },
+          select: { recordId: true },
+          distinct: ["recordId"],
+        }),
+        countyField
+          ? prisma.fieldValue.findMany({
+              where: { fieldId: countyField.id, record: recordWhere },
+              select: { value: true, record: { select: { createdAt: true } } },
+            })
+          : [],
+      ]);
+
+    const counties = new Set<string>();
+    const previousCounties = new Set<string>();
+
+    for (const entry of countyValues) {
+      const county = entry.value?.replace(/ county$/i, "").trim();
+      if (!county) continue;
+      counties.add(county.toLowerCase());
+      if (entry.record.createdAt < monthStart) {
+        previousCounties.add(county.toLowerCase());
+      }
+    }
+
+    const stats = {
+      totalFacilities: { value: total, previous: totalBeforeThisMonth },
+      activePartners: {
+        value: activeRecords.length,
+        previous: previousActiveRecords.length,
+      },
+      countiesCovered: {
+        value: counties.size,
+        previous: previousCounties.size,
+      },
+    };
+
+    await cacheData(cacheKey, stats, 60 * 10);
+
+    return stats;
   }
 
   async getRecords(

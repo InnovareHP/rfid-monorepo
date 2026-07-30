@@ -14,9 +14,17 @@ const ALL_STATUSES = "__all__";
 
 type StatusBreakdownCardProps = {
   slices: StatusSlice[];
+  title?: string;
+  totalLabel?: string;
+  activeSuffix?: string;
 };
 
-export function StatusBreakdownCard({ slices }: StatusBreakdownCardProps) {
+export function StatusBreakdownCard({
+  slices,
+  title = "Status Breakdown",
+  totalLabel,
+  activeSuffix,
+}: StatusBreakdownCardProps) {
   const [choice, setChoice] = useState<string | undefined>(undefined);
 
   // Until the user picks, highlight the first status that actually has records.
@@ -48,8 +56,13 @@ export function StatusBreakdownCard({ slices }: StatusBreakdownCardProps) {
     ) : undefined;
 
   return (
-    <ChartCard title="Status Breakdown" action={selector}>
-      <StatusDonut slices={slices} selectedStatus={selectedStatus} />
+    <ChartCard title={title} action={selector}>
+      <StatusDonut
+        slices={slices}
+        selectedStatus={selectedStatus}
+        totalLabel={totalLabel}
+        activeSuffix={activeSuffix}
+      />
     </ChartCard>
   );
 }

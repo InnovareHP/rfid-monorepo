@@ -28,8 +28,10 @@ import ColumnFilter from "./column-filter";
 import KanbanView from "./kanban-view";
 import { MasterListFilters } from "./master-list-filter";
 import { PipelineSettingsDialog } from "./pipeline-settings-dialog";
+import { BoardStatsStrip } from "./board-stats-strip";
 import { MasterListView } from "./master-list-view";
 import { SmartScanDialog } from "./smart-scan-dialog";
+import AddRow from "../reusable-table/add-row";
 
 export default function MasterListPage() {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
@@ -50,16 +52,16 @@ export default function MasterListPage() {
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
   const [filterMeta, setFilterMeta] = useState<{
-    BoardDateFrom: null | string;
-    BoardDateTo: null | string;
+    boardDateFrom: null | Date;
+    boardDateTo: null | Date;
     filter: Record<string, string>;
     limit: number;
     search?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }>({
-    BoardDateFrom: null,
-    BoardDateTo: null,
+    boardDateFrom: null,
+    boardDateTo: null,
     filter: {},
     limit: 10,
     search: undefined,
@@ -182,6 +184,9 @@ export default function MasterListPage() {
         queryClient.setQueryData(key as any, data)
       );
       toast.error("Failed to delete leads.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["board-stats"] });
     },
   });
 
@@ -324,7 +329,7 @@ export default function MasterListPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
               onClick={() => setView(view === "table" ? "kanban" : "table")}
@@ -347,26 +352,27 @@ export default function MasterListPage() {
                 Pipeline Settings
               </Button>
             )}
+
+            <ColumnFilter tableColumns={tableColumns as any} />
+
             <Button
-              variant="outline"
               onClick={handleExportCSV}
-              className="flex items-center gap-2 border-gray-300 bg-white"
+              className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
             >
               <Download className="h-4 w-4" />
               Export CSV
             </Button>
             <Button
-              variant="outline"
               onClick={() => setOpenSmartScan(true)}
-              className="flex items-center gap-2 border-gray-300 bg-white"
+              className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
             >
               <ScanLine className="h-4 w-4" />
               Smart Scan
             </Button>
-
-            <ColumnFilter tableColumns={tableColumns as any} />
           </div>
         </div>
+
+        {view === "table" && <BoardStatsStrip />}
 
         {view === "kanban" ? (
           <KanbanView
@@ -377,14 +383,13 @@ export default function MasterListPage() {
           />
         ) : (
           <>
-            <div className="bg-white">
-              <MasterListFilters
-                columns={data?.columns ?? []}
-                filterMeta={filterMeta}
-                refetch={refetch}
-                setFilterMeta={setFilterMeta}
-              />
-            </div>
+            <MasterListFilters
+              columns={data?.columns ?? []}
+              filterMeta={filterMeta}
+              refetch={refetch}
+              setFilterMeta={setFilterMeta}
+              actions={<AddRow />}
+            />
 
             {/* Table Wrapper */}
 
