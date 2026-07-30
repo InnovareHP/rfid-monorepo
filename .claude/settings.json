@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm test:fe:*)",
+      "Bash(pnpm build:shared:*)"
+    ],
+    "deny": [
+      "Read(./apps/*/.env*)",
+      "Read(./packages/*/.env*)",
+      "Read(./.env*)",
+      "Read(./**/*credentials*)",
+      "Read(./**/service-account*.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-bash.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

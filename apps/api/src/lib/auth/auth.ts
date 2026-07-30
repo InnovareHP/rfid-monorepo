@@ -8,12 +8,15 @@ import {
   oneTimeToken,
   openAPI,
   organization,
+  twoFactor,
 } from "better-auth/plugins";
 import { appConfig } from "../../config/app-config";
 import { StripeHelper } from "../helper.js";
 import { prisma } from "../prisma/prisma";
 import { redis } from "../redis/redis";
+import { BETTER_AUTH_PLANS } from "../stripe/plans";
 import { stripe as stripeClient } from "../stripe/stripe";
+import { TAX_CHECKOUT_BASE } from "../stripe/stripe-tax";
 import {
   afterAcceptInvitation,
   afterAddMember,
@@ -44,7 +47,30 @@ import {
   stripeAuthorizeReference,
   subscriptionAuthorizeReference,
 } from "./auth-helper";
-import { ac, liason, owner, super_admin, support } from "./permission";
+import { ac, liaison, owner, super_admin, support } from "./permission";
+import type { BetterAuthOptions } from "better-auth";
+
+// Local dev runs over http, so secure and cross-subdomain cookies must be off.
+const isLocalDev = process.env.NODE_ENV !== "production";
+
+// Dev-only: vite serves the apps on these origins regardless of the configured URLs.
+const DEV_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
+
+const socialProviders: BetterAuthOptions["socialProviders"] = {
+  google: {
+    clientId: appConfig.GOOGLE_CLIENT_ID,
+    clientSecret: appConfig.GOOGLE_CLIENT_SECRET,
+  },
+};
+
+if (appConfig.MICROSOFT_CLIENT_ID && appConfig.MICROSOFT_CLIENT_SECRET) {
+  socialProviders.microsoft = {
+    clientId: appConfig.MICROSOFT_CLIENT_ID,
+    clientSecret: appConfig.MICROSOFT_CLIENT_SECRET,
+    tenantId: "common",
+    prompt: "select_account",
+  };
+}
 
 export const auth = betterAuth({
   appName: appConfig.APP_NAME,
@@ -53,23 +79,34 @@ export const auth = betterAuth({
   }),
   advanced: {
     cookiePrefix: `${appConfig.APP_NAME}-AUTH`,
-    useSecureCookies: true,
+    useSecureCookies: !isLocalDev,
     defaultCookieAttributes: {
-      sameSite: appConfig.WEBSITE_URL.includes("localhost") ? "lax" : "none",
+      sameSite: isLocalDev ? "lax" : "none",
     },
     crossSubDomainCookies: {
-      enabled: true,
-      domain: appConfig.WEBSITE_URL.includes("localhost")
-        ? "localhost"
-        : "refidly.com",
+      enabled: !isLocalDev,
+      domain: "refidly.com",
     },
   },
 
   trustedOrigins: [
+    ...(isLocalDev ? DEV_ORIGINS : []),
     appConfig.SUPPORT_URL,
     appConfig.WEBSITE_URL,
     appConfig.API_URL,
   ],
+  rateLimit: {
+    enabled: true,
+    storage: "secondary-storage",
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 5 },
+      "/forget-password": { window: 300, max: 3 },
+      "/reset-password": { window: 300, max: 5 },
+    },
+  },
   databaseHooks: {
     session: {
       create: {
@@ -144,12 +181,7 @@ export const auth = betterAuth({
       cancelAtPeriodEnd: "cancelAtPeriodEnd",
     },
   },
-  socialProviders: {
-    google: {
-      clientId: appConfig.GOOGLE_CLIENT_ID,
-      clientSecret: appConfig.GOOGLE_CLIENT_SECRET,
-    },
-  },
+  socialProviders,
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
@@ -165,6 +197,24 @@ export const auth = betterAuth({
     sendMagicLink,
   },
   plugins: [
+    twoFactor({
+      issuer: appConfig.APP_NAME,
+      schema: {
+        twoFactor: {
+          modelName: "TwoFactor",
+          fields: {
+            secret: "secret",
+            backupCodes: "backupCodes",
+            userId: "userId",
+          },
+        },
+        user: {
+          fields: {
+            twoFactorEnabled: "twoFactorEnabled",
+          },
+        },
+      },
+    }),
     oneTimeToken(),
     admin({
       ac,
@@ -187,7 +237,7 @@ export const auth = betterAuth({
       ac,
       roles: {
         owner,
-        liason,
+        liason: liaison,
       },
       organizationHooks: {
         beforeCreateOrganization,
@@ -284,40 +334,11 @@ export const auth = betterAuth({
       authorizeReference: stripeAuthorizeReference,
       subscription: {
         enabled: true,
-        plans: [
-          {
-            name: "Dashboard",
-            priceId: "price_1SUpOoCVzwuBDRu4m7JnkjKf",
-            limits: {
-              seats: 10,
-            },
-            freeTrial: {
-              days: 14,
-              onTrialStart: async (subscription) => {
-                console.log(subscription);
-              },
-              onTrialEnd: async ({ subscription }) => {
-                console.log(subscription);
-              },
-              onTrialExpired: async (subscription) => {
-                console.log(subscription);
-              },
-            },
-          },
-        ],
+        plans: BETTER_AUTH_PLANS,
         authorizeReference: subscriptionAuthorizeReference,
-        onSubscriptionComplete: async ({}) => {
-          console.log("Welcome");
-        },
-        onSubscriptionUpdate: async ({ event, subscription }) => {
-          console.log(`Subscription ${subscription.id} updated`);
-        },
-        onSubscriptionCancel: async ({}) => {
-          console.log("Cancelled");
-        },
-        onSubscriptionDeleted: async ({ subscription }) => {
-          console.log(`Subscription ${subscription.id} deleted`);
-        },
+        getCheckoutSessionParams: () => ({
+          params: TAX_CHECKOUT_BASE,
+        }),
       },
     }),
     customSession(customSessionHandler),

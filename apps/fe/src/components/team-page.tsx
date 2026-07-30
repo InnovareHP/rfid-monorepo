@@ -77,7 +77,7 @@ import { ReusableTable } from "./reusable-table/generic-table";
 
 const formSchema = z.object({
   email: z.email(),
-  role: z.enum([ROLES.LIASON, ROLES.OWNER, ROLES.ADMISSION_MANAGER]),
+  role: z.enum([ROLES.LIAISON, ROLES.OWNER, ROLES.ADMISSION_MANAGER]),
   message: z.string(),
 });
 
@@ -97,7 +97,7 @@ const TeamPage = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      role: ROLES.LIASON,
+      role: ROLES.LIAISON,
       message: "",
     },
     mode: "onChange",
@@ -364,7 +364,7 @@ const TeamPage = () => {
       <div className="max-w-8xl mx-auto space-y-8">
         <div className="flex flex-wrap space-y-4 items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold page-title">
               Team Management
             </h1>
             <p className="text-gray-600 mt-1">
@@ -411,13 +411,13 @@ const TeamPage = () => {
                           >
                         )
                       }
-                      defaultValue={ROLES.LIASON}
+                      defaultValue={ROLES.LIAISON}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={ROLES.LIASON}>Liason</SelectItem>
+                        <SelectItem value={ROLES.LIAISON}>Liaison</SelectItem>
                         <SelectItem value={ROLES.OWNER}>Owner</SelectItem>
                         <SelectItem value={ROLES.ADMISSION_MANAGER}>
                           Admission Manager
@@ -775,8 +775,8 @@ const TeamPage = () => {
                                   </SelectTrigger>
 
                                   <SelectContent>
-                                    <SelectItem value={ROLES.LIASON}>
-                                      {formatCapitalize(ROLES.LIASON)}
+                                    <SelectItem value={ROLES.LIAISON}>
+                                      {formatCapitalize(ROLES.LIAISON)}
                                     </SelectItem>
                                     <SelectItem value={ROLES.OWNER}>
                                       {formatCapitalize(ROLES.OWNER)}

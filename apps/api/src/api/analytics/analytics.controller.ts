@@ -45,9 +45,26 @@ export class AnalyticsController {
   }
 
   @Get("summary")
-  async getGeminiAnalytics(@Query("analytics") analytics: any) {
+  async getGeminiAnalytics(
+    @Query("analytics") analytics: any,
+    @Query("start") start: string,
+    @Query("end") end: string,
+    @Query("force") force: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.analyticsService.getAnalyticsByGemini(analytics);
+      const startDate = start ? new Date(start) : undefined;
+      const endDate = end ? new Date(end) : undefined;
+      const organizationId = session.session.activeOrganizationId;
+
+      return await this.analyticsService.getAnalyticsByGemini(
+        organizationId,
+        startDate,
+        endDate,
+        analytics,
+        force === "true"
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

@@ -1,33 +1,22 @@
+import { exportElementToPdf } from "@/lib/helper/pdf-export";
 import { getMarketingList } from "@/services/analytics/analytics-service";
+import { getLiaisons } from "@/services/options/options-service";
 import type { LiaisonAnalyticsCardData } from "@dashboard/shared";
 import { mapAIAnalysisToInsights } from "@dashboard/shared";
+import { DateRangeFilter } from "@dashboard/ui/components/date-range-filter";
 import { useQuery } from "@tanstack/react-query";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import {
-  AlertCircle,
-  BarChart3,
-  Download,
-  Filter,
-  Loader2,
-  RefreshCcw,
-  TrendingUp,
-} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { getLiaisons } from "@/services/options/options-service";
-import { Button } from "@dashboard/ui/components/button";
-import { DateRangeFilter } from "@dashboard/ui/components/date-range-filter";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dashboard/ui/components/select";
-import { AIInsights } from "./ai-insights";
+import { AiSummaryCard } from "./ai-summary-card";
 import { LiaisonAnalyticsCard } from "./analytics-card";
+import {
+  AnalyticsEmpty,
+  AnalyticsError,
+  AnalyticsLoading,
+} from "./analytics-states";
+import { KpiStatTile } from "./charts/kpi-stat-tile";
+import { MarketingFilters } from "./marketing-filters";
 
 type Filters = {
   start: Date | null;
@@ -35,20 +24,13 @@ type Filters = {
   userId: string | null;
 };
 
-const MarketingListPage = () => {
-  /* UI-only filters */
-  const [pendingFilters, setPendingFilters] = useState<Filters>({
-    start: null,
-    end: null,
-    userId: null,
-  });
+const EMPTY_FILTERS: Filters = { start: null, end: null, userId: null };
+const PDF_ELEMENT_ID = "marketing-analytics-pdf";
 
-  /* Applied filters (TRIGGERS FETCH) */
-  const [filters, setFilters] = useState<Filters>({
-    start: null,
-    end: null,
-    userId: null,
-  });
+const MarketingListPage = () => {
+  const [pendingFilters, setPendingFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["marketing-lead-analytics", filters],
@@ -63,57 +45,16 @@ const MarketingListPage = () => {
     gcTime: 1000 * 60 * 5,
   });
 
-  const [isExporting, setIsExporting] = useState(false);
-
   const handleExportPDF = async () => {
-    const element = document.getElementById("marketing-analytics-pdf");
-    if (!element) {
-      toast.error("Unable to export. Please try again.");
-      return;
-    }
-
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        onclone: (doc) => {
-          doc.querySelectorAll("svg").forEach((svg) => svg.remove());
-          doc.querySelectorAll("*").forEach((el) => {
-            const e = el as HTMLElement;
-            e.style.color = "#000000";
-            e.style.backgroundColor = "#ffffff";
-            e.style.borderColor = "#e5e7eb";
-          });
-        },
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-
       const timestamp = new Date().toISOString().split("T")[0];
-      pdf.save(`marketing-analytics-${timestamp}.pdf`);
+      await exportElementToPdf(
+        PDF_ELEMENT_ID,
+        `marketing-analytics-${timestamp}.pdf`
+      );
       toast.success("PDF exported successfully!");
-    } catch (error) {
-      console.error("Export error:", error);
+    } catch {
       toast.error("Failed to export PDF. Please try again.");
     } finally {
       setIsExporting(false);
@@ -121,8 +62,8 @@ const MarketingListPage = () => {
   };
 
   const handleReset = () => {
-    setPendingFilters({ start: null, end: null, userId: null });
-    setFilters({ start: null, end: null, userId: null });
+    setPendingFilters(EMPTY_FILTERS);
+    setFilters(EMPTY_FILTERS);
     toast.info("Filters reset");
   };
 
@@ -131,225 +72,116 @@ const MarketingListPage = () => {
     toast.success("Filters applied");
   };
 
-  const hasActiveFilters = filters.start || filters.end || filters.userId;
+  const hasActiveFilters = Boolean(
+    filters.start || filters.end || filters.userId
+  );
+
+  const rows: LiaisonAnalyticsCardData[] = data?.analytics ?? [];
+  const totalFacilities = new Set(rows.flatMap((row) => row.facilitiesCovered))
+    .size;
+  const activePartners = new Set(rows.flatMap((row) => row.peopleContacted))
+    .size;
+  const totalInteractions = rows.reduce(
+    (sum, row) => sum + row.totalInteractions,
+    0
+  );
+
+  const insightSections = data?.analysis
+    ? mapAIAnalysisToInsights(data.analysis).map((insight) => ({
+        title: insight.title,
+        items: insight.items,
+      }))
+    : [];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-primary/5 to-gray-50">
-      {/* Header */}
-      <div className="sticky top-0 z-50 border-b-2 border-primary/30 bg-white shadow-md">
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-col gap-6">
-            {/* Title Section */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg">
-                  <TrendingUp className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                    Marketing Analytics
-                  </h1>
-                  <p className="text-sm text-gray-600 mt-0.5">
-                    Track performance, insights, and engagement metrics
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  disabled={!hasActiveFilters}
-                  className="border-primary/40 hover:bg-primary/10"
-                >
-                  <RefreshCcw className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-                <Button
-                  onClick={handleExportPDF}
-                  disabled={
-                    !filters.start || !filters.end || !data || isExporting
-                  }
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export PDF
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* Filters Section */}
-            <div className="bg-gradient-to-r from-primary/10 to-primary/15 border-2 border-primary/30 rounded-xl p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                  <Filter className="h-4 w-4 text-white" />
-                </div>
-                <h3 className="text-base font-bold text-foreground">
-                  Filter Analytics Data
-                </h3>
-                {hasActiveFilters && (
-                  <span className="ml-auto text-xs font-medium text-primary-foreground bg-primary/80 px-2 py-1 rounded-full">
-                    Filters Active
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Date Range */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-foreground">
-                    Date Range
-                  </label>
-                  <DateRangeFilter
-                    from={pendingFilters.start}
-                    to={pendingFilters.end}
-                    onChange={(range: { from: Date | null; to: Date | null }) =>
-                      setPendingFilters((prev) => ({
-                        ...prev,
-                        start: range.from,
-                        end: range.to,
-                      }))
-                    }
-                  />
-                </div>
-
-                {/* Liaison */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-foreground">
-                    Liaison
-                  </label>
-                  <Select
-                    value={pendingFilters.userId ?? undefined}
-                    onValueChange={(value) =>
-                      setPendingFilters((prev) => ({
-                        ...prev,
-                        userId: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger className="w-[220px] bg-white border-primary/40 hover:border-primary/50 focus:ring-2 focus:ring-primary">
-                      <SelectValue placeholder="All liaisons" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {liaisons.length > 0 ? (
-                        liaisons.map((liaison) => (
-                          <SelectItem key={liaison.id} value={liaison.id}>
-                            {liaison.value}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="p-2 text-sm text-gray-500">
-                          No liaisons available
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Apply Button */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-transparent">
-                    Action
-                  </label>
-                  <Button
-                    onClick={handleApplyFilters}
-                    className="bg-primary hover:bg-primary/90 shadow-sm transition-all hover:shadow-md"
-                  >
-                    <Filter className="h-4 w-4 mr-2" />
-                    Apply Filters
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-6 sm:p-8 space-y-8">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-primary font-medium">
-              Loading analytics data...
+    <div className="min-h-full bg-white p-8">
+      <div className="space-y-6">
+        {/* HEADER */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <h1 className="page-title text-4xl font-bold tracking-tight">
+              Master List Analytics Dashboard
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Track performance, insights, and engagement metrics.
             </p>
-            <p className="text-sm text-gray-600 mt-1">This may take a moment</p>
           </div>
-        ) : isError ? (
-          <div className="bg-white border-2 border-red-200 rounded-lg p-8 text-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                <AlertCircle className="h-8 w-8 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-red-900">
-                  Failed to Load Data
-                </h3>
-                <p className="text-red-700 mt-1">{(error as Error).message}</p>
-                <p className="text-sm text-gray-600 mt-2">
-                  Please try again or contact support if the problem persists.
-                </p>
-              </div>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="mt-4 border-red-300 hover:bg-red-50"
-              >
-                <RefreshCcw className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            </div>
-          </div>
-        ) : !data || !data.analytics || data.analytics.length === 0 ? (
-          <div className="bg-white border-2 border-primary/30 rounded-lg p-12 text-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center border-2 border-primary/30">
-                <BarChart3 className="h-10 w-10 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  No Data Available
-                </h3>
-                <p className="text-gray-600 mt-1">
-                  No analytics data found for the selected filters.
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Try adjusting your date range or selecting a different
-                  liaison.
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div id="marketing-analytics-pdf" className="space-y-8">
-            <AIInsights insights={mapAIAnalysisToInsights(data?.analysis)} />
 
-            <div className="bg-white rounded-xl border-2 border-gray-300 p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold text-gray-900">
+          <DateRangeFilter
+            from={pendingFilters.start}
+            to={pendingFilters.end}
+            onChange={(range: { from: Date | null; to: Date | null }) =>
+              setPendingFilters((prev) => ({
+                ...prev,
+                start: range.from,
+                end: range.to,
+              }))
+            }
+          />
+        </div>
+
+        {/* KPI TILES */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <KpiStatTile
+            label="Total Facilities"
+            value={totalFacilities.toLocaleString()}
+          />
+          <KpiStatTile
+            label="Active Partners"
+            value={activePartners.toLocaleString()}
+          />
+          <KpiStatTile
+            label="Total Interactions"
+            value={totalInteractions.toLocaleString()}
+          />
+        </div>
+
+        <MarketingFilters
+          liaisons={liaisons}
+          selectedLiaison={pendingFilters.userId}
+          onSelectLiaison={(userId) =>
+            setPendingFilters((prev) => ({ ...prev, userId }))
+          }
+          onApply={handleApplyFilters}
+          onReset={handleReset}
+          onExport={handleExportPDF}
+          canReset={hasActiveFilters}
+          canExport={Boolean(filters.start && filters.end && data)}
+          isExporting={isExporting}
+        />
+
+        {/* CONTENT */}
+        {isLoading ? (
+          <AnalyticsLoading />
+        ) : isError ? (
+          <AnalyticsError message={(error as Error).message} />
+        ) : rows.length === 0 ? (
+          <AnalyticsEmpty />
+        ) : (
+          <div id={PDF_ELEMENT_ID} className="space-y-6">
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center gap-2">
+                <h2 className="text-base font-medium text-foreground">
                   Liaison Performance Overview
                 </h2>
-                <span className="ml-auto text-sm text-gray-600 bg-primary/15 px-3 py-1 rounded-full">
-                  {data.analytics.length}{" "}
-                  {data.analytics.length === 1 ? "Liaison" : "Liaisons"}
+                <span className="ml-auto rounded-full bg-brand/5 px-3 py-1 text-sm text-muted-foreground">
+                  {rows.length} {rows.length === 1 ? "Liaison" : "Liaisons"}
                 </span>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {data.analytics.map((liaison: LiaisonAnalyticsCardData) => (
+                {rows.map((liaison) => (
                   <LiaisonAnalyticsCard key={liaison.memberId} data={liaison} />
                 ))}
               </div>
             </div>
+
+            <AiSummaryCard
+              isLoading={isLoading}
+              preview={insightSections[0]?.items?.[0]}
+              sections={insightSections}
+              fallbackPreview="Liaison engagement analysis will appear here once enough activity is logged."
+            />
           </div>
         )}
       </div>

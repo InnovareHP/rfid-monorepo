@@ -23,7 +23,8 @@ export default function ExpenseReportPage() {
 
   const { data, refetch, isFetchingNextPage, isFetching } = useInfiniteQuery({
     queryKey: ["expense-report", appliedFilterMeta],
-    queryFn: () => getExpenseLogs(appliedFilterMeta),
+    queryFn: ({ pageParam }) =>
+      getExpenseLogs({ ...appliedFilterMeta, page: pageParam }),
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
   });
@@ -41,7 +42,7 @@ export default function ExpenseReportPage() {
 
   return (
     <div className="p-8 bg-gray-50 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Expense Report</h1>
+      <h1 className="text-3xl font-bold page-title">Expense Report</h1>
 
       <div className="flex justify-end">
         <Button variant="outline" onClick={handleExportCSV}>
@@ -94,7 +95,7 @@ export default function ExpenseReportPage() {
             },
           ]}
           isLoading={isFetchingNextPage || isFetching}
-          emptyMessage="No marketing logs found"
+          emptyMessage="No expense logs found"
         />
       </div>
     </div>

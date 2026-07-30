@@ -269,7 +269,7 @@ export default function ReferralOption() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight page-title">
               {optionsData.field ?? "Field"} Options
             </h1>
             <p className="text-gray-500 text-sm mt-1">

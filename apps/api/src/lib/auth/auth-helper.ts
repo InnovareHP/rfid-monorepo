@@ -1,11 +1,14 @@
+import { formatCapitalize } from "@dashboard/shared";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
 import { InvitationEmail } from "../../react-email/invitation-email";
+import { InvitationResponseEmail } from "../../react-email/invitation-response-email";
+import { MemberWelcomeEmail } from "../../react-email/member-welcome-email";
 import { ResetPasswordEmail } from "../../react-email/reset-password-email";
+import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
-import { renderEmailHtml } from "../aws/ses";
 import { OnboardingSeeding } from "./onboarding";
 
 export const beforeSessionCreate = async (session: {
@@ -335,9 +338,23 @@ export const afterAddMember = async ({
   user: { email: string };
   organization: { name: string };
 }) => {
-  console.log(
-    `[org-hook] Member ${user.email} added to ${organization.name} as ${member.role}`
+  // Owners are added when they create the organization — no welcome email.
+  if (member.role === "owner") return;
+
+  const html = await renderEmailHtml(
+    MemberWelcomeEmail({
+      email: user.email,
+      organizationName: organization.name,
+      role: formatCapitalize(member.role),
+      loginUrl: appConfig.WEBSITE_URL,
+    })
   );
+  await emailQueue.add("send", {
+    to: user.email,
+    subject: `Welcome to ${organization.name} on ${appConfig.APP_NAME}`,
+    html,
+    from: `${appConfig.APP_EMAIL}`,
+  });
 };
 
 export const beforeRemoveMember = async ({
@@ -367,9 +384,14 @@ export const afterRemoveMember = async ({
   organization,
 }: {
   member: any;
-  user: { email: string };
-  organization: { name: string };
+  user: { email: string; id: string };
+  organization: { name: string; id: string };
 }) => {
+  await prisma.bookingPage.updateMany({
+    where: { organizationId: organization.id, userId: user.id },
+    data: { isActive: false },
+  });
+
   console.log(
     `[org-hook] Member ${user.email} removed from ${organization.name}`
   );
@@ -492,39 +514,68 @@ export const beforeAcceptInvitation = async ({
 };
 
 export const afterAcceptInvitation = async ({
+  invitation,
   member,
   user,
   organization,
 }: {
-  invitation: any;
+  invitation: { inviterId: string };
   member: { role: string };
   user: { email: string };
   organization: { name: string };
-}) => {
-  console.log(
-    `[org-hook] ${user.email} accepted invitation to ${organization.name} as ${member.role}`
-  );
-};
-
-export const afterRejectInvitation = async ({
-  invitation,
-  user,
-}: {
-  invitation: { inviterId: string };
-  user: { email: string };
 }) => {
   const inviter = await prisma.user.findFirst({
     where: { id: invitation.inviterId },
     select: { email: true, name: true },
   });
-  if (inviter) {
-    await emailQueue.add("send", {
-      to: inviter.email,
-      subject: `Invitation declined`,
-      html: `<p>${user.email} has declined the invitation to join your organization.</p>`,
-      from: `${appConfig.APP_EMAIL}`,
-    });
-  }
+  if (!inviter) return;
+
+  const html = await renderEmailHtml(
+    InvitationResponseEmail({
+      inviterName: inviter.name,
+      inviteeEmail: user.email,
+      organizationName: organization.name,
+      response: "accepted",
+      role: formatCapitalize(member.role),
+    })
+  );
+  await emailQueue.add("send", {
+    to: inviter.email,
+    subject: `${user.email} joined ${organization.name}`,
+    html,
+    from: `${appConfig.APP_EMAIL}`,
+  });
+};
+
+export const afterRejectInvitation = async ({
+  invitation,
+  user,
+  organization,
+}: {
+  invitation: { inviterId: string };
+  user: { email: string };
+  organization: { name: string };
+}) => {
+  const inviter = await prisma.user.findFirst({
+    where: { id: invitation.inviterId },
+    select: { email: true, name: true },
+  });
+  if (!inviter) return;
+
+  const html = await renderEmailHtml(
+    InvitationResponseEmail({
+      inviterName: inviter.name,
+      inviteeEmail: user.email,
+      organizationName: organization.name,
+      response: "declined",
+    })
+  );
+  await emailQueue.add("send", {
+    to: inviter.email,
+    subject: `${user.email} declined your invitation to ${organization.name}`,
+    html,
+    from: `${appConfig.APP_EMAIL}`,
+  });
 };
 
 export const afterCancelInvitation = async ({
@@ -580,7 +631,7 @@ export const sendInvitationEmail = async (data: {
   );
   await emailQueue.add("send", {
     to: data.email,
-    subject: `Login to your ${appConfig.APP_NAME} account`,
+    subject: `You've been invited to join ${data.organization.name} on ${appConfig.APP_NAME}`,
     html,
     from: `${appConfig.APP_EMAIL}`,
   });

@@ -21,7 +21,8 @@ export default function MileageReportPage() {
 
   const { data, refetch, isFetchingNextPage, isFetching } = useInfiniteQuery({
     queryKey: ["mileage-report", filterMeta],
-    queryFn: () => getMileageLogs(filterMeta),
+    queryFn: ({ pageParam }) =>
+      getMileageLogs({ ...filterMeta, page: pageParam }),
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
   });
@@ -101,38 +102,49 @@ export default function MileageReportPage() {
     }
 
     const limit = 100;
-    let offset = 0;
+    let page = 1;
+    let total = 0;
     let allData: MileageLogRow[] = [];
 
-    let total = 0;
-    let columns: any[] = [];
-
     do {
-      const res = await getMileageLogs({
-        ...filterMeta,
-        limit,
-        page: offset,
-      });
-
-      if (offset === 1) {
-        total = res.pagination.count;
-        columns = res.columns;
-      }
-
-      columns = [...columns];
+      const res = await getMileageLogs({ ...filterMeta, limit, page });
+      total = res.total ?? 0;
       allData = [...allData, ...res.data];
-      offset += res.data.length;
-    } while (offset < total);
+      page += 1;
+    } while (allData.length < total);
+
+    const exportColumns = [
+      { name: "Date" },
+      { name: "Destination" },
+      { name: "Counties Marketed" },
+      { name: "Beginning Mileage" },
+      { name: "Ending Mileage" },
+      { name: "Total Miles" },
+      { name: "Rate Type" },
+      { name: "Rate Per Mile" },
+      { name: "Reimbursement" },
+    ];
+    const exportRows = allData.map((row) => ({
+      Date: formatDateTime(row.createdAt),
+      Destination: row.destination ?? "",
+      "Counties Marketed": row.countiesMarketed ?? "",
+      "Beginning Mileage": row.beginningMileage ?? "",
+      "Ending Mileage": row.endingMileage ?? "",
+      "Total Miles": row.totalMiles ?? "",
+      "Rate Type": row.rateType ?? "",
+      "Rate Per Mile": row.ratePerMile ?? "",
+      Reimbursement: row.reimbursementAmount ?? "",
+    }));
 
     const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(allData, columns, `Mileage_Report_${timestamp}`);
+    exportToCSV(exportRows, exportColumns, `Mileage_Report_${timestamp}`, [], true);
     toast.success("CSV download started.");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-primary/5 to-gray-50">
       <div className="p-6 sm:p-8">
-        <h1 className="text-3xl font-bold text-gray-900">Mileage Report</h1>
+        <h1 className="text-3xl font-bold page-title">Mileage Report</h1>
         <p className="text-sm text-gray-600 mt-1">
           Track and manage mileage reimbursements
         </p>

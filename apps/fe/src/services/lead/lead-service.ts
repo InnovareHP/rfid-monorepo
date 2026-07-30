@@ -52,8 +52,14 @@ export const getColumnOptions = async (moduleType?: string) => {
   return response.data;
 };
 
-export const getFollowUpSuggestions = async (recordId: string) => {
-  const response = await axiosClient.get(`/api/boards/${recordId}/suggestions`);
+export const getFollowUpSuggestions = async (
+  recordId: string,
+  force = false
+) => {
+  const response = await axiosClient.get(
+    `/api/boards/${recordId}/suggestions`,
+    { params: force ? { force: true } : undefined }
+  );
 
   return response.data as {
     suggestions: {
@@ -343,7 +349,7 @@ export interface Activity {
   id: string;
   title: string;
   description: string | null;
-  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE";
+  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE" | "FAX";
   status: "PENDING" | "COMPLETED" | "CANCELLED";
   dueDate: string | null;
   completedAt: string | null;
@@ -352,6 +358,14 @@ export interface Activity {
   emailBody: string | null;
   emailSentAt: string | null;
   senderEmail: string | null;
+  faxNumber: string | null;
+  faxId: string | null;
+  faxSentAt: string | null;
+  direction: "OUTBOUND" | "INBOUND";
+  threadToken: string | null;
+  openCount: number;
+  firstOpenedAt: string | null;
+  lastOpenedAt: string | null;
   createdAt: string;
   createdBy: string;
   creator_email: string;

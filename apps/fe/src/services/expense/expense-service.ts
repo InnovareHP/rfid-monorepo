@@ -1,7 +1,7 @@
 import { axiosClient } from "@/lib/axios-client";
 
 export const getExpenseLogs = async (filters?: any) => {
-  const response = await axiosClient.get("/api/liason/expense", {
+  const response = await axiosClient.get("/api/liaison/expense", {
     params: {
       ...filters,
       filter: filters?.filter ? JSON.stringify(filters.filter) : undefined,
@@ -19,7 +19,7 @@ export const getExpenseLogs = async (filters?: any) => {
 };
 
 export const exportExpenseLogs = async (filters?: any) => {
-  const response = await axiosClient.get("/api/liason/expense/export", {
+  const response = await axiosClient.get("/api/liaison/expense/export", {
     params: {
       ...filters,
       filter: filters?.filter ? JSON.stringify(filters.filter) : undefined,
@@ -44,7 +44,7 @@ export const exportExpenseLogs = async (filters?: any) => {
 };
 
 export const createExpenseLog = async (data: any) => {
-  const response = await axiosClient.post("/api/liason/expense", {
+  const response = await axiosClient.post("/api/liaison/expense", {
     ...data,
   });
 
@@ -52,7 +52,7 @@ export const createExpenseLog = async (data: any) => {
 };
 
 export const updateExpenseLog = async (id: string, data: any) => {
-  const response = await axiosClient.put(`/api/liason/expense/${id}`, {
+  const response = await axiosClient.put(`/api/liaison/expense/${id}`, {
     id,
     ...data,
   });
@@ -61,7 +61,7 @@ export const updateExpenseLog = async (id: string, data: any) => {
 };
 
 export const deleteExpenseLog = async (id: string) => {
-  const response = await axiosClient.delete(`/api/liason/expense/${id}`);
+  const response = await axiosClient.delete(`/api/liaison/expense/${id}`);
 
   return response.data;
 };

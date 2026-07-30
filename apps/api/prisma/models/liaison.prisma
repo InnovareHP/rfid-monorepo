@@ -1,0 +1,79 @@
+model Marketing {
+  id             String           @id @default(uuid())
+  facility       String
+  touchpoints    TouchpointType[]
+  talkedTo       String
+  reasonForVisit String?
+  notes          String?
+  memberId       String
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime?        @updatedAt @db.Timestamptz(3)
+  isDeleted      Boolean          @default(false)
+
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@schema("liason_schema")
+}
+
+model Expense {
+  id          String @id @default(uuid())
+  amount      Float
+  description String
+  notes       String
+  memberId    String
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  isDeleted Boolean   @default(false)
+
+  imageUrl String
+  member   Member @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@schema("liason_schema")
+}
+
+model Mileage {
+  id String @id @default(uuid())
+
+  destination      String
+  countiesMarketed String
+  beginningMileage Float
+  endingMileage    Float
+  totalMiles       Float
+
+  rateType            MileageRateType
+  ratePerMile         Float
+  reimbursementAmount Float
+  isDeleted           Boolean         @default(false)
+
+  memberId String
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@schema("liason_schema")
+}
+
+enum TouchpointType {
+  IN_PERSON_MEETING
+  LINKED_IN
+  FACEBOOK
+  TEXT
+  EMAIL
+  PHONE
+  OTHER
+
+  @@schema("liason_schema")
+}
+
+enum MileageRateType {
+  FEDERAL
+  STATE
+
+  @@schema("liason_schema")
+}

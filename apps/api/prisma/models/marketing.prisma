@@ -1,0 +1,168 @@
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+
+  @@schema("marketing_schema")
+}
+
+enum BlastStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+
+  @@schema("marketing_schema")
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+
+  @@schema("marketing_schema")
+}
+
+model Campaign {
+  id          String         @id @default(uuid())
+  createdAt   DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @db.Timestamptz(3)
+  name        String
+  description String?
+  status      CampaignStatus @default(DRAFT)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  blasts       Blast[]
+  forms        Form[]
+  landingPages LandingPage[]
+
+  @@index([organizationId, status])
+  @@schema("marketing_schema")
+}
+
+model Blast {
+  id             String      @id @default(uuid())
+  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @db.Timestamptz(3)
+  name           String
+  subject        String
+  bodyHtml       String
+  status         BlastStatus @default(DRAFT)
+  moduleType     ModuleType  @default(LEAD)
+  audienceFilter Json
+  scheduledAt    DateTime?   @db.Timestamptz(3)
+  sentAt         DateTime?   @db.Timestamptz(3)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  createdBy String?
+  creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  recipients BlastRecipient[]
+
+  @@index([organizationId, status])
+  @@schema("marketing_schema")
+}
+
+model BlastRecipient {
+  id            String    @id @default(uuid())
+  email         String
+  status        String    @default("PENDING")
+  trackingId    String?   @unique
+  openCount     Int       @default(0)
+  firstOpenedAt DateTime? @db.Timestamptz(3)
+  lastOpenedAt  DateTime? @db.Timestamptz(3)
+  sentAt        DateTime? @db.Timestamptz(3)
+  error         String?
+
+  blastId String
+  blast   Blast  @relation(fields: [blastId], references: [id], onDelete: Cascade)
+
+  recordId String
+  record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@unique([blastId, recordId])
+  @@schema("marketing_schema")
+}
+
+model Form {
+  id               String     @id @default(uuid())
+  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
+  name             String
+  slug             String     @unique
+  status           PageStatus @default(DRAFT)
+  moduleType       ModuleType @default(LEAD)
+  fieldMappings    Json
+  submitButtonText String     @default("Submit")
+  redirectUrl      String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  createdBy String?
+  creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  submissions  FormSubmission[]
+  landingPages LandingPage[]
+
+  @@index([organizationId, status])
+  @@schema("marketing_schema")
+}
+
+model FormSubmission {
+  id          String   @id @default(uuid())
+  submittedAt DateTime @default(now()) @db.Timestamptz(3)
+  sourceIp    String?
+  userAgent   String?
+
+  formId String
+  form   Form   @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  recordId String
+  record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@schema("marketing_schema")
+}
+
+model LandingPage {
+  id             String     @id @default(uuid())
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
+  name           String
+  slug           String     @unique
+  status         PageStatus @default(DRAFT)
+  sections       Json
+  seoTitle       String?
+  seoDescription String?
+  publishedAt    DateTime?  @db.Timestamptz(3)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  formId String?
+  form   Form?   @relation(fields: [formId], references: [id], onDelete: SetNull)
+
+  createdBy String?
+  creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@schema("marketing_schema")
+}

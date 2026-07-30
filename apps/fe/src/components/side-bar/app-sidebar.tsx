@@ -7,18 +7,23 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
-  useSidebar,
 } from "@dashboard/ui/components/sidebar";
 import { Link } from "@tanstack/react-router";
 import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
+  Building2,
+  CalendarClock,
   CircuitBoard,
+  ClipboardList,
+  Contact,
   DollarSign,
   FileText,
   Folder,
   HistoryIcon,
+  LayoutTemplate,
+  Megaphone,
+  MailPlus,
   Route,
   Settings,
   SquareTerminal,
@@ -27,6 +32,9 @@ import {
   Users,
 } from "lucide-react";
 import * as React from "react";
+
+const BRAND_WORDMARK =
+  "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   activeOrganizationId: string;
@@ -41,8 +49,6 @@ export function AppSidebar({
   user,
   ...props
 }: AppSidebarProps) {
-  const { state } = useSidebar();
-
   const data = React.useMemo(
     () => ({
       navMain: [
@@ -64,8 +70,8 @@ export function AppSidebar({
           ],
         },
         {
-          title: "Marketing",
-          icon: CircuitBoard,
+          title: "CRM",
+          icon: Contact,
           items: [
             {
               title: "Master List",
@@ -77,11 +83,64 @@ export function AppSidebar({
               url: `/${activeOrganizationId}/referral-list`,
               icon: Users,
             },
-            ...(memberData?.role !== ROLES.LIASON
+            {
+              title: "Contacts",
+              url: `/${activeOrganizationId}/contacts`,
+              icon: Contact,
+            },
+            {
+              title: "Companies",
+              url: `/${activeOrganizationId}/companies`,
+              icon: Building2,
+            },
+          ],
+        },
+        {
+          title: "Productivity",
+          icon: ClipboardList,
+          items: [
+            {
+              title: "Tasks",
+              url: `/${activeOrganizationId}/tasks`,
+              icon: ClipboardList,
+            },
+          ],
+        },
+        {
+          title: "Marketing Hub",
+          icon: MailPlus,
+          items: [
+            {
+              title: "Forms",
+              url: `/${activeOrganizationId}/marketing/forms`,
+              icon: FileText,
+            },
+            {
+              title: "Campaigns",
+              url: `/${activeOrganizationId}/marketing/campaigns`,
+              icon: Megaphone,
+            },
+            {
+              title: "Blasts",
+              url: `/${activeOrganizationId}/marketing/blasts`,
+              icon: MailPlus,
+            },
+            {
+              title: "Landing Pages",
+              url: `/${activeOrganizationId}/marketing/landing-pages`,
+              icon: LayoutTemplate,
+            },
+          ],
+        },
+        {
+          title: "Marketing",
+          icon: CircuitBoard,
+          items: [
+            ...(memberData?.role !== ROLES.LIAISON
               ? [
                   {
                     title: "History Check",
-                    url: `/${activeOrganizationId}/master-list/history`,
+                    url: `/${activeOrganizationId}/history`,
                     icon: HistoryIcon,
                   },
                 ]
@@ -162,6 +221,11 @@ export function AppSidebar({
               url: `/${activeOrganizationId}/county-config`,
               icon: Settings,
             },
+            {
+              title: "Booking",
+              url: `/${activeOrganizationId}/settings/booking`,
+              icon: CalendarClock,
+            },
             ...(memberData?.role === ROLES.OWNER
               ? [
                   // {
@@ -183,83 +247,30 @@ export function AppSidebar({
     [activeOrganizationId, memberData?.role]
   );
 
-  const activeOrg = organizations.find((o) => o.id === activeOrganizationId);
-  const orgLogo = activeOrg?.logo;
-
-  // Preload both images for smooth switching (only once on mount)
-  React.useEffect(() => {
-    const rfidImage = new Image();
-    rfidImage.src = "/login-page/rfid.png";
-    const tarsierImage = new Image();
-    tarsierImage.src = "/login-page/tarsier.png";
-
-    // Cleanup function to abort loading if component unmounts
-    return () => {
-      rfidImage.src = "";
-      tarsierImage.src = "";
-    };
-  }, []);
-
-  // Use org logo if uploaded, otherwise fall back to default
-  const logoSrc = React.useMemo(
-    () =>
-      state === "collapsed"
-        ? "/login-page/tarsier.png"
-        : "/login-page/rfid.png",
-    [state, orgLogo]
-  );
-
-  // Memoize image style to prevent object recreation
-  const imageStyle = React.useMemo(
-    () => ({
-      height: orgLogo
-        ? state === "collapsed"
-          ? "2.5rem"
-          : "3.5rem"
-        : state === "collapsed"
-          ? "3rem"
-          : "auto",
-      width: orgLogo ? "auto" : state === "collapsed" ? "2rem" : "70%",
-      maxWidth: "100%",
-      objectFit: "contain" as const,
-      objectPosition: "center" as const,
-    }),
-    [state, orgLogo]
-  );
-
   return (
     <Sidebar
       collapsible="icon"
       {...props}
-      className="md:left-16 top-(--banner-height,0px) h-[calc(100vh-var(--banner-height,0px))] transition-[top,height,left] duration-300"
+      className="md:left-16 top-(--banner-height,0px) h-[calc(100vh-var(--banner-height,0px))] transition-[top,height,left] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
     >
       <SidebarHeader>
-        <div className="mb-2 w-full overflow-hidden">
+        <div className="mb-2 w-full overflow-hidden group-data-[collapsible=icon]:hidden">
           <Link
             to="/$team"
             params={{ team: activeOrganizationId }}
             preload={false}
-            className="w-full h-full flex items-center justify-center"
+            className="flex h-full w-full items-center justify-start"
           >
             <img
-              src={logoSrc}
+              src={BRAND_WORDMARK}
               alt="Dashboard Logo"
-              className="cursor-pointer transition-all duration-300 w-full h-full"
+              className="h-auto w-[70%] max-w-full cursor-pointer object-contain object-left"
               loading="eager"
               decoding="async"
-              style={imageStyle}
             />
           </Link>
         </div>
 
-        <img
-          src={orgLogo ?? logoSrc}
-          alt="Dashboard Logo"
-          className="cursor-pointer transition-all duration-300"
-          loading="eager"
-          decoding="async"
-          style={imageStyle}
-        />
         <TeamSwitcher
           activeOrganizationId={activeOrganizationId}
           organizations={organizations}
@@ -272,7 +283,6 @@ export function AppSidebar({
       <SidebarFooter>
         <NavUser user={user} activeOrganizationId={activeOrganizationId} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }

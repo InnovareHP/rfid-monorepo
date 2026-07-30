@@ -71,7 +71,7 @@ export function TeamSwitcher({
   };
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className="group-data-[collapsible=icon]:hidden">
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -79,18 +79,13 @@ export function TeamSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {activeTeam?.name ?? "Select a team"}
-                  </span>
-                  <span className="truncate text-xs">
-                    {activeTeam?.name ?? "No team selected"}
-                  </span>
-                </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">
+                  {activeTeam?.name ?? "Select a team"}
+                </span>
+              </div>
 
-                <ChevronsUpDown className="ml-auto" />
-              </>
+              <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
 

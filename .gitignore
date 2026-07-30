@@ -35,6 +35,10 @@ pnpm-debug.log*
 /coverage
 /.nyc_output
 
+# Claude Code personal overrides (*.local does not match these)
+CLAUDE.local.md
+.claude/settings.local.json
+
 # Misc
 *.local
 .temp

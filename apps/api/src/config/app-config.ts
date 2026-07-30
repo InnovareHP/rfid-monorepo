@@ -41,10 +41,22 @@ export const appConfigSchema = z.object({
   ENCRYPTION_KEY: z
     .string()
     .min(1, "ENCRYPTION_KEY required (base64 of 32 random bytes)"),
-  AI_SCRUB_PHI: z.coerce.boolean().default(false),
+  AI_SCRUB_PHI: z
+    .string()
+    .default("true")
+    .transform((v) => v.toLowerCase() !== "false"),
+  ELDONFAX_API_KEY: z.string().min(1).optional(),
+  ELDONFAX_BASE_URL: z.url().default("https://api.eldonfax.com"),
   GEOCODIFY_API_KEY: z.string().min(1),
   GOOGLE_PLACES_API_KEY: z.string().min(1),
-
+  SES_CONFIGURATION_SET: z.string().min(1),
+  EMAIL_INGEST_DOMAIN: z.string().min(1).optional(),
+  SES_INBOUND_BUCKET: z.string().min(1).optional(),
+  SES_INBOUND_TOPIC_ARN: z.string().min(1).optional(),
+  EMAIL_OPEN_TRACKING: z
+    .string()
+    .default("true")
+    .transform((v) => v.toLowerCase() !== "false"),
   PORT: z.coerce.number().default(8080),
 });
 

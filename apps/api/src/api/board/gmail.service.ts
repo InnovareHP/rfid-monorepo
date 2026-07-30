@@ -1,9 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { render } from "@react-email/render";
 import { google } from "googleapis";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
-import { ActivityEmail } from "src/react-email/activity-email";
 
 @Injectable()
 export class GmailService {
@@ -108,9 +106,9 @@ export class GmailService {
     userId: string,
     to: string,
     subject: string,
-    recipientName: string,
-    body: string,
-    senderName: string
+    html: string,
+    senderName: string,
+    references?: string | null
   ): Promise<boolean> {
     const token = await prisma.gmailToken.findUnique({
       where: { userId: userId },
@@ -143,13 +141,12 @@ export class GmailService {
         }
       });
 
-      const htmlContent = await render(ActivityEmail({ recipientName, body }));
-
       const rawMessage = this.buildRawEmail(
         `${senderName} <${token.gmailAddress}>`,
         to,
         subject,
-        htmlContent
+        html,
+        references
       );
 
       const gmail = google.gmail({ version: "v1", auth: oauth2Client });
@@ -181,12 +178,14 @@ export class GmailService {
     from: string,
     to: string,
     subject: string,
-    htmlBody: string
+    htmlBody: string,
+    references?: string | null
   ): string {
     const messageParts = [
       `From: ${from}`,
       `To: ${to}`,
       `Subject: ${subject}`,
+      ...(references ? [`References: ${references}`] : []),
       "MIME-Version: 1.0",
       'Content-Type: text/html; charset="UTF-8"',
       "",

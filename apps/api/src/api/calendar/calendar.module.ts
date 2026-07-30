@@ -7,5 +7,6 @@ import { OutlookCalendarService } from "./outlook-calendar.service";
 @Module({
   controllers: [CalendarOAuthCallbackController, CalendarController],
   providers: [GoogleCalendarService, OutlookCalendarService],
+  exports: [GoogleCalendarService, OutlookCalendarService],
 })
 export class CalendarModule {}

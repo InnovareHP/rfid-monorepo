@@ -1,8 +1,10 @@
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
+import { authClient } from "@/lib/auth-client";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { deleteLead, getLeads } from "@/services/lead/lead-service";
-import type { LeadRow, OptionsResponse } from "@dashboard/shared";
+import { ROLES, type LeadRow, type OptionsResponse } from "@dashboard/shared";
+import type { Member } from "better-auth/plugins/organization";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,13 +12,22 @@ import {
   useReactTable,
   type Header,
 } from "@tanstack/react-table";
-import { Download, ScanLine } from "lucide-react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Download,
+  KanbanSquare,
+  ScanLine,
+  Settings,
+  TableProperties,
+} from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { AnalyzeLeadDialog } from "./analyze-cell";
 import ColumnFilter from "./column-filter";
+import KanbanView from "./kanban-view";
 import { MasterListFilters } from "./master-list-filter";
+import { PipelineSettingsDialog } from "./pipeline-settings-dialog";
 import { MasterListView } from "./master-list-view";
 import { SmartScanDialog } from "./smart-scan-dialog";
 
@@ -25,13 +36,25 @@ export default function MasterListPage() {
   const [openAnalyzeDialog, setOpenAnalyzeDialog] = useState(false);
   const [openMasterListView, setOpenMasterListView] = useState(false);
   const [openSmartScan, setOpenSmartScan] = useState(false);
+  const [view, setView] = useState<"table" | "kanban">("table");
+  const [openPipelineSettings, setOpenPipelineSettings] = useState(false);
   const queryClient = useQueryClient();
+
+  const { data: organizationData } = authClient.useActiveOrganization();
+  const memberData = queryClient.getQueryData<Member>([
+    "member-data",
+    organizationData?.id,
+  ]);
+  const isOwner = memberData?.role === ROLES.OWNER;
+
+  const routeSearch = useSearch({ strict: false }) as { q?: string };
 
   const [filterMeta, setFilterMeta] = useState<{
     BoardDateFrom: null | string;
     BoardDateTo: null | string;
     filter: Record<string, string>;
     limit: number;
+    search?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }>({
@@ -39,7 +62,13 @@ export default function MasterListPage() {
     BoardDateTo: null,
     filter: {},
     limit: 10,
+    search: undefined,
   });
+
+  useEffect(() => {
+    if (!routeSearch.q) return;
+    setFilterMeta((prev) => ({ ...prev, search: routeSearch.q }));
+  }, [routeSearch.q]);
 
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["leads", filterMeta],
@@ -267,6 +296,11 @@ export default function MasterListPage() {
 
         <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
 
+        <PipelineSettingsDialog
+          open={openPipelineSettings}
+          setOpen={setOpenPipelineSettings}
+        />
+
         <MasterListView
           open={openMasterListView}
           setOpen={setOpenMasterListView}
@@ -282,7 +316,7 @@ export default function MasterListPage() {
         />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight page-title">
               Master Marketing List
             </h1>
             <p className="text-gray-500 text-sm mt-1">
@@ -291,6 +325,28 @@ export default function MasterListPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setView(view === "table" ? "kanban" : "table")}
+              className="flex items-center gap-2 border-gray-300 bg-white"
+            >
+              {view === "table" ? (
+                <KanbanSquare className="h-4 w-4" />
+              ) : (
+                <TableProperties className="h-4 w-4" />
+              )}
+              {view === "table" ? "Pipeline" : "Table"}
+            </Button>
+            {view === "kanban" && isOwner && (
+              <Button
+                variant="outline"
+                onClick={() => setOpenPipelineSettings(true)}
+                className="flex items-center gap-2 border-gray-300 bg-white"
+              >
+                <Settings className="h-4 w-4" />
+                Pipeline Settings
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handleExportCSV}
@@ -312,38 +368,51 @@ export default function MasterListPage() {
           </div>
         </div>
 
-        <div className="bg-white">
-          <MasterListFilters
-            columns={data?.columns ?? []}
-            filterMeta={filterMeta}
-            refetch={refetch}
-            setFilterMeta={setFilterMeta}
+        {view === "kanban" ? (
+          <KanbanView
+            onCardOpen={(recordId) => {
+              setSelectedRecordId(recordId);
+              setOpenMasterListView(true);
+            }}
           />
-        </div>
+        ) : (
+          <>
+            <div className="bg-white">
+              <MasterListFilters
+                columns={data?.columns ?? []}
+                filterMeta={filterMeta}
+                refetch={refetch}
+                setFilterMeta={setFilterMeta}
+              />
+            </div>
 
-        {/* Table Wrapper */}
+            {/* Table Wrapper */}
 
-        <ReusableTable
-          table={table}
-          columns={columns}
-          isFetchingList={isLoading}
-          onLoadMore={() => setCurrentPage(currentPage + 1)}
-          hasMore={false}
-          setActivePage={() => setCurrentPage(currentPage + 1)}
-          onDelete={handleDeleteLeads}
-          onRowOpen={(recordId) => {
-            setSelectedRecordId(recordId);
-            setOpenMasterListView(true);
-          }}
-          totalCount={data?.pagination.count ?? 0}
-          totalPages={totalPages}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          pageSize={filterMeta.limit}
-          onPageSizeChange={(size) =>
-            setFilterMeta((prev) => ({ ...prev, limit: size, page: 1 }) as any)
-          }
-        />
+            <ReusableTable
+              table={table}
+              columns={columns}
+              isFetchingList={isLoading}
+              onLoadMore={() => setCurrentPage(currentPage + 1)}
+              hasMore={false}
+              setActivePage={() => setCurrentPage(currentPage + 1)}
+              onDelete={handleDeleteLeads}
+              onRowOpen={(recordId) => {
+                setSelectedRecordId(recordId);
+                setOpenMasterListView(true);
+              }}
+              totalCount={data?.pagination.count ?? 0}
+              totalPages={totalPages}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pageSize={filterMeta.limit}
+              onPageSizeChange={(size) =>
+                setFilterMeta(
+                  (prev) => ({ ...prev, limit: size, page: 1 }) as any
+                )
+              }
+            />
+          </>
+        )}
       </div>
     </div>
   );

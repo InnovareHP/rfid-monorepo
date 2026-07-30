@@ -90,7 +90,7 @@ export const NavMain = React.memo(function NavMain({
                   onClick={() => setOpen(true)}
                   asChild
                 >
-                  <Link preload={false} to={item.url || "#"}>
+                  <Link preload="intent" to={item.url || "#"}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </Link>
@@ -132,7 +132,7 @@ export const NavMain = React.memo(function NavMain({
                             "bg-accent text-accent-foreground border-border/80"
                         )}
                       >
-                        <Link preload={false} to={subItem.url}>
+                        <Link preload="intent" to={subItem.url}>
                           {subItem.icon && <subItem.icon />}
                           {subItem.title}
                         </Link>
@@ -167,7 +167,7 @@ export const NavMain = React.memo(function NavMain({
                           isActive={subItem.url === pathname}
                           asChild
                         >
-                          <Link preload={false} to={subItem.url}>
+                          <Link preload="intent" to={subItem.url}>
                             {subItem.icon && <subItem.icon />}
                             <span>{subItem.title}</span>
                           </Link>

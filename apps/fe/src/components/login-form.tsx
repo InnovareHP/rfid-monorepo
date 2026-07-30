@@ -2,19 +2,19 @@ import { authClient } from "@/lib/auth-client";
 import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from "@dashboard/ui/components/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { cn } from "@dashboard/ui/lib/utils";
@@ -27,7 +27,6 @@ import {
   EyeOff,
   HeadphonesIcon,
   LayoutDashboard,
-  LayoutGrid,
   Loader2,
 } from "lucide-react";
 import { useState } from "react";
@@ -42,8 +41,34 @@ type PendingNav = {
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M21.35 11.1H12v3.2h5.38c-.5 2.5-2.62 3.9-5.38 3.9a5.95 5.95 0 1 1 0-11.9c1.52 0 2.9.56 3.98 1.48l2.4-2.4A9.53 9.53 0 0 0 12 2.75a9.25 9.25 0 1 0 0 18.5c4.63 0 9.15-3.37 9.35-10.15Z" />
+    <svg viewBox="0 0 24 24" {...props}>
+      <path
+        fill="#4285F4"
+        d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.57 5.57 0 0 1-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.29a7.16 7.16 0 0 1 0-4.58V6.62H1.29a11.99 11.99 0 0 0 0 10.76l3.98-3.09Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42A11.53 11.53 0 0 0 12 0 11.99 11.99 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75Z"
+      />
+    </svg>
+  );
+}
+
+function MicrosoftIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path fill="#F25022" d="M2 2h9.5v9.5H2z" />
+      <path fill="#7FBA00" d="M12.5 2H22v9.5h-9.5z" />
+      <path fill="#00A4EF" d="M2 12.5h9.5V22H2z" />
+      <path fill="#FFB900" d="M12.5 12.5H22V22h-9.5z" />
     </svg>
   );
 }
@@ -56,6 +81,9 @@ export function LoginForm({
   const queryClient = useQueryClient();
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<
+    "google" | "microsoft" | null
+  >(null);
 
   const formSchema = z.object({
     email: z.string().email(),
@@ -72,6 +100,7 @@ export function LoginForm({
 
   const goToMainDashboard = async (data: PendingNav) => {
     setPendingNav(null);
+
     if (data.activeOrganizationId) {
       await navigate.navigate({
         to: "/$team",
@@ -85,10 +114,24 @@ export function LoginForm({
 
   const goToParamsDashboard = (params: string) => {
     setPendingNav(null);
-    const supportUrl =
-      import.meta.env.VITE_SUPPORT_URL + `${params}` ||
-      `http://localhost:3001${params}`;
+    const supportUrl = `${import.meta.env.VITE_SUPPORT_URL || "http://localhost:3001"}${params}`;
     window.location.href = supportUrl;
+  };
+
+  const handleSocialLogin = async (provider: "google" | "microsoft") => {
+    setSocialLoading(provider);
+    await authClient.signIn.social(
+      {
+        provider,
+        callbackURL: `${import.meta.env.VITE_APP_URL}/login`,
+      },
+      {
+        onError: (ctx: ErrorContext): void => {
+          setSocialLoading(null);
+          toast.error(ctx.error.message);
+        },
+      }
+    );
   };
 
   const handleLogin = async (values: z.infer<typeof formSchema>) => {
@@ -103,9 +146,8 @@ export function LoginForm({
             toast.error(ctx.error.message);
           },
           onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["session"] });
-
             const { data: freshSession } = await authClient.getSession();
+            queryClient.setQueryData(["session"], freshSession);
 
             const role = freshSession?.user?.role as string;
             const navData: PendingNav = {
@@ -263,6 +305,8 @@ export function LoginForm({
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
+                        onClick={() => handleSocialLogin("google")}
+                        disabled={socialLoading !== null}
                         aria-label="Continue with Google"
                         className="flex h-10 xl:h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
                       >
@@ -270,10 +314,12 @@ export function LoginForm({
                       </button>
                       <button
                         type="button"
-                        aria-label="More sign-in options"
+                        onClick={() => handleSocialLogin("microsoft")}
+                        disabled={socialLoading !== null}
+                        aria-label="Continue with Microsoft"
                         className="flex h-10 xl:h-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
                       >
-                        <LayoutGrid className="w-4 h-4 xl:w-5 xl:h-5" />
+                        <MicrosoftIcon className="w-4 h-4 xl:w-5 xl:h-5" />
                       </button>
                     </div>
 

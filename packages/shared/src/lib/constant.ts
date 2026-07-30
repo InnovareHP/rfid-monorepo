@@ -1,6 +1,6 @@
 export const ROLES = {
   OWNER: "owner",
-  LIASON: "liason",
+  LIAISON: "liason",
   ADMISSION_MANAGER: "admission_manager",
   SUPPORT: "support",
   USER: "user",

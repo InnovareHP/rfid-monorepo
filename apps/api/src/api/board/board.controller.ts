@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Param,
   Patch,
   Post,
@@ -17,6 +18,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Queue } from "bullmq";
 import { memoryStorage } from "multer";
+import { EldonFaxError } from "../../lib/eldonfax/eldonfax";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 import {
@@ -24,6 +26,7 @@ import {
   CompleteActivityDto,
   CreateActivityDto,
   CreateColumnDto,
+  CreateFaxActivityDto,
   CreateFieldOptionDto,
   CreateRecordCountyAssignmentDto,
   CreateRecordDto,
@@ -151,6 +154,28 @@ export class BoardController {
         moduleType || "LEAD",
         Number(page),
         Number(limit)
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/duplicates")
+  async findDuplicates(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string,
+    @Query("email") email?: string,
+    @Query("phone") phone?: string,
+    @Query("excludeRecordId") excludeRecordId?: string
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.findDuplicateRecords(
+        organizationId,
+        moduleType || "CONTACT",
+        email,
+        phone,
+        excludeRecordId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -300,6 +325,21 @@ export class BoardController {
     }
   }
 
+  @Get("/:recordId/related")
+  async getRelatedRecords(
+    @Param("recordId") recordId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getRelatedRecords(
+        recordId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Get("/:recordId/activities")
   async getActivities(
     @Param("recordId") recordId: string,
@@ -322,12 +362,14 @@ export class BoardController {
   @Get("/:recordId/suggestions")
   async getFollowUpSuggestions(
     @Param("recordId") recordId: string,
+    @Query("force") force: string,
     @Session() session: AuthenticatedSession
   ) {
     try {
       return await this.boardService.getFollowUpSuggestions(
         recordId,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        force === "true"
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -362,9 +404,14 @@ export class BoardController {
     const organizationId = session.session.activeOrganizationId;
 
     try {
-      if (dto.moduleType === "REFERRAL") {
+      if (["REFERRAL", "CONTACT", "COMPANY"].includes(dto.moduleType ?? "")) {
+        if (!dto.data?.length) {
+          throw new BadRequestException(
+            "data is required for this module type"
+          );
+        }
         return this.boardService.createReferral(
-          dto.data,
+          dto.data as { referral_name: string; [key: string]: any }[],
           organizationId,
           session.user.id,
           dto.moduleType
@@ -442,6 +489,52 @@ export class BoardController {
         session.user.id
       );
     } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/activities/fax")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 25 * 1024 * 1024 },
+    })
+  )
+  async createFaxActivity(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateFaxActivityDto,
+    @Session() session: MemberSession
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'No document uploaded. Use multipart/form-data with the "file" field.'
+      );
+    }
+
+    try {
+      return await this.boardService.createFaxActivity(
+        {
+          recordId: dto.recordId,
+          title: dto.title,
+          description: dto.description,
+          faxNumber: dto.faxNumber,
+          file: {
+            buffer: file.buffer,
+            filename: file.originalname,
+            mimetype: file.mimetype,
+          },
+        },
+        session.session.activeOrganizationId,
+        session.session.userId,
+        session.session.memberRole
+      );
+    } catch (error) {
+      if (error instanceof EldonFaxError) {
+        throw new HttpException(
+          { message: error.message, code: error.code },
+          error.status
+        );
+      }
       throw new BadRequestException(error.message);
     }
   }

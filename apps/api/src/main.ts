@@ -1,6 +1,7 @@
 import { VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { appConfig } from "./config/app-config";
 import { AllExceptionsFilter } from "./filter/filter";
@@ -11,6 +12,20 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
   });
+
+  // Only the first proxy hop may set x-forwarded-for (audit IP integrity)
+  app.getHttpAdapter().getInstance().set("trust proxy", 1);
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: false,
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+      },
+    })
+  );
 
   app.enableCors({
     origin: [appConfig.WEBSITE_URL, appConfig.SUPPORT_URL],
