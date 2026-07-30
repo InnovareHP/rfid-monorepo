@@ -12,6 +12,10 @@ model Subscription {
   trialStart           DateTime? @db.Timestamptz(3)
   trialEnd             DateTime? @db.Timestamptz(3)
   cancelAt             DateTime? @db.Timestamptz(3)
+  canceledAt           DateTime? @db.Timestamptz(3)
+  endedAt              DateTime? @db.Timestamptz(3)
+  billingInterval      String?
+  stripeScheduleId     String?
 
   @@schema("stripe_schema")
 }
