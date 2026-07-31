@@ -1,7 +1,9 @@
+import { getLiaisons } from "@/services/options/options-service";
 import {
   createCounty,
   deleteCounty,
   getCounties,
+  updateCountyLiaisons,
 } from "@/services/referral/referral-service";
 import type { CountyRow } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
@@ -15,18 +17,17 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import { MultiSelect } from "@dashboard/ui/components/multi-select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
 const CountySchema = z.object({
-  id: z.string(),
   name: z.string().min(1, "County name is required"),
-  assigned_to: z.string().optional(),
+  liaisons: z.array(z.string()).min(1, "At least one liaison is required"),
 });
 
 export type CountyFormType = z.infer<typeof CountySchema>;
@@ -34,10 +35,18 @@ export type CountyFormType = z.infer<typeof CountySchema>;
 export default function CountyConfigTablePage() {
   const queryClient = useQueryClient();
 
-  const { data: counties } = useQuery({
+  const { data: counties } = useQuery<CountyRow[]>({
     queryKey: ["counties"],
     queryFn: getCounties,
   });
+
+  const { data: liaisons } = useQuery({
+    queryKey: ["liaisons"],
+    queryFn: () => getLiaisons(true),
+  });
+
+  const liaisonOptions =
+    liaisons?.map((l) => ({ label: l.value, value: l.value })) ?? [];
 
   const createCountyMutation = useMutation({
     mutationFn: createCounty,
@@ -45,10 +54,27 @@ export default function CountyConfigTablePage() {
       queryClient.invalidateQueries({ queryKey: ["counties"] });
       queryClient.invalidateQueries({ queryKey: ["dropdown-options"] });
       toast.success("County added successfully!");
-      form.reset({ id: uuidv4(), name: "", assigned_to: "" });
+      form.reset({ name: "", liaisons: [] });
     },
     onError: () => {
       toast.error("Failed to add county");
+    },
+  });
+
+  const updateLiaisonsMutation = useMutation({
+    mutationFn: ({
+      countyId,
+      liaisons,
+    }: {
+      countyId: string;
+      liaisons: string[];
+    }) => updateCountyLiaisons(countyId, liaisons),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["counties"] });
+      toast.success("Liaisons updated successfully!");
+    },
+    onError: () => {
+      toast.error("Failed to update liaisons");
     },
   });
 
@@ -65,11 +91,11 @@ export default function CountyConfigTablePage() {
 
   const form = useForm<CountyFormType>({
     resolver: zodResolver(CountySchema),
-    defaultValues: { id: uuidv4(), name: "", assigned_to: "" },
+    defaultValues: { name: "", liaisons: [] },
   });
 
   const onSubmit = (values: CountyFormType) => {
-    createCountyMutation.mutate(values as CountyRow);
+    createCountyMutation.mutate(values);
   };
 
   const handleDelete = (id: string) => {
@@ -84,11 +110,11 @@ export default function CountyConfigTablePage() {
             County Configuration
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage county assignments and responsible personnel
+            Manage county assignments and responsible liaisons
           </p>
         </div>
         <Badge variant="outline" className="text-lg py-2 px-4">
-          {counties?.filter((c: CountyRow) => c.assigned_to)?.length ?? 0}/
+          {counties?.filter((c) => c.liaisons.length > 0)?.length ?? 0}/
           {counties?.length ?? 0} Assigned
         </Badge>
       </div>
@@ -97,7 +123,7 @@ export default function CountyConfigTablePage() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col md:flex-row gap-4 items-center"
+            className="flex flex-col md:flex-row gap-4 items-start"
           >
             <FormField
               control={form.control}
@@ -114,21 +140,24 @@ export default function CountyConfigTablePage() {
 
             <FormField
               control={form.control}
-              name="assigned_to"
+              name="liaisons"
               render={({ field }) => (
-                <FormItem className="w-full md:w-1/3">
+                <FormItem className="w-full md:w-1/2">
                   <FormControl>
-                    <Input placeholder="Assigned To" {...field} />
+                    <MultiSelect
+                      options={liaisonOptions}
+                      defaultValue={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select liaisons"
+                      hideSelectAll
+                    />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            <Button
-              type="submit"
-              disabled={createCountyMutation.isPending}
-              className="mt-2 md:mt-0"
-            >
+            <Button type="submit" disabled={createCountyMutation.isPending}>
               <Plus className="w-4 h-4 mr-2" />
               {createCountyMutation.isPending ? "Saving..." : "Add County"}
             </Button>
@@ -145,7 +174,7 @@ export default function CountyConfigTablePage() {
                   County Name
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Assigned Person
+                  Liaisons
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Status
@@ -157,17 +186,31 @@ export default function CountyConfigTablePage() {
             </thead>
             <tbody>
               {counties && counties.length > 0 ? (
-                counties.map((county: CountyRow) => (
+                counties.map((county) => (
                   <tr
                     key={county.id}
                     className={`border-b border-gray-200 ${
-                      !county.assigned_to ? "bg-orange-50" : "bg-white"
+                      county.liaisons.length === 0 ? "bg-orange-50" : "bg-white"
                     } hover:bg-gray-50 transition-colors`}
                   >
                     <td className="px-4 py-3">{county.name}</td>
-                    <td className="px-4 py-3">{county.assigned_to || "—"}</td>
+                    <td className="px-4 py-3 min-w-[280px]">
+                      <MultiSelect
+                        options={liaisonOptions}
+                        defaultValue={county.liaisons}
+                        onValueChange={(liaisons) =>
+                          updateLiaisonsMutation.mutate({
+                            countyId: county.id,
+                            liaisons,
+                          })
+                        }
+                        placeholder="Select liaisons"
+                        hideSelectAll
+                        disabled={updateLiaisonsMutation.isPending}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-center">
-                      {county.assigned_to ? (
+                      {county.liaisons.length > 0 ? (
                         <Badge
                           variant="outline"
                           className="bg-green-50 text-green-700 border-green-200"

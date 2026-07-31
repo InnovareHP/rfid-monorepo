@@ -25,6 +25,7 @@ import {
   LayoutTemplate,
   Megaphone,
   MailPlus,
+  MapPin,
   Route,
   Settings,
   Sparkles,
@@ -134,21 +135,27 @@ export function AppSidebar({
             },
           ],
         },
-        {
-          title: "Marketing",
-          icon: CircuitBoard,
-          items: [
-            ...(memberData?.role !== ROLES.LIAISON
-              ? [
+        ...(memberData?.role !== ROLES.LIAISON
+          ? [
+              {
+                title: "Records",
+                icon: HistoryIcon,
+                items: [
                   {
                     title: "History Check",
                     url: `/${activeOrganizationId}/history`,
                     icon: HistoryIcon,
                   },
-                ]
-              : []),
-            ...(!isOrgAdmin(memberData?.role)
-              ? [
+                ],
+              },
+            ]
+          : []),
+        ...(!isOrgAdmin(memberData?.role)
+          ? [
+              {
+                title: "Marketing",
+                icon: CircuitBoard,
+                items: [
                   {
                     title: "Mileage Log",
                     url: `/${activeOrganizationId}/log/mileage`,
@@ -164,10 +171,10 @@ export function AppSidebar({
                     url: `/${activeOrganizationId}/log/expense`,
                     icon: DollarSign,
                   },
-                ]
-              : []),
-          ],
-        },
+                ],
+              },
+            ]
+          : []),
         ...(isOrgAdmin(memberData?.role)
           ? [
               {
@@ -219,9 +226,9 @@ export function AppSidebar({
               icon: Users,
             },
             {
-              title: "County Configuration",
+              title: "Counties",
               url: `/${activeOrganizationId}/county-config`,
-              icon: Settings,
+              icon: MapPin,
             },
             {
               title: "Booking",

@@ -12,6 +12,14 @@ export const ROLES = {
 export const isOrgAdmin = (role?: string | null) =>
   role === ROLES.OWNER || role === ROLES.ADMIN;
 
+// Stored role values are snake_case and liason is misspelled, so labels are mapped.
+export const ROLE_LABELS: Record<string, string> = {
+  [ROLES.OWNER]: "Owner",
+  [ROLES.ADMIN]: "Admin",
+  [ROLES.LIAISON]: "Liaison",
+  [ROLES.ADMISSION_MANAGER]: "Admission Manager",
+};
+
 export const KNOWLEDGE_BASE_ITEMS = [
   {
     iconKey: "play" as const,

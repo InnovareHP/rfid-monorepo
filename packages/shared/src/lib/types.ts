@@ -179,7 +179,12 @@ export type LeadHistoryItem = {
 export type CountyRow = {
   id: string;
   name: string;
-  assigned_to: string;
+  liaisons: string[];
+};
+
+export type CountyAssignmentPayload = {
+  name: string;
+  liaisons: string[];
 };
 
 export type AnalyticsResponse = {

@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -36,6 +37,7 @@ import {
   RestoreHistoryDto,
   UpdateActivityDto,
   UpdateContactDto,
+  UpdateRecordCountyLiaisonDto,
   UpdateRecordValueDto,
 } from "./dto/board.schema";
 import { GmailService } from "./gmail.service";
@@ -619,7 +621,25 @@ export class BoardController {
       return await this.boardService.createCountyAssignment(
         dto.name,
         organizationId,
-        dto.assignedTo
+        dto.liaisons
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Put("/county/assignment/:countyId")
+  async updateCountyLiaisons(
+    @Param("countyId") countyId: string,
+    @Body() dto: UpdateRecordCountyLiaisonDto,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.updateCountyLiaisons(
+        countyId,
+        session.session.activeOrganizationId,
+        dto.liaisons
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -751,7 +771,9 @@ export class BoardController {
     try {
       return await this.boardService.deleteRecord(
         dto.column_ids,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        session.session.userId,
+        dto.moduleType
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -811,9 +833,16 @@ export class BoardController {
   }
 
   @Delete("/county/assignment/:countyId")
-  async deleteCountyAssignment(@Param("countyId") countyId: string) {
+  async deleteCountyAssignment(
+    @Param("countyId") countyId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.deleteCountyAssignment(countyId);
+      return await this.boardService.deleteCountyAssignment(
+        countyId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

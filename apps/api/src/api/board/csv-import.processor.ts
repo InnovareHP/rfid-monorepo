@@ -186,6 +186,7 @@ export class CsvImportProcessor extends WorkerHost {
       .emit("board:csv-import-complete", {
         jobId: job.id,
         recordsImported: recordsToCreate.length,
+        moduleType,
       });
 
     return { recordsImported: recordsToCreate.length };

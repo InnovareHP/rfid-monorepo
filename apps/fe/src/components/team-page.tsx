@@ -19,7 +19,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { applyBrandColor } from "@/lib/color-utils";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
-import { formatCapitalize, isOrgAdmin, ROLES } from "@dashboard/shared";
+import {
+  formatCapitalize,
+  isOrgAdmin,
+  ROLE_LABELS,
+  ROLES,
+} from "@dashboard/shared";
 import {
   Avatar,
   AvatarFallback,
@@ -69,7 +74,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Invitation } from "better-auth/plugins";
 import type { Member } from "better-auth/plugins/organization";
-import { formatDate } from "date-fns";
+import { differenceInDays, formatDate, formatDistanceToNow } from "date-fns";
 import debounce from "lodash.debounce";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -153,6 +158,33 @@ const TeamPage = () => {
         },
       }),
   });
+
+  const getRoleBadge = (role: string) => {
+    const styles: Record<string, string> = {
+      [ROLES.OWNER]: "bg-primary/15 text-primary border-primary/30",
+      [ROLES.ADMIN]: "bg-blue-100 text-blue-800 border-blue-200",
+      [ROLES.ADMISSION_MANAGER]:
+        "bg-purple-100 text-purple-800 border-purple-200",
+      [ROLES.LIAISON]: "bg-gray-100 text-gray-700 border-gray-200",
+    };
+
+    return (
+      <Badge
+        variant="outline"
+        className={styles[role] ?? styles[ROLES.LIAISON]}
+      >
+        {ROLE_LABELS[role] ?? formatCapitalize(role)}
+      </Badge>
+    );
+  };
+
+  // Recent joins read better relative, older ones as a plain date.
+  const formatJoinedDate = (value: string) => {
+    const joined = new Date(value);
+    return differenceInDays(new Date(), joined) < 30
+      ? formatDistanceToNow(joined, { addSuffix: true })
+      : formatDate(joined, "MMM d, yyyy");
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -423,10 +455,14 @@ const TeamPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={ROLES.LIAISON}>Liaison</SelectItem>
-                        <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
+                        <SelectItem value={ROLES.LIAISON}>
+                          {ROLE_LABELS[ROLES.LIAISON]}
+                        </SelectItem>
+                        <SelectItem value={ROLES.ADMIN}>
+                          {ROLE_LABELS[ROLES.ADMIN]}
+                        </SelectItem>
                         <SelectItem value={ROLES.ADMISSION_MANAGER}>
-                          Admission Manager
+                          {ROLE_LABELS[ROLES.ADMISSION_MANAGER]}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -690,125 +726,79 @@ const TeamPage = () => {
                     columns={[
                       {
                         key: "user_name",
-                        header: "Name",
+                        header: "Member",
                         render: (row: any) => (
-                          <div className="flex items-center space-x-2">
-                            <Avatar>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
                               <AvatarImage src={row?.user.image ?? undefined} />
-                              <AvatarFallback>
+                              <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
                                 {row?.user.name?.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
-                            <span>{row?.user.name}</span>
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900 truncate">
+                                {row?.user.name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {row?.user.email}
+                              </p>
+                            </div>
                           </div>
                         ),
                       },
                       {
-                        key: "user_email",
-                        header: "Email",
-                        render: (row: any) => row?.user.email,
-                      },
-                      {
                         key: "member_position",
                         header: "Role",
-                        render: (row) => formatCapitalize(row?.role),
+                        render: (row: any) => getRoleBadge(row?.role),
                       },
                       {
                         key: "member_created_at",
-                        header: "Joined Date",
+                        header: "Joined",
+                        className: "text-gray-600",
                         render: (row: any) =>
-                          formatDate(
-                            new Date(row?.createdAt ?? ""),
-                            "MM/dd/yyyy"
-                          ),
+                          formatJoinedDate(row?.createdAt ?? ""),
                       },
                       {
                         key: "action",
-                        header: "Action",
+                        header: "",
+                        className: "w-12 text-right",
                         render: (row: any) => (
-                          <>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
 
-                              <DropdownMenuContent align="end">
-                                {/* Remove */}
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleRemoveFromTeam(row.userId)
-                                  }
-                                >
-                                  Remove From Team
-                                </DropdownMenuItem>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedRow(row as any);
+                                  setIsOpenEditRoleDialog(true);
+                                }}
+                              >
+                                Edit Role
+                              </DropdownMenuItem>
 
-                                {/* Edit Role Trigger */}
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedRow(row as any); // <-- store row in state
-                                    setIsOpenEditRoleDialog(true);
-                                  }}
-                                >
-                                  Edit Role
-                                </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setPasskeyResetTarget({
+                                    memberId: row.id,
+                                    email: row.user.email,
+                                  })
+                                }
+                              >
+                                Reset Passkeys
+                              </DropdownMenuItem>
 
-                                {/* Passkey reset */}
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    setPasskeyResetTarget({
-                                      memberId: row.id,
-                                      email: row.user.email,
-                                    })
-                                  }
-                                >
-                                  Reset Passkeys
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-
-                            {/* Dialog OUTSIDE the menu */}
-                            <Dialog
-                              open={isOpenEditRoleDialog}
-                              onOpenChange={setIsOpenEditRoleDialog}
-                            >
-                              <DialogContent className="sm:max-w-md">
-                                <DialogHeader>
-                                  <DialogTitle>Edit Role</DialogTitle>
-                                </DialogHeader>
-
-                                <Select
-                                  value={selectedRow?.role as string}
-                                  onValueChange={(value) => {
-                                    handleEditRole(
-                                      selectedRow?.id as string,
-                                      value
-                                    );
-                                    setIsOpenEditRoleDialog(false);
-                                  }}
-                                >
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select Role" />
-                                  </SelectTrigger>
-
-                                  <SelectContent>
-                                    <SelectItem value={ROLES.LIAISON}>
-                                      {formatCapitalize(ROLES.LIAISON)}
-                                    </SelectItem>
-                                    <SelectItem value={ROLES.ADMIN}>
-                                      {formatCapitalize(ROLES.ADMIN)}
-                                    </SelectItem>
-                                    <SelectItem value={ROLES.ADMISSION_MANAGER}>
-                                      {formatCapitalize(
-                                        ROLES.ADMISSION_MANAGER
-                                      )}
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </DialogContent>
-                            </Dialog>
-                          </>
+                              <DropdownMenuItem
+                                className="text-red-600 focus:text-red-600"
+                                onClick={() => handleRemoveFromTeam(row.userId)}
+                              >
+                                Remove From Team
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         ),
                       },
                     ]}
@@ -826,6 +816,41 @@ const TeamPage = () => {
                   />
                 </CardContent>
               </Card>
+
+              <Dialog
+                open={isOpenEditRoleDialog}
+                onOpenChange={setIsOpenEditRoleDialog}
+              >
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Edit Role</DialogTitle>
+                  </DialogHeader>
+
+                  <Select
+                    value={selectedRow?.role as string}
+                    onValueChange={(value) => {
+                      handleEditRole(selectedRow?.id as string, value);
+                      setIsOpenEditRoleDialog(false);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Role" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value={ROLES.LIAISON}>
+                        {ROLE_LABELS[ROLES.LIAISON]}
+                      </SelectItem>
+                      <SelectItem value={ROLES.ADMIN}>
+                        {ROLE_LABELS[ROLES.ADMIN]}
+                      </SelectItem>
+                      <SelectItem value={ROLES.ADMISSION_MANAGER}>
+                        {ROLE_LABELS[ROLES.ADMISSION_MANAGER]}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
           )}
           {isOrgAdmin(memberData?.role) && (

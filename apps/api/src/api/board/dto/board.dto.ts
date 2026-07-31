@@ -64,11 +64,16 @@ export const CreateHistorySchema = z.object({
 
 export const DeleteRecordsSchema = z.object({
   column_ids: z.array(z.string()),
+  moduleType: z.string().optional(),
 });
 
 export const CreateRecordCountyAssignmentSchema = z.object({
-  name: z.string(),
-  assignedTo: z.string(),
+  name: z.string().min(1),
+  liaisons: z.array(z.string().min(1)).min(1),
+});
+
+export const UpdateRecordCountyLiaisonSchema = z.object({
+  liaisons: z.array(z.string().min(1)),
 });
 
 export const CreateActivitySchema = z.object({

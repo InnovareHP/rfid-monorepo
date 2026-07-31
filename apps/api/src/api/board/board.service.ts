@@ -999,7 +999,7 @@ export class BoardService {
     return counties.map((c) => ({
       id: c.id,
       name: c.countyName,
-      assignedTo: c.boardCountyAssignedTo.map((a) => a.assignedTo),
+      liaisons: c.boardCountyAssignedTo.map((a) => a.assignedTo),
     }));
   }
 
@@ -1485,7 +1485,7 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
-    const { recordId, value, organizationId, moduleType, field } = ctx;
+    const { recordId, value, organizationId, moduleType, field, memberId } = ctx;
 
     if (field.fieldType === BoardFieldType.MULTISELECT) {
       // Normalize value into an array of clean strings
@@ -1498,6 +1498,13 @@ export class BoardService {
               .map((v) => v.trim())
               .filter(Boolean)
           : [];
+
+      const previousValue = await tx.fieldValue.findUnique({
+        where: {
+          recordId_fieldId: { recordId: recordId, fieldId: field.id },
+        },
+        select: { value: true },
+      });
 
       await tx.fieldValue.upsert({
         where: {
@@ -1517,8 +1524,28 @@ export class BoardService {
         },
       });
 
+      await this.createRecordHistory(
+        recordId,
+        previousValue?.value ?? "",
+        JSON.stringify(normalizedValue),
+        memberId,
+        tx,
+        "update",
+        field.fieldName,
+        field.id
+      );
+
       await purgeAllCacheKeys(
         `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+      );
+
+      // Rows carry multiselect values as the stored JSON string
+      this.boardGateway.emitRecordValueUpdated(
+        organizationId,
+        recordId,
+        field.fieldName,
+        JSON.stringify(normalizedValue),
+        moduleType
       );
 
       return {
@@ -1531,10 +1558,10 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
-    const { recordId, value, organizationId, moduleType, field } = ctx;
+    const { recordId, value, organizationId, moduleType, field, memberId } = ctx;
 
     if (field.fieldName === "County" && moduleType === "REFERRAL") {
-      const [assignedTo, facilityField] = await Promise.all([
+      const [county, facilityField] = await Promise.all([
         tx.boardCounty.findFirstOrThrow({
           where: {
             countyName: value,
@@ -1545,7 +1572,6 @@ export class BoardService {
               select: {
                 assignedTo: true,
               },
-              take: 1,
             },
           },
         }),
@@ -1557,6 +1583,21 @@ export class BoardService {
           select: {
             id: true,
           },
+        }),
+      ]);
+
+      const [previousCounty, previousFacility] = await Promise.all([
+        tx.fieldValue.findUnique({
+          where: {
+            recordId_fieldId: { recordId: recordId, fieldId: field.id },
+          },
+          select: { value: true },
+        }),
+        tx.fieldValue.findUnique({
+          where: {
+            recordId_fieldId: { recordId: recordId, fieldId: facilityField.id },
+          },
+          select: { value: true },
         }),
       ]);
 
@@ -1577,6 +1618,11 @@ export class BoardService {
         },
       });
 
+      // Facility mirrors every liaison assigned to the county
+      const liaisons = county.boardCountyAssignedTo
+        .map((a) => a.assignedTo)
+        .join(", ");
+
       await tx.fieldValue.upsert({
         where: {
           recordId_fieldId: {
@@ -1585,18 +1631,55 @@ export class BoardService {
           },
         },
         update: {
-          value: assignedTo.boardCountyAssignedTo[0].assignedTo,
+          value: liaisons,
         },
         create: {
           recordId: recordId,
           fieldId: facilityField.id,
-          value: assignedTo.boardCountyAssignedTo[0].assignedTo,
+          value: liaisons,
           organizationId: organizationId,
         },
       });
 
+      await this.createRecordHistory(
+        recordId,
+        previousCounty?.value ?? "",
+        value,
+        memberId,
+        tx,
+        "update",
+        field.fieldName,
+        field.id
+      );
+
+      await this.createRecordHistory(
+        recordId,
+        previousFacility?.value ?? "",
+        liaisons,
+        memberId,
+        tx,
+        "update",
+        "Facility",
+        facilityField.id
+      );
+
       await purgeAllCacheKeys(
         `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+      );
+
+      this.boardGateway.emitRecordValueUpdated(
+        organizationId,
+        recordId,
+        field.fieldName,
+        value,
+        moduleType
+      );
+      this.boardGateway.emitRecordValueUpdated(
+        organizationId,
+        recordId,
+        "Facility",
+        liaisons,
+        moduleType
       );
 
       return {
@@ -1609,7 +1692,8 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
-    const { recordId, value, organizationId, moduleType, reason, field } = ctx;
+    const { recordId, value, organizationId, moduleType, reason, field, memberId } =
+      ctx;
 
     if (field.fieldType === BoardFieldType.STATUS) {
       const statusFields = await tx.field.findMany({
@@ -1628,6 +1712,13 @@ export class BoardService {
       const actionDateField = statusFields.find(
         (f) => f.fieldName === "Action Date (Accepted / Rejected)"
       );
+
+      const previousStatus = await tx.fieldValue.findUnique({
+        where: {
+          recordId_fieldId: { recordId: recordId, fieldId: field.id },
+        },
+        select: { value: true },
+      });
 
       await tx.fieldValue.upsert({
         where: {
@@ -1683,12 +1774,26 @@ export class BoardService {
         });
       }
 
-      const reasonData = { id: reasonField?.id ?? "", value: reason ?? "" };
+      const reasonData = {
+        fieldName: reasonField?.fieldName ?? "",
+        value: reason ?? "",
+      };
 
       const actionDateData = {
-        id: actionDateField?.id ?? "",
+        fieldName: actionDateField?.fieldName ?? "",
         value: now ?? "",
       };
+
+      await this.createRecordHistory(
+        recordId,
+        previousStatus?.value ?? "",
+        value,
+        memberId,
+        tx,
+        "update",
+        field.fieldName,
+        field.id
+      );
 
       await purgeAllCacheKeys(
         `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
@@ -1697,7 +1802,7 @@ export class BoardService {
       this.boardGateway.emitRecordValueStatusUpdated(
         organizationId,
         recordId,
-        field.id,
+        field.fieldName,
         value,
         moduleType,
         reasonData,
@@ -2140,22 +2245,74 @@ export class BoardService {
   async createCountyAssignment(
     name: string,
     organizationId: string,
-    assignedTo: string
+    liaisons: string[]
   ) {
-    await prisma.boardCounty.create({
-      data: {
-        countyName: name,
-        organizationId: organizationId,
-        boardCountyAssignedTo: {
-          create: {
-            assignedTo: assignedTo,
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.boardCounty.findFirst({
+        where: { countyName: name, organizationId: organizationId },
+        include: { boardCountyAssignedTo: { select: { assignedTo: true } } },
+      });
+
+      if (!existing) {
+        await tx.boardCounty.create({
+          data: {
+            countyName: name,
+            organizationId: organizationId,
+            boardCountyAssignedTo: {
+              create: liaisons.map((assignedTo) => ({ assignedTo })),
+            },
           },
-        },
-      },
+        });
+        return;
+      }
+
+      // Append only liaisons not already assigned to this county
+      const current = new Set(
+        existing.boardCountyAssignedTo.map((a) => a.assignedTo)
+      );
+      const added = liaisons.filter((l) => !current.has(l));
+      if (added.length === 0) return;
+
+      await tx.boardCountyAssignedTo.createMany({
+        data: added.map((assignedTo) => ({
+          assignedTo,
+          boardCountyId: existing.id,
+        })),
+      });
     });
 
     return {
       message: "County assignment created successfully",
+    };
+  }
+
+  async updateCountyLiaisons(
+    countyId: string,
+    organizationId: string,
+    liaisons: string[]
+  ) {
+    const county = await prisma.boardCounty.findFirst({
+      where: { id: countyId, organizationId: organizationId },
+      select: { id: true },
+    });
+
+    if (!county) throw new NotFoundException("County not found");
+
+    await prisma.$transaction(async (tx) => {
+      await tx.boardCountyAssignedTo.deleteMany({
+        where: { boardCountyId: countyId },
+      });
+      if (liaisons.length === 0) return;
+      await tx.boardCountyAssignedTo.createMany({
+        data: liaisons.map((assignedTo) => ({
+          assignedTo,
+          boardCountyId: countyId,
+        })),
+      });
+    });
+
+    return {
+      message: "County liaisons updated successfully",
     };
   }
 
@@ -2315,7 +2472,7 @@ export class BoardService {
 
     const newOrder = lastColumn ? lastColumn.fieldOrder + 1 : 1;
 
-    await prisma.field.create({
+    const field = await prisma.field.create({
       data: {
         fieldName: column_name,
         fieldType: fieldType,
@@ -2329,7 +2486,7 @@ export class BoardService {
 
     this.boardGateway.emitColumnCreated(
       organizationId,
-      column_name,
+      { id: field.id, name: field.fieldName, type: field.fieldType },
       moduleType
     );
   }
@@ -2695,12 +2852,10 @@ export class BoardService {
     return await prisma.history.delete({ where: { id: timelineId } });
   }
 
-  async deleteCountyAssignment(countyId: string) {
-    const county = await prisma.boardCounty.findUnique({
-      where: { id: countyId },
-      include: {
-        boardCountyAssignedTo: true,
-      },
+  async deleteCountyAssignment(countyId: string, organizationId: string) {
+    const county = await prisma.boardCounty.findFirst({
+      where: { id: countyId, organizationId: organizationId },
+      select: { id: true },
     });
 
     if (!county) throw new NotFoundException("County not found");
@@ -2723,16 +2878,42 @@ export class BoardService {
     });
   }
 
-  async deleteRecord(column_ids: string[], organizationId: string) {
-    await prisma.board.updateMany({
-      where: {
-        id: { in: column_ids },
-        organizationId: organizationId,
-        isDeleted: false,
-      },
-      data: { isDeleted: true },
+  async deleteRecord(
+    column_ids: string[],
+    organizationId: string,
+    memberId: string,
+    moduleType: string = "LEAD"
+  ) {
+    await prisma.$transaction(async (tx) => {
+      const records = await tx.board.findMany({
+        where: {
+          id: { in: column_ids },
+          organizationId: organizationId,
+          isDeleted: false,
+        },
+        select: { id: true, recordName: true },
+      });
+
+      await tx.board.updateMany({
+        where: { id: { in: records.map((r) => r.id) } },
+        data: { isDeleted: true },
+      });
+
+      for (const record of records) {
+        await this.createRecordHistory(
+          record.id,
+          record.recordName,
+          "",
+          memberId,
+          tx,
+          "delete"
+        );
+      }
     });
+
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+    this.boardGateway.emitRecordDeleted(organizationId, column_ids, moduleType);
   }
 
   async sendBulkEmail(
