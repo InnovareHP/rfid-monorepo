@@ -68,6 +68,8 @@
 
   html {
     scroll-behavior: smooth;
+    /* Offset anchor targets by the sticky header height. */
+    scroll-padding-top: 72px;
   }
 
   body {

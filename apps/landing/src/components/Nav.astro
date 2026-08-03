@@ -11,12 +11,14 @@ const LINKS = [
 ---
 
 <header
-  class="sticky top-0 z-50 border-b border-border bg-white/80 backdrop-blur-xl"
+  class="sticky top-0 z-50 border-b border-border bg-white shadow-sm h-[72px]"
 >
-  <div class="mx-auto flex h-[72px] w-full max-w-6xl items-center gap-8 px-6">
+  <div
+    class="mx-auto flex h-[72px] w-full max-w-6xl items-center gap-4 px-6 lg:gap-6"
+  >
     <a
       href="/"
-      class="flex items-center gap-2.5"
+      class="flex shrink-0 items-center gap-2.5"
       aria-label="Refidly home"
     >
       <img src="/tarsier.png" alt="" width="36" height="36" loading="eager" />
@@ -33,7 +35,7 @@ const LINKS = [
     </a>
 
     <nav
-      class="mx-auto hidden gap-1 min-[901px]:flex"
+      class="mx-auto hidden shrink-0 gap-1 lg:flex"
       aria-label="Primary navigation"
     >
       {
@@ -48,7 +50,7 @@ const LINKS = [
       }
     </nav>
 
-    <div class="hidden items-center gap-4 min-[901px]:flex">
+    <div class="hidden shrink-0 items-center gap-4 lg:flex">
       <a
         href={APP_URL}
         class="text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-strong"
@@ -58,8 +60,8 @@ const LINKS = [
       <a href={APP_URL} class={buttonVariants()}>Start free trial</a>
     </div>
 
-    <div class="ml-auto min-[901px]:hidden">
-      <MobileMenu client:media="(max-width: 900px)" />
+    <div class="ml-auto lg:hidden">
+      <MobileMenu client:media="(max-width: 1023px)" />
     </div>
   </div>
 </header>
