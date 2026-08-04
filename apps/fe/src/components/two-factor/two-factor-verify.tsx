@@ -1,7 +1,15 @@
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
+import { Checkbox } from "@dashboard/ui/components/checkbox";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
@@ -94,91 +102,114 @@ export function TwoFactorVerify() {
       </div>
 
       {!useBackup ? (
-        <form
-          onSubmit={totpForm.handleSubmit(handleTotp)}
-          className="space-y-5"
-        >
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-900">
-              Authentication code
-            </Label>
-            <Input
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              autoFocus
-              placeholder="123456"
-              className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors tracking-widest text-center text-lg"
-              {...totpForm.register("code")}
-            />
-            {totpForm.formState.errors.code && (
-              <p className="text-sm text-red-600 font-medium">
-                {totpForm.formState.errors.code.message}
-              </p>
-            )}
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300"
-              {...totpForm.register("trustDevice")}
-            />
-            Trust this device for 30 days
-          </label>
-
-          <Button
-            type="submit"
-            disabled={totpForm.formState.isSubmitting}
-            className="w-full h-11 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+        <Form {...totpForm}>
+          <form
+            onSubmit={totpForm.handleSubmit(handleTotp)}
+            className="space-y-5"
           >
-            {totpForm.formState.isSubmitting ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Verifying...</span>
-              </div>
-            ) : (
-              "Verify"
-            )}
-          </Button>
-        </form>
+            <FormField
+              control={totpForm.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-900">
+                    Authentication code
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      autoFocus
+                      placeholder="123456"
+                      className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors tracking-widest text-center text-lg"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={totpForm.control}
+              name="trustDevice"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked === true)
+                      }
+                    />
+                  </FormControl>
+                  <FormLabel className="text-sm text-gray-700">
+                    Trust this device for 30 days
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              disabled={totpForm.formState.isSubmitting}
+              className="w-full h-11 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+            >
+              {totpForm.formState.isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Verifying...</span>
+                </div>
+              ) : (
+                "Verify"
+              )}
+            </Button>
+          </form>
+        </Form>
       ) : (
-        <form
-          onSubmit={backupForm.handleSubmit(handleBackup)}
-          className="space-y-5"
-        >
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-900">
-              Backup code
-            </Label>
-            <Input
-              autoFocus
-              placeholder="xxxxx-xxxxx"
-              className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors font-mono text-center"
-              {...backupForm.register("code")}
-            />
-            {backupForm.formState.errors.code && (
-              <p className="text-sm text-red-600 font-medium">
-                {backupForm.formState.errors.code.message}
-              </p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            disabled={backupForm.formState.isSubmitting}
-            className="w-full h-11 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+        <Form {...backupForm}>
+          <form
+            onSubmit={backupForm.handleSubmit(handleBackup)}
+            className="space-y-5"
           >
-            {backupForm.formState.isSubmitting ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Verifying...</span>
-              </div>
-            ) : (
-              "Use backup code"
-            )}
-          </Button>
-        </form>
+            <FormField
+              control={backupForm.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-900">
+                    Backup code
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      autoFocus
+                      placeholder="xxxxx-xxxxx"
+                      className="h-11 rounded-lg border border-gray-300 bg-white focus:border-blue-700 transition-colors font-mono text-center"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              disabled={backupForm.formState.isSubmitting}
+              className="w-full h-11 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+            >
+              {backupForm.formState.isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Verifying...</span>
+                </div>
+              ) : (
+                "Use backup code"
+              )}
+            </Button>
+          </form>
+        </Form>
       )}
 
       <div className="mt-6 space-y-2 text-center text-sm">

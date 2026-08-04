@@ -7,8 +7,15 @@ import {
   DialogFormHeader,
   DialogTrigger,
 } from "@dashboard/ui/components/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -74,80 +81,101 @@ export function InviteMemberDialog({
           title="Invite Team Member"
           description={`Send an invitation to join ${organizationName?.replaceAll("-", " ") ?? "the"} dashboard.`}
         />
-        <form
-          onSubmit={form.handleSubmit((values) =>
-            onInvite(values, () => form.reset())
-          )}
-        >
-          <div className="space-y-4 px-6 py-5">
-            <div className="space-y-2">
-              <Label htmlFor="email">
-                Email Address <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="colleague@companyemail.com"
-                {...form.register("email")}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((values) =>
+              onInvite(values, () => form.reset())
+            )}
+          >
+            <div className="space-y-4 px-6 py-5">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Email Address <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="colleague@companyemail.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Company Role <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={ROLES.LIAISON}>
+                          {ROLE_LABELS[ROLES.LIAISON]}
+                        </SelectItem>
+                        <SelectItem value={ROLES.ADMIN}>
+                          {ROLE_LABELS[ROLES.ADMIN]}
+                        </SelectItem>
+                        <SelectItem value={ROLES.ADMISSION_MANAGER}>
+                          {ROLE_LABELS[ROLES.ADMISSION_MANAGER]}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Personal Message</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Welcome to our team!"
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">
-                Company Role <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                {...form.register("role")}
-                onValueChange={(value) =>
-                  form.setValue("role", value as InviteFormValues["role"])
-                }
-                defaultValue={ROLES.LIAISON}
+            <DialogFormFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ROLES.LIAISON}>
-                    {ROLE_LABELS[ROLES.LIAISON]}
-                  </SelectItem>
-                  <SelectItem value={ROLES.ADMIN}>
-                    {ROLE_LABELS[ROLES.ADMIN]}
-                  </SelectItem>
-                  <SelectItem value={ROLES.ADMISSION_MANAGER}>
-                    {ROLE_LABELS[ROLES.ADMISSION_MANAGER]}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="message">Personal Message</Label>
-              <Textarea
-                id="message"
-                placeholder="Welcome to our team!"
-                rows={4}
-                {...form.register("message")}
-              />
-            </div>
-          </div>
-          <DialogFormFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              disabled={form.formState.isSubmitting}
-              type="submit"
-              className="bg-brand text-white hover:bg-brand/90"
-            >
-              <Send className="h-4 w-4" />
-              {form.formState.isSubmitting ? "Sending..." : "Send Invitation"}
-            </Button>
-          </DialogFormFooter>
-        </form>
+                Cancel
+              </Button>
+              <Button
+                disabled={form.formState.isSubmitting}
+                type="submit"
+                className="bg-brand text-white hover:bg-brand/90"
+              >
+                <Send className="h-4 w-4" />
+                {form.formState.isSubmitting ? "Sending..." : "Send Invitation"}
+              </Button>
+            </DialogFormFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

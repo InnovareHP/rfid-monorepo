@@ -1,8 +1,16 @@
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -60,89 +68,102 @@ export function ChangePasswordCard() {
       title="Change Password"
       description="Use a strong, unique password you don't use elsewhere."
     >
-      <form
-        onSubmit={passwordForm.handleSubmit((values) =>
-          changePasswordMutation.mutate(values)
-        )}
-        className="space-y-4 border-t border-gray-200 pt-4"
-      >
-        <div className="space-y-2">
-          <Label htmlFor="currentPassword">
-            Current Password <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="currentPassword"
-            type="password"
-            {...passwordForm.register("currentPassword")}
+      <Form {...passwordForm}>
+        <form
+          onSubmit={passwordForm.handleSubmit((values) =>
+            changePasswordMutation.mutate(values)
+          )}
+          className="space-y-4 border-t border-gray-200 pt-4"
+        >
+          <FormField
+            control={passwordForm.control}
+            name="currentPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Current Password <span className="text-red-500">*</span>
+                </FormLabel>
+                <FormControl>
+                  <Input type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          <p className="text-xs text-red-600">
-            {passwordForm.formState.errors.currentPassword?.message}
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="newPassword">
-              New Password <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="newPassword"
-              type="password"
-              {...passwordForm.register("newPassword")}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={passwordForm.control}
+              name="newPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    New Password <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <p className="text-xs text-red-600">
-              {passwordForm.formState.errors.newPassword?.message}
-            </p>
+
+            <FormField
+              control={passwordForm.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Confirm Password <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">
-              Confirm Password <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              {...passwordForm.register("confirmPassword")}
-            />
-            <p className="text-xs text-red-600">
-              {passwordForm.formState.errors.confirmPassword?.message}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <Checkbox
-            id="revokeOtherSessions"
-            checked={passwordForm.watch("revokeOtherSessions")}
-            onCheckedChange={(checked) =>
-              passwordForm.setValue("revokeOtherSessions", checked === true)
-            }
-            className="mt-0.5"
+          <FormField
+            control={passwordForm.control}
+            name="revokeOtherSessions"
+            render={({ field }) => (
+              <FormItem className="flex items-start gap-3">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    className="mt-0.5"
+                  />
+                </FormControl>
+                <div>
+                  <FormLabel className="font-semibold">
+                    Sign out other devices
+                  </FormLabel>
+                  <FormDescription className="text-xs">
+                    Ends all other active sessions except this one when you
+                    update your password.
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
           />
-          <div>
-            <Label htmlFor="revokeOtherSessions" className="font-semibold">
-              Sign out other devices
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Ends all other active sessions except this one when you update
-              your password.
-            </p>
-          </div>
-        </div>
 
-        <div className="flex justify-start">
-          <Button
-            type="submit"
-            disabled={changePasswordMutation.isPending}
-            className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
-          >
-            {changePasswordMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : null}
-            Update Password
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-start">
+            <Button
+              type="submit"
+              disabled={changePasswordMutation.isPending}
+              className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
+            >
+              {changePasswordMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : null}
+              Update Password
+            </Button>
+          </div>
+        </form>
+      </Form>
     </SectionCard>
   );
 }
