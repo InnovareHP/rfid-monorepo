@@ -1,7 +1,14 @@
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "@tanstack/react-router";
 import { CheckCircle, Copy, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
@@ -119,94 +126,108 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
       )}
 
       {(step === "enable-password" || step === "disable-password") && (
-        <form
-          onSubmit={passwordForm.handleSubmit(
-            step === "enable-password" ? handleEnable : handleDisable
-          )}
-          className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
-        >
-          <div className="space-y-2">
-            <Label className="text-foreground font-medium">
-              Confirm your password
-            </Label>
-            <Input
-              type="password"
-              autoFocus
-              className="border-primary/40 focus:ring-2 focus:ring-primary"
-              {...passwordForm.register("password")}
-            />
-            {passwordForm.formState.errors.password && (
-              <p className="text-sm text-red-600 font-medium">
-                {passwordForm.formState.errors.password.message}
-              </p>
+        <Form {...passwordForm}>
+          <form
+            onSubmit={passwordForm.handleSubmit(
+              step === "enable-password" ? handleEnable : handleDisable
             )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              className="flex-1 bg-primary hover:bg-primary/90"
-              disabled={passwordForm.formState.isSubmitting}
-            >
-              {passwordForm.formState.isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : step === "enable-password" ? (
-                "Continue"
-              ) : (
-                "Disable 2FA"
+            className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
+          >
+            <FormField
+              control={passwordForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground font-medium">
+                    Confirm your password
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      autoFocus
+                      className="border-primary/40 focus:ring-2 focus:ring-primary"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </Button>
-            <Button type="button" variant="outline" onClick={reset}>
-              Cancel
-            </Button>
-          </div>
-        </form>
+            />
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                className="flex-1 bg-primary hover:bg-primary/90"
+                disabled={passwordForm.formState.isSubmitting}
+              >
+                {passwordForm.formState.isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : step === "enable-password" ? (
+                  "Continue"
+                ) : (
+                  "Disable 2FA"
+                )}
+              </Button>
+              <Button type="button" variant="outline" onClick={reset}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Form>
       )}
 
       {step === "verify" && (
-        <form
-          onSubmit={codeForm.handleSubmit(handleVerify)}
-          className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
-        >
-          <p className="text-sm text-gray-700">
-            Scan this QR code with your authenticator app (Google
-            Authenticator, 1Password, Authy…), then enter the 6-digit code.
-          </p>
-          <div className="flex justify-center rounded-lg bg-white p-4 border border-gray-300">
-            <QRCodeSVG value={totpURI} size={168} />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-foreground font-medium">6-digit code</Label>
-            <Input
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              autoFocus
-              className="border-primary/40 focus:ring-2 focus:ring-primary tracking-widest text-center"
-              {...codeForm.register("code")}
-            />
-            {codeForm.formState.errors.code && (
-              <p className="text-sm text-red-600 font-medium">
-                {codeForm.formState.errors.code.message}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              className="flex-1 bg-primary hover:bg-primary/90"
-              disabled={codeForm.formState.isSubmitting}
-            >
-              {codeForm.formState.isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Verify & Enable"
+        <Form {...codeForm}>
+          <form
+            onSubmit={codeForm.handleSubmit(handleVerify)}
+            className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
+          >
+            <p className="text-sm text-gray-700">
+              Scan this QR code with your authenticator app (Google
+              Authenticator, 1Password, Authy…), then enter the 6-digit code.
+            </p>
+            <div className="flex justify-center rounded-lg bg-white p-4 border border-gray-300">
+              <QRCodeSVG value={totpURI} size={168} />
+            </div>
+            <FormField
+              control={codeForm.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground font-medium">
+                    6-digit code
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      autoFocus
+                      className="border-primary/40 focus:ring-2 focus:ring-primary tracking-widest text-center"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </Button>
-            <Button type="button" variant="outline" onClick={reset}>
-              Cancel
-            </Button>
-          </div>
-        </form>
+            />
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                className="flex-1 bg-primary hover:bg-primary/90"
+                disabled={codeForm.formState.isSubmitting}
+              >
+                {codeForm.formState.isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Verify & Enable"
+                )}
+              </Button>
+              <Button type="button" variant="outline" onClick={reset}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Form>
       )}
 
       {step === "backup" && (

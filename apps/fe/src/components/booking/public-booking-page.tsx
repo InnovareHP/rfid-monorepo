@@ -11,6 +11,14 @@ import {
   CardTitle,
 } from "@dashboard/ui/components/card";
 import { Button } from "@dashboard/ui/components/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { Textarea } from "@dashboard/ui/components/textarea";
@@ -171,56 +179,67 @@ export function PublicBookingPage({
           )}
 
           {selectedSlot && (
-            <form
-              onSubmit={form.handleSubmit((values) =>
-                bookMutation.mutate(values)
-              )}
-              className="space-y-4 border-t pt-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="inviteeName">Name</Label>
-                <Input id="inviteeName" {...form.register("inviteeName")} />
-                {form.formState.errors.inviteeName && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.inviteeName.message}
-                  </p>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit((values) =>
+                  bookMutation.mutate(values)
                 )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="inviteeEmail">Email</Label>
-                <Input
-                  id="inviteeEmail"
-                  type="email"
-                  {...form.register("inviteeEmail")}
-                />
-                {form.formState.errors.inviteeEmail && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.inviteeEmail.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="inviteeNotes">Notes (optional)</Label>
-                <Textarea
-                  id="inviteeNotes"
-                  rows={3}
-                  {...form.register("inviteeNotes")}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={bookMutation.isPending}
+                className="space-y-4 border-t pt-4"
               >
-                {bookMutation.isPending && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                Confirm Booking
-              </Button>
-            </form>
+                <FormField
+                  control={form.control}
+                  name="inviteeName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="inviteeEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="inviteeNotes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes (optional)</FormLabel>
+                      <FormControl>
+                        <Textarea rows={3} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={bookMutation.isPending}
+                >
+                  {bookMutation.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  Confirm Booking
+                </Button>
+              </form>
+            </Form>
           )}
         </CardContent>
       </Card>
