@@ -7,8 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@dashboard/ui/components/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -112,85 +119,113 @@ export function BulkEmailDialog({
             Records without an email address will be skipped.
           </DialogDescription>
         </DialogHeader>
-        <form
-          onSubmit={form.handleSubmit(handleSendEmail)}
-          className="space-y-4 py-2"
-        >
-          <div className="space-y-2">
-            <Label htmlFor="email-subject">Subject</Label>
-            <Input
-              id="email-subject"
-              placeholder="Enter email subject..."
-              {...form.register("subject")}
-              disabled={form.formState.isSubmitting}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email-body">Body</Label>
-            <Textarea
-              id="email-body"
-              placeholder="Enter email body..."
-              {...form.register("body")}
-              disabled={form.formState.isSubmitting}
-              rows={6}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Send via</Label>
-            <Select
-              value={form.watch("sendVia")}
-              onValueChange={(value) =>
-                form.setValue("sendVia", value as EmailValues["sendVia"])
-              }
-              disabled={form.formState.isSubmitting}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Send via" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AUTO">Auto-detect</SelectItem>
-                {gmailStatus?.connected && (
-                  <SelectItem value="GMAIL">
-                    Gmail ({gmailStatus.email})
-                  </SelectItem>
-                )}
-                {outlookStatus?.connected && (
-                  <SelectItem value="OUTLOOK">
-                    Outlook ({outlookStatus.email})
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={form.formState.isSubmitting}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
-              className="flex-1"
-            >
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <SendIcon className="w-4 h-4 mr-2" />
-                  Send to {recordIds.length} {recipientLabel}
-                </>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSendEmail)}
+            className="space-y-4 py-2"
+          >
+            <FormField
+              control={form.control}
+              name="subject"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subject</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter email subject..."
+                      disabled={form.formState.isSubmitting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </Button>
-          </DialogFooter>
-        </form>
+            />
+
+            <FormField
+              control={form.control}
+              name="body"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Body</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter email body..."
+                      disabled={form.formState.isSubmitting}
+                      rows={6}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sendVia"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Send via</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={form.formState.isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Send via" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="AUTO">Auto-detect</SelectItem>
+                      {gmailStatus?.connected && (
+                        <SelectItem value="GMAIL">
+                          Gmail ({gmailStatus.email})
+                        </SelectItem>
+                      )}
+                      {outlookStatus?.connected && (
+                        <SelectItem value="OUTLOOK">
+                          Outlook ({outlookStatus.email})
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={form.formState.isSubmitting}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="flex-1"
+              >
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <SendIcon className="w-4 h-4 mr-2" />
+                    Send to {recordIds.length} {recipientLabel}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
