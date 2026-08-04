@@ -7,7 +7,7 @@ import {
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Fingerprint, Loader2, Plus, Trash2 } from "lucide-react";
+import { Copy, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -53,12 +53,37 @@ export function PasskeysCard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Fingerprint className="w-4 h-4 text-primary" />
-        <span className="text-sm font-medium text-foreground">Passkeys</span>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button
+          size="sm"
+          className="bg-primary hover:bg-primary/90"
+          onClick={handleAddDevice}
+          disabled={adding}
+        >
+          {adding ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Plus className="mr-2 h-4 w-4" />
+              Add this device
+            </>
+          )}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => codeMutation.mutate()}
+          disabled={codeMutation.isPending}
+        >
+          {codeMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            "Get code for another device"
+          )}
+        </Button>
       </div>
 
-      <div className="space-y-3 border-2 border-primary/30 rounded-lg p-4 bg-primary/10">
+      <div className="space-y-3">
         {isLoading ? (
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -73,7 +98,7 @@ export function PasskeysCard() {
             {passkeys?.map((passkey) => (
               <li
                 key={passkey.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-white p-3"
+                className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">
@@ -107,35 +132,6 @@ export function PasskeysCard() {
             ))}
           </ul>
         )}
-
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            className="flex-1 bg-primary hover:bg-primary/90"
-            onClick={handleAddDevice}
-            disabled={adding}
-          >
-            {adding ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" />
-                Add this device
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => codeMutation.mutate()}
-            disabled={codeMutation.isPending}
-          >
-            {codeMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Get code for another device"
-            )}
-          </Button>
-        </div>
 
         {enrollmentCode && (
           <div className="space-y-2 rounded-lg border-2 border-amber-200 bg-amber-50 p-3">

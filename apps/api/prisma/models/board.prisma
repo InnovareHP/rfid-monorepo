@@ -105,6 +105,7 @@ model History {
 
   @@index([recordId, createdAt])
   @@index([organizationId])
+  @@index([organizationId, createdAt])
   @@index([fieldId])
   @@schema("board_schema")
 }

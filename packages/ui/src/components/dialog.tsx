@@ -101,6 +101,61 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+// Shared modal shell header: icon badge, title and description on the light blue band.
+function DialogFormHeader({
+  icon,
+  title,
+  description,
+  className,
+  iconClassName,
+  ...props
+}: React.ComponentProps<"div"> & {
+  icon: React.ReactNode;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  iconClassName?: string;
+}) {
+  return (
+    <DialogHeader
+      className={cn(
+        "flex-row items-center gap-4 space-y-0 border-b border-gray-200 bg-[#F4F9FF] px-6 py-5 text-left",
+        className
+      )}
+      {...props}
+    >
+      <div
+        className={cn(
+          "flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white [&_svg]:size-6",
+          iconClassName
+        )}
+      >
+        {icon}
+      </div>
+      <div className="space-y-1">
+        <DialogTitle className="text-2xl font-bold text-[#0D3185]">
+          {title}
+        </DialogTitle>
+        {description ? (
+          <DialogDescription>{description}</DialogDescription>
+        ) : null}
+      </div>
+    </DialogHeader>
+  );
+}
+
+// Shared modal shell footer: cancel on the left, primary action on the right.
+function DialogFormFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <DialogFooter
+      className={cn(
+        "flex-row items-center justify-between gap-3 border-t border-gray-200 px-6 py-4 sm:justify-between",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
 function DialogTitle({
   className,
   ...props
@@ -133,6 +188,8 @@ export {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogFormFooter,
+  DialogFormHeader,
   DialogHeader,
   DialogOverlay,
   DialogPortal,

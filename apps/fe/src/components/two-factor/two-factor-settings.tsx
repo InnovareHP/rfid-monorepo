@@ -1,5 +1,4 @@
 import { authClient } from "@/lib/auth-client";
-import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
@@ -99,43 +98,21 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {enabled ? (
-            <ShieldCheck className="w-4 h-4 text-green-600" />
-          ) : (
-            <ShieldOff className="w-4 h-4 text-gray-500" />
-          )}
-          <span className="text-sm font-medium text-foreground">
-            Two-Factor Authentication
-          </span>
-        </div>
-        {enabled ? (
-          <Badge className="bg-green-100 text-green-700 border-2 border-green-300 font-semibold">
-            Enabled
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-gray-600 font-semibold">
-            Off
-          </Badge>
-        )}
-      </div>
 
       {step === "idle" && (
         <Button
-          variant="outline"
-          className="w-full justify-start border-primary/40 hover:bg-primary/10"
+          className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
           onClick={() => setStep(enabled ? "disable-password" : "enable-password")}
         >
           {enabled ? (
             <>
               <ShieldOff className="w-4 h-4 mr-2" />
-              Disable 2FA
+              Disable
             </>
           ) : (
             <>
               <ShieldCheck className="w-4 h-4 mr-2" />
-              Enable 2FA
+              Enable
             </>
           )}
         </Button>

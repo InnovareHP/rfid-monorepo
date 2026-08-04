@@ -22,6 +22,7 @@ export type MarketingBlast = {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: { recipients: number };
 };
 
 export type BlastJobStatus = {
@@ -75,7 +76,7 @@ export const updateBlast = async (
   id: string,
   data: Partial<{
     name: string;
-    campaignId: string;
+    campaignId: string | null;
     subject: string;
     bodyHtml: string;
     moduleType: string;

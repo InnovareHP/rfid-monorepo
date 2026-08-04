@@ -6,25 +6,25 @@ export const PRIORITY_CONFIG: Record<
 > = {
   URGENT: {
     label: "Urgent",
-    className: "text-red-600",
-    dotClassName: "bg-red-500",
-    pillClassName: "border-red-100 bg-red-50 text-red-700",
+    className: "text-red-900",
+    dotClassName: "bg-red-900",
+    pillClassName: "border-red-100 bg-red-50 text-red-900",
   },
   HIGH: {
     label: "High",
+    className: "text-red-500",
+    dotClassName: "bg-red-500",
+    pillClassName: "border-red-100 bg-red-50 text-red-700",
+  },
+  NORMAL: {
+    label: "Normal",
     className: "text-orange-500",
     dotClassName: "bg-orange-500",
     pillClassName: "border-orange-100 bg-orange-50 text-orange-700",
   },
-  NORMAL: {
-    label: "Normal",
-    className: "text-blue-500",
-    dotClassName: "bg-amber-500",
-    pillClassName: "border-amber-100 bg-amber-50 text-amber-700",
-  },
   LOW: {
     label: "Low",
-    className: "text-gray-400",
+    className: "text-yellow-500",
     dotClassName: "bg-yellow-400",
     pillClassName: "border-yellow-100 bg-yellow-50 text-yellow-700",
   },

@@ -1,77 +1,150 @@
 import type { MarketingBlast } from "@/services/marketing/blast-service";
-import { Badge } from "@dashboard/ui/components/badge";
+import { formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import { Pencil, Send, Trash2 } from "lucide-react";
+import { Pencil, Send, Trash2, Users } from "lucide-react";
+import { ReportTable } from "../../reusable-table/report-table";
+import { SortableHeader } from "../../reusable-table/sortable-header";
+import { StatusPill, type StatusTone } from "../../reusable-table/status-pill";
 
 type BlastListTableProps = {
   blasts: MarketingBlast[];
   canSend: boolean;
+  isLoading?: boolean;
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  onToggleStatusSort: () => void;
   onEdit: (blast: MarketingBlast) => void;
   onSend: (blast: MarketingBlast) => void;
   onDelete: (blast: MarketingBlast) => void;
 };
 
-const STATUS_VARIANT: Record<MarketingBlast["status"], "default" | "outline"> = {
-  DRAFT: "outline",
-  SCHEDULED: "outline",
-  SENDING: "default",
-  SENT: "default",
-  FAILED: "outline",
+export const BLAST_STATUS_TONES: Record<MarketingBlast["status"], StatusTone> =
+  {
+    DRAFT: "muted",
+    SCHEDULED: "muted",
+    SENDING: "info",
+    SENT: "success",
+    FAILED: "danger",
+  };
+
+export const BLAST_STATUS_LABELS: Record<MarketingBlast["status"], string> = {
+  DRAFT: "Draft",
+  SCHEDULED: "Scheduled",
+  SENDING: "Sending",
+  SENT: "Sent",
+  FAILED: "Failed",
 };
 
 export const BlastListTable = ({
   blasts,
   canSend,
+  isLoading,
+  currentPage,
+  pageSize,
+  totalCount,
+  onPageChange,
+  onPageSizeChange,
+  onToggleStatusSort,
   onEdit,
   onSend,
   onDelete,
-}: BlastListTableProps) => {
-  if (blasts.length === 0) {
-    return (
-      <p className="text-sm text-gray-400 text-center py-12">
-        No blasts yet. Create one to email your audience.
-      </p>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white divide-y divide-gray-100">
-      {blasts.map((blast) => (
-        <div
-          key={blast.id}
-          className="flex items-center justify-between gap-4 px-4 py-3"
-        >
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900 truncate">
-                {blast.name}
-              </span>
-              <Badge variant={STATUS_VARIANT[blast.status]}>
-                {blast.status}
-              </Badge>
-            </div>
-            <p className="mt-1 text-xs text-gray-500 truncate">
-              {blast.subject}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {blast.status === "DRAFT" && canSend && (
-              <Button variant="outline" size="sm" onClick={() => onSend(blast)}>
-                <Send className="h-4 w-4 mr-1" />
-                Send
+}: BlastListTableProps) => (
+  <ReportTable
+    rows={blasts}
+    isLoading={isLoading}
+    emptyMessage="No blasts yet"
+    currentPage={currentPage}
+    pageSize={pageSize}
+    totalCount={totalCount}
+    onPageChange={onPageChange}
+    onPageSizeChange={onPageSizeChange}
+    tableClassName="table-fixed min-w-[950px]"
+    columns={[
+      {
+        key: "name",
+        header: "Campaign Title",
+        className: "w-[22%]",
+        render: (row: MarketingBlast) => (
+          <span className="font-medium text-gray-900">{row.name}</span>
+        ),
+      },
+      {
+        key: "status",
+        header: <SortableHeader label="Status" onToggle={onToggleStatusSort} />,
+        className: "w-[14%]",
+        render: (row: MarketingBlast) => (
+          <StatusPill
+            label={BLAST_STATUS_LABELS[row.status]}
+            tone={BLAST_STATUS_TONES[row.status]}
+          />
+        ),
+      },
+      {
+        key: "audience",
+        header: "Audience",
+        className: "w-[19%] text-gray-600",
+        render: (row: MarketingBlast) => (
+          <span className="flex items-center gap-1.5 text-sm">
+            <Users className="size-4 text-gray-400" />
+            {(row._count?.recipients ?? 0).toLocaleString()} recipients
+          </span>
+        ),
+      },
+      {
+        key: "createdAt",
+        header: "Created",
+        className: "w-[16%] text-gray-600",
+        render: (row: MarketingBlast) => formatDateTime(row.createdAt),
+      },
+      {
+        key: "updatedAt",
+        header: "Last Updated",
+        className: "w-[16%] text-gray-600",
+        render: (row: MarketingBlast) => formatDateTime(row.updatedAt),
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        className: "w-[13%]",
+        render: (row: MarketingBlast) => (
+          <div className="flex items-center gap-1">
+            {row.status === "DRAFT" && canSend && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-400 hover:text-primary"
+                aria-label="Send blast"
+                onClick={() => onSend(row)}
+              >
+                <Send className="size-4" />
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => onEdit(blast)}>
-              <Pencil className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-primary"
+              aria-label="Edit blast"
+              onClick={() => onEdit(row)}
+            >
+              <Pencil className="size-4" />
             </Button>
-            {blast.status === "DRAFT" && (
-              <Button variant="outline" size="sm" onClick={() => onDelete(blast)}>
-                <Trash2 className="h-4 w-4" />
+            {row.status === "DRAFT" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-400 hover:text-red-600"
+                aria-label="Delete blast"
+                onClick={() => onDelete(row)}
+              >
+                <Trash2 className="size-4" />
               </Button>
             )}
           </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+        ),
+      },
+    ]}
+  />
+);

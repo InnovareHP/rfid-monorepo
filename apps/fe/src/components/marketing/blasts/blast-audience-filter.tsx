@@ -3,15 +3,26 @@ import {
   getBoardFieldsByModule,
   type AudienceFilter,
 } from "@/services/marketing/blast-service";
+import { DatePicker } from "@dashboard/ui/components/date-picker";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
+import { Search } from "lucide-react";
 
 type BlastAudienceFilterProps = {
   moduleType: string;
   audienceFilter: AudienceFilter;
   onChange: (audienceFilter: AudienceFilter) => void;
 };
+
+function GroupHeading({ title }: { title: string }) {
+  return (
+    <div>
+      <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
+      <div className="mt-2 border-b border-gray-200" />
+    </div>
+  );
+}
 
 export const BlastAudienceFilter = ({
   moduleType,
@@ -33,58 +44,82 @@ export const BlastAudienceFilter = ({
     onChange({ ...audienceFilter, filter: nextFilter });
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="blast-audience-search">Search</Label>
-        <Input
-          id="blast-audience-search"
-          placeholder="Search by name or value"
-          value={audienceFilter.search ?? ""}
-          onChange={(event) =>
-            onChange({ ...audienceFilter, search: event.target.value })
-          }
-        />
-      </div>
+  const hasFilters =
+    Object.keys(audienceFilter.filter).length > 0 ||
+    Boolean(audienceFilter.search) ||
+    Boolean(audienceFilter.boardDateFrom) ||
+    Boolean(audienceFilter.boardDateTo);
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="blast-audience-date-from">Created from</Label>
-          <Input
-            id="blast-audience-date-from"
-            type="date"
-            value={audienceFilter.boardDateFrom ?? ""}
-            onChange={(event) =>
-              onChange({ ...audienceFilter, boardDateFrom: event.target.value })
-            }
-          />
+  return (
+    <div className="space-y-6">
+      <section className="space-y-4">
+        <GroupHeading title="Search and Date Range" />
+
+        <div className="space-y-2">
+          <Label htmlFor="blast-audience-search">Search</Label>
+          <div className="relative">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              id="blast-audience-search"
+              placeholder="Search by name or value..."
+              className="pl-9"
+              value={audienceFilter.search ?? ""}
+              onChange={(event) =>
+                onChange({ ...audienceFilter, search: event.target.value })
+              }
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="blast-audience-date-to">Created to</Label>
-          <Input
-            id="blast-audience-date-to"
-            type="date"
-            value={audienceFilter.boardDateTo ?? ""}
-            onChange={(event) =>
-              onChange({ ...audienceFilter, boardDateTo: event.target.value })
-            }
-          />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Created From</Label>
+            <DatePicker
+              value={audienceFilter.boardDateFrom}
+              onChange={(value) =>
+                onChange({ ...audienceFilter, boardDateFrom: value })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Created To</Label>
+            <DatePicker
+              value={audienceFilter.boardDateTo}
+              onChange={(value) =>
+                onChange({ ...audienceFilter, boardDateTo: value })
+              }
+            />
+          </div>
         </div>
-      </div>
+      </section>
 
       {fields.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {fields.map((col) => (
-            <div key={col.id} className="space-y-1.5">
-              <Label>{col.name}</Label>
-              <FilterComponent
-                col={col}
-                filterMeta={{ filter: audienceFilter.filter }}
-                updateFilter={updateFilter}
-              />
-            </div>
-          ))}
-        </div>
+        <section className="space-y-4">
+          <GroupHeading title="Record Fields" />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {fields.map((col) => (
+              <div key={col.id} className="space-y-2">
+                <Label>{col.name}</Label>
+                <FilterComponent
+                  col={col}
+                  filterMeta={{ filter: audienceFilter.filter }}
+                  updateFilter={updateFilter}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {hasFilters && (
+        <button
+          type="button"
+          onClick={() => onChange({ filter: {} })}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Clear All Filters
+        </button>
       )}
     </div>
   );

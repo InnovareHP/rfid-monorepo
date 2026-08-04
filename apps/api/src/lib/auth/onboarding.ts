@@ -46,25 +46,25 @@ export const DEFAULT_LEAD_PIPELINE_STAGES = [
 export const DEFAULT_TASK_STATUSES = [
   {
     name: "Backlog",
-    color: "#6b7280",
+    color: "#807f7f",
     sortOrder: 1,
     category: TaskStatusCategory.ACTIVE,
   },
   {
     name: "To Do",
-    color: "#64748b",
+    color: "#a5e4f7",
     sortOrder: 2,
     category: TaskStatusCategory.ACTIVE,
   },
   {
     name: "In Progress",
-    color: "#3b82f6",
+    color: "#2c86d9",
     sortOrder: 3,
     category: TaskStatusCategory.ACTIVE,
   },
   {
     name: "In Review",
-    color: "#a855f7",
+    color: "#0d3185",
     sortOrder: 4,
     category: TaskStatusCategory.ACTIVE,
   },
@@ -76,13 +76,13 @@ export const DEFAULT_TASK_STATUSES = [
   },
   {
     name: "Completed",
-    color: "#22c55e",
+    color: "#70bbff",
     sortOrder: 6,
     category: TaskStatusCategory.DONE,
   },
   {
     name: "Cancelled",
-    color: "#9ca3af",
+    color: "#202020",
     sortOrder: 7,
     category: TaskStatusCategory.CANCELLED,
   },

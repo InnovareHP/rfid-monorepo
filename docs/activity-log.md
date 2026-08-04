@@ -283,3 +283,62 @@ Logo asset: `apps/fe/public/branding/email-logo.png`, generated from `branding/F
 All 11 templates ported onto the shared styles: every ad-hoc local `CSSProperties` block removed, each email now leads with an eyebrow + heading, key/value blocks (invoice, booking, passkey, new device) moved into `detailBox`, and the two `process.env.APP_NAME ?? "Dashboard"` sign-offs replaced with `BRAND_NAME`. `confirmation-email.tsx` lost its Innovare HP hero image and heading; `auth-helper.ts` drops the two `emailLogoUrl` locals that fed it. `new-device-sign-in-email.tsx` now renders `settingsUrl` as a button instead of a bare URL in prose.
 
 Verified: `pnpm build:api` passes, api eslint reports no new errors (its glob is `*.ts`, so it does not cover these `.tsx` files), and all 11 templates were rendered to HTML through `@react-email/render` against dummy config. Two render bugs found that way and fixed: react-email's default 24px `Text` line-height was clipping the 34px OTP digits, and a `{" "}` before the footer support link collapsed. Nothing sent through SES.
+
+## 2026-08-04 — Dashboard design pass (tasks, reports, marketing, team, profile)
+
+Mockups applied across the app, plus the backend additions the designs required. Everything below is typecheck + build verified only; nothing was exercised against a running server.
+
+### Shared building blocks
+
+- `packages/ui/dialog.tsx`: new `DialogFormHeader` (`#F4F9FF` band, icon circle, navy title, optional `iconClassName`) and `DialogFormFooter`. Now backs six modals: New Task, New List, Invite Member, Add County, New Campaign, New Blast.
+- `packages/ui/date-picker.tsx`: `DatePicker` (Popover + Calendar, stores `yyyy-MM-dd`). Replaced the duplicate local `DateField` in the task dialog and the blast audience filter.
+- `packages/ui/multi-select.tsx`: `brand` badge variant for tag/assignee pills.
+- `reusable-table/status-pill.tsx`: one outline pill with `success | muted | info | danger` tones. Replaced three near-identical copies in the marketing tables and blast editor.
+- `reusable-table/sortable-header.tsx`: header button with sort chevrons.
+- `generic-table.tsx` / `report-table.tsx`: opt-in `tableClassName` so wide tables can set `table-fixed` + `min-w-*`; `ReportColumn.header` widened to `ReactNode`.
+- `lib/fe-helpers.ts`: `downloadCSVTemplate` (header-only CSV).
+
+### Colors
+
+Task priority remapped (Urgent `red-900`, High `red-500`, Normal `orange-500`, Low `yellow-400`). Task status defaults set in both `onboarding.ts` and `seed-task-statuses.ts`: Backlog `#807f7f`, To Do `#a5e4f7`, In Progress `#2c86d9`, In Review `#0d3185`, Completed `#70bbff`, Cancelled `#202020`. Seed script now recolors existing rows; it was run against 4 organizations. Role badges: Owner `#0D3185`, Liaison `#2C86D9`, Admission Manager `#64D1F4`, Admin `#1B5FBF`.
+
+### Pages
+
+Import, History Check, County Configuration, Campaigns, Blasts, Blast editor, Team Management, Account Settings, and the referral analytics AI card (moved above the charts, switched to the mascot `AiSummaryCard`).
+
+### Backend
+
+- `GET /api/boards/history`: added `dateFrom`, `dateTo`, `userId`, `column` filters plus `stats` (total, last 7 days, most active editor) and `options` (users, fields) computed on the unfiltered org scope. Action filter widened to include `create`.
+- `campaign.service.getCampaigns`: `_count` of forms/blasts/landingPages for the Components column.
+- `blast.service.getBlasts`: `_count` of recipients for the Audience column.
+- `CreateBlastSchema.campaignId` -> `z.string().nullable().optional()` so the editor's "None" option can actually clear a campaign link (the service spreads only `!== undefined`, so the old optional string could never unset it).
+
+All additive inside the existing `organizationId` scope.
+
+### Refactor pass
+
+`team-page.tsx` 889 -> 339 lines (`components/team/`: role-badge, organization-card, branding-card, team-members-table, pending-invitations-table, invite-member-dialog, edit-role-dialog). `profile-page.tsx` 692 -> 135 lines (`components/profile/`: section-card, profile-tab, change-password-card, active-sessions-card, security-tab). History rows typed with `HistoryRow` / `RestoreTarget`, dropping five `any`.
+
+### Behavior changes riding along with the design
+
+- County: inline per-row liaison multi-select replaced by Action -> Edit Assignment in the modal; the `min(1)` liaison rule dropped so the Unassigned state the design shows is reachable.
+- History: record-name column removed (not in the design); `create` rows now listed.
+- Account Settings: Change Password is new (`authClient.changePassword`) — not previously on the page.
+- Campaigns/Blasts: status column sorts client-side; rows-per-page control added.
+- Blast editor: Campaign "None" now clears the link.
+- Cancel in the invite dialog had no `type`, so it submitted the form; now `type="button"`.
+- Founded date crashed with `Invalid time value` before org data loaded; guarded.
+
+### Not verified
+
+No runtime pass on any page. `pnpm lint` fails with 34 pre-existing `apps/api` errors (unused `Logger`, `previousValue`, `resolveRecordName` in `board.service.ts`, `require-await` in `board.controller.ts`) — all in code this work did not touch. `apps/fe` has no lint script.
+
+### Query cost pass (same day)
+
+Three fixes after auditing what the design work added:
+
+- `blast.service.getAudienceCount`: only resolves full board rows when the audience filter actually needs them (a search term or field filters). With no filters — the common case when the editor first opens — it is now a `prisma.board.count` with the optional date range. Previously every editor open loaded every board in the module with all field values and filtered in memory, because the Estimated Recipients tile calls this on mount.
+- History split: `getAllRecordHistory` is back to 2 queries (rows + filtered count). The org-wide stats and filter options moved to `getRecordHistoryMeta` behind `GET /api/boards/history/meta`, fetched by its own query key (`["history-report-meta", moduleType]`, 5 min `staleTime`). Paging or applying a filter no longer recomputes 5 aggregates. Restoring history invalidates both keys. KPI tiles now track the meta query's fetching state.
+- `History` gained `@@index([organizationId, createdAt])` in `prisma/models/board.prisma`. Migration NOT run — `pnpm prisma:migrate` is the user's to execute.
+
+Verified: `pnpm build:api` and `pnpm build:fe` pass, `tsc --noEmit` clean. Still no runtime pass.

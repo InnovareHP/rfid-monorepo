@@ -24,6 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - No external libraries unless absolutely necessary.
 - Use project dependency file for correct versions.
 - Avoid redundancy unless it improves usability.
+- Limit the use of useState and useEffect specially on forms.
 
 ## Version Control
 

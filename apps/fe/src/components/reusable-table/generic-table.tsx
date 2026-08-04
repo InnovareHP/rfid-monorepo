@@ -27,6 +27,7 @@ interface ReusableTableProps<T> {
   totalCount?: number;
   emptyMessage?: string;
   isLoading?: boolean;
+  tableClassName?: string;
 }
 
 export function ReusableTable<T>({
@@ -38,6 +39,7 @@ export function ReusableTable<T>({
   totalCount,
   emptyMessage = "No records found",
   isLoading = false,
+  tableClassName,
 }: ReusableTableProps<T>) {
   const totalPages = totalCount ? Math.ceil(totalCount / itemsPerPage) : 1;
 
@@ -74,7 +76,7 @@ export function ReusableTable<T>({
   return (
     <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
       <ScrollArea>
-        <Table className="border-0 w-full">
+        <Table className={cn("border-0 w-full", tableClassName)}>
           <TableHeader>
             <TableRow className="border-b border-gray-200 bg-table-header hover:bg-table-header">
               {columns.map((col, idx) => (

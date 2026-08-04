@@ -10,21 +10,20 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  DialogFormFooter,
+  DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { Mail, Plus } from "lucide-react";
-import { useState } from "react";
 import type { Member } from "better-auth/plugins/organization";
+import { Loader2, Mail, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BlastListTable } from "./blast-list-table";
+import { KpiStatTile } from "../../analytics/charts/kpi-stat-tile";
+import { BLAST_STATUS_LABELS, BlastListTable } from "./blast-list-table";
 import { BlastSendDialog } from "./blast-send-dialog";
 
 export const MarketingBlastsListPage = () => {
@@ -43,6 +42,10 @@ export const MarketingBlastsListPage = () => {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [statusSort, setStatusSort] = useState<"asc" | "desc">("asc");
   const [sendingBlast, setSendingBlast] = useState<MarketingBlast | null>(null);
 
   const { data: blasts = [], isLoading } = useQuery({
@@ -86,42 +89,100 @@ export const MarketingBlastsListPage = () => {
     onError: () => toast.error("Failed to delete blast"),
   });
 
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const matched = term
+      ? blasts.filter(
+          (blast) =>
+            blast.name.toLowerCase().includes(term) ||
+            blast.subject.toLowerCase().includes(term)
+        )
+      : blasts;
+
+    return [...matched].sort((a, b) => {
+      const compared = BLAST_STATUS_LABELS[a.status].localeCompare(
+        BLAST_STATUS_LABELS[b.status]
+      );
+      return statusSort === "asc" ? compared : -compared;
+    });
+  }, [blasts, search, statusSort]);
+
+  const sentCount = blasts.filter((blast) => blast.status === "SENT").length;
+  const draftCount = blasts.filter((blast) => blast.status === "DRAFT").length;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Blasts
-            </h1>
-            <p className="text-sm text-gray-500">
-              Email a filtered audience of leads or referrals.
-            </p>
-          </div>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            New Blast
-          </Button>
+    <div className="min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
+            Blasts
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Email a filtered audience of leads or referrals.
+          </p>
         </div>
 
-        {isLoading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
-        ) : (
-          <BlastListTable
-            blasts={blasts}
-            canSend={isOwner}
-            onEdit={(blast) =>
-              navigate({
-                to: "/$team/marketing/blasts/$blastId",
-                params: { team, blastId: blast.id },
-              })
-            }
-            onSend={(blast) => setSendingBlast(blast)}
-            onDelete={(blast) => deleteMutation.mutate(blast)}
-          />
-        )}
+        <Button
+          onClick={() => setCreateOpen(true)}
+          className="bg-brand text-white hover:bg-brand/90"
+        >
+          <Plus className="h-4 w-4" />
+          New Blast
+        </Button>
       </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <KpiStatTile
+          label="Total Blasts"
+          value={blasts.length.toLocaleString()}
+          isLoading={isLoading}
+        />
+        <KpiStatTile
+          label="Sent"
+          value={sentCount.toLocaleString()}
+          isLoading={isLoading}
+        />
+        <KpiStatTile
+          label="Drafts"
+          value={draftCount.toLocaleString()}
+          isLoading={isLoading}
+        />
+      </div>
+
+      <Input
+        placeholder="Search blasts...."
+        value={search}
+        onChange={(event) => {
+          setSearch(event.target.value);
+          setPage(1);
+        }}
+        className="w-full bg-white sm:w-80"
+      />
+
+      <BlastListTable
+        blasts={filtered.slice((page - 1) * pageSize, page * pageSize)}
+        canSend={isOwner}
+        isLoading={isLoading}
+        currentPage={page}
+        pageSize={pageSize}
+        totalCount={filtered.length}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        onToggleStatusSort={() =>
+          setStatusSort((prev) => (prev === "asc" ? "desc" : "asc"))
+        }
+        onEdit={(blast) =>
+          navigate({
+            to: "/$team/marketing/blasts/$blastId",
+            params: { team, blastId: blast.id },
+          })
+        }
+        onSend={(blast) => setSendingBlast(blast)}
+        onDelete={(blast) => deleteMutation.mutate(blast)}
+      />
 
       <Dialog
         open={createOpen}
@@ -130,42 +191,56 @@ export const MarketingBlastsListPage = () => {
           if (!open) resetCreateState();
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New Blast</DialogTitle>
-            <DialogDescription>
-              Set the basics now — audience, campaign, and module can be
-              refined after creation.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="blast-name">Name</Label>
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogFormHeader
+            icon={<Mail />}
+            title="New Blast"
+            description="Set the basics now - audience, campaign, and module can be refined after creation."
+          />
+
+          <div className="space-y-4 px-6 py-5">
+            <div className="space-y-2">
+              <Label htmlFor="blast-name">
+                Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="blast-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="blast-subject">Subject</Label>
+            <div className="space-y-2">
+              <Label htmlFor="blast-subject">
+                Subject <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="blast-subject"
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="blast-body">Body</Label>
               <Textarea
                 id="blast-body"
-                rows={6}
+                rows={5}
                 value={bodyHtml}
                 onChange={(event) => setBodyHtml(event.target.value)}
               />
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFormFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreateOpen(false);
+                resetCreateState();
+              }}
+            >
+              Cancel
+            </Button>
             <Button
               onClick={() => createMutation.mutate()}
               disabled={
@@ -174,10 +249,16 @@ export const MarketingBlastsListPage = () => {
                 !bodyHtml.trim() ||
                 createMutation.isPending
               }
+              className="bg-brand text-white hover:bg-brand/90"
             >
-              Create
+              {createMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Plus className="size-4" />
+              )}
+              Create Blast
             </Button>
-          </DialogFooter>
+          </DialogFormFooter>
         </DialogContent>
       </Dialog>
 

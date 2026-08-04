@@ -222,7 +222,11 @@ export class BoardController {
     @Query("limit") limit = 50,
     @Session()
     session: AuthenticatedSession,
-    @Query("moduleType") moduleType?: string
+    @Query("moduleType") moduleType?: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("userId") userId?: string,
+    @Query("column") column?: string
   ) {
     try {
       const organizationId = session.session.activeOrganizationId;
@@ -230,7 +234,28 @@ export class BoardController {
         page: Number(page),
         limit: Number(limit),
         moduleType: moduleType || "LEAD",
+        dateFrom,
+        dateTo,
+        userId,
+        column,
       });
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/history/meta")
+  async getRecordHistoryMeta(
+    @Session()
+    session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      const organizationId = session.session.activeOrganizationId;
+      return await this.boardService.getRecordHistoryMeta(
+        organizationId,
+        moduleType || "LEAD"
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
