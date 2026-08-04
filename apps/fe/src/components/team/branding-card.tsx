@@ -10,7 +10,7 @@ import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { useQueryClient } from "@tanstack/react-query";
 import debounce from "lodash.debounce";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type BrandingCardProps = {
@@ -29,14 +29,9 @@ export function BrandingCard({ organizationId, metadata }: BrandingCardProps) {
     }
   }, [metadata]);
 
-  const [brandColor, setBrandColor] = useState("#3b82f6");
-
-  // Sync brandColor when org data loads
-  useEffect(() => {
-    if (currentMetadata.brandColor) {
-      setBrandColor(currentMetadata.brandColor);
-    }
-  }, [currentMetadata.brandColor]);
+  // Local edit wins while the user is picking, otherwise show the saved color
+  const [editedColor, setEditedColor] = useState<string | null>(null);
+  const brandColor = editedColor ?? currentMetadata.brandColor ?? "#3b82f6";
 
   const saveBrandColor = useCallback(
     debounce(async (color: string) => {
@@ -54,7 +49,7 @@ export function BrandingCard({ organizationId, metadata }: BrandingCardProps) {
   );
 
   const handleBrandColorChange = (color: string) => {
-    setBrandColor(color);
+    setEditedColor(color);
     applyBrandColor(color);
     saveBrandColor(color);
   };

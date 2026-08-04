@@ -25,7 +25,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
 import { ArrowLeft, ChevronDown, Info, Loader2, Send } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -115,9 +115,9 @@ export const BlastEditorPage = () => {
   ]);
   const isOwner = isOrgAdmin(memberData?.role);
 
-  const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>({
-    filter: {},
-  });
+  // Local edit wins while the user is filtering, otherwise show the saved filter
+  const [editedAudienceFilter, setEditedAudienceFilter] =
+    useState<AudienceFilter | null>(null);
   const [sendDialogBlast, setSendDialogBlast] = useState<MarketingBlast | null>(
     null
   );
@@ -152,9 +152,8 @@ export const BlastEditorPage = () => {
       : undefined,
   });
 
-  useEffect(() => {
-    if (blast) setAudienceFilter(blast.audienceFilter);
-  }, [blast]);
+  const audienceFilter = editedAudienceFilter ??
+    blast?.audienceFilter ?? { filter: {} };
 
   const isDraft = blast?.status === "DRAFT";
 
@@ -350,7 +349,7 @@ export const BlastEditorPage = () => {
         <BlastAudienceFilter
           moduleType={moduleType}
           audienceFilter={audienceFilter}
-          onChange={setAudienceFilter}
+          onChange={setEditedAudienceFilter}
         />
       </StepSection>
 

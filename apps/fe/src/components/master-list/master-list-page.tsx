@@ -23,7 +23,7 @@ import {
   Settings,
   TableProperties,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -71,10 +71,13 @@ export default function MasterListPage() {
     search: undefined,
   });
 
-  useEffect(() => {
-    if (!routeSearch.q) return;
+  const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);
+
+  // Adopt a new route query during render instead of in an effect
+  if (routeSearch.q && routeSearch.q !== syncedQuery) {
+    setSyncedQuery(routeSearch.q);
     setFilterMeta((prev) => ({ ...prev, search: routeSearch.q }));
-  }, [routeSearch.q]);
+  }
 
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["leads", filterMeta],

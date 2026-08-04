@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouteContext, useSearch } from "@tanstack/react-router";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { Download, Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ColumnFilter from "../master-list/column-filter";
 import { generateCrmColumns, type CrmRow } from "./crm-list-column";
@@ -53,10 +53,13 @@ export default function CrmListPage({
     sortOrder?: "asc" | "desc";
   }>({ filter: {}, limit: 10, page: 1, search: undefined });
 
-  useEffect(() => {
-    if (!routeSearch.q) return;
+  const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);
+
+  // Adopt a new route query during render instead of in an effect
+  if (routeSearch.q && routeSearch.q !== syncedQuery) {
+    setSyncedQuery(routeSearch.q);
     setFilterMeta((prev) => ({ ...prev, search: routeSearch.q, page: 1 }));
-  }, [routeSearch.q]);
+  }
 
   const { data, isFetching } = useQuery({
     queryKey: [queryKey, filterMeta],

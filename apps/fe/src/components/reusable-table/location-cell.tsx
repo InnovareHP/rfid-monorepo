@@ -22,7 +22,7 @@ import {
 } from "@dashboard/ui/components/popover";
 import { cn } from "@dashboard/ui/lib/utils";
 import { MapPin } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type Prediction = {
@@ -50,22 +50,22 @@ const LocationCell: React.FC<LocationCellProps> = ({
   onSelectComponents,
   className = "w-96",
 }) => {
-  const [address, setAddress] = useState(value || "");
+  const [address, setAddress] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
   const [open, setOpen] = useState(false);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const confirmedRef = useRef(value || "");
+  const confirmedRef = useRef(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRef = useRef(crypto.randomUUID());
 
-  // Sync external value
-  useEffect(() => {
-    if (value !== undefined) {
-      setAddress(value);
-      confirmedRef.current = value;
-    }
-  }, [value]);
+  // Adopt a new external value during render instead of in an effect
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setAddress(value);
+    confirmedRef.current = value;
+  }
 
   const fetchPredictions = useCallback(async (input: string) => {
     if (input.length < 2) {

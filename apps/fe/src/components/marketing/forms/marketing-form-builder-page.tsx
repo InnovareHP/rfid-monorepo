@@ -5,6 +5,7 @@ import {
   updateForm,
   type BoardField,
   type FormFieldMapping,
+  type MarketingForm,
 } from "@/services/marketing/form-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
@@ -25,19 +26,14 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Copy, Loader2, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { FormFieldItem } from "./form-field-item";
 import { FormFieldPicker } from "./form-field-picker";
 import { FormSettingsPanel } from "./form-settings-panel";
 
 export const MarketingFormBuilderPage = () => {
-  const { team, formId } = useParams({ strict: false }) as {
-    team: string;
-    formId: string;
-  };
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { formId } = useParams({ strict: false }) as { formId: string };
 
   const { data: form, isLoading } = useQuery({
     queryKey: ["marketing-form", formId],
@@ -49,18 +45,33 @@ export const MarketingFormBuilderPage = () => {
     queryFn: () => getFormFields(formId),
   });
 
-  const [name, setName] = useState("");
-  const [mappings, setMappings] = useState<FormFieldMapping[]>([]);
-  const [submitButtonText, setSubmitButtonText] = useState("Submit");
-  const [redirectUrl, setRedirectUrl] = useState("");
+  if (isLoading || !form) {
+    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
+  }
 
-  useEffect(() => {
-    if (!form) return;
-    setName(form.name);
-    setMappings(form.fieldMappings);
-    setSubmitButtonText(form.submitButtonText);
-    setRedirectUrl(form.redirectUrl ?? "");
-  }, [form]);
+  return <FormBuilder key={form.id} form={form} fields={fields} />;
+};
+
+function FormBuilder({
+  form,
+  fields,
+}: {
+  form: MarketingForm;
+  fields: BoardField[];
+}) {
+  const { team } = useParams({ strict: false }) as { team: string };
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const formId = form.id;
+
+  const [name, setName] = useState(form.name);
+  const [mappings, setMappings] = useState<FormFieldMapping[]>(
+    form.fieldMappings
+  );
+  const [submitButtonText, setSubmitButtonText] = useState(
+    form.submitButtonText
+  );
+  const [redirectUrl, setRedirectUrl] = useState(form.redirectUrl ?? "");
 
   const mappedFieldIds = new Set(mappings.map((m) => m.fieldId));
 
@@ -127,14 +138,9 @@ export const MarketingFormBuilderPage = () => {
   };
 
   const copyLink = () => {
-    if (!form) return;
     navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`);
     toast.success("Link copied");
   };
-
-  if (isLoading || !form) {
-    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
@@ -246,4 +252,4 @@ export const MarketingFormBuilderPage = () => {
       </div>
     </div>
   );
-};
+}

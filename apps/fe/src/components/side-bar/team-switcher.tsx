@@ -17,7 +17,6 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { ChevronsUpDown, User } from "lucide-react";
-import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type TeamSwitcherProps = {
@@ -32,27 +31,12 @@ export function TeamSwitcher({
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [activeTeam, setActiveTeam] = useState<Organization | undefined>(
-    undefined
+  const activeTeam = organizations.find(
+    (org) => org.id === activeOrganizationId
   );
-  const [teams, setTeams] = useState<Organization[] | undefined>(undefined);
-
-  useEffect(() => {
-    if (!activeOrganizationId || !organizations?.length) return;
-
-    setTeams(organizations);
-
-    const currentTeam = organizations.find(
-      (org) => org.id === activeOrganizationId
-    );
-
-    setActiveTeam(currentTeam ?? undefined);
-  }, [organizations]);
 
   const HandleSelectActiveTeam = async (team: Organization) => {
     try {
-      setActiveTeam(team);
-
       await authClient.organization.setActive({
         organizationId: team.id,
       });
@@ -99,7 +83,7 @@ export function TeamSwitcher({
               Teams
             </DropdownMenuLabel>
 
-            {teams?.map((team, index) => {
+            {organizations.map((team, index) => {
               const Logo = team.logo ?? User;
 
               return (

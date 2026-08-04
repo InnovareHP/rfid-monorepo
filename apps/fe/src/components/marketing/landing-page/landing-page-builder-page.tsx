@@ -1,12 +1,13 @@
 import { SectionEditorPanel } from "@/components/marketing/landing-page/section-editor-panel";
 import { SectionListItem } from "@/components/marketing/landing-page/section-list-item";
 import { SectionTypePicker } from "@/components/marketing/landing-page/section-type-picker";
-import { getForms } from "@/services/marketing/form-service";
+import { getForms, type MarketingForm } from "@/services/marketing/form-service";
 import {
   getLandingPage,
   publishLandingPage,
   updateLandingPage,
   type LandingSection,
+  type MarketingLandingPage,
 } from "@/services/marketing/landing-page-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
@@ -29,7 +30,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import axios from "axios";
 import { ArrowLeft, Copy, Loader2, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 const createDefaultSection = (
@@ -59,12 +60,7 @@ const extractErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 export const LandingPageBuilderPage = () => {
-  const { team, pageId } = useParams({ strict: false }) as {
-    team: string;
-    pageId: string;
-  };
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { pageId } = useParams({ strict: false }) as { pageId: string };
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["marketing-landing-page", pageId],
@@ -76,24 +72,35 @@ export const LandingPageBuilderPage = () => {
     queryFn: getForms,
   });
 
-  const [name, setName] = useState("");
-  const [sections, setSections] = useState<LandingSection[]>([]);
-  const [formId, setFormId] = useState<string | null>(null);
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDescription, setSeoDescription] = useState("");
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
-    null
-  );
+  if (isLoading || !page) {
+    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
+  }
 
-  useEffect(() => {
-    if (!page) return;
-    setName(page.name);
-    setSections(page.sections);
-    setFormId(page.formId);
-    setSeoTitle(page.seoTitle ?? "");
-    setSeoDescription(page.seoDescription ?? "");
-    setSelectedSectionId((current) => current ?? page.sections[0]?.id ?? null);
-  }, [page]);
+  return <LandingPageEditor key={page.id} page={page} forms={forms} />;
+};
+
+function LandingPageEditor({
+  page,
+  forms,
+}: {
+  page: MarketingLandingPage;
+  forms: MarketingForm[];
+}) {
+  const { team } = useParams({ strict: false }) as { team: string };
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const pageId = page.id;
+
+  const [name, setName] = useState(page.name);
+  const [sections, setSections] = useState<LandingSection[]>(page.sections);
+  const [formId, setFormId] = useState<string | null>(page.formId);
+  const [seoTitle, setSeoTitle] = useState(page.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(
+    page.seoDescription ?? ""
+  );
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
+    page.sections[0]?.id ?? null
+  );
 
   const hasFormEmbed = sections.some(
     (section) => section.type === "FORM_EMBED"
@@ -166,14 +173,9 @@ export const LandingPageBuilderPage = () => {
   };
 
   const copyLink = () => {
-    if (!page) return;
     navigator.clipboard.writeText(`${window.location.origin}/l/${page.slug}`);
     toast.success("Link copied");
   };
-
-  if (isLoading || !page) {
-    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
@@ -310,4 +312,4 @@ export const LandingPageBuilderPage = () => {
       </div>
     </div>
   );
-};
+}

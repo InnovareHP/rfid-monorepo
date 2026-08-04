@@ -1,9 +1,13 @@
 import "mapbox-gl/dist/mapbox-gl.css";
 
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapGL, { Layer, Popup, Source, type MapRef } from "react-map-gl/mapbox";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+
+// Shared across mounts so a county is geocoded at most once per session
+const geocodeCache = new Map<string, [number, number] | null>();
 
 type CountyData = { value: string; _count: { value: number } };
 
@@ -36,22 +40,11 @@ export default function CountyHeatMap({
   counties: CountyData[];
 }) {
   const mapRef = useRef<MapRef | null>(null);
-  const geocodeCache = useRef<Map<string, [number, number] | null>>(
-    new Map<string, [number, number] | null>()
-  );
-  const [points, setPoints] = useState<GeocodedCounty[]>([]);
   const [hoveredPoint, setHoveredPoint] = useState<GeocodedCounty | null>(null);
 
-  // Geocode all counties on data change
-  useEffect(() => {
-    if (!counties?.length) {
-      setPoints([]);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function resolve() {
+  const { data: points = [] } = useQuery({
+    queryKey: ["county-geocode", counties.map((c) => c.value)],
+    queryFn: async () => {
       const results: GeocodedCounty[] = [];
 
       await Promise.all(
@@ -59,10 +52,10 @@ export default function CountyHeatMap({
           const name = c.value;
           if (!name) return;
 
-          let coords = geocodeCache.current.get(name);
+          let coords = geocodeCache.get(name);
           if (coords === undefined) {
             coords = await geocodeCounty(name, MAPBOX_TOKEN);
-            geocodeCache.current.set(name, coords);
+            geocodeCache.set(name, coords);
           }
 
           if (coords) {
@@ -76,14 +69,11 @@ export default function CountyHeatMap({
         })
       );
 
-      if (!cancelled) setPoints(results);
-    }
-
-    resolve();
-    return () => {
-      cancelled = true;
-    };
-  }, [counties]);
+      return results;
+    },
+    enabled: counties.length > 0,
+    staleTime: Infinity,
+  });
 
   // Fit bounds when points change
   useEffect(() => {

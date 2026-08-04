@@ -12,7 +12,7 @@ import {
 
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Loader2, RefreshCcw, SearchIcon } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { FilterComponent } from "./filter-component";
 
@@ -42,35 +42,25 @@ export function MasterListFilters({
   const [isApplying, setIsApplying] = useState(false);
 
   // Staging area for filters (not applied until user clicks Apply)
-  const [pendingFilters, setPendingFilters] = useState<any>({
-    filter: {},
-    recordName: "",
-    dateFrom: null,
-    dateTo: null,
-  });
+  const [pendingFilters, setPendingFilters] = useState<any>(() => {
+    const dateKey = isExpense
+      ? "expense"
+      : isMileage
+        ? "mileage"
+        : isMarketing
+          ? "marketing"
+          : null;
 
-  // Initialize pending filters from current filterMeta
-  useEffect(() => {
-    if (isExpense) {
-      setPendingFilters({
-        filter: filterMeta?.filter || {},
-        dateFrom: filterMeta?.filter?.expenseDateFrom || null,
-        dateTo: filterMeta?.filter?.expenseDateTo || null,
-      });
-    } else if (isMileage) {
-      setPendingFilters({
-        filter: filterMeta?.filter || {},
-        dateFrom: filterMeta?.filter?.mileageDateFrom || null,
-        dateTo: filterMeta?.filter?.mileageDateTo || null,
-      });
-    } else if (isMarketing) {
-      setPendingFilters({
-        filter: filterMeta?.filter || {},
-        dateFrom: filterMeta?.filter?.marketingDateFrom || null,
-        dateTo: filterMeta?.filter?.marketingDateTo || null,
-      });
+    if (!dateKey) {
+      return { filter: {}, recordName: "", dateFrom: null, dateTo: null };
     }
-  }, [isExpense, isMileage, isMarketing]);
+
+    return {
+      filter: filterMeta?.filter || {},
+      dateFrom: filterMeta?.filter?.[`${dateKey}DateFrom`] || null,
+      dateTo: filterMeta?.filter?.[`${dateKey}DateTo`] || null,
+    };
+  });
 
   const updatePendingFilter = (key: string, value: any) => {
     setPendingFilters((prev: any) => ({

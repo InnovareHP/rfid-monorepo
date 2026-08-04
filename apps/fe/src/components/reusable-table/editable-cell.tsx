@@ -48,7 +48,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
@@ -94,6 +94,7 @@ export function EditableCell({
 }: EditableCellProps) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
   const [validationError, setValidationError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
   const isreferralKey = moduleType
@@ -102,10 +103,11 @@ export function EditableCell({
       ? "referrals"
       : "leads";
 
-  // Sync value when prop changes
-  useEffect(() => {
+  // Adopt a new server value during render, never over an in-progress edit
+  if (!editing && value !== syncedValue) {
+    setSyncedValue(value);
     setVal(value);
-  }, [value]);
+  }
 
   const updateLeadMutation = useMutation({
     mutationFn: async ({
