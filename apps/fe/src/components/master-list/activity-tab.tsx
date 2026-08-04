@@ -65,7 +65,9 @@ import {
   X,
 } from "lucide-react";
 import * as React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { toast } from "sonner";
 
 const activityTypeConfig = {
@@ -118,20 +120,41 @@ const statusConfig = {
 
 type ActivityType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "FAX";
 
-type FormValues = {
-  title: string;
-  description?: string;
-  activityType: ActivityType;
-  dueDate?: Date;
-  recipientEmail?: string;
-  emailSubject?: string;
-  emailBody?: string;
-  sendVia?: "AUTO" | "GMAIL" | "OUTLOOK";
-  meetingEndDate?: Date;
-  calendarProvider?: "google" | "outlook";
-  faxNumber?: string;
-  faxFile?: File;
-};
+const activitySchema = z
+  .object({
+    title: z.string().trim().min(1, "Title is required"),
+    description: z.string().optional(),
+    activityType: z.enum(["CALL", "EMAIL", "MEETING", "NOTE", "FAX"]),
+    dueDate: z.date().optional(),
+    recipientEmail: z.string().optional(),
+    emailSubject: z.string().optional(),
+    emailBody: z.string().optional(),
+    sendVia: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
+    meetingEndDate: z.date().optional(),
+    calendarProvider: z.enum(["google", "outlook"]).optional(),
+    faxNumber: z.string().optional(),
+    faxFile: z.instanceof(File).optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.activityType !== "FAX") return;
+
+    if (!values.faxNumber?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Fax number is required",
+        path: ["faxNumber"],
+      });
+    }
+    if (!values.faxFile) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Attach a document to fax",
+        path: ["faxFile"],
+      });
+    }
+  });
+
+type FormValues = z.infer<typeof activitySchema>;
 
 export function ActivityTab({
   recordId,
@@ -277,6 +300,7 @@ export function ActivityTab({
   });
 
   const form = useForm<FormValues>({
+    resolver: zodResolver(activitySchema),
     defaultValues: {
       title: "",
       description: "",
@@ -300,16 +324,13 @@ export function ActivityTab({
   const { handleSubmit, watch, control, reset } = form;
   const watchActivityType = watch("activityType");
 
-  React.useEffect(() => {
-    if (
-      showForm &&
-      watchActivityType === "FAX" &&
-      existingFax &&
-      !form.getValues("faxNumber")
-    ) {
+  // Prefill the record's fax number the moment FAX is picked, not in an effect
+  const handleActivityTypeChange = (value: ActivityType) => {
+    form.setValue("activityType", value);
+    if (value === "FAX" && existingFax && !form.getValues("faxNumber")) {
       form.setValue("faxNumber", existingFax);
     }
-  }, [showForm, watchActivityType, existingFax]);
+  };
 
   const resetForm = () => {
     reset();
@@ -317,23 +338,13 @@ export function ActivityTab({
   };
 
   const onSubmit = async (data: FormValues) => {
-    if (!data.title.trim()) return;
-
     if (data.activityType === "FAX") {
-      if (!data.faxNumber?.trim()) {
-        toast.error("Fax number is required");
-        return;
-      }
-      if (!data.faxFile) {
-        toast.error("Attach a document to fax");
-        return;
-      }
       faxMutation.mutate({
         recordId: recordId,
         title: data.title.trim(),
         description: data.description?.trim() || undefined,
-        faxNumber: data.faxNumber.trim(),
-        file: data.faxFile,
+        faxNumber: data.faxNumber!.trim(),
+        file: data.faxFile!,
       });
       return;
     }
@@ -451,7 +462,12 @@ export function ActivityTab({
                   control={control}
                   name="activityType"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) =>
+                        handleActivityTypeChange(value as ActivityType)
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>

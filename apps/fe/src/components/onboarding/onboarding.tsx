@@ -13,29 +13,31 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import StepFour from "./onboarding-steps/StepFour";
 import StepOne from "./onboarding-steps/StepOne";
 
-export type FormValues = {
-  foundUsOn: string;
-  organizationName: string;
-};
+const onboardingSchema = z.object({
+  foundUsOn: z.string().min(1, "Tell us how you found us"),
+  organizationName: z.string().trim().min(1, "Organization name is required"),
+});
+
+export type FormValues = z.infer<typeof onboardingSchema>;
 
 const TOTAL_STEPS = 2;
 
 const OnBoardingPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedUsage, setSelectedUsage] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [primaryColor, setPrimaryColor] = useState("#3b82f6");
   const [progress, setProgress] = useState("");
 
   const form = useForm<FormValues>({
+    resolver: zodResolver(onboardingSchema),
     defaultValues: {
       foundUsOn: "",
-      // purpose: "",
-      // interests: [],
       organizationName: "",
     },
   });
@@ -45,6 +47,8 @@ const OnBoardingPage = () => {
     handleSubmit,
     formState: { isSubmitting },
   } = form;
+
+  const selectedUsage = form.watch("foundUsOn");
 
   const heardUsOptions = [
     {
@@ -164,7 +168,6 @@ const OnBoardingPage = () => {
   };
 
   const handleUsageSelect = (usageId: string) => {
-    setSelectedUsage(usageId);
     form.setValue("foundUsOn", usageId);
     handleContinue();
   };

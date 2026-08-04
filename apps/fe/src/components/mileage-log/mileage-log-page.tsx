@@ -26,6 +26,7 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -36,7 +37,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, Gauge, Loader2, Route } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
@@ -125,26 +126,24 @@ const MileageLogPage = () => {
   const endingMileage = form.watch("endingMileage");
   const rateType = form.watch("rateType");
 
-  useEffect(() => {
-    const totalMiles =
-      endingMileage >= beginningMileage ? endingMileage - beginningMileage : 0;
-    const ratePerMile =
-      rateType === "FEDERAL"
-        ? FEDERAL_RATE
-        : rateType === "STATE"
-          ? STATE_RATE
-          : 0;
-
-    form.setValue("totalMiles", totalMiles);
-    form.setValue("ratePerMile", ratePerMile);
-    form.setValue(
-      "reimbursementAmount",
-      Number((totalMiles * ratePerMile).toFixed(2))
-    );
-  }, [beginningMileage, endingMileage, rateType, form]);
+  // Derived from the entered mileage and rate, never stored as form fields
+  const totalMiles =
+    endingMileage >= beginningMileage ? endingMileage - beginningMileage : 0;
+  const ratePerMile =
+    rateType === "FEDERAL"
+      ? FEDERAL_RATE
+      : rateType === "STATE"
+        ? STATE_RATE
+        : 0;
+  const reimbursementAmount = Number((totalMiles * ratePerMile).toFixed(2));
 
   const onSubmit = (values: CreateMileageFormValues) => {
-    createMileageMutation.mutate(values);
+    createMileageMutation.mutate({
+      ...values,
+      totalMiles,
+      ratePerMile,
+      reimbursementAmount,
+    });
   };
 
   const rows: MileageLogRow[] = Array.isArray(mileageLogsData?.data)
@@ -304,44 +303,20 @@ const MileageLogPage = () => {
                 />
 
                 <div className="grid gap-4 sm:grid-cols-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <FormField
-                    control={form.control}
-                    name="totalMiles"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Total Miles</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} disabled />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <Label>Total Miles</Label>
+                    <Input type="number" value={totalMiles} disabled />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="ratePerMile"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rate / Mile</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} disabled />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <Label>Rate / Mile</Label>
+                    <Input type="number" value={ratePerMile} disabled />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="reimbursementAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Total Cost</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} disabled />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <Label>Total Cost</Label>
+                    <Input type="number" value={reimbursementAmount} disabled />
+                  </div>
                 </div>
 
                 <DialogFooter>
