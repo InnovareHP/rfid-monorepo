@@ -78,9 +78,16 @@ export class LiaisonController {
   }
 
   @Get("mileage/:id")
-  async getMillageById(@Param("id") id: string) {
+  async getMillageById(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.getMillageById(id);
+      return await this.liaisonService.getMillageById(
+        id,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -89,19 +96,32 @@ export class LiaisonController {
   @Patch("mileage/:id")
   async updateMillage(
     @Param("id") id: string,
-    @Body() updateMillageDto: UpdateMillageDto
+    @Body() updateMillageDto: UpdateMillageDto,
+    @Session()
+    session: MemberSession
   ) {
     try {
-      return await this.liaisonService.updateMillage(id, updateMillageDto);
+      return await this.liaisonService.updateMillage(
+        id,
+        updateMillageDto,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   @Delete("mileage/:id")
-  async deleteMillage(@Param("id") id: string) {
+  async deleteMillage(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.deleteMillage(id);
+      return await this.liaisonService.deleteMillage(
+        id,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -155,9 +175,16 @@ export class LiaisonController {
   }
 
   @Get("marketing/:id")
-  async getMarketingById(@Param("id") id: string) {
+  async getMarketingById(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.getMarketingById(id);
+      return await this.liaisonService.getMarketingById(
+        id,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -166,19 +193,32 @@ export class LiaisonController {
   @Patch("marketing/:id")
   async updateMarketing(
     @Param("id") id: string,
-    @Body() updateMarketingDto: UpdateMarketingDto
+    @Body() updateMarketingDto: UpdateMarketingDto,
+    @Session()
+    session: MemberSession
   ) {
     try {
-      return await this.liaisonService.updateMarketing(id, updateMarketingDto);
+      return await this.liaisonService.updateMarketing(
+        id,
+        updateMarketingDto,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   @Delete("marketing/:id")
-  async deleteMarketing(@Param("id") id: string) {
+  async deleteMarketing(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.deleteMarketing(id);
+      return await this.liaisonService.deleteMarketing(
+        id,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -278,19 +318,32 @@ export class LiaisonController {
   @Patch("expense/:id")
   async updateExpense(
     @Param("id") id: string,
-    @Body() updateExpenseDto: UpdateExpenseDto
+    @Body() updateExpenseDto: UpdateExpenseDto,
+    @Session()
+    session: MemberSession
   ) {
     try {
-      return await this.liaisonService.updateExpense(id, updateExpenseDto);
+      return await this.liaisonService.updateExpense(
+        id,
+        updateExpenseDto,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   @Delete("expense/:id")
-  async deleteExpense(@Param("id") id: string) {
+  async deleteExpense(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.deleteExpense(id);
+      return await this.liaisonService.deleteExpense(
+        id,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import axios from "axios";
 import * as PDFDocument from "pdfkit";
@@ -96,17 +101,35 @@ export class LiaisonService {
     };
   }
 
-  async getMillageById(id: string) {
-    const millage = await prisma.mileage.findUniqueOrThrow({
+  // Mileage carries no organizationId of its own, so ownership is proven
+  // through the member relation before the row is read or mutated.
+  private async assertMileageInOrg(id: string, organizationId: string) {
+    const mileage = await prisma.mileage.findFirst({
+      where: { id, member: { organizationId } },
+      select: { id: true },
+    });
+    if (!mileage) throw new NotFoundException("Mileage not found");
+  }
+
+  async getMillageById(id: string, organizationId: string) {
+    const millage = await prisma.mileage.findFirst({
       where: {
         id,
         isDeleted: false,
+        member: { organizationId },
       },
     });
+    if (!millage) throw new NotFoundException("Mileage not found");
     return millage;
   }
 
-  async updateMillage(id: string, updateMillageDto: UpdateMillageDto) {
+  async updateMillage(
+    id: string,
+    updateMillageDto: UpdateMillageDto,
+    organizationId: string
+  ) {
+    await this.assertMileageInOrg(id, organizationId);
+
     await prisma.mileage.update({
       where: {
         id,
@@ -115,7 +138,9 @@ export class LiaisonService {
     });
   }
 
-  async deleteMillage(id: string) {
+  async deleteMillage(id: string, organizationId: string) {
+    await this.assertMileageInOrg(id, organizationId);
+
     await prisma.mileage.update({
       where: {
         id,
@@ -239,17 +264,33 @@ export class LiaisonService {
     };
   }
 
-  async getMarketingById(id: string) {
-    const marketing = await prisma.marketing.findUniqueOrThrow({
+  private async assertMarketingInOrg(id: string, organizationId: string) {
+    const marketing = await prisma.marketing.findFirst({
+      where: { id, member: { organizationId } },
+      select: { id: true },
+    });
+    if (!marketing) throw new NotFoundException("Marketing not found");
+  }
+
+  async getMarketingById(id: string, organizationId: string) {
+    const marketing = await prisma.marketing.findFirst({
       where: {
         id,
         isDeleted: false,
+        member: { organizationId },
       },
     });
+    if (!marketing) throw new NotFoundException("Marketing not found");
     return marketing;
   }
 
-  async updateMarketing(id: string, updateMarketingDto: UpdateMarketingDto) {
+  async updateMarketing(
+    id: string,
+    updateMarketingDto: UpdateMarketingDto,
+    organizationId: string
+  ) {
+    await this.assertMarketingInOrg(id, organizationId);
+
     await prisma.marketing.update({
       where: {
         id,
@@ -258,7 +299,9 @@ export class LiaisonService {
     });
   }
 
-  async deleteMarketing(id: string) {
+  async deleteMarketing(id: string, organizationId: string) {
+    await this.assertMarketingInOrg(id, organizationId);
+
     await prisma.marketing.delete({
       where: {
         id,
@@ -603,7 +646,21 @@ export class LiaisonService {
     });
   }
 
-  async updateExpense(id: string, updateExpenseDto: UpdateExpenseDto) {
+  private async assertExpenseInOrg(id: string, organizationId: string) {
+    const expense = await prisma.expense.findFirst({
+      where: { id, member: { organizationId } },
+      select: { id: true },
+    });
+    if (!expense) throw new NotFoundException("Expense not found");
+  }
+
+  async updateExpense(
+    id: string,
+    updateExpenseDto: UpdateExpenseDto,
+    organizationId: string
+  ) {
+    await this.assertExpenseInOrg(id, organizationId);
+
     await prisma.expense.update({
       where: {
         id,
@@ -612,7 +669,9 @@ export class LiaisonService {
     });
   }
 
-  async deleteExpense(id: string) {
+  async deleteExpense(id: string, organizationId: string) {
+    await this.assertExpenseInOrg(id, organizationId);
+
     await prisma.expense.update({
       where: {
         id,
