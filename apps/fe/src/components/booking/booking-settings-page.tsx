@@ -14,15 +14,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import { Separator } from "@dashboard/ui/components/separator";
 import { Switch } from "@dashboard/ui/components/switch";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Link as LinkIcon, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -73,6 +80,20 @@ function defaultDayRows(): DayRow[] {
   }));
 }
 
+function dayRowsFromRules(
+  rules: { dayOfWeek: number; startMinute: number; endMinute: number }[]
+): DayRow[] {
+  return defaultDayRows().map((row, dayOfWeek) => {
+    const rule = rules.find((r) => r.dayOfWeek === dayOfWeek);
+    if (!rule) return { ...row, enabled: false };
+    return {
+      enabled: true,
+      startTime: minutesToTime(rule.startMinute),
+      endTime: minutesToTime(rule.endMinute),
+    };
+  });
+}
+
 export function BookingSettingsPage() {
   const queryClient = useQueryClient();
   const [days, setDays] = useState<DayRow[]>(defaultDayRows());
@@ -108,21 +129,15 @@ export function BookingSettingsPage() {
       : undefined,
   });
 
-  useEffect(() => {
-    if (!availabilityQuery.data) return;
-    const next = defaultDayRows().map((row, dayOfWeek) => {
-      const rule = availabilityQuery.data.find(
-        (r) => r.dayOfWeek === dayOfWeek
-      );
-      if (!rule) return { ...row, enabled: false };
-      return {
-        enabled: true,
-        startTime: minutesToTime(rule.startMinute),
-        endTime: minutesToTime(rule.endMinute),
-      };
-    });
-    setDays(next);
-  }, [availabilityQuery.data]);
+  const [syncedAvailability, setSyncedAvailability] = useState(
+    availabilityQuery.data
+  );
+
+  // Adopt newly loaded availability during render instead of in an effect
+  if (availabilityQuery.data && availabilityQuery.data !== syncedAvailability) {
+    setSyncedAvailability(availabilityQuery.data);
+    setDays(dayRowsFromRules(availabilityQuery.data));
+  }
 
   const updatePageMutation = useMutation({
     mutationFn: updateOwnBookingPage,
@@ -217,109 +232,141 @@ export function BookingSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={form.handleSubmit((values) =>
-              updatePageMutation.mutate({
-                ...values,
-                durationMinutes: Number(values.durationMinutes),
-                bufferBeforeMinutes: Number(values.bufferBeforeMinutes),
-                bufferAfterMinutes: Number(values.bufferAfterMinutes),
-                minNoticeHours: Number(values.minNoticeHours),
-              })
-            )}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input id="title" {...form.register("title")} />
-              {form.formState.errors.title && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.title.message}
-                </p>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit((values) =>
+                updatePageMutation.mutate({
+                  ...values,
+                  durationMinutes: Number(values.durationMinutes),
+                  bufferBeforeMinutes: Number(values.bufferBeforeMinutes),
+                  bufferAfterMinutes: Number(values.bufferAfterMinutes),
+                  minNoticeHours: Number(values.minNoticeHours),
+                })
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                rows={3}
-                {...form.register("description")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="locationLabel">Location</Label>
-              <Input id="locationLabel" {...form.register("locationLabel")} />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="durationMinutes">Duration (minutes)</Label>
-                <Input
-                  id="durationMinutes"
-                  type="number"
-                  min={5}
-                  max={480}
-                  {...form.register("durationMinutes")}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="timezone">Timezone</Label>
-                <Input
-                  id="timezone"
-                  placeholder="America/New_York"
-                  {...form.register("timezone")}
-                />
-                {form.formState.errors.timezone && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.timezone.message}
-                  </p>
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </div>
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="bufferBeforeMinutes">Buffer before</Label>
-                <Input
-                  id="bufferBeforeMinutes"
-                  type="number"
-                  min={0}
-                  max={120}
-                  {...form.register("bufferBeforeMinutes")}
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="locationLabel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="durationMinutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duration (minutes)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={5} max={480} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="timezone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Timezone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="America/New_York" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="bufferBeforeMinutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Buffer before</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} max={120} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="bufferAfterMinutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Buffer after</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} max={120} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="minNoticeHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Minimum notice (hours)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} max={168} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="bufferAfterMinutes">Buffer after</Label>
-                <Input
-                  id="bufferAfterMinutes"
-                  type="number"
-                  min={0}
-                  max={120}
-                  {...form.register("bufferAfterMinutes")}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="minNoticeHours">Minimum notice (hours)</Label>
-                <Input
-                  id="minNoticeHours"
-                  type="number"
-                  min={0}
-                  max={168}
-                  {...form.register("minNoticeHours")}
-                />
-              </div>
-            </div>
-
-            <Button type="submit" disabled={updatePageMutation.isPending}>
-              {updatePageMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              Save
-            </Button>
-          </form>
+              <Button type="submit" disabled={updatePageMutation.isPending}>
+                {updatePageMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                Save
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 
