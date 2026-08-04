@@ -11,6 +11,7 @@ import type { z } from "zod";
 import { appConfig } from "../../config/app-config";
 import { sendEmail } from "../../lib/aws/ses";
 import { prisma } from "../../lib/prisma/prisma";
+import { BookingCanceledEmail } from "../../react-email/booking-canceled-email";
 import { BookingConfirmationEmail } from "../../react-email/booking-confirmation-email";
 import { GoogleCalendarService } from "../calendar/google-calendar.service";
 import { OutlookCalendarService } from "../calendar/outlook-calendar.service";
@@ -149,10 +150,70 @@ export class BookingService {
       }
     }
 
-    return prisma.booking.update({
+    const cancelled = await prisma.booking.update({
       where: { id: bookingId },
       data: { status: "CANCELLED" },
     });
+
+    await this.sendCancellationEmails(userId, organizationId, cancelled);
+
+    return cancelled;
+  }
+
+  private async sendCancellationEmails(
+    userId: string,
+    organizationId: string,
+    booking: {
+      inviteeName: string;
+      inviteeEmail: string;
+      startTime: Date;
+    }
+  ) {
+    try {
+      const [host, page] = await Promise.all([
+        prisma.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: { name: true, email: true },
+        }),
+        prisma.bookingPage.findFirst({
+          where: { userId, organizationId },
+          select: { title: true, timezone: true, locationLabel: true },
+        }),
+      ]);
+
+      const formattedTime = booking.startTime.toLocaleString("en-US", {
+        timeZone: page?.timezone ?? DEFAULT_TIMEZONE,
+        dateStyle: "full",
+        timeStyle: "short",
+      });
+
+      const props = {
+        referralName: booking.inviteeName,
+        facility: page?.locationLabel ?? page?.title ?? "—",
+        originalDateTime: formattedTime,
+        canceledBy: host.name,
+        bookingUrl: `${appConfig.WEBSITE_URL}/${organizationId}/calendar`,
+      };
+
+      await sendEmail({
+        to: booking.inviteeEmail,
+        subject: `Canceled: booking on ${formattedTime}`,
+        html: BookingCanceledEmail({
+          ...props,
+          recipientName: booking.inviteeName,
+        }),
+        from: appConfig.APP_EMAIL,
+      });
+
+      await sendEmail({
+        to: host.email,
+        subject: `Canceled: booking with ${booking.inviteeName}`,
+        html: BookingCanceledEmail({ ...props, recipientName: host.name }),
+        from: appConfig.APP_EMAIL,
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to send cancellation emails: ${error.message}`);
+    }
   }
 
   private async getOrCreatePage(userId: string, organizationId: string) {

@@ -509,26 +509,26 @@ export class BoardService {
     };
 
     const [history, total] = await Promise.all([
-        prisma.history.findMany({
-          where: where,
-          orderBy: { createdAt: "desc" },
-          take: Number(limit),
-          skip: offset,
-          include: {
-            user: {
-              select: {
-                name: true,
-              },
-            },
-            record: {
-              select: {
-                recordName: true,
-              },
+      prisma.history.findMany({
+        where: where,
+        orderBy: { createdAt: "desc" },
+        take: Number(limit),
+        skip: offset,
+        include: {
+          user: {
+            select: {
+              name: true,
             },
           },
-        }),
-        prisma.history.count({ where: where }),
-      ]);
+          record: {
+            select: {
+              recordName: true,
+            },
+          },
+        },
+      }),
+      prisma.history.count({ where: where }),
+    ]);
 
     const formatted = history.map((h) => {
       return {

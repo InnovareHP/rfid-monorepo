@@ -11,6 +11,7 @@ import { useBoardSync } from "@/hooks/use-board-sync";
 import { useIdleLogout } from "@/hooks/use-idle-logout";
 import { authClient } from "@/lib/auth-client";
 import { applyBrandColor, removeBrandColor } from "@/lib/color-utils";
+import { queryClient } from "@/lib/query-client";
 import type { SessionMember, Subscription } from "@dashboard/shared";
 import { Separator } from "@dashboard/ui/components/separator";
 import {
@@ -18,7 +19,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@dashboard/ui/components/sidebar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import type { Session, User } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
@@ -27,8 +28,8 @@ export const Route = createFileRoute("/_team")({
   beforeLoad: async (context) => {
     const params = context.params as { team: string };
     const { user, session, member, subscription } = context.context as {
-      user: User;
-      session: Session & { activeOrganizationId: string };
+      user: User | null;
+      session: (Session & { activeOrganizationId: string }) | null;
       member: SessionMember | null;
       subscription: Subscription | null;
     };
@@ -49,10 +50,22 @@ export const Route = createFileRoute("/_team")({
       throw redirect({ to: "/billing" });
     }
 
+    // Consumers read these with getQueryData during render, so seed the cache before any mount.
+    const memberData = queryClient.setQueryData(
+      ["member-data", session.activeOrganizationId],
+      member ? { ...member, memberRole: member.role } : null
+    ) as (Member & { memberRole: string }) | null;
+
+    queryClient.setQueryData(
+      ["subscription", session.activeOrganizationId],
+      subscription
+    );
+
     return {
       user,
       session,
       member,
+      memberData,
       subscription,
       activeOrganizationId: session.activeOrganizationId,
     };
@@ -62,12 +75,11 @@ export const Route = createFileRoute("/_team")({
 });
 
 function TeamLayout() {
-  const { user, activeOrganizationId, member, subscription } =
+  const { user, activeOrganizationId, memberData } =
     Route.useRouteContext() as {
       user: User;
       activeOrganizationId: string;
-      member: SessionMember | null;
-      subscription: Subscription | null;
+      memberData: (Member & { memberRole: string }) | null;
     };
 
   useBoardSync();
@@ -87,28 +99,6 @@ function TeamLayout() {
     staleTime: 1000 * 60 * 60, // 1 hour
     gcTime: 1000 * 60 * 60,
   });
-
-  const queryClient = useQueryClient();
-
-  // Stable identity: a fresh object here re-fires the cache sync on every render.
-  const memberData = useMemo(
-    () =>
-      member
-        ? ({ ...member, memberRole: member.role } as unknown as Member & {
-            memberRole: string;
-          })
-        : undefined,
-    [member]
-  );
-  const activeSubscription = subscription;
-
-  useEffect(() => {
-    queryClient.setQueryData(["member-data", activeOrganizationId], memberData);
-    queryClient.setQueryData(
-      ["subscription", activeOrganizationId],
-      activeSubscription
-    );
-  }, [queryClient, activeOrganizationId, memberData, activeSubscription]);
 
   // Only the sidebars need the org list; page content renders without it.
   const sidebarsReady = Boolean(

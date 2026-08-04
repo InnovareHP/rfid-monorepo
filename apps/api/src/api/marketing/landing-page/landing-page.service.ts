@@ -76,21 +76,38 @@ export class LandingPageService {
 
     await this.validateFormReference(sections, formId, organizationId);
 
-    return prisma.landingPage.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
-        ...(dto.sections !== undefined && {
-          sections: sections as Prisma.InputJsonValue,
-        }),
-        formId,
-        ...(dto.seoTitle !== undefined && { seoTitle: dto.seoTitle }),
-        ...(dto.seoDescription !== undefined && {
-          seoDescription: dto.seoDescription,
-        }),
-      },
-    });
+    // Slugs are globally unique — changing one also changes the public URL.
+    if (dto.slug !== undefined && dto.slug !== existing.slug) {
+      const taken = await prisma.landingPage.findUnique({
+        where: { slug: dto.slug },
+      });
+
+      if (taken)
+        throw new BadRequestException("That URL slug is already taken");
+    }
+
+    try {
+      return await prisma.landingPage.update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined && { name: dto.name }),
+          ...(dto.slug !== undefined && { slug: dto.slug }),
+          ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
+          ...(dto.sections !== undefined && {
+            sections: sections as Prisma.InputJsonValue,
+          }),
+          formId,
+          ...(dto.seoTitle !== undefined && { seoTitle: dto.seoTitle }),
+          ...(dto.seoDescription !== undefined && {
+            seoDescription: dto.seoDescription,
+          }),
+        },
+      });
+    } catch (error) {
+      if (!this.isSlugConflict(error)) throw error;
+
+      throw new BadRequestException("That URL slug is already taken");
+    }
   }
 
   async publishLandingPage(id: string, organizationId: string) {

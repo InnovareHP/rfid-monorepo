@@ -8,8 +8,8 @@ const isProduction = process.env.NODE_ENV === "production";
 
 // Live IDs come from validated config so a deploy cannot ship test prices.
 // Test IDs stay inline so local and staging work with no extra configuration.
-const priceId = (testId: string, liveId: string | undefined) =>
-  isProduction ? (liveId ?? "") : testId;
+const priceId = (liveId: string | undefined) =>
+  isProduction ? (liveId ?? "") : (liveId ?? "");
 
 export type PlanLimits = {
   seats: number;
@@ -36,10 +36,7 @@ export const PLANS: Plan[] = [
     name: "essentials",
     label: "Essentials",
     pricePerSeat: 20,
-    seatPriceId: priceId(
-      "price_1SUpOoCVzwuBDRu4m7JnkjKf",
-      appConfig.STRIPE_PRICE_ESSENTIALS_SEAT
-    ),
+    seatPriceId: priceId(appConfig.STRIPE_PRICE_ESSENTIALS_SEAT),
     limits: { seats: 10, ai: 0, exportCsv: 0, prioritySupport: 0 },
     freeTrialDays: 14,
   },
@@ -47,10 +44,7 @@ export const PLANS: Plan[] = [
     name: "growth",
     label: "Growth",
     pricePerSeat: 49,
-    seatPriceId: priceId(
-      "price_TODO_TEST_growth_seat",
-      appConfig.STRIPE_PRICE_GROWTH_SEAT
-    ),
+    seatPriceId: priceId(appConfig.STRIPE_PRICE_GROWTH_SEAT),
     limits: { seats: 25, ai: 1, exportCsv: 1, prioritySupport: 0 },
     freeTrialDays: 14,
   },
@@ -58,10 +52,7 @@ export const PLANS: Plan[] = [
     name: "scale",
     label: "Scale",
     pricePerSeat: 79,
-    seatPriceId: priceId(
-      "price_TODO_TEST_scale_seat",
-      appConfig.STRIPE_PRICE_SCALE_SEAT
-    ),
+    seatPriceId: priceId(appConfig.STRIPE_PRICE_SCALE_SEAT),
     limits: { seats: 50, ai: 1, exportCsv: 1, prioritySupport: 1 },
     freeTrialDays: 14,
   },

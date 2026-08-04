@@ -1,7 +1,11 @@
 import { NOTIFICATION_ENTITY, NOTIFICATION_TYPE } from "@dashboard/shared";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma, TaskStatusCategory } from "@prisma/client";
+import { appConfig } from "../../config/app-config";
+import { renderEmailHtml } from "../../lib/aws/ses";
 import { prisma } from "../../lib/prisma/prisma";
+import { emailQueue } from "../../lib/queue/email-queue";
+import { TaskAssignedEmail } from "../../react-email/task-assigned-email";
 import { NotificationService } from "../notification/notification.service";
 import {
   CreateAttachmentDto,
@@ -68,6 +72,63 @@ export class TaskService {
       entityType: NOTIFICATION_ENTITY.TASK,
       entityId: input.taskId,
     });
+  }
+
+  // Mirrors the in-app assignment notice as an email, same recipients.
+  private async emailAssignees(input: {
+    organizationId: string;
+    taskId: string;
+    actorUserId: string;
+    recipientMemberIds: string[];
+  }) {
+    const [task, actor, recipients] = await Promise.all([
+      prisma.task.findFirst({
+        where: { id: input.taskId, organizationId: input.organizationId },
+        select: { name: true, dueDate: true, priority: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: input.actorUserId },
+        select: { name: true },
+      }),
+      prisma.member.findMany({
+        where: {
+          id: { in: input.recipientMemberIds },
+          organizationId: input.organizationId,
+        },
+        select: { user: { select: { name: true, email: true } } },
+      }),
+    ]);
+
+    if (!task || recipients.length === 0) return;
+
+    const dueDate = task.dueDate
+      ? new Intl.DateTimeFormat("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }).format(task.dueDate)
+      : "No due date";
+
+    const priority =
+      task.priority.charAt(0) + task.priority.slice(1).toLowerCase();
+
+    for (const recipient of recipients) {
+      await emailQueue.add("send", {
+        to: recipient.user.email,
+        subject: `You've been assigned: ${task.name}`,
+        html: await renderEmailHtml(
+          TaskAssignedEmail({
+            recipientName: recipient.user.name,
+            assignerName: actor?.name ?? "A teammate",
+            taskTitle: task.name,
+            dueDate,
+            priority,
+            taskUrl: `${appConfig.WEBSITE_URL}/${input.organizationId}/tasks/${input.taskId}`,
+          })
+        ),
+        from: `${appConfig.APP_EMAIL}`,
+      });
+    }
   }
 
   private async taskAudience(taskId: string) {
@@ -549,6 +610,13 @@ export class TaskService {
         type: NOTIFICATION_TYPE.TASK_ASSIGNED,
         title: `Assigned to ${created.name}`,
         taskId: created.id,
+      });
+
+      await this.emailAssignees({
+        organizationId,
+        taskId: created.id,
+        actorUserId: userId,
+        recipientMemberIds: dto.assigneeMemberIds,
       });
     }
 
@@ -1101,6 +1169,13 @@ export class TaskService {
         type: NOTIFICATION_TYPE.TASK_ASSIGNED,
         title: `Assigned to ${result.taskName}`,
         taskId: result.taskId,
+      });
+
+      await this.emailAssignees({
+        organizationId,
+        taskId: result.taskId,
+        actorUserId: userId,
+        recipientMemberIds: result.addedAssignees,
       });
     }
   }

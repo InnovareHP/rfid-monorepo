@@ -3,7 +3,7 @@ import type { TextSection as TextSectionType } from "@/services/marketing/landin
 type TextSectionProps = { section: TextSectionType };
 
 export const TextSection = ({ section }: TextSectionProps) => {
-  const { heading, body } = section.props;
+  const { heading, body, ctaLabel, ctaHref } = section.props;
 
   return (
     <section className="py-10 px-6 max-w-2xl mx-auto space-y-3">
@@ -12,6 +12,14 @@ export const TextSection = ({ section }: TextSectionProps) => {
       )}
       {/* React escapes text content by default — never dangerouslySetInnerHTML here. */}
       <p className="text-sm text-gray-600 whitespace-pre-wrap">{body}</p>
+      {ctaLabel && ctaHref && (
+        <a
+          href={ctaHref}
+          className="inline-block rounded-md bg-gray-900 px-6 py-3 text-white text-sm font-medium"
+        >
+          {ctaLabel}
+        </a>
+      )}
     </section>
   );
 };

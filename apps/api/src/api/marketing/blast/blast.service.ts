@@ -159,8 +159,7 @@ export class BlastService {
 
   async getAudienceCount(id: string, organizationId: string) {
     const blast = await this.getBlast(id, organizationId);
-    const audienceFilter =
-      blast.audienceFilter as unknown as AudienceFilter;
+    const audienceFilter = blast.audienceFilter as unknown as AudienceFilter;
     const { filter, search, boardDateFrom, boardDateTo } = audienceFilter;
 
     // Field filters and search need the resolved rows; everything else counts in SQL.

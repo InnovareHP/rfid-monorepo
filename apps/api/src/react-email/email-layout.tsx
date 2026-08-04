@@ -1,5 +1,6 @@
 import {
   Body,
+  Column,
   Container,
   Head,
   Hr,
@@ -7,6 +8,7 @@ import {
   Img,
   Link,
   Preview,
+  Row,
   Section,
   Text,
 } from "@react-email/components";
@@ -26,10 +28,11 @@ const responsiveCss = `
 
 type EmailLayoutProps = {
   preview: string;
+  badge?: string;
   children: React.ReactNode;
 };
 
-export const EmailLayout = ({ preview, children }: EmailLayoutProps) => {
+export const EmailLayout = ({ preview, badge, children }: EmailLayoutProps) => {
   return (
     <Html lang="en">
       <Head>
@@ -40,10 +43,17 @@ export const EmailLayout = ({ preview, children }: EmailLayoutProps) => {
       <Body style={main}>
         <Container style={outer}>
           <Section style={card}>
-            <Section style={accentBar} />
-
             <Section style={header} className="gutter">
-              <Img src={logoUrl} alt={BRAND_NAME} style={logo} />
+              <Row>
+                <Column>
+                  <Img src={logoUrl} alt={BRAND_NAME} style={logo} />
+                </Column>
+                {badge ? (
+                  <Column style={badgeCell}>
+                    <span style={badgePill}>{badge}</span>
+                  </Column>
+                ) : null}
+              </Row>
             </Section>
 
             <Section style={content} className="gutter">
@@ -208,22 +218,36 @@ const card: React.CSSProperties = {
   overflow: "hidden",
 };
 
-const accentBar: React.CSSProperties = {
-  height: "4px",
-  lineHeight: "4px",
-  fontSize: "0",
-  backgroundColor: brand.blue,
-  backgroundImage: `linear-gradient(90deg, ${brand.sky} 0%, ${brand.blue} 55%, ${brand.deep} 100%)`,
-};
-
 const header: React.CSSProperties = {
-  padding: "32px 40px 8px",
+  padding: "28px 40px",
+  backgroundColor: brand.deep,
+  backgroundImage: `linear-gradient(100deg, ${brand.navy} 0%, ${brand.blue} 60%, ${brand.sky} 100%)`,
 };
 
 const logo: React.CSSProperties = {
-  width: "180px",
+  width: "160px",
   height: "auto",
   display: "block",
+};
+
+const badgeCell: React.CSSProperties = {
+  textAlign: "right",
+  verticalAlign: "middle",
+};
+
+// Outlook drops rgba, so the pill falls back to a flat tint of the header.
+const badgePill: React.CSSProperties = {
+  display: "inline-block",
+  backgroundColor: "#4d8ae8",
+  border: "1px solid #ffffff59",
+  borderRadius: "999px",
+  color: brand.white,
+  fontSize: "13px",
+  fontWeight: 600,
+  letterSpacing: "0.6px",
+  padding: "8px 18px",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
 };
 
 const content: React.CSSProperties = {

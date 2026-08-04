@@ -342,3 +342,55 @@ Three fixes after auditing what the design work added:
 - `History` gained `@@index([organizationId, createdAt])` in `prisma/models/board.prisma`. Migration NOT run — `pnpm prisma:migrate` is the user's to execute.
 
 Verified: `pnpm build:api` and `pnpm build:fe` pass, `tsc --noEmit` clean. Still no runtime pass.
+
+## Landing page builder — Figma viewer layout (2026-08-04)
+
+Reworked the builder to match Figma `466:2141` / `480:2712` (file `ACnvMrXDHIAY1PpnOaxqtV`), which centers a live preview viewer instead of a section list.
+
+- New `landing-page-preview.tsx` owns the single section-type switch. `public-landing-page.tsx` now renders through it. Editor mode swaps unfilled Image and Form Embed sections for click-to-fill placeholders.
+- New `preview-section-frame.tsx` wraps each previewed section: click selects, dnd-kit sortable reorders (drag activates at 8px so clicks still select).
+- Builder state moved to one `useForm` seeded by RHF `values` from the query. Removed 6 `useState` mirrors, the sync `useEffect`, and the per-editor `form.watch` inside `useEffect`.
+- `section-editor-panel.tsx` now registers fields on the parent form by path (`sections.<i>.props.<key>`) via `FormField`, and gained Duplicate / Delete.
+- `section-type-picker.tsx` is a 2-column icon card grid. `page-settings-panel.tsx` is new (Page Name, URL Slug, SEO Title, SEO Description). `section-list-item.tsx` deleted.
+- Header is now back / title / status badge / Save Draft / Publish.
+
+Not done, needs API work: editable URL slug (no update endpoint, slug is derived from name at create), and the design's Button Label / Button URL on Text and Image sections (absent from `landing-page.schema.ts`). The list page redesign (KPI cards, search, data table, pagination) is also still outstanding.
+
+Verified: `pnpm build:fe` passes (vite + tsc, no errors). `pnpm lint` still fails on 34 pre-existing `apps/api` errors in untouched files. No runtime pass.
+
+### Landing pages — slug editing, section buttons, list page (same day)
+
+Finished the items the builder rework had left blocked, then the list page.
+
+- `landing-page.schema.ts`: Text and Image sections gained optional `ctaLabel` / `ctaHref` (same pair Hero already had). `UpdateLandingPageSchema` gained an optional `slug` constrained to lowercase-hyphen form.
+- `landing-page.service.updateLandingPage`: writes `slug` when sent, rejects a taken slug with 400 both on the pre-check and on a P2002 race. Slugs are globally unique, so changing one changes the public `/l/<slug>` URL.
+- FE: `TextSection` and `ImageSection` render the button; `CtaFieldPair` in the editor panel is shared by Hero, Text and Image. Page Settings slug field is now editable with the origin shown as a static prefix.
+- List page rebuilt on the campaigns pattern: `KpiStatTile` x3 (Total Pages / Published / Drafts), search box, new `landing-page-list-table.tsx` on `ReportTable` with `Page | Status | Section | Created | Last Updated | Actions`, sortable Status, `TablePagination`. Delete is optimistic with rollback. Create dialog is `DialogFormHeader` + RHF/zod.
+- Status pill reads "Published", not the design's "Sent" — "Sent" is blast wording and the newer Forms frame (`530:1556`) uses "Published".
+
+Not done: the design's New Landing Page modal has a Description field, but `LandingPage` has no `description` column. Left out rather than silently writing it to `seoDescription`; adding it needs a schema change plus migration.
+
+Verified: `pnpm build:api` and `pnpm build:fe` both pass (vite + tsc clean). `pnpm lint` still reports the same 34 pre-existing `apps/api` errors, none in touched files. No runtime pass.
+
+## Figma email templates (2026-08-04)
+
+Pulled all 10 `Email - *` frames from Figma (`ACnvMrXDHIAY1PpnOaxqtV`) and built them as React Email templates.
+
+Shared shell first: `email-layout.tsx` swapped its thin accent bar for the design's gradient header (navy -> blue -> sky) with the logo left and an optional uppercase badge pill right (`badge` prop, so the 11 existing templates render unchanged apart from the new header). New `email-detail-table.tsx` holds `EmailDetailTable` (label left, value right, hairline row separators) and `EmailCta` (navy button), which every new template composes.
+
+Templates added, copy taken verbatim from the frames: `task-assigned-email`, `task-reminder-email`, `booking-canceled-email`, `booking-reminder-email`, `booking-rescheduled-email`, `lead-assigned-email`, `trial-ending-email`, `subscription-canceled-email`, `subscription-updated-email`, `ownership-transfer-email`.
+
+Wired to real triggers:
+- Task Assigned — `task.service.emailAssignees`, called beside the existing `notifyTask` on both assignment paths (create with assignees, `setAssignees` additions).
+- Subscription Updated / Canceled / Trial Ending — three new cases in `stripe-events.ts` (`customer.subscription.updated|deleted|trial_will_end`). The updated case only fires on an actual plan change, resolved by matching the price id against `PLANS`, because that event also fires on every quantity, status, and period roll.
+- Booking Canceled — `booking.service.cancelOwnBooking` now emails invitee and host, mirroring the existing confirmation path (failures logged, never thrown).
+
+Not wired, and why:
+- Task Reminder, Booking Reminder — no scheduler exists. Needs a repeatable job plus decisions on lead time and dedupe.
+- Booking Rescheduled — there is no reschedule endpoint; cancel is the only mutation.
+- Ownership Transfer — no transfer flow exists, only a guard against removing the last owner.
+- Lead Assigned — the hook exists (`board.service` ASSIGNED_TO writes) but the design's rows are facility, contact person, phone and county. Those are PHI-adjacent columns encrypted at rest, so putting them in an email is a decision for the user, not a default.
+
+Design mapping notes: booking cancellations have no reason field in the API, and the design's Facility row maps to the booking page's location label (falling back to its title). The layout keeps the existing support and report-suspicious-activity footer links rather than the design's copyright-only footer.
+
+Verified: `pnpm build:api` passes after each step. `pnpm lint` unchanged at the same 34 pre-existing `apps/api` errors, none in touched files. No email was actually sent and no runtime pass was done.
