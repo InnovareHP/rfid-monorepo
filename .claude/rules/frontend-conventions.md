@@ -51,10 +51,32 @@ Columns are fetched from the API and are always dynamic — never hardcode a
 column set. Field types are handled in
 `components/reusable-table/editable-cell.tsx`; add new types there, not inline.
 
-## Forms and UI
+## Forms
 
-- `react-hook-form` + `zodResolver`. Do not manage form fields with many
-  `useState` values.
+Every form uses the shadcn `Form` stack from `@dashboard/ui/components/form`:
+`Form`, `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormMessage`.
+
+- Zod schema first, then `useForm({ resolver: zodResolver(schema) })` typed with
+  `z.infer`. The schema is the single source of validation truth.
+- Fields render through `FormField` with `control` and `name`. Never wire an
+  input to a `useState` value.
+- Errors render through `FormMessage`, not a manual error string in state.
+- Submit state comes from `form.formState.isSubmitting` or the mutation's
+  `isPending`, never a `useState` loading flag.
+- Reset and prefill with `defaultValues` or `form.reset(data)`, never a
+  `useEffect` that copies props into fields.
+- Cross-field logic uses `form.watch` or `superRefine` in the schema, not an
+  effect.
+
+## State
+
+- `useState` only for genuine local UI toggles (dialog open, popover, tab).
+- `useEffect` only for external subscriptions and imperative DOM. Not for
+  fetching, not for syncing derived values.
+- Anything derivable is computed during render.
+
+## UI
+
 - Toasts via `sonner`. Dialogs via the shadcn `Dialog` with an `open` state.
 - Tailwind utilities only, no inline styles.
 - No new state management libraries.
