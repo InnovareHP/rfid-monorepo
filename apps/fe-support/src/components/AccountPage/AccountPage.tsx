@@ -14,8 +14,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import { Separator } from "@dashboard/ui/components/separator";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,7 +41,7 @@ import {
   Upload,
   User,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -162,10 +169,6 @@ export function AccountPage({
       toast.error("Failed to sign out");
     }
   };
-
-  useEffect(() => {
-    if (!user) return;
-  }, [user]);
 
   if (!user) {
     return (
@@ -325,23 +328,24 @@ export function AccountPage({
                   </div>
                 )}
 
-                {memberSinceDate && !Number.isNaN(memberSinceDate.getTime()) && (
-                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm font-medium text-blue-900">
-                        Member Since
+                {memberSinceDate &&
+                  !Number.isNaN(memberSinceDate.getTime()) && (
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="h-4 w-4 text-blue-600" />
+                        <p className="text-sm font-medium text-blue-900">
+                          Member Since
+                        </p>
+                      </div>
+                      <p className="font-semibold text-gray-900">
+                        {memberSinceDate.toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
                       </p>
                     </div>
-                    <p className="font-semibold text-gray-900">
-                      {memberSinceDate.toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
+                  )}
 
                 {user.role && (
                   <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
@@ -378,66 +382,79 @@ export function AccountPage({
                 variant="outline"
                 className="w-full justify-start border-blue-300 hover:bg-blue-50"
                 onClick={() => setShowPasswordForm((prev) => !prev)}
-                disabled={isChangingPassword || changePasswordMutation.isPending}
+                disabled={
+                  isChangingPassword || changePasswordMutation.isPending
+                }
               >
                 <Shield className="w-4 h-4 mr-2" />
                 {showPasswordForm ? "Cancel" : "Change Password"}
               </Button>
 
               {showPasswordForm && (
-                <form
-                  onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
-                  className="space-y-4 border-2 border-blue-200 rounded-lg p-4 bg-blue-50"
-                >
-                  <div className="space-y-2">
-                    <Label className="text-blue-900 font-medium">
-                      Current Password
-                    </Label>
-                    <Input
-                      type="password"
-                      className="border-blue-300 focus:ring-2 focus:ring-blue-500"
-                      {...passwordForm.register("currentPassword")}
-                    />
-                    {passwordForm.formState.errors.currentPassword && (
-                      <p className="text-sm text-red-600 font-medium">
-                        {passwordForm.formState.errors.currentPassword.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-blue-900 font-medium">
-                      New Password
-                    </Label>
-                    <Input
-                      type="password"
-                      className="border-blue-300 focus:ring-2 focus:ring-blue-500"
-                      {...passwordForm.register("newPassword")}
-                    />
-                    {passwordForm.formState.errors.newPassword && (
-                      <p className="text-sm text-red-600 font-medium">
-                        {passwordForm.formState.errors.newPassword.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    type="submit"
-                    disabled={
-                      isChangingPassword || changePasswordMutation.isPending
-                    }
+                <Form {...passwordForm}>
+                  <form
+                    onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+                    className="space-y-4 border-2 border-blue-200 rounded-lg p-4 bg-blue-50"
                   >
-                    {isChangingPassword || changePasswordMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Updating...
-                      </>
-                    ) : (
-                      "Update Password"
-                    )}
-                  </Button>
-                </form>
+                    <FormField
+                      control={passwordForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-900 font-medium">
+                            Current Password
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              className="border-blue-300 focus:ring-2 focus:ring-blue-500"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={passwordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-900 font-medium">
+                            New Password
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              className="border-blue-300 focus:ring-2 focus:ring-blue-500"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      type="submit"
+                      disabled={
+                        isChangingPassword || changePasswordMutation.isPending
+                      }
+                    >
+                      {isChangingPassword ||
+                      changePasswordMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        "Update Password"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
               )}
 
               <Separator className="bg-gray-300" />
