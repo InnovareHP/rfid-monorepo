@@ -13,6 +13,9 @@ export class CampaignService {
     return prisma.campaign.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { forms: true, blasts: true, landingPages: true } },
+      },
     });
   }
 

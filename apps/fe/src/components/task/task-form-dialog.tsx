@@ -7,14 +7,13 @@ import {
   type TaskStatusDto,
 } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import { Calendar } from "@dashboard/ui/components/calendar";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
+import { DatePicker } from "@dashboard/ui/components/date-picker";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  DialogFormFooter,
+  DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
 import {
   Form,
@@ -27,11 +26,6 @@ import {
 import { Input } from "@dashboard/ui/components/input";
 import { MultiSelect } from "@dashboard/ui/components/multi-select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@dashboard/ui/components/popover";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -42,9 +36,7 @@ import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import {
-  CalendarIcon,
   ClipboardCheck,
   Loader2,
   Plus,
@@ -100,36 +92,6 @@ const Section = ({
   </section>
 );
 
-const DateField = ({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) => (
-  <Popover>
-    <PopoverTrigger asChild>
-      <Button
-        type="button"
-        variant="outline"
-        className={cn(
-          "w-full justify-between font-normal",
-          !value && "text-muted-foreground"
-        )}
-      >
-        {value ? format(new Date(value), "MMMM d, yyyy") : "Pick a Date"}
-        <CalendarIcon className="size-4 opacity-60" />
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent align="start" className="w-auto p-0">
-      <Calendar
-        mode="single"
-        selected={value ? new Date(value) : undefined}
-        onSelect={(date) => onChange(date ? format(date, "yyyy-MM-dd") : "")}
-      />
-    </PopoverContent>
-  </Popover>
-);
 
 export const TaskFormDialog = ({
   open,
@@ -206,19 +168,11 @@ export const TaskFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="flex-row items-center gap-4 space-y-0 border-b border-gray-200 bg-brand/5 px-6 py-5">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white">
-            <ClipboardCheck className="size-6" />
-          </div>
-          <div className="space-y-1">
-            <DialogTitle className="page-title text-2xl font-bold">
-              {parentTaskId ? "New Subtask" : "New Task"}
-            </DialogTitle>
-            <DialogDescription>
-              Create a task with status, priority, and schedule.
-            </DialogDescription>
-          </div>
-        </DialogHeader>
+        <DialogFormHeader
+          icon={<ClipboardCheck />}
+          title={parentTaskId ? "New Subtask" : "New Task"}
+          description="Create a task with status, priority, and schedule."
+        />
 
         <Form {...form}>
           <form
@@ -306,6 +260,8 @@ export const TaskFormDialog = ({
                             defaultValue={field.value}
                             onValueChange={field.onChange}
                             placeholder="Add a tag..."
+                            variant="brand"
+                            animationConfig={{ badgeAnimation: "none" }}
                             className="w-full"
                           />
                         </FormControl>
@@ -329,6 +285,8 @@ export const TaskFormDialog = ({
                           defaultValue={field.value}
                           onValueChange={field.onChange}
                           placeholder="Add another assignee..."
+                          variant="brand"
+                          animationConfig={{ badgeAnimation: "none" }}
                           className="w-full"
                         />
                       </FormControl>
@@ -461,7 +419,7 @@ export const TaskFormDialog = ({
                       <FormItem>
                         <FormLabel>Start Date</FormLabel>
                         <FormControl>
-                          <DateField
+                          <DatePicker
                             value={field.value}
                             onChange={field.onChange}
                           />
@@ -478,7 +436,7 @@ export const TaskFormDialog = ({
                       <FormItem>
                         <FormLabel>Due Date</FormLabel>
                         <FormControl>
-                          <DateField
+                          <DatePicker
                             value={field.value}
                             onChange={field.onChange}
                           />
@@ -491,7 +449,7 @@ export const TaskFormDialog = ({
               </Section>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-6 py-4">
+            <DialogFormFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -511,7 +469,7 @@ export const TaskFormDialog = ({
                 )}
                 Create Task
               </Button>
-            </div>
+            </DialogFormFooter>
           </form>
         </Form>
       </DialogContent>

@@ -46,6 +46,10 @@ interface HistoryFilters {
   page?: number;
   limit?: number;
   moduleType: string;
+  dateFrom?: string;
+  dateTo?: string;
+  userId?: string;
+  column?: string;
 }
 
 type RecordUpdateContext = {
@@ -470,36 +474,62 @@ export class BoardService {
   }
 
   async getAllRecordHistory(organizationId: string, filters: HistoryFilters) {
-    const { page = 1, limit = 50, moduleType } = filters;
+    const {
+      page = 1,
+      limit = 50,
+      moduleType,
+      dateFrom,
+      dateTo,
+      userId,
+      column,
+    } = filters;
     const offset = (page - 1) * Number(limit);
-    const where: Prisma.HistoryWhereInput = {
+
+    // Stats and filter options stay on the unfiltered org scope.
+    const scope: Prisma.HistoryWhereInput = {
       record: {
         organizationId: organizationId,
         moduleType: moduleType as ModuleType,
       },
-      action: { in: ["delete", "update", "restore"] },
+      action: { in: ["create", "delete", "update", "restore"] },
     };
+
+    const where: Prisma.HistoryWhereInput = {
+      ...scope,
+      ...(userId ? { createdBy: userId } : {}),
+      ...(column ? { column: column } : {}),
+      ...(dateFrom || dateTo
+        ? {
+            createdAt: {
+              ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+              ...(dateTo ? { lte: new Date(dateTo) } : {}),
+            },
+          }
+        : {}),
+    };
+
     const [history, total] = await Promise.all([
-      prisma.history.findMany({
-        where: where,
-        orderBy: { createdAt: "desc" },
-        take: Number(limit),
-        skip: offset,
-        include: {
-          user: {
-            select: {
-              name: true,
+        prisma.history.findMany({
+          where: where,
+          orderBy: { createdAt: "desc" },
+          take: Number(limit),
+          skip: offset,
+          include: {
+            user: {
+              select: {
+                name: true,
+              },
+            },
+            record: {
+              select: {
+                recordName: true,
+              },
             },
           },
-          record: {
-            select: {
-              recordName: true,
-            },
-          },
-        },
-      }),
-      prisma.history.count({ where: where }),
-    ]);
+        }),
+        prisma.history.count({ where: where }),
+      ]);
+
     const formatted = history.map((h) => {
       return {
         id: h.id,
@@ -513,9 +543,74 @@ export class BoardService {
         column: h.column,
       };
     });
+
     return {
       data: formatted,
       total: total,
+    };
+  }
+
+  // Stats and filter options span the whole org scope, so they are fetched
+  // separately from the paged rows and only change when the module changes.
+  async getRecordHistoryMeta(organizationId: string, moduleType: string) {
+    const scope: Prisma.HistoryWhereInput = {
+      record: {
+        organizationId: organizationId,
+        moduleType: moduleType as ModuleType,
+      },
+      action: { in: ["create", "delete", "update", "restore"] },
+    };
+
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+
+    const [scopeTotal, weekTotal, editors, columns] = await Promise.all([
+      prisma.history.count({ where: scope }),
+      prisma.history.count({
+        where: { ...scope, createdAt: { gte: weekStart } },
+      }),
+      prisma.history.groupBy({
+        by: ["createdBy"],
+        where: scope,
+        _count: { _all: true },
+        orderBy: { _count: { createdBy: "desc" } },
+      }),
+      prisma.history.groupBy({ by: ["column"], where: scope }),
+    ]);
+
+    const editorIds = editors
+      .map((editor) => editor.createdBy)
+      .filter((id): id is string => Boolean(id));
+
+    const editorUsers = editorIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: editorIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+    const editorNames = new Map(
+      editorUsers.map((user) => [user.id, user.name])
+    );
+
+    return {
+      stats: {
+        totalChanges: scopeTotal,
+        changesThisWeek: weekTotal,
+        mostActiveEditor: editorIds.length
+          ? (editorNames.get(editorIds[0]) ?? null)
+          : null,
+      },
+      options: {
+        users: editorIds.map((id) => ({
+          id: id,
+          name: editorNames.get(id) ?? "Unknown user",
+        })),
+        fields: columns
+          .map((entry) => entry.column)
+          .filter((name): name is string => Boolean(name))
+          .sort(),
+      },
     };
   }
 
@@ -1485,7 +1580,8 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
-    const { recordId, value, organizationId, moduleType, field, memberId } = ctx;
+    const { recordId, value, organizationId, moduleType, field, memberId } =
+      ctx;
 
     if (field.fieldType === BoardFieldType.MULTISELECT) {
       // Normalize value into an array of clean strings
@@ -1558,7 +1654,8 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
-    const { recordId, value, organizationId, moduleType, field, memberId } = ctx;
+    const { recordId, value, organizationId, moduleType, field, memberId } =
+      ctx;
 
     if (field.fieldName === "County" && moduleType === "REFERRAL") {
       const [county, facilityField] = await Promise.all([
@@ -1692,8 +1789,15 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
-    const { recordId, value, organizationId, moduleType, reason, field, memberId } =
-      ctx;
+    const {
+      recordId,
+      value,
+      organizationId,
+      moduleType,
+      reason,
+      field,
+      memberId,
+    } = ctx;
 
     if (field.fieldType === BoardFieldType.STATUS) {
       const statusFields = await tx.field.findMany({

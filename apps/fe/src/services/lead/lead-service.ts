@@ -243,6 +243,14 @@ export const getLeadHistory = async (filters: any, moduleType?: string) => {
 
   return response.data;
 };
+export const getLeadHistoryMeta = async (moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/history/meta`, {
+    params: { moduleType: moduleType || "LEAD" },
+  });
+
+  return response.data;
+};
+
 export const getleadValueId = async (fieldId: string, value: string) => {
   const response = await axiosClient.get(
     `/api/boards/contact-info/${fieldId}`,

@@ -5,7 +5,7 @@ import { TablePagination } from "./table-pagination";
 
 export type ReportColumn<T> = {
   key: string;
-  header: string;
+  header: ReactNode;
   render: (row: T) => ReactNode;
   className?: string;
 };
@@ -20,6 +20,7 @@ type ReportTableProps<T> = {
   totalCount: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
+  tableClassName?: string;
 };
 
 export const ReportChip = ({ children }: { children: ReactNode }) => (
@@ -38,13 +39,16 @@ export function ReportTable<T>({
   totalCount,
   onPageChange,
   onPageSizeChange,
+  tableClassName,
 }: ReportTableProps<T>) {
   const totalPages = Math.max(Math.ceil(totalCount / pageSize), 1);
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
+        <table
+          className={cn("w-full border-collapse text-left", tableClassName)}
+        >
           <thead>
             <tr className="border-b border-gray-200 bg-table-header">
               {columns.map((column) => (

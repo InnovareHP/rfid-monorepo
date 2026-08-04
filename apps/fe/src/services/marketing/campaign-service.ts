@@ -9,6 +9,7 @@ export type MarketingCampaign = {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: { forms: number; blasts: number; landingPages: number };
 };
 
 export const getCampaigns = async (): Promise<MarketingCampaign[]> => {

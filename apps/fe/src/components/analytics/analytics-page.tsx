@@ -12,7 +12,7 @@ import {
 } from "@/lib/helper/analytics-chart-data";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import AiSumary from "./ai-sumary";
+import { AiSummaryCard } from "./ai-summary-card";
 import {
   AnalyticsDateFilter,
   type AnalyticsDateRange,
@@ -101,6 +101,24 @@ export default function ReferralAnalyticsDashboard() {
   const admitted = analytics?.conversion?.admitted ?? 0;
   const conversionRate = analytics?.conversion?.conversionRate ?? 0;
 
+  const insightSections = [
+    { title: "Key Insights", items: analyticsSummary?.key_insights },
+    { title: "Bottlenecks", items: analyticsSummary?.bottlenecks },
+    { title: "Opportunities", items: analyticsSummary?.opportunities },
+    {
+      title: "Short-Term Strategy",
+      items: analyticsSummary?.recommended_strategy?.short_term,
+    },
+    {
+      title: "Long-Term Strategy",
+      items: analyticsSummary?.recommended_strategy?.long_term,
+    },
+    {
+      title: "Final Recommendations",
+      text: analyticsSummary?.final_recommendations,
+    },
+  ];
+
   return (
     <div className="min-h-full bg-white p-8">
       <div className="space-y-6">
@@ -122,6 +140,21 @@ export default function ReferralAnalyticsDashboard() {
             }}
           />
         </div>
+
+        {/* AI SUMMARY CARD */}
+        <AiSummaryCard
+          isLoading={isLoadingSummary || regenerateSummaryMutation.isPending}
+          preview={analyticsSummary?.executive_summary}
+          sections={insightSections}
+          fallbackPreview="Referral insights will appear here once enough activity is recorded."
+          error={
+            isErrorSummary
+              ? ((summaryError as any)?.response?.data?.message ??
+                "Failed to load insights")
+              : null
+          }
+          onRegenerate={() => regenerateSummaryMutation.mutate()}
+        />
 
         {/* KPI TILES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -218,19 +251,6 @@ export default function ReferralAnalyticsDashboard() {
             <DenialReasonsTable reasons={charts.denialReasons} />
           </ChartCard>
         </div>
-        {/* AI SUMMARY CARD */}
-        <AiSumary
-          isLoadingSummary={isLoadingSummary || regenerateSummaryMutation.isPending}
-          summary={analyticsSummary}
-          error={
-            isErrorSummary
-              ? ((summaryError as any)?.response?.data?.message ??
-                "Failed to load insights")
-              : null
-          }
-          onRegenerate={() => regenerateSummaryMutation.mutate()}
-        />
-
         {/* SOURCES + TYPES */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <ChartCard title="Top 10 Referring Facilities">

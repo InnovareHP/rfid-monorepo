@@ -2,9 +2,8 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  DialogFormFooter,
+  DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
 import {
   Form,
@@ -52,19 +51,11 @@ export const ListFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
-        <DialogHeader className="flex-row items-center gap-4 space-y-0 border-b border-gray-200 bg-brand/5 px-6 py-5">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white">
-            <List className="size-6" />
-          </div>
-          <div className="space-y-1">
-            <DialogTitle className="page-title text-2xl font-bold">
-              New List
-            </DialogTitle>
-            <DialogDescription>
-              Group related tasks together under a new list.
-            </DialogDescription>
-          </div>
-        </DialogHeader>
+        <DialogFormHeader
+          icon={<List />}
+          title="New List"
+          description="Group related tasks together under a new list."
+        />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -86,7 +77,7 @@ export const ListFormDialog = ({
               />
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-6 py-4">
+            <DialogFormFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -106,7 +97,7 @@ export const ListFormDialog = ({
                 )}
                 Create List
               </Button>
-            </div>
+            </DialogFormFooter>
           </form>
         </Form>
       </DialogContent>

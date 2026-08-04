@@ -32,6 +32,7 @@ export class BlastService {
     return prisma.blast.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
+      include: { _count: { select: { recipients: true } } },
     });
   }
 
@@ -158,11 +159,35 @@ export class BlastService {
 
   async getAudienceCount(id: string, organizationId: string) {
     const blast = await this.getBlast(id, organizationId);
+    const audienceFilter =
+      blast.audienceFilter as unknown as AudienceFilter;
+    const { filter, search, boardDateFrom, boardDateTo } = audienceFilter;
+
+    // Field filters and search need the resolved rows; everything else counts in SQL.
+    const needsResolvedRows =
+      Boolean(search) || Object.keys(filter ?? {}).length > 0;
+
+    if (!needsResolvedRows) {
+      const where: Prisma.BoardWhereInput = {
+        organizationId,
+        moduleType: blast.moduleType,
+        isDeleted: false,
+      };
+
+      if (boardDateFrom || boardDateTo) {
+        where.createdAt = {
+          ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
+          ...(boardDateTo && { lte: new Date(boardDateTo) }),
+        };
+      }
+
+      return { count: await prisma.board.count({ where }) };
+    }
 
     const boards = await this.resolveAudience(
       organizationId,
       blast.moduleType,
-      blast.audienceFilter as unknown as AudienceFilter
+      audienceFilter
     );
 
     return { count: boards.length };
