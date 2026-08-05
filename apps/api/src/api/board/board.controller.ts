@@ -337,25 +337,14 @@ export class BoardController {
   @Get("/jobs/:jobId/status")
   async getJobStatus(
     @Param("jobId") jobId: string,
-    @Query("queue") queueName: string
+    @Query("queue") queueName: string,
+    @Session() session: AuthenticatedSession
   ) {
-    try {
-      const queue = this.getQueueByName(queueName);
-      const job = await queue.getJob(jobId);
-      if (!job) {
-        throw new BadRequestException("Job not found");
-      }
-      const state = await job.getState();
-      return {
-        jobId: job.id,
-        status: state,
-        progress: job.progress,
-        result: job.returnvalue,
-        failedReason: job.failedReason,
-      };
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return await this.boardService.getJobStatus(
+      jobId,
+      queueName,
+      session.session.activeOrganizationId
+    );
   }
 
   @Get("/:recordId")
@@ -432,13 +421,15 @@ export class BoardController {
   async getRecordAnalyze(
     @Param("recordId") recordId: string,
     @Query("dateStart") dateStart: string,
-    @Query("dateEnd") dateEnd: string
+    @Query("dateEnd") dateEnd: string,
+    @Session() session: AuthenticatedSession
   ) {
     try {
       const dateStartDate = dateStart ? new Date(dateStart) : undefined;
       const dateEndDate = dateEnd ? new Date(dateEnd) : undefined;
       return await this.boardService.getRecordAnalyze(
         recordId,
+        session.session.activeOrganizationId,
         dateStartDate,
         dateEndDate
       );
@@ -930,18 +921,4 @@ export class BoardController {
     }
   }
 
-  // ─── PRIVATE ──────────────────────────────────────────────────────────
-
-  private getQueueByName(name: string): Queue {
-    switch (name) {
-      case QUEUE_NAMES.BULK_EMAIL:
-        return this.bulkEmailQueue;
-      case QUEUE_NAMES.CSV_IMPORT:
-        return this.csvImportQueue;
-      case QUEUE_NAMES.GEMINI:
-        return this.geminiQueue;
-      default:
-        throw new BadRequestException(`Unknown queue: ${name}`);
-    }
-  }
 }

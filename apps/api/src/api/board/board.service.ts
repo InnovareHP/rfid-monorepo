@@ -657,13 +657,47 @@ export class BoardService {
     };
   }
 
+  private getQueueByName(name: string): Queue {
+    switch (name) {
+      case QUEUE_NAMES.BULK_EMAIL:
+        return this.bulkEmailQueue;
+      case QUEUE_NAMES.CSV_IMPORT:
+        return this.csvImportQueue;
+      case QUEUE_NAMES.GEMINI:
+        return this.geminiQueue;
+      default:
+        throw new BadRequestException("Unknown queue");
+    }
+  }
+
+  // Job ids are queue-sequential, so the payload's organization is the only proof.
+  async getJobStatus(
+    jobId: string,
+    queueName: string,
+    organizationId: string
+  ) {
+    const job = await this.getQueueByName(queueName).getJob(jobId);
+    if (!job || job.data?.organizationId !== organizationId) {
+      throw new NotFoundException("Job not found");
+    }
+
+    return {
+      jobId: job.id,
+      status: await job.getState(),
+      progress: job.progress,
+      result: job.returnvalue,
+      failedReason: job.failedReason,
+    };
+  }
+
   async getRecordAnalyze(
     recordId: string,
+    organizationId: string,
     dateStartDate?: Date,
     dateEndDate?: Date
   ) {
     const record = await prisma.board.findFirstOrThrow({
-      where: { id: recordId },
+      where: { id: recordId, organizationId },
       select: {
         recordName: true,
         assignedUser: {
@@ -687,6 +721,7 @@ export class BoardService {
 
     const where: Prisma.MarketingWhereInput = {
       member: {
+        organizationId,
         user: {
           id: record.assignedUser.id,
         },
@@ -932,6 +967,7 @@ export class BoardService {
     const job = await this.geminiQueue.add("gemini", {
       type: "follow-up-suggestions",
       prompt,
+      organizationId,
       cacheKey,
       cacheTtl: 60 * 10,
     });

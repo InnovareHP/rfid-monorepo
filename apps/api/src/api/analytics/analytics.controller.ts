@@ -1,26 +1,18 @@
-import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
   Controller,
   Get,
   Param,
   Query,
-  Session,
   UseGuards,
 } from "@nestjs/common";
-import { AuthGuard } from "@thallesp/nestjs-better-auth";
-import { Queue } from "bullmq";
-import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
+import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { AnalyticsService } from "./analytics.service";
 
 @Controller("analytics")
 @UseGuards(AuthGuard)
 export class AnalyticsController {
-  constructor(
-    private readonly analyticsService: AnalyticsService,
-    @InjectQueue(QUEUE_NAMES.GEMINI)
-    private readonly geminiQueue: Queue
-  ) {}
+  constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get()
   async getAllAnalytics(
@@ -71,22 +63,14 @@ export class AnalyticsController {
   }
 
   @Get("jobs/:jobId/result")
-  async getJobResult(@Param("jobId") jobId: string) {
-    try {
-      const job = await this.geminiQueue.getJob(jobId);
-      if (!job) {
-        throw new BadRequestException("Job not found");
-      }
-      const state = await job.getState();
-      return {
-        jobId: job.id,
-        status: state,
-        result: job.returnvalue,
-        failedReason: job.failedReason,
-      };
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+  async getJobResult(
+    @Param("jobId") jobId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    return await this.analyticsService.getJobResult(
+      jobId,
+      session.session.activeOrganizationId
+    );
   }
 
   @Get("marketing")

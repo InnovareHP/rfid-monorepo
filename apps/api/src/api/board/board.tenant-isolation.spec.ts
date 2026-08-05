@@ -26,18 +26,21 @@ jest.mock("../../lib/prisma/prisma", () => {
     create: jest.fn().mockResolvedValue({}),
   };
   const field = { findFirst: jest.fn() };
+  const board = { findFirstOrThrow: jest.fn() };
 
   return {
     prisma: {
       history,
       fieldOption,
       field,
+      board,
       $transaction: jest.fn(),
     },
   };
 });
 
 import { prisma } from "../../lib/prisma/prisma";
+import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 
 const ORG = "org-a";
@@ -53,8 +56,11 @@ const db = prisma as unknown as {
   };
   fieldOption: { findFirst: jest.Mock; update: jest.Mock; create: jest.Mock };
   field: { findFirst: jest.Mock };
+  board: { findFirstOrThrow: jest.Mock };
   $transaction: jest.Mock;
 };
+
+const queueStub = (job: unknown) => ({ getJob: jest.fn().mockResolvedValue(job) });
 
 describe("BoardService tenant isolation", () => {
   let service: BoardService;
@@ -165,6 +171,70 @@ describe("BoardService tenant isolation", () => {
         organizationId: ORG,
       });
       expect(db.fieldOption.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // Bull assigns sequential job ids, so a job id alone proves nothing about
+  // who queued the work.
+  describe("getJobStatus", () => {
+    const withQueue = (job: unknown) =>
+      new BoardService(
+        null as any,
+        null as any,
+        null as any,
+        null as any,
+        queueStub(job) as any,
+        null as any
+      );
+
+    it("refuses a job queued by another organization", async () => {
+      const svc = withQueue({
+        id: "42",
+        data: { organizationId: "org-b" },
+        getState: jest.fn(),
+      });
+
+      await expect(
+        svc.getJobStatus("42", QUEUE_NAMES.CSV_IMPORT, ORG)
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("refuses a job whose payload carries no organization", async () => {
+      const svc = withQueue({ id: "42", data: {}, getState: jest.fn() });
+
+      await expect(
+        svc.getJobStatus("42", QUEUE_NAMES.CSV_IMPORT, ORG)
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("returns the job once the organization matches", async () => {
+      const svc = withQueue({
+        id: "42",
+        data: { organizationId: ORG },
+        progress: 50,
+        returnvalue: { imported: 3 },
+        getState: jest.fn().mockResolvedValue("completed"),
+      });
+
+      await expect(
+        svc.getJobStatus("42", QUEUE_NAMES.CSV_IMPORT, ORG)
+      ).resolves.toMatchObject({ jobId: "42", status: "completed" });
+    });
+  });
+
+  describe("getRecordAnalyze", () => {
+    it("scopes the record lookup to the organization", async () => {
+      db.board.findFirstOrThrow.mockResolvedValue({
+        recordName: "Acme",
+        assignedUser: null,
+      });
+
+      await service.getRecordAnalyze(FOREIGN, ORG);
+
+      expect(db.board.findFirstOrThrow.mock.calls[0][0].where).toMatchObject({
+        id: FOREIGN,
+        organizationId: ORG,
+      });
     });
   });
 

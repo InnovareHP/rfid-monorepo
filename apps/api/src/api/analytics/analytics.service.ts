@@ -1,6 +1,6 @@
 import { LiaisonAnalytics } from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
@@ -643,6 +643,7 @@ export class AnalyticsService {
     const job = await this.geminiQueue.add("gemini", {
       type: "analytics-summary",
       prompt,
+      organizationId,
     });
 
     const result = await job.waitUntilFinished(this.geminiQueueEvents, 30000);
@@ -842,7 +843,8 @@ export class AnalyticsService {
     }
 
     const analysis = await this.analyzeMarketingAnalytics(
-      Array.from(analyticsMap.values())
+      Array.from(analyticsMap.values()),
+      organizationId
     );
 
     const data = {
@@ -859,7 +861,22 @@ export class AnalyticsService {
     return data;
   }
 
-  async analyzeMarketingAnalytics(analytics: any) {
+  // Job ids are queue-sequential, so the payload's organization is the only proof.
+  async getJobResult(jobId: string, organizationId: string) {
+    const job = await this.geminiQueue.getJob(jobId);
+    if (!job || job.data?.organizationId !== organizationId) {
+      throw new NotFoundException("Job not found");
+    }
+
+    return {
+      jobId: job.id,
+      status: await job.getState(),
+      result: job.returnvalue,
+      failedReason: job.failedReason,
+    };
+  }
+
+  async analyzeMarketingAnalytics(analytics: any, organizationId: string) {
     const prompt = `
     You are a marketing analytics expert.
 
@@ -885,6 +902,7 @@ export class AnalyticsService {
     const job = await this.geminiQueue.add("gemini", {
       type: "marketing-analysis",
       prompt,
+      organizationId,
     });
 
     const result = await job.waitUntilFinished(this.geminiQueueEvents, 30000);
