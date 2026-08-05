@@ -54,7 +54,7 @@ export function OrganizationCard({
             queryClient.invalidateQueries({ queryKey: ["organizationData"] });
           },
           onError: async () => {
-            await deleteImage(data.asset_id);
+            await deleteImage(data.public_id);
             toast.error("Failed to upload team logo");
           },
         }

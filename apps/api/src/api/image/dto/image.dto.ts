@@ -4,6 +4,7 @@ export const UploadImageSchema = z.object({
   file: z.instanceof(File),
 });
 
+// Cloudinary public ids contain the folder path, so they travel as a query value.
 export const DeleteImageSchema = z.object({
-  id: z.string(),
+  publicId: z.string().min(1),
 });

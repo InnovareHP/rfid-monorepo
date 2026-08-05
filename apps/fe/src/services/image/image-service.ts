@@ -9,8 +9,10 @@ export const uploadImage = async (image: File) => {
   return response.data;
 };
 
-export const deleteImage = async (imageId: string) => {
-  const response = await axiosClient.delete(`/api/image/${imageId}`);
+export const deleteImage = async (publicId: string) => {
+  const response = await axiosClient.delete(`/api/image`, {
+    params: { publicId },
+  });
 
   return response.data;
 };

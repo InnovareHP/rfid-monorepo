@@ -1,17 +1,21 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable } from "@nestjs/common";
 import * as toStream from "buffer-to-stream";
 import { v2 } from "cloudinary";
+
+// Cloudinary is the only store, so the folder path is the ownership record.
+const scopedFolder = (scopeId: string) => `uploads/${scopeId}`;
 
 @Injectable()
 export class ImageService {
   async uploadImage(
     file: Express.Multer.File,
-    opts?: { folder?: string; publicId?: string }
+    scopeId: string,
+    opts?: { publicId?: string }
   ) {
     return new Promise((resolve, reject) => {
       const upload = v2.uploader.upload_stream(
         {
-          folder: opts?.folder ?? "uploads",
+          folder: scopedFolder(scopeId),
           public_id: opts?.publicId,
           use_filename: !opts?.publicId,
           unique_filename: true,
@@ -30,8 +34,11 @@ export class ImageService {
     });
   }
 
-  async deleteImage(publicId: string) {
-    // NOTE: include the folder in publicId, e.g. "uploads/abc123" or "users/123/avatar"
+  async deleteImage(publicId: string, scopeId: string) {
+    if (!publicId.startsWith(`${scopedFolder(scopeId)}/`)) {
+      throw new ForbiddenException("Image does not belong to this account");
+    }
+
     return new Promise((resolve, reject) => {
       v2.uploader.destroy(publicId, (error, result) => {
         if (error) return reject(new Error(error.message || "Delete failed"));

@@ -75,7 +75,7 @@ const ExpenseLogPage = () => {
       try {
         return await createExpenseLog({ ...values, image: image.url });
       } catch (error) {
-        await deleteImage(image.id);
+        await deleteImage(image.public_id);
         throw error;
       }
     },
