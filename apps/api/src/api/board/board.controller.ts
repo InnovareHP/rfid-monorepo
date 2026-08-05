@@ -277,10 +277,16 @@ export class BoardController {
   @Get("/contact-info/:fieldId")
   async getValueIdContact(
     @Param("fieldId") fieldId: string,
-    @Query("value") value: string
+    @Query("value") value: string,
+    @Session()
+    session: AuthenticatedSession
   ) {
     try {
-      return await this.boardService.getValueId(fieldId, value);
+      return await this.boardService.getValueId(
+        fieldId,
+        value,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -290,14 +296,17 @@ export class BoardController {
   async getRecordHistory(
     @Param("recordId") recordId: string,
     @Query("take") take: number = 15,
-    @Query("skip") skip: number = 1
+    @Query("skip") skip: number = 1,
+    @Session()
+    session: AuthenticatedSession
   ) {
     try {
       const offset = (skip - 1) * take;
       return this.boardService.getHistory(
         recordId,
         Number(take),
-        Number(offset)
+        Number(offset),
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -711,12 +720,15 @@ export class BoardController {
   @Post("/field/:fieldId/options")
   async createRecordFieldOption(
     @Param("fieldId") fieldId: string,
-    @Body() dto: CreateFieldOptionDto
+    @Body() dto: CreateFieldOptionDto,
+    @Session()
+    session: AuthenticatedSession
   ) {
     try {
       return await this.boardService.createRecordFieldOption(
         fieldId,
         dto.optionName,
+        session.session.activeOrganizationId,
         dto.color
       );
     } catch (error) {

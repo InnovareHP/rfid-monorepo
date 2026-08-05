@@ -614,10 +614,15 @@ export class BoardService {
     };
   }
 
-  async getHistory(recordId: string, take: number, offset: number) {
+  async getHistory(
+    recordId: string,
+    take: number,
+    offset: number,
+    organizationId: string
+  ) {
     const [history, total] = await Promise.all([
       prisma.history.findMany({
-        where: { recordId: recordId },
+        where: { recordId: recordId, record: { organizationId } },
         include: {
           user: {
             select: {
@@ -630,7 +635,7 @@ export class BoardService {
         skip: offset,
       }),
       prisma.history.count({
-        where: { recordId: recordId },
+        where: { recordId: recordId, record: { organizationId } },
       }),
     ]);
 
@@ -1054,10 +1059,11 @@ export class BoardService {
     return formattedColumns;
   }
 
-  async getValueId(fieldId: string, value: string) {
-    const data = await prisma.field.findUnique({
+  async getValueId(fieldId: string, value: string, organizationId: string) {
+    const data = await prisma.field.findFirst({
       where: {
         id: fieldId,
+        organizationId,
       },
       select: {
         values: {
@@ -2849,18 +2855,21 @@ export class BoardService {
   async createRecordFieldOption(
     fieldId: string,
     optionName: string,
+    organizationId: string,
     color?: string
   ) {
-    const field = await prisma.field.findUnique({
-      where: { id: fieldId },
+    const field = await prisma.field.findFirst({
+      where: { id: fieldId, organizationId },
       select: { organizationId: true },
     });
+
+    if (!field) throw new NotFoundException("Field not found");
 
     return await prisma.fieldOption.create({
       data: {
         optionName: optionName,
         fieldId: fieldId,
-        organizationId: field?.organizationId ?? null,
+        organizationId: field.organizationId,
         ...(color && { color }),
       },
     });

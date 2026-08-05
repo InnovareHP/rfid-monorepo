@@ -15,12 +15,15 @@ jest.mock("./board.gateway", () => ({ BoardGateway: jest.fn() }));
 jest.mock("../../lib/prisma/prisma", () => {
   const history = {
     findFirst: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    count: jest.fn().mockResolvedValue(0),
     updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     delete: jest.fn().mockResolvedValue({}),
   };
   const fieldOption = {
     findFirst: jest.fn(),
     update: jest.fn().mockResolvedValue({}),
+    create: jest.fn().mockResolvedValue({}),
   };
   const field = { findFirst: jest.fn() };
 
@@ -41,8 +44,14 @@ const ORG = "org-a";
 const FOREIGN = "row-owned-by-org-b";
 
 const db = prisma as unknown as {
-  history: { findFirst: jest.Mock; updateMany: jest.Mock; delete: jest.Mock };
-  fieldOption: { findFirst: jest.Mock; update: jest.Mock };
+  history: {
+    findFirst: jest.Mock;
+    findMany: jest.Mock;
+    count: jest.Mock;
+    updateMany: jest.Mock;
+    delete: jest.Mock;
+  };
+  fieldOption: { findFirst: jest.Mock; update: jest.Mock; create: jest.Mock };
   field: { findFirst: jest.Mock };
   $transaction: jest.Mock;
 };
@@ -119,6 +128,43 @@ describe("BoardService tenant isolation", () => {
       await service.deleteRecordFieldOption(FOREIGN, ORG);
 
       expect(db.fieldOption.update).toHaveBeenCalled();
+    });
+  });
+
+  // Reads leak silently, so they matter as much as the destructive paths.
+  describe("getHistory", () => {
+    it("scopes both the page and the count to the organization", async () => {
+      await service.getHistory(FOREIGN, 15, 0, ORG);
+
+      expect(db.history.findMany.mock.calls[0][0].where).toMatchObject({
+        record: { organizationId: ORG },
+      });
+      expect(db.history.count.mock.calls[0][0].where).toMatchObject({
+        record: { organizationId: ORG },
+      });
+    });
+  });
+
+  describe("getValueId", () => {
+    it("scopes the contact lookup to the organization", async () => {
+      await service.getValueId(FOREIGN, "someone", ORG);
+
+      expect(db.field.findFirst.mock.calls[0][0].where).toMatchObject({
+        organizationId: ORG,
+      });
+    });
+  });
+
+  describe("createRecordFieldOption", () => {
+    it("refuses to attach an option to another organization's field", async () => {
+      await expect(
+        service.createRecordFieldOption(FOREIGN, "New option", ORG)
+      ).rejects.toThrow(NotFoundException);
+
+      expect(db.field.findFirst.mock.calls[0][0].where).toMatchObject({
+        organizationId: ORG,
+      });
+      expect(db.fieldOption.create).not.toHaveBeenCalled();
     });
   });
 
