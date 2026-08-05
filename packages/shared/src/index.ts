@@ -4,6 +4,7 @@
  */
 
 export * from "./lib/constant";
+export * from "./lib/entitlement";
 export * from "./lib/helper";
 export * from "./lib/notification";
 export * from "./lib/nums";

@@ -2,6 +2,7 @@ import { generateLeadColumns } from "@/components/master-list/master-list-column
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import { authClient } from "@/lib/auth-client";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { useEntitlement } from "@/hooks/use-entitlement";
 import { can } from "@/lib/permissions";
 import { deleteLead, getLeads } from "@/services/lead/lead-service";
 import { type LeadRow, type OptionsResponse } from "@dashboard/shared";
@@ -51,6 +52,7 @@ export default function MasterListPage() {
   const canConfigurePipeline = can(memberData?.role, {
     field: ["configure"],
   });
+  const entitlement = useEntitlement(organizationData?.id ?? "");
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
@@ -363,6 +365,12 @@ export default function MasterListPage() {
 
             <Button
               onClick={handleExportCSV}
+              disabled={!entitlement.has("export")}
+              title={
+                entitlement.has("export")
+                  ? undefined
+                  : "Upgrade your plan to export data"
+              }
               className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
             >
               <Download className="h-4 w-4" />
@@ -370,6 +378,12 @@ export default function MasterListPage() {
             </Button>
             <Button
               onClick={() => setOpenSmartScan(true)}
+              disabled={!entitlement.has("ai")}
+              title={
+                entitlement.has("ai")
+                  ? undefined
+                  : "Upgrade your plan to use Smart Scan"
+              }
               className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
             >
               <ScanLine className="h-4 w-4" />

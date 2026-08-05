@@ -76,7 +76,11 @@ export class SupportController {
     @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.supportService.createTicket(session.user.id, dto);
+      return await this.supportService.createTicket(
+        session.user.id,
+        session.session.activeOrganizationId ?? null,
+        dto
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -90,7 +94,11 @@ export class SupportController {
     @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.supportService.updateTicket(ticketId, session.user, dto);
+      return await this.supportService.updateTicket(
+        ticketId,
+        session.user,
+        dto
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

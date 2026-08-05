@@ -14,6 +14,11 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
   PermissionGuard,
   RequirePermission,
 } from "../../guard/permission/permission.guard";
@@ -30,7 +35,7 @@ import {
 import { LiaisonService } from "./liaison.service";
 
 @Controller("liaison")
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
 export class LiaisonController {
   constructor(
     private readonly liaisonService: LiaisonService,
@@ -47,7 +52,8 @@ export class LiaisonController {
     try {
       return await this.liaisonService.createMillage(
         createMillageDto,
-        session.session.memberId
+        session.session.memberId,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -252,7 +258,8 @@ export class LiaisonController {
     try {
       return await this.liaisonService.createExpense(
         createExpenseDto,
-        session.session.memberId
+        session.session.memberId,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -288,6 +295,7 @@ export class LiaisonController {
     }
   }
 
+  @RequireFeature("export")
   @RequirePermission({ report: ["export"] })
   @Get("expense/export")
   async getExpenseExport(

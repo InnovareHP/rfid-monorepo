@@ -11,6 +11,11 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
+import {
   PermissionGuard,
   RequirePermission,
 } from "../../../guard/permission/permission.guard";
@@ -21,7 +26,7 @@ import {
 import { LandingPageService } from "./landing-page.service";
 
 @Controller("marketing/landing-pages")
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
 export class LandingPageController {
   constructor(private readonly landingPageService: LandingPageService) {}
 

@@ -9,6 +9,11 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
   PermissionGuard,
   RequirePermission,
 } from "../../guard/permission/permission.guard";
@@ -19,7 +24,7 @@ import {
 import { PipelineService } from "./pipeline.service";
 
 @Controller("pipeline")
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
 export class PipelineController {
   constructor(private readonly pipelineService: PipelineService) {}
 

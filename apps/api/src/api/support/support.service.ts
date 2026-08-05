@@ -1,4 +1,4 @@
-import { ROLES, User } from "@dashboard/shared";
+import { hasFeature, ROLES, User } from "@dashboard/shared";
 import {
   BadRequestException,
   Injectable,
@@ -11,6 +11,7 @@ import {
   TicketCategory,
   TicketStatus,
 } from "@prisma/client";
+import { getOrganizationEntitlement } from "../../guard/subscription/subscription.guard";
 import { prisma } from "../../lib/prisma/prisma";
 import { CreateTicketDto } from "./dto/support.schema";
 
@@ -183,8 +184,27 @@ export class SupportService {
     return leastBusy[Math.floor(Math.random() * leastBusy.length)].id;
   }
 
-  async createTicket(userId: string, data: CreateTicketDto) {
-    const assignedTo = await this.getNextSupportAgent();
+  // A ticket is never refused over billing; a plan without priority support
+  // just cannot jump the queue, so HIGH is clamped rather than rejected.
+  private async allowedPriority(
+    organizationId: string | null,
+    requested: Priority | undefined
+  ): Promise<Priority | undefined> {
+    if (requested !== Priority.HIGH || !organizationId) return requested;
+
+    const { plan } = await getOrganizationEntitlement(organizationId);
+    return hasFeature(plan, "priority_support") ? requested : Priority.MEDIUM;
+  }
+
+  async createTicket(
+    userId: string,
+    organizationId: string | null,
+    data: CreateTicketDto
+  ) {
+    const [assignedTo, priority] = await Promise.all([
+      this.getNextSupportAgent(),
+      this.allowedPriority(organizationId, data.priority),
+    ]);
 
     return prisma.supportTicket.create({
       data: {
@@ -192,7 +212,7 @@ export class SupportService {
         subject: data.subject,
         description: data.description,
         category: data.category,
-        priority: data.priority,
+        priority,
         assignedTo,
         createBy: userId,
         SupportTicketMessage: {

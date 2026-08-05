@@ -12,6 +12,11 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import { Queue } from "bullmq";
 import {
   PermissionGuard,
@@ -22,7 +27,7 @@ import { BlastService } from "./blast.service";
 import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
 @Controller("marketing/blasts")
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
 export class BlastController {
   constructor(
     private readonly blastService: BlastService,

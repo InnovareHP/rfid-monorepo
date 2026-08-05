@@ -11,6 +11,11 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
+import {
   PermissionGuard,
   RequirePermission,
 } from "../../../guard/permission/permission.guard";
@@ -18,7 +23,7 @@ import { CreateFormDto, UpdateFormDto } from "./dto/form.dto";
 import { FormService } from "./form.service";
 
 @Controller("marketing/forms")
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
 export class FormController {
   constructor(private readonly formService: FormService) {}
 

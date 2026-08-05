@@ -2,6 +2,7 @@
 // Billing is per seat — one seat per organization member. The Better Auth
 // stripe plugin syncs the seat quantity to Stripe whenever membership changes.
 
+import { entitlementFor, seatCap } from "@dashboard/shared";
 import { appConfig } from "../../config/app-config";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -11,11 +12,23 @@ const isProduction = process.env.NODE_ENV === "production";
 const priceId = (liveId: string | undefined) =>
   isProduction ? (liveId ?? "") : (liveId ?? "");
 
+// Kept as flags because the plan card and Better Auth both render this shape.
+// The values are derived, so the shared entitlement table stays the only source.
 export type PlanLimits = {
   seats: number;
   ai: number;
   exportCsv: number;
   prioritySupport: number;
+};
+
+const limitsFor = (name: string): PlanLimits => {
+  const { features } = entitlementFor(name);
+  return {
+    seats: seatCap(name),
+    ai: features.includes("ai") ? 1 : 0,
+    exportCsv: features.includes("export") ? 1 : 0,
+    prioritySupport: features.includes("priority_support") ? 1 : 0,
+  };
 };
 
 export type Plan = {
@@ -37,7 +50,7 @@ export const PLANS: Plan[] = [
     label: "Essentials",
     pricePerSeat: 20,
     seatPriceId: priceId(appConfig.STRIPE_PRICE_ESSENTIALS_SEAT),
-    limits: { seats: 10, ai: 0, exportCsv: 0, prioritySupport: 0 },
+    limits: limitsFor("essentials"),
     freeTrialDays: 14,
   },
   {
@@ -45,7 +58,7 @@ export const PLANS: Plan[] = [
     label: "Growth",
     pricePerSeat: 49,
     seatPriceId: priceId(appConfig.STRIPE_PRICE_GROWTH_SEAT),
-    limits: { seats: 25, ai: 1, exportCsv: 1, prioritySupport: 0 },
+    limits: limitsFor("growth"),
     freeTrialDays: 14,
   },
   {
@@ -53,7 +66,7 @@ export const PLANS: Plan[] = [
     label: "Scale",
     pricePerSeat: 79,
     seatPriceId: priceId(appConfig.STRIPE_PRICE_SCALE_SEAT),
-    limits: { seats: 50, ai: 1, exportCsv: 1, prioritySupport: 1 },
+    limits: limitsFor("scale"),
     freeTrialDays: 14,
   },
 ];

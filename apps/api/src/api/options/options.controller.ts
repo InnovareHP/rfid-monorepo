@@ -7,13 +7,18 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
   PermissionGuard,
   RequirePermission,
 } from "../../guard/permission/permission.guard";
 import { OptionsService } from "./options.service";
 
 @Controller("options")
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
 export class OptionsController {
   constructor(private readonly optionsService: OptionsService) {}
 

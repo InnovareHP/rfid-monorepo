@@ -10,6 +10,11 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { memoryStorage } from "multer";
 import { DeleteImageDto } from "./dto/image-schema";
 import { ImageService } from "./image.service";
@@ -19,7 +24,7 @@ const scopeOf = (session: AuthenticatedSession) =>
   session.session.activeOrganizationId ?? session.user.id;
 
 @Controller("image")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard)
 export class ImageController {
   constructor(private readonly imageService: ImageService) {}
 

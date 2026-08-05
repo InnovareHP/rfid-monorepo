@@ -17,6 +17,11 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { Queue } from "bullmq";
 import { memoryStorage } from "multer";
 import { EldonFaxError } from "../../lib/eldonfax/eldonfax";
@@ -48,8 +53,7 @@ import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
 @Controller("boards")
-@UseGuards(AuthGuard, PermissionGuard)
-// @UseGuards(StripeGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
 export class BoardController {
   constructor(
     private readonly boardService: BoardService,
@@ -423,6 +427,7 @@ export class BoardController {
     }
   }
 
+  @RequireFeature("ai")
   @RequirePermission({ log: ["read"] })
   @Get("/:recordId/suggestions")
   async getFollowUpSuggestions(
@@ -441,6 +446,7 @@ export class BoardController {
     }
   }
 
+  @RequireFeature("ai")
   @RequirePermission({ analytics: ["read"] })
   @Get("/:recordId/analyze")
   async getRecordAnalyze(
@@ -501,6 +507,7 @@ export class BoardController {
 
   @Post("/scan-card")
   @RequirePermission({ record: ["create"] })
+  @RequireFeature("ai")
   @UseInterceptors(
     FileInterceptor("image", {
       storage: memoryStorage(),
@@ -705,6 +712,7 @@ export class BoardController {
     }
   }
 
+  @RequireFeature("export")
   @Post("/csv-import")
   @RequirePermission({ record: ["import"] })
   async createRecordDataFromCSV(

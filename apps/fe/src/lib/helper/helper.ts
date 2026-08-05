@@ -1,5 +1,9 @@
 import { can } from "@/lib/permissions";
-import type { DomainPermission } from "@dashboard/shared";
+import {
+  hasFeature,
+  type DomainPermission,
+  type PlanFeature,
+} from "@dashboard/shared";
 import { redirect } from "@tanstack/react-router";
 
 // Route guards check the same grant table the API enforces, so a route that
@@ -12,6 +16,20 @@ export const AuthorizedRoute = (context: any, permission: DomainPermission) => {
 
   if (!can(session?.memberRole, permission)) {
     throw redirect({ to: `/${session.activeOrganizationId}` as any });
+  }
+
+  return true;
+};
+
+// A role denial sends the user home; a plan denial sends them where they can fix
+// it, since billing is the upgrade path rather than a dead end.
+export const EntitledRoute = (context: any, feature: PlanFeature) => {
+  const { subscription } = context.context as {
+    subscription: { plan: string | null } | null;
+  };
+
+  if (!hasFeature(subscription?.plan, feature)) {
+    throw redirect({ to: "/billing" as any });
   }
 
   return true;

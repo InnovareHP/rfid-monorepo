@@ -16,7 +16,6 @@ import { OptionsModule } from "./options/options.module";
 import { PasskeysModule } from "./passkeys/passkeys.module";
 import { PipelineModule } from "./pipeline/pipeline.module";
 import { PlacesModule } from "./places/places.module";
-import { PlanModule } from "./plan/plan.module";
 import { RegistrationModule } from "./registration/registration.module";
 import { SupportModule } from "./support/support.module";
 import { TaskModule } from "./task/task.module";
@@ -32,7 +31,6 @@ import { UserModule } from "./user/user.module";
     FaxModule,
     ImageModule,
     UserModule,
-    PlanModule,
     BoardModule,
     BookingModule,
     CalendarModule,

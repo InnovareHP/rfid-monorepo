@@ -7,13 +7,18 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
   AutocompleteQueryDto,
   PlaceDetailsQueryDto,
 } from "./dto/places.schema";
 import { PlacesService } from "./places.service";
 
 @Controller("places")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard)
 export class PlacesController {
   constructor(private readonly placesService: PlacesService) {}
 

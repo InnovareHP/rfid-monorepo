@@ -8,6 +8,7 @@ import {
 import { SubscriptionCanceledEmail } from "../../react-email/subscription-canceled-email";
 import { SubscriptionUpdatedEmail } from "../../react-email/subscription-updated-email";
 import { TrialEndingEmail } from "../../react-email/trial-ending-email";
+import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
 import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
@@ -271,11 +272,30 @@ const handleEvent = async (event: Stripe.Event) => {
   }
 };
 
+// handleEvent returns early for most subscription events, so the guard cache is
+// cleared here instead. The plugin may still write the row after this runs, in
+// which case the entry is only stale until the short TTL expires.
+const clearEntitlementCache = async (event: Stripe.Event) => {
+  if (!event.type.startsWith("customer.subscription.")) return;
+
+  const customerId = customerIdOf(event.data.object as Stripe.Subscription);
+  if (!customerId) return;
+
+  const subscription = await prisma.subscription.findFirst({
+    where: { stripeCustomerId: customerId },
+    select: { referenceId: true },
+  });
+  if (!subscription) return;
+
+  await invalidateSubscriptionCache(subscription.referenceId);
+};
+
 export const StripeHelper = async (event: Stripe.Event) => {
   const claimed = await claimWebhookEvent(PROVIDER, event.id);
   if (!claimed) return;
 
   try {
+    await clearEntitlementCache(event);
     await handleEvent(event);
   } catch (error) {
     await releaseWebhookEvent(PROVIDER, event.id);
