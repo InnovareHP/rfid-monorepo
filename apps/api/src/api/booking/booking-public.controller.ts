@@ -10,11 +10,13 @@ import {
   UsePipes,
 } from "@nestjs/common";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
+import { CrossTenant } from "../../filter/tenant-context";
 import { ZodValidationPipe } from "nestjs-zod";
 import { BookingService } from "./booking.service";
 import { CreateBookingDto } from "./dto/booking.schema";
 
 @Controller("booking/public")
+@CrossTenant()
 @AllowAnonymous()
 @UsePipes(ZodValidationPipe)
 export class BookingPublicController {

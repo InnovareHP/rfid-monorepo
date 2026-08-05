@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { appConfig } from "../../config/app-config";
 import { AuditService } from "../../lib/audit/audit.service";
 import { prisma } from "../../lib/prisma/prisma";
+import { runUnscoped, runWithTenant } from "../../lib/prisma/tenant-context";
 
 export interface ParsedInboundEmail {
   from: string;
@@ -134,7 +135,11 @@ export class EmailIngestService {
 
   // Returns true when the message was logged, false when it was discarded unstored.
   async ingest(email: ParsedInboundEmail): Promise<boolean> {
-    const organizationId = await this.resolveOrganization(email.recipients);
+    // The recipient key is the only tenant hint an inbound message carries, so
+    // that one lookup runs unscoped and everything after it is scoped to the hit.
+    const organizationId = await runUnscoped(() =>
+      this.resolveOrganization(email.recipients)
+    );
 
     if (!organizationId) {
       this.logger.warn(
@@ -143,6 +148,15 @@ export class EmailIngestService {
       return false;
     }
 
+    return runWithTenant(organizationId, () =>
+      this.ingestForOrganization(email, organizationId)
+    );
+  }
+
+  private async ingestForOrganization(
+    email: ParsedInboundEmail,
+    organizationId: string
+  ): Promise<boolean> {
     const parent = await this.matchByThreadToken(email, organizationId);
     const recordId =
       parent?.recordId ??

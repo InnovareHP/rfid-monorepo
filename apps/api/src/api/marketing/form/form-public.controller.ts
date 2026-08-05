@@ -9,11 +9,13 @@ import {
   Req,
 } from "@nestjs/common";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
+import { CrossTenant } from "../../../filter/tenant-context";
 import type { Request } from "express";
 import { PublicFormSubmitDto } from "./dto/form.dto";
 import { FormService } from "./form.service";
 
 @Controller("marketing/public/forms")
+@CrossTenant()
 @AllowAnonymous()
 export class FormPublicController {
   constructor(private readonly formService: FormService) {}

@@ -5,6 +5,7 @@ import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
 import { isSelectType } from "src/lib/helper";
 import { prisma } from "src/lib/prisma/prisma";
+import { runWithTenant } from "src/lib/prisma/tenant-context";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardGateway } from "./board.gateway";
 
@@ -32,7 +33,12 @@ export class CsvImportProcessor extends WorkerHost {
     super();
   }
 
+  // Jobs run outside a request, so the payload organization opens the tenant store.
   async process(job: Job<CsvImportJobData>) {
+    return runWithTenant(job.data.organizationId, () => this.handle(job));
+  }
+
+  private async handle(job: Job<CsvImportJobData>) {
     const { excelData, organizationId, moduleType } = job.data;
 
     this.logger.log(

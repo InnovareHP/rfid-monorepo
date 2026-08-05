@@ -1,9 +1,11 @@
 import { Controller, Get, Param, Req, Res } from "@nestjs/common";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
+import { CrossTenant } from "../../filter/tenant-context";
 import type { Request, Response } from "express";
 import { EmailTrackingService } from "./email-tracking.service";
 
 @Controller("email")
+@CrossTenant()
 @AllowAnonymous()
 export class EmailTrackingController {
   constructor(private readonly trackingService: EmailTrackingService) {}

@@ -6,6 +6,7 @@ import { AppModule } from "./app.module";
 import { appConfig } from "./config/app-config";
 import { AllExceptionsFilter } from "./filter/filter";
 import { LoggerMiddleware } from "./filter/logger";
+import { tenantContextMiddleware } from "./filter/tenant-context";
 import { SocketIoAdapter } from "./lib/socket";
 
 async function bootstrap() {
@@ -39,6 +40,9 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   app.use(new LoggerMiddleware().use);
+
+  // Must sit above routing so the whole request runs inside one tenant store.
+  app.use(tenantContextMiddleware);
 
   app.enableVersioning({
     type: VersioningType.URI,

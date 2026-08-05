@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { prisma } from "../../../lib/prisma/prisma";
+import { runWithTenant } from "../../../lib/prisma/tenant-context";
 import { BoardGateway } from "../../board/board.gateway";
 import { EmailDispatchService } from "../../board/email-dispatch.service";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
@@ -24,7 +25,12 @@ export class BlastSendProcessor extends WorkerHost {
     super();
   }
 
+  // Jobs run outside a request, so the payload organization opens the tenant store.
   async process(job: Job<BlastSendJobData>) {
+    return runWithTenant(job.data.organizationId, () => this.handle(job));
+  }
+
+  private async handle(job: Job<BlastSendJobData>) {
     const { blastId, organizationId, userId, sendVia } = job.data;
 
     const blast = await prisma.blast.findUniqueOrThrow({
