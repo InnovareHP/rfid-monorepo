@@ -30,6 +30,7 @@ export class BlastController {
     private readonly blastSendQueue: Queue
   ) {}
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/")
   async getBlasts(@Session() session: AuthenticatedSession) {
     try {
@@ -41,6 +42,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/jobs/:jobId/status")
   async getJobStatus(
     @Param("jobId") jobId: string,
@@ -69,6 +71,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id")
   async getBlast(
     @Param("id") id: string,
@@ -84,6 +87,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id/audience-count")
   async getAudienceCount(
     @Param("id") id: string,
@@ -99,6 +103,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["create"] })
   @Post("/")
   async createBlast(
     @Body() dto: CreateBlastDto,
@@ -115,6 +120,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Patch("/:id")
   async updateBlast(
     @Param("id") id: string,
@@ -151,6 +157,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["delete"] })
   @Delete("/:id")
   async deleteBlast(
     @Param("id") id: string,

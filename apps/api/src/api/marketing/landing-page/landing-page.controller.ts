@@ -11,16 +11,21 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../../guard/permission/permission.guard";
+import {
   CreateLandingPageDto,
   UpdateLandingPageDto,
 } from "./dto/landing-page.dto";
 import { LandingPageService } from "./landing-page.service";
 
 @Controller("marketing/landing-pages")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class LandingPageController {
   constructor(private readonly landingPageService: LandingPageService) {}
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/")
   async listLandingPages(@Session() session: AuthenticatedSession) {
     try {
@@ -32,6 +37,7 @@ export class LandingPageController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id")
   async getLandingPage(
     @Param("id") id: string,
@@ -47,6 +53,7 @@ export class LandingPageController {
     }
   }
 
+  @RequirePermission({ outreach: ["create"] })
   @Post("/")
   async createLandingPage(
     @Body() dto: CreateLandingPageDto,
@@ -63,6 +70,7 @@ export class LandingPageController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Patch("/:id")
   async updateLandingPage(
     @Param("id") id: string,
@@ -80,6 +88,7 @@ export class LandingPageController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Post("/:id/publish")
   async publishLandingPage(
     @Param("id") id: string,
@@ -95,6 +104,7 @@ export class LandingPageController {
     }
   }
 
+  @RequirePermission({ outreach: ["delete"] })
   @Delete("/:id")
   async deleteLandingPage(
     @Param("id") id: string,

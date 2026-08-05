@@ -9,6 +9,7 @@ export const DOMAIN_STATEMENT = {
   log: ["create", "read", "update", "delete"],
   report: ["read", "export"],
   outreach: ["create", "read", "update", "delete", "send"],
+  task: ["create", "read", "update", "delete"],
   analytics: ["read"],
   billing: ["manage_billing"],
   license: ["manage_licenses"],
@@ -25,6 +26,7 @@ const RECORD_WRITE = ["create", "read", "update", "delete"] as const;
 const FIELD_WRITE = ["create", "update", "delete"] as const;
 const LOG_WRITE = ["create", "read", "update", "delete"] as const;
 const OUTREACH_WRITE = ["create", "read", "update", "delete"] as const;
+const TASK_WRITE = ["create", "read", "update", "delete"] as const;
 
 // Mirrors the deny rules the frontend already applies: reports and history
 // exclude liaisons, import and sending exclude both operational roles, and
@@ -36,6 +38,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     log: [...LOG_WRITE],
     report: ["read", "export"],
     outreach: [...OUTREACH_WRITE, "send"],
+    task: [...TASK_WRITE],
     analytics: ["read"],
     billing: ["manage_billing"],
     license: ["manage_licenses"],
@@ -46,6 +49,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     log: [...LOG_WRITE],
     report: ["read", "export"],
     outreach: [...OUTREACH_WRITE, "send"],
+    task: [...TASK_WRITE],
     analytics: ["read"],
   },
   [ROLES.ADMISSION_MANAGER]: {
@@ -54,6 +58,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     log: [...LOG_WRITE],
     report: ["read", "export"],
     outreach: [...OUTREACH_WRITE],
+    task: [...TASK_WRITE],
     analytics: ["read"],
   },
   [ROLES.LIAISON]: {
@@ -61,6 +66,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     field: [...FIELD_WRITE],
     log: [...LOG_WRITE],
     outreach: [...OUTREACH_WRITE],
+    task: [...TASK_WRITE],
     analytics: ["read"],
   },
 } as const satisfies Record<string, DomainPermission>;

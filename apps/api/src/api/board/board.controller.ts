@@ -65,6 +65,7 @@ export class BoardController {
 
   // ─── GET ──────────────────────────────────────────────────────────────
 
+  @RequirePermission({ record: ["read"] })
   @Get("/")
   async getAllRecords(
     @Session()
@@ -100,6 +101,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/gmail/auth-url")
   async getGmailAuthUrl(@Session() session: AuthenticatedSession) {
     try {
@@ -114,6 +116,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/gmail/status")
   async getGmailStatus(@Session() session: AuthenticatedSession) {
     try {
@@ -123,6 +126,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/outlook/auth-url")
   async getOutlookAuthUrl(@Session() session: AuthenticatedSession) {
     try {
@@ -137,6 +141,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/outlook/status")
   async getOutlookStatus(@Session() session: AuthenticatedSession) {
     try {
@@ -146,6 +151,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/records")
   async getRecords(
     @Session() session: AuthenticatedSession,
@@ -166,6 +172,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/stats")
   async getBoardStats(
     @Session() session: AuthenticatedSession,
@@ -182,6 +189,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/duplicates")
   async findDuplicates(
     @Session() session: AuthenticatedSession,
@@ -204,6 +212,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/column")
   async getColumns(
     @Session() session: AuthenticatedSession,
@@ -220,6 +229,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ report: ["read"] })
   @Get("/history")
   async getAllRecordHistory(
     @Query("page") page = 1,
@@ -248,6 +258,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ report: ["read"] })
   @Get("/history/meta")
   async getRecordHistoryMeta(
     @Session()
@@ -265,6 +276,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/county/configuration")
   async getCountyConfiguration(
     @Session()
@@ -278,6 +290,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/contact-info/:fieldId")
   async getValueIdContact(
     @Param("fieldId") fieldId: string,
@@ -296,6 +309,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("/timeline/:recordId")
   async getRecordHistory(
     @Param("recordId") recordId: string,
@@ -317,6 +331,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/field/:fieldId/options")
   async getRecordFieldOptions(
     @Param("fieldId") fieldId: string,
@@ -338,6 +353,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/jobs/:jobId/status")
   async getJobStatus(
     @Param("jobId") jobId: string,
@@ -351,6 +367,7 @@ export class BoardController {
     );
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/:recordId")
   async getRecordById(
     @Param("recordId") recordId: string,
@@ -370,6 +387,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/:recordId/related")
   async getRelatedRecords(
     @Param("recordId") recordId: string,
@@ -385,6 +403,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("/:recordId/activities")
   async getActivities(
     @Param("recordId") recordId: string,
@@ -404,6 +423,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("/:recordId/suggestions")
   async getFollowUpSuggestions(
     @Param("recordId") recordId: string,
@@ -421,6 +441,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("/:recordId/analyze")
   async getRecordAnalyze(
     @Param("recordId") recordId: string,
@@ -442,6 +463,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["create"] })
   @Post()
   async createRecord(
     @Body() dto: CreateRecordDto,
@@ -478,6 +500,7 @@ export class BoardController {
   }
 
   @Post("/scan-card")
+  @RequirePermission({ record: ["create"] })
   @UseInterceptors(
     FileInterceptor("image", {
       storage: memoryStorage(),
@@ -503,6 +526,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["create"] })
   @Post("/bulk-email")
   async sendBulkEmail(
     @Body() dto: BulkEmailDto,
@@ -524,6 +548,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["create"] })
   @Post("/activities")
   async createActivity(
     @Body() dto: CreateActivityDto,
@@ -541,6 +566,7 @@ export class BoardController {
   }
 
   @Post("/activities/fax")
+  @RequirePermission({ log: ["create"] })
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
@@ -586,6 +612,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Post("/activities/:activityId/complete")
   async completeActivity(
     @Param("activityId") activityId: string,
@@ -604,6 +631,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Post("/restore-history")
   async restoreRecord(
     @Body() dto: RestoreHistoryDto,
@@ -639,6 +667,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Post("/county/assignment")
   async createRecordCountyAssignment(
     @Body() dto: CreateRecordCountyAssignmentDto,
@@ -657,6 +686,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Put("/county/assignment/:countyId")
   async updateCountyLiaisons(
     @Param("countyId") countyId: string,
@@ -694,6 +724,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["create"] })
   @Post("/column")
   async createColumn(
     @Session()
@@ -713,6 +744,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["update"] })
   @Post("/field/:fieldId/options")
   async createRecordFieldOption(
     @Param("fieldId") fieldId: string,
@@ -732,6 +764,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Patch("/activities/:activityId")
   async updateActivity(
     @Param("activityId") activityId: string,
@@ -749,6 +782,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Patch("/contact-form/:fieldId")
   async updateContactValue(
     @Param("fieldId") fieldId: string,
@@ -767,6 +801,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Patch("/timeline/:recordId")
   async updateRecordHistory(
     @Param("recordId") recordId: string,
@@ -783,6 +818,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Patch("/:recordId")
   async updateRecordValue(
     @Param("recordId") recordId: string,
@@ -809,6 +845,7 @@ export class BoardController {
 
   // ─── DELETE ───────────────────────────────────────────────────────────
 
+  @RequirePermission({ record: ["delete"] })
   @Delete()
   async deleteRecords(
     @Body() dto: DeleteRecordsDto,
@@ -826,6 +863,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Delete("/gmail/disconnect")
   async disconnectGmail(@Session() session: AuthenticatedSession) {
     try {
@@ -836,6 +874,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Delete("/outlook/disconnect")
   async disconnectOutlook(@Session() session: AuthenticatedSession) {
     try {
@@ -846,6 +885,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
   @Delete("/activities/:activityId")
   async deleteActivity(
     @Param("activityId") activityId: string,
@@ -861,6 +901,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["delete"] })
   @Delete("/column/:columnId")
   async deleteColumn(
     @Param("columnId") columnId: string,
@@ -878,6 +919,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Delete("/county/assignment/:countyId")
   async deleteCountyAssignment(
     @Param("countyId") countyId: string,
@@ -894,6 +936,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
   @Delete("/timeline/:recordId")
   async deleteRecordHistory(
     @Param("recordId") recordId: string,
@@ -910,6 +953,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["delete"] })
   @Delete("/field/options/:optionId")
   async deleteRecordFieldOption(
     @Param("optionId") optionId: string,
@@ -925,5 +969,4 @@ export class BoardController {
       throw new BadRequestException(error.message);
     }
   }
-
 }

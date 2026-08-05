@@ -6,13 +6,18 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import { OptionsService } from "./options.service";
 
 @Controller("options")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class OptionsController {
   constructor(private readonly optionsService: OptionsService) {}
 
+  @RequirePermission({ record: ["read"] })
   @Get("/counties")
   async getCounties(
     @Session()
@@ -26,6 +31,7 @@ export class OptionsController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/facility")
   async getFieldOptions(
     @Session()
@@ -43,6 +49,7 @@ export class OptionsController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/members")
   async getMemberOptions(
     @Query("isLiaison") isLiaison: string,

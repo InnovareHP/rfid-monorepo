@@ -52,6 +52,13 @@ const cases = [
 
   // A partially granted resource must fail rather than pass on the granted half.
   ["liason", { record: ["create", "import"] }, false],
+
+  // The task board is open to every role, so the gate only fails closed on an
+  // unknown one.
+  ["owner", { task: ["create", "read", "update", "delete"] }, true],
+  ["admin", { task: ["create", "read", "update", "delete"] }, true],
+  ["admission_manager", { task: ["create", "read", "update", "delete"] }, true],
+  ["liason", { task: ["create", "read", "update", "delete"] }, true],
 ];
 
 let failed = 0;

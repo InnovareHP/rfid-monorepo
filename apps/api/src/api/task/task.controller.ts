@@ -13,6 +13,10 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
+import {
   CreateAttachmentDto,
   CreateChecklistItemDto,
   CreateCommentDto,
@@ -36,10 +40,11 @@ import {
 import { TaskService } from "./task.service";
 
 @Controller("task")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
+  @RequirePermission({ task: ["read"] })
   @Get("projects")
   async getProjects(
     @Session() session: MemberSession,
@@ -55,6 +60,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post("projects")
   async createProject(
     @Body() dto: CreateProjectDto,
@@ -70,6 +76,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Patch("projects/:id")
   async updateProject(
     @Param("id") id: string,
@@ -87,6 +94,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("projects/:id")
   async deleteProject(
     @Param("id") id: string,
@@ -102,6 +110,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get("lists")
   async getLists(
     @Query("projectId") projectId: string,
@@ -119,6 +128,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post("lists")
   async createList(
     @Body() dto: CreateListDto,
@@ -134,6 +144,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Patch("lists/:id")
   async updateList(
     @Param("id") id: string,
@@ -151,6 +162,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("lists/:id")
   async deleteList(@Param("id") id: string, @Session() session: MemberSession) {
     try {
@@ -163,6 +175,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get("statuses")
   async getStatuses(@Session() session: MemberSession) {
     try {
@@ -174,6 +187,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get("labels")
   async getLabels(@Session() session: MemberSession) {
     try {
@@ -185,6 +199,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post("labels")
   async createLabel(
     @Body() dto: CreateLabelDto,
@@ -200,6 +215,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Patch("labels/:id")
   async updateLabel(
     @Param("id") id: string,
@@ -217,6 +233,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("labels/:id")
   async deleteLabel(
     @Param("id") id: string,
@@ -232,6 +249,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get("timer/running")
   async getRunningTimer(@Session() session: MemberSession) {
     try {
@@ -244,6 +262,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post("timer/start")
   async startTimer(
     @Body() dto: StartTimerDto,
@@ -260,6 +279,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Post("timer/stop")
   async stopTimer(@Session() session: MemberSession) {
     try {
@@ -272,6 +292,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Patch("reorder")
   async reorderTask(
     @Body() dto: ReorderTaskDto,
@@ -288,6 +309,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Patch("checklist/:itemId")
   async updateChecklistItem(
     @Param("itemId") itemId: string,
@@ -306,6 +328,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("checklist/:itemId")
   async deleteChecklistItem(
     @Param("itemId") itemId: string,
@@ -322,6 +345,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Patch("comments/:commentId")
   async updateComment(
     @Param("commentId") commentId: string,
@@ -340,6 +364,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("comments/:commentId")
   async deleteComment(
     @Param("commentId") commentId: string,
@@ -356,6 +381,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("attachments/:attachmentId")
   async deleteAttachment(
     @Param("attachmentId") attachmentId: string,
@@ -372,6 +398,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("time-entries/:entryId")
   async deleteTimeEntry(
     @Param("entryId") entryId: string,
@@ -388,6 +415,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete("dependencies/:dependencyId")
   async removeDependency(
     @Param("dependencyId") dependencyId: string,
@@ -404,6 +432,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get()
   async getTasks(
     @Query("projectId") projectId: string,
@@ -431,6 +460,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post()
   async createTask(
     @Body() dto: CreateTaskDto,
@@ -443,6 +473,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get(":id")
   async getTaskById(
     @Param("id") id: string,
@@ -458,6 +489,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Patch(":id")
   async updateTask(
     @Param("id") id: string,
@@ -476,6 +508,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["delete"] })
   @Delete(":id")
   async deleteTask(@Param("id") id: string, @Session() session: MemberSession) {
     try {
@@ -489,6 +522,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post(":id/duplicate")
   async duplicateTask(
     @Param("id") id: string,
@@ -505,6 +539,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Post(":id/complete")
   async completeTask(
     @Param("id") id: string,
@@ -521,6 +556,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Post(":id/uncomplete")
   async uncompleteTask(
     @Param("id") id: string,
@@ -537,6 +573,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Put(":id/assignees")
   async setAssignees(
     @Param("id") id: string,
@@ -555,6 +592,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Put(":id/watchers")
   async setWatchers(
     @Param("id") id: string,
@@ -573,6 +611,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["update"] })
   @Put(":id/labels")
   async setLabels(
     @Param("id") id: string,
@@ -591,6 +630,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post(":id/checklist")
   async addChecklistItem(
     @Param("id") id: string,
@@ -609,6 +649,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get(":id/comments")
   async getComments(
     @Param("id") id: string,
@@ -624,6 +665,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post(":id/comments")
   async addComment(
     @Param("id") id: string,
@@ -643,6 +685,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post(":id/attachments")
   async addAttachment(
     @Param("id") id: string,
@@ -661,6 +704,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get(":id/time-entries")
   async getTimeEntries(
     @Param("id") id: string,
@@ -676,6 +720,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post(":id/time-entries")
   async addTimeEntry(
     @Param("id") id: string,
@@ -694,6 +739,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["create"] })
   @Post(":id/dependencies")
   async addDependency(
     @Param("id") id: string,
@@ -712,6 +758,7 @@ export class TaskController {
     }
   }
 
+  @RequirePermission({ task: ["read"] })
   @Get(":id/activity")
   async getActivity(
     @Param("id") id: string,

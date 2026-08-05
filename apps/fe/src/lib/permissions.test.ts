@@ -55,6 +55,9 @@ describe("can", () => {
         true
       );
       expect(can(role, { log: ["create"] })).toBe(true);
+      expect(
+        can(role, { task: ["create", "read", "update", "delete"] })
+      ).toBe(true);
     }
   });
 

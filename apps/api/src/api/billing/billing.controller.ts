@@ -20,11 +20,13 @@ import { BillingService } from "./billing.service";
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
+  @RequirePermission({ billing: ["manage_billing"] })
   @Get("plans")
   listPlans() {
     return this.billingService.listPlans();
   }
 
+  @RequirePermission({ billing: ["manage_billing"] })
   @Get("plan")
   getPlanCard(@Session() session: MemberSession) {
     return this.billingService.getPlanCard(
@@ -32,6 +34,7 @@ export class BillingController {
     );
   }
 
+  @RequirePermission({ billing: ["manage_billing"] })
   @Get("invoices")
   listInvoices(
     @Session() session: MemberSession,

@@ -7,13 +7,18 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import { AnalyticsService } from "./analytics.service";
 
 @Controller("analytics")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
+  @RequirePermission({ analytics: ["read"] })
   @Get()
   async getAllAnalytics(
     @Query("start") start: string,
@@ -36,6 +41,7 @@ export class AnalyticsController {
     }
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("summary")
   async getGeminiAnalytics(
     @Query("analytics") analytics: any,
@@ -62,6 +68,7 @@ export class AnalyticsController {
     }
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("jobs/:jobId/result")
   async getJobResult(
     @Param("jobId") jobId: string,
@@ -73,6 +80,7 @@ export class AnalyticsController {
     );
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("marketing")
   async getMarketingLeadAnalytics(
     @Query("start") start: string,

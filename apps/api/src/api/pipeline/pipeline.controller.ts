@@ -23,6 +23,7 @@ import { PipelineService } from "./pipeline.service";
 export class PipelineController {
   constructor(private readonly pipelineService: PipelineService) {}
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("/")
   async getPipeline(
     @Session() session: AuthenticatedSession,
@@ -41,6 +42,7 @@ export class PipelineController {
     }
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("/win-loss")
   async getWinLoss(
     @Session() session: AuthenticatedSession,
@@ -59,6 +61,7 @@ export class PipelineController {
     }
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("/config")
   async getConfig(
     @Session() session: AuthenticatedSession,
