@@ -13,13 +13,16 @@ import {
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { Queue } from "bullmq";
-import { AdminRoleGuard } from "../../../guard/role/role.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../../guard/permission/permission.guard";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
 import { BlastService } from "./blast.service";
 import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
 @Controller("marketing/blasts")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class BlastController {
   constructor(
     private readonly blastService: BlastService,
@@ -130,7 +133,7 @@ export class BlastController {
   }
 
   @Post("/:id/send")
-  @UseGuards(AdminRoleGuard)
+  @RequirePermission({ outreach: ["send"] })
   async sendBlast(
     @Param("id") id: string,
     @Body() dto: SendBlastDto,

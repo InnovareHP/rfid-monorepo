@@ -95,13 +95,34 @@ describe("LiaisonService tenant isolation", () => {
     it(`${deleter} proceeds once the row is confirmed to be in the organization`, async () => {
       delegate().findFirst.mockResolvedValue({ id: OTHER_ORG_ROW });
 
-      await (service as any)[deleter](OTHER_ORG_ROW, ORG);
+      await (service as any)[deleter](OTHER_ORG_ROW, ORG, null);
 
       const mutated =
         delegate().delete.mock.calls.length > 0
           ? delegate().delete
           : delegate().update;
       expect(mutated).toHaveBeenCalled();
+    });
+
+    // Org scope alone let any member edit a colleague's entry, so ordinary
+    // members are narrowed to their own rows and admins pass null.
+    it(`${updater} narrows to the acting member when one is given`, async () => {
+      await expect(
+        (service as any)[updater](OTHER_ORG_ROW, {}, ORG, "member-1")
+      ).rejects.toThrow(NotFoundException);
+
+      expect(delegate().findFirst.mock.calls[0][0].where).toMatchObject({
+        member: { organizationId: ORG },
+        memberId: "member-1",
+      });
+    });
+
+    it(`${deleter} leaves the scope org-wide for an admin`, async () => {
+      delegate().findFirst.mockResolvedValue({ id: OTHER_ORG_ROW });
+
+      await (service as any)[deleter](OTHER_ORG_ROW, ORG, null);
+
+      expect(delegate().findFirst.mock.calls[0][0].where.memberId).toBeUndefined();
     });
   });
 });

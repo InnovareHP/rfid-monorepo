@@ -7,13 +7,16 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
-import { OwnerRoleGuard } from "../../guard/role/role.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import { BillingService } from "./billing.service";
 
 // Org id always comes from the session, never the body, so there is no
 // cross-org path. Reads are open to any member; writes are owner-only.
 @Controller("billing")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
@@ -41,13 +44,13 @@ export class BillingController {
   }
 
   @Post("cancel")
-  @UseGuards(OwnerRoleGuard)
+  @RequirePermission({ billing: ["manage_billing"] })
   cancel(@Session() session: MemberSession) {
     return this.billingService.cancel(session.session.activeOrganizationId);
   }
 
   @Post("resume")
-  @UseGuards(OwnerRoleGuard)
+  @RequirePermission({ billing: ["manage_billing"] })
   resume(@Session() session: MemberSession) {
     return this.billingService.resume(session.session.activeOrganizationId);
   }

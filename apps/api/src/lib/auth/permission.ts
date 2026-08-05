@@ -1,3 +1,4 @@
+import { DOMAIN_ROLE_PERMISSIONS, DOMAIN_STATEMENT, ROLES } from "@dashboard/shared";
 import { createAccessControl } from "better-auth/plugins/access";
 import {
   adminAc as AdminAccess,
@@ -11,52 +12,44 @@ import {
 const statement = {
   ...AdminStatements,
   ...OrgStatements,
-  billing: ["manage_billing"],
-  license: ["manage_licenses"],
-  app: [
-    "view",
-    "connect_integration",
-    "disconnect_integration",
-    "configure",
-    "manage_app_permissions",
-  ],
-  project: ["create", "share", "update", "delete"],
+  ...DOMAIN_STATEMENT,
 } as const;
 
 export const ac = createAccessControl(statement);
 
 export const super_admin = ac.newRole({
-  ...AdminAccess.statements, // full admin powers
+  ...AdminAccess.statements,
+});
+
+// Owner and admin also carry better-auth's organization admin statements so
+// member and invitation management keeps working through the plugin.
+export const owner = ac.newRole({
+  ...orgAccess.statements,
+  ...DOMAIN_ROLE_PERMISSIONS[ROLES.OWNER],
 });
 
 export const admin = ac.newRole({
   ...orgAccess.statements,
-  organization: ["update"], // no delete, no billing or license
-  app: ["view", "connect_integration", "disconnect_integration", "configure"],
-  project: ["create", "share", "update", "delete"],
-});
-
-export const owner = ac.newRole({
-  billing: ["manage_billing"],
-  license: ["manage_licenses"],
-  app: [
-    "view",
-    "connect_integration",
-    "disconnect_integration",
-    "configure",
-    "manage_app_permissions",
-  ],
-  ...orgAccess.statements,
-});
-
-export const liaison = ac.newRole({
-  project: ["create", "update"], // limited operational
+  organization: ["update"],
+  ...DOMAIN_ROLE_PERMISSIONS[ROLES.ADMIN],
 });
 
 export const admission_manager = ac.newRole({
-  project: ["create", "update"], // limited operational
+  ...DOMAIN_ROLE_PERMISSIONS[ROLES.ADMISSION_MANAGER],
+});
+
+export const liaison = ac.newRole({
+  ...DOMAIN_ROLE_PERMISSIONS[ROLES.LIAISON],
 });
 
 export const support = ac.newRole({
-  project: ["create", "update"], // limited operational
+  ...DOMAIN_ROLE_PERMISSIONS[ROLES.LIAISON],
 });
+
+// Keyed by the stored member.role value, which misspells liaison.
+export const orgRoles = {
+  [ROLES.OWNER]: owner,
+  [ROLES.ADMIN]: admin,
+  [ROLES.ADMISSION_MANAGER]: admission_manager,
+  [ROLES.LIAISON]: liaison,
+};

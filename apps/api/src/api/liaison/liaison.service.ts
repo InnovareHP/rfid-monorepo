@@ -103,9 +103,18 @@ export class LiaisonService {
 
   // Mileage carries no organizationId of its own, so ownership is proven
   // through the member relation before the row is read or mutated.
-  private async assertMileageInOrg(id: string, organizationId: string) {
+  // memberId is null for org admins, who may act on any member's entry.
+  private async assertMileageInOrg(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
     const mileage = await prisma.mileage.findFirst({
-      where: { id, member: { organizationId } },
+      where: {
+        id,
+        member: { organizationId },
+        ...(memberId ? { memberId } : {}),
+      },
       select: { id: true },
     });
     if (!mileage) throw new NotFoundException("Mileage not found");
@@ -126,9 +135,10 @@ export class LiaisonService {
   async updateMillage(
     id: string,
     updateMillageDto: UpdateMillageDto,
-    organizationId: string
+    organizationId: string,
+    memberId: string | null
   ) {
-    await this.assertMileageInOrg(id, organizationId);
+    await this.assertMileageInOrg(id, organizationId, memberId);
 
     await prisma.mileage.update({
       where: {
@@ -138,8 +148,12 @@ export class LiaisonService {
     });
   }
 
-  async deleteMillage(id: string, organizationId: string) {
-    await this.assertMileageInOrg(id, organizationId);
+  async deleteMillage(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertMileageInOrg(id, organizationId, memberId);
 
     await prisma.mileage.update({
       where: {
@@ -264,9 +278,18 @@ export class LiaisonService {
     };
   }
 
-  private async assertMarketingInOrg(id: string, organizationId: string) {
+  // memberId is null for org admins, who may act on any member's entry.
+  private async assertMarketingInOrg(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
     const marketing = await prisma.marketing.findFirst({
-      where: { id, member: { organizationId } },
+      where: {
+        id,
+        member: { organizationId },
+        ...(memberId ? { memberId } : {}),
+      },
       select: { id: true },
     });
     if (!marketing) throw new NotFoundException("Marketing not found");
@@ -287,9 +310,10 @@ export class LiaisonService {
   async updateMarketing(
     id: string,
     updateMarketingDto: UpdateMarketingDto,
-    organizationId: string
+    organizationId: string,
+    memberId: string | null
   ) {
-    await this.assertMarketingInOrg(id, organizationId);
+    await this.assertMarketingInOrg(id, organizationId, memberId);
 
     await prisma.marketing.update({
       where: {
@@ -299,8 +323,12 @@ export class LiaisonService {
     });
   }
 
-  async deleteMarketing(id: string, organizationId: string) {
-    await this.assertMarketingInOrg(id, organizationId);
+  async deleteMarketing(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertMarketingInOrg(id, organizationId, memberId);
 
     await prisma.marketing.delete({
       where: {
@@ -646,9 +674,18 @@ export class LiaisonService {
     });
   }
 
-  private async assertExpenseInOrg(id: string, organizationId: string) {
+  // memberId is null for org admins, who may act on any member's entry.
+  private async assertExpenseInOrg(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
     const expense = await prisma.expense.findFirst({
-      where: { id, member: { organizationId } },
+      where: {
+        id,
+        member: { organizationId },
+        ...(memberId ? { memberId } : {}),
+      },
       select: { id: true },
     });
     if (!expense) throw new NotFoundException("Expense not found");
@@ -657,9 +694,10 @@ export class LiaisonService {
   async updateExpense(
     id: string,
     updateExpenseDto: UpdateExpenseDto,
-    organizationId: string
+    organizationId: string,
+    memberId: string | null
   ) {
-    await this.assertExpenseInOrg(id, organizationId);
+    await this.assertExpenseInOrg(id, organizationId, memberId);
 
     await prisma.expense.update({
       where: {
@@ -669,8 +707,12 @@ export class LiaisonService {
     });
   }
 
-  async deleteExpense(id: string, organizationId: string) {
-    await this.assertExpenseInOrg(id, organizationId);
+  async deleteExpense(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertExpenseInOrg(id, organizationId, memberId);
 
     await prisma.expense.update({
       where: {

@@ -40,11 +40,15 @@ import {
   UpdateRecordCountyLiaisonDto,
   UpdateRecordValueDto,
 } from "./dto/board.schema";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
 @Controller("boards")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 // @UseGuards(StripeGuard)
 export class BoardController {
   constructor(
@@ -672,6 +676,7 @@ export class BoardController {
   }
 
   @Post("/csv-import")
+  @RequirePermission({ record: ["import"] })
   async createRecordDataFromCSV(
     @Session()
     session: AuthenticatedSession,

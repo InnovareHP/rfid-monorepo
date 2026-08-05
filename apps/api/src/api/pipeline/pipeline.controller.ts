@@ -8,7 +8,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import { AdminRoleGuard } from "../../guard/role/role.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import {
   SetPipelineConfigDto,
   UpdatePipelineStagesDto,
@@ -16,7 +19,7 @@ import {
 import { PipelineService } from "./pipeline.service";
 
 @Controller("pipeline")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class PipelineController {
   constructor(private readonly pipelineService: PipelineService) {}
 
@@ -72,7 +75,7 @@ export class PipelineController {
   }
 
   @Patch("/config")
-  @UseGuards(AdminRoleGuard)
+  @RequirePermission({ field: ["configure"] })
   async setConfig(
     @Session() session: AuthenticatedSession,
     @Body() dto: SetPipelineConfigDto
@@ -88,7 +91,7 @@ export class PipelineController {
   }
 
   @Patch("/stages")
-  @UseGuards(AdminRoleGuard)
+  @RequirePermission({ field: ["configure"] })
   async updateStages(
     @Session() session: AuthenticatedSession,
     @Body() dto: UpdatePipelineStagesDto

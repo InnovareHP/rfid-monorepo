@@ -104,7 +104,10 @@ export class LiaisonController {
       return await this.liaisonService.updateMillage(
         id,
         updateMillageDto,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole)
+          ? null
+          : session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -120,7 +123,10 @@ export class LiaisonController {
     try {
       return await this.liaisonService.deleteMillage(
         id,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole)
+          ? null
+          : session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -201,7 +207,10 @@ export class LiaisonController {
       return await this.liaisonService.updateMarketing(
         id,
         updateMarketingDto,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole)
+          ? null
+          : session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -217,7 +226,10 @@ export class LiaisonController {
     try {
       return await this.liaisonService.deleteMarketing(
         id,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole)
+          ? null
+          : session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -326,7 +338,10 @@ export class LiaisonController {
       return await this.liaisonService.updateExpense(
         id,
         updateExpenseDto,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole)
+          ? null
+          : session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -342,7 +357,10 @@ export class LiaisonController {
     try {
       return await this.liaisonService.deleteExpense(
         id,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole)
+          ? null
+          : session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
