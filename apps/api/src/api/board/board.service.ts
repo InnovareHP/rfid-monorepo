@@ -2909,23 +2909,31 @@ export class BoardService {
     });
   }
 
-  async updateRecordHistory(recordId: string) {
+  // History.organizationId is nullable, so ownership goes through the Board
+  // relation, whose organizationId is required.
+  async updateRecordHistory(recordId: string, organizationId: string) {
     return await prisma.history.updateMany({
-      where: { id: recordId },
+      where: { id: recordId, record: { organizationId } },
       data: { createdAt: new Date() },
     });
   }
 
-  async updateContactValue(fieldId: string, body: UpdateContactDto) {
+  async updateContactValue(
+    fieldId: string,
+    body: UpdateContactDto,
+    organizationId: string
+  ) {
     return await prisma.$transaction(async (tx) => {
-      const field = await tx.field.findUniqueOrThrow({
-        where: { id: fieldId },
+      const field = await tx.field.findFirst({
+        where: { id: fieldId, organizationId },
         select: {
           values: {
             select: { id: true, value: true },
           },
         },
       });
+
+      if (!field) throw new NotFoundException("Field not found");
 
       const matched = field.values.find((v) => v.value === body.value);
       if (!matched) throw new NotFoundException("Field value not found");
@@ -2947,9 +2955,10 @@ export class BoardService {
     });
   }
 
-  async deleteRecordHistory(timelineId: string) {
-    const timeline = await prisma.history.findUnique({
-      where: { id: timelineId },
+  async deleteRecordHistory(timelineId: string, organizationId: string) {
+    const timeline = await prisma.history.findFirst({
+      where: { id: timelineId, record: { organizationId } },
+      select: { id: true },
     });
     if (!timeline) throw new NotFoundException("Timeline not found");
 
@@ -2975,7 +2984,14 @@ export class BoardService {
     };
   }
 
-  async deleteRecordFieldOption(optionId: string) {
+  // FieldOption.organizationId is nullable, so ownership goes through Field.
+  async deleteRecordFieldOption(optionId: string, organizationId: string) {
+    const option = await prisma.fieldOption.findFirst({
+      where: { id: optionId, field: { organizationId } },
+      select: { id: true },
+    });
+    if (!option) throw new NotFoundException("Field option not found");
+
     return await prisma.fieldOption.update({
       where: { id: optionId },
       data: { isDeleted: true },

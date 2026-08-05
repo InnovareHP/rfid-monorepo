@@ -744,19 +744,32 @@ export class BoardController {
   @Patch("/contact-form/:fieldId")
   async updateContactValue(
     @Param("fieldId") fieldId: string,
-    @Body() dto: UpdateContactDto
+    @Body() dto: UpdateContactDto,
+    @Session()
+    session: AuthenticatedSession
   ) {
     try {
-      return await this.boardService.updateContactValue(fieldId, dto);
+      return await this.boardService.updateContactValue(
+        fieldId,
+        dto,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   @Patch("/timeline/:recordId")
-  async updateRecordHistory(@Param("recordId") recordId: string) {
+  async updateRecordHistory(
+    @Param("recordId") recordId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.updateRecordHistory(recordId);
+      return await this.boardService.updateRecordHistory(
+        recordId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -874,18 +887,32 @@ export class BoardController {
   }
 
   @Delete("/timeline/:recordId")
-  async deleteRecordHistory(@Param("recordId") recordId: string) {
+  async deleteRecordHistory(
+    @Param("recordId") recordId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.deleteRecordHistory(recordId);
+      return await this.boardService.deleteRecordHistory(
+        recordId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
   @Delete("/field/options/:optionId")
-  async deleteRecordFieldOption(@Param("optionId") optionId: string) {
+  async deleteRecordFieldOption(
+    @Param("optionId") optionId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.deleteRecordFieldOption(optionId);
+      return await this.boardService.deleteRecordFieldOption(
+        optionId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
