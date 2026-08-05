@@ -26,7 +26,13 @@ import { formatDateTime } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
-import { Form } from "@dashboard/ui/components/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import {
   Popover,
@@ -66,7 +72,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -444,93 +450,112 @@ export function ActivityTab({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <Controller
+                  <FormField
                     control={control}
                     name="title"
-                    rules={{ required: true }}
                     render={({ field }) => (
-                      <Input
-                        {...field}
-                        placeholder="Activity title *"
-                        className="font-medium"
-                      />
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Activity title *"
+                            className="font-medium"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
                 </div>
 
-                <Controller
+                <FormField
                   control={control}
                   name="activityType"
                   render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) =>
-                        handleActivityTypeChange(value as ActivityType)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(activityTypeConfig)
-                          .filter((key) => key !== "MEETING" || hasCalendar)
-                          .filter((key) => key !== "FAX" || hasFax)
-                          .map((key) => (
-                            <SelectItem key={key} value={key}>
-                              <span className="flex items-center gap-2">
-                                {React.createElement(
-                                  activityTypeConfig[key as ActivityType].icon,
+                    <FormItem>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) =>
+                          handleActivityTypeChange(value as ActivityType)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(activityTypeConfig)
+                            .filter((key) => key !== "MEETING" || hasCalendar)
+                            .filter((key) => key !== "FAX" || hasFax)
+                            .map((key) => (
+                              <SelectItem key={key} value={key}>
+                                <span className="flex items-center gap-2">
+                                  {React.createElement(
+                                    activityTypeConfig[key as ActivityType]
+                                      .icon,
+                                    {
+                                      className: "h-3.5 w-3.5",
+                                    }
+                                  )}
                                   {
-                                    className: "h-3.5 w-3.5",
+                                    activityTypeConfig[key as ActivityType]
+                                      .label
                                   }
-                                )}
-                                {activityTypeConfig[key as ActivityType].label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                                </span>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
 
-                <Controller
+                <FormField
                   control={control}
                   name="dueDate"
                   render={({ field }) => (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="h-4 w-4 mr-2" />
-                          {field.value
-                            ? field.value.toLocaleDateString()
-                            : "Due date (optional)"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormItem>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="justify-start text-left font-normal"
+                          >
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            {field.value
+                              ? field.value.toLocaleDateString()
+                              : "Due date (optional)"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
               </div>
 
-              <Controller
+              <FormField
                 control={control}
                 name="description"
                 render={({ field }) => (
-                  <Textarea
-                    {...field}
-                    placeholder="Description (optional)"
-                    rows={2}
-                  />
+                  <FormItem>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Description (optional)"
+                        rows={2}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
 
@@ -540,59 +565,81 @@ export function ActivityTab({
                     Email Details
                   </p>
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="recipientEmail"
                     render={({ field }) => (
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="Recipient email *"
-                      />
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="Recipient email *"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="emailSubject"
                     render={({ field }) => (
-                      <Input {...field} placeholder="Email subject" />
+                      <FormItem>
+                        <FormControl>
+                          <Input {...field} placeholder="Email subject" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="emailBody"
                     render={({ field }) => (
-                      <Textarea {...field} placeholder="Email body" rows={3} />
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Email body"
+                            rows={3}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="sendVia"
                     render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Send via" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="AUTO">Auto-detect</SelectItem>
-                          {gmailStatus?.connected && (
-                            <SelectItem value="GMAIL">
-                              Gmail ({gmailStatus.email})
-                            </SelectItem>
-                          )}
-                          {outlookStatus?.connected && (
-                            <SelectItem value="OUTLOOK">
-                              Outlook ({outlookStatus.email})
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Send via" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AUTO">Auto-detect</SelectItem>
+                            {gmailStatus?.connected && (
+                              <SelectItem value="GMAIL">
+                                Gmail ({gmailStatus.email})
+                              </SelectItem>
+                            )}
+                            {outlookStatus?.connected && (
+                              <SelectItem value="OUTLOOK">
+                                Outlook ({outlookStatus.email})
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
                 </div>
@@ -604,27 +651,39 @@ export function ActivityTab({
                     Fax Details
                   </p>
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="faxNumber"
                     render={({ field }) => (
-                      <Input
-                        {...field}
-                        type="tel"
-                        placeholder="Fax number (E.164, e.g. +15551234567) *"
-                      />
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="tel"
+                            placeholder="Fax number (E.164, e.g. +15551234567) *"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="faxFile"
                     render={({ field }) => (
-                      <Input
-                        type="file"
-                        accept=".pdf,.tiff,.tif,.png,.jpg,.jpeg,.gif,.bmp"
-                        onChange={(e) => field.onChange(e.target.files?.[0])}
-                      />
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept=".pdf,.tiff,.tif,.png,.jpg,.jpeg,.gif,.bmp"
+                            onChange={(e) =>
+                              field.onChange(e.target.files?.[0])
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
@@ -641,69 +700,75 @@ export function ActivityTab({
                     Meeting Details
                   </p>
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="meetingEndDate"
                     render={({ field }) => (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            {field.value
-                              ? field.value.toLocaleDateString() +
-                                " " +
-                                field.value.toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "End time (defaults to 1 hour)"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormItem>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="h-4 w-4 mr-2" />
+                              {field.value
+                                ? field.value.toLocaleDateString() +
+                                  " " +
+                                  field.value.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "End time (defaults to 1 hour)"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
-                  <Controller
+                  <FormField
                     control={control}
                     name="calendarProvider"
                     render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select calendar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {calendarStatus?.google?.connected && (
-                            <SelectItem value="google">
-                              Google Calendar
-                              {calendarStatus.google.email
-                                ? ` (${calendarStatus.google.email})`
-                                : ""}
-                            </SelectItem>
-                          )}
-                          {calendarStatus?.outlook?.connected && (
-                            <SelectItem value="outlook">
-                              Outlook Calendar
-                              {calendarStatus.outlook.email
-                                ? ` (${calendarStatus.outlook.email})`
-                                : ""}
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select calendar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {calendarStatus?.google?.connected && (
+                              <SelectItem value="google">
+                                Google Calendar
+                                {calendarStatus.google.email
+                                  ? ` (${calendarStatus.google.email})`
+                                  : ""}
+                              </SelectItem>
+                            )}
+                            {calendarStatus?.outlook?.connected && (
+                              <SelectItem value="outlook">
+                                Outlook Calendar
+                                {calendarStatus.outlook.email
+                                  ? ` (${calendarStatus.outlook.email})`
+                                  : ""}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
                 </div>

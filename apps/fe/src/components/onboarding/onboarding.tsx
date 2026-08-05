@@ -12,6 +12,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
+import { Form } from "@dashboard/ui/components/form";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -22,6 +23,10 @@ import StepOne from "./onboarding-steps/StepOne";
 const onboardingSchema = z.object({
   foundUsOn: z.string().min(1, "Tell us how you found us"),
   organizationName: z.string().trim().min(1, "Organization name is required"),
+  brandColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Use a six digit hex colour"),
+  logoFile: z.instanceof(File).nullable(),
 });
 
 export type FormValues = z.infer<typeof onboardingSchema>;
@@ -30,8 +35,6 @@ const TOTAL_STEPS = 2;
 
 const OnBoardingPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [primaryColor, setPrimaryColor] = useState("#3b82f6");
   const [progress, setProgress] = useState("");
 
   const form = useForm<FormValues>({
@@ -39,16 +42,15 @@ const OnBoardingPage = () => {
     defaultValues: {
       foundUsOn: "",
       organizationName: "",
+      brandColor: "#3b82f6",
+      logoFile: null,
     },
   });
 
   const {
-    register,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = form;
-
-  const selectedUsage = form.watch("foundUsOn");
 
   const heardUsOptions = [
     {
@@ -167,18 +169,13 @@ const OnBoardingPage = () => {
     }
   };
 
-  const handleUsageSelect = (usageId: string) => {
-    form.setValue("foundUsOn", usageId);
-    handleContinue();
-  };
-
   const onSubmit = async (data: FormValues) => {
     try {
       let logo: string | undefined;
 
-      if (logoFile) {
+      if (data.logoFile) {
         setProgress("Uploading your logo");
-        const uploadRes = await uploadImage(logoFile);
+        const uploadRes = await uploadImage(data.logoFile);
         logo = uploadRes.url;
       }
 
@@ -186,7 +183,7 @@ const OnBoardingPage = () => {
         {
           foundUsOn: data.foundUsOn,
           organizationName: data.organizationName.trim(),
-          brandColor: primaryColor,
+          brandColor: data.brandColor,
           logo,
         },
         setProgress
@@ -232,46 +229,49 @@ const OnBoardingPage = () => {
           </button>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <AnimatePresence mode="wait">
-            {currentStep === 1 && (
-              <motion.div
-                key="step-1"
-                variants={pageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-              >
-                <StepOne
-                  usageOptions={heardUsOptions}
-                  selectedUsage={selectedUsage}
-                  handleUsageSelect={handleUsageSelect}
-                  register={register}
-                />
-              </motion.div>
-            )}
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <AnimatePresence mode="wait">
+              {currentStep === 1 && (
+                <motion.div
+                  key="step-1"
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <StepOne
+                    usageOptions={heardUsOptions}
+                    control={form.control}
+                    onSelected={handleContinue}
+                  />
+                </motion.div>
+              )}
 
-            {currentStep === 2 && (
-              <motion.div
-                key="step-2"
-                variants={pageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-              >
-                <StepFour
-                  register={register}
-                  isSubmitting={isSubmitting}
-                  progress={progress}
-                  logoFile={logoFile}
-                  onLogoChange={setLogoFile}
-                  primaryColor={primaryColor}
-                  onColorChange={setPrimaryColor}
-                />
-              </motion.div>
+              {currentStep === 2 && (
+                <motion.div
+                  key="step-2"
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <StepFour
+                    control={form.control}
+                    isSubmitting={isSubmitting}
+                    progress={progress}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {errors.root && (
+              <p className="mt-4 text-center text-sm text-destructive">
+                {errors.root.message}
+              </p>
             )}
-          </AnimatePresence>
-        </form>
+          </form>
+        </Form>
       </div>
     </div>
   );
