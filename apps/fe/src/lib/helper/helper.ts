@@ -1,12 +1,16 @@
+import { can } from "@/lib/permissions";
+import type { DomainPermission } from "@dashboard/shared";
 import { redirect } from "@tanstack/react-router";
 
-export const AuthorizedRole = (context: any, roles: string[]) => {
+// Route guards check the same grant table the API enforces, so a route that
+// renders is a route whose endpoints will answer.
+export const AuthorizedRoute = (context: any, permission: DomainPermission) => {
   const session = context.context.session as unknown as Session & {
     memberRole: string;
     activeOrganizationId: string;
   };
 
-  if (!roles.includes(session?.memberRole)) {
+  if (!can(session?.memberRole, permission)) {
     throw redirect({ to: `/${session.activeOrganizationId}` as any });
   }
 

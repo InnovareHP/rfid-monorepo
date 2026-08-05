@@ -2,12 +2,9 @@ import { generateLeadColumns } from "@/components/master-list/master-list-column
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import { authClient } from "@/lib/auth-client";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { can } from "@/lib/permissions";
 import { deleteLead, getLeads } from "@/services/lead/lead-service";
-import {
-  isOrgAdmin,
-  type LeadRow,
-  type OptionsResponse,
-} from "@dashboard/shared";
+import { type LeadRow, type OptionsResponse } from "@dashboard/shared";
 import type { Member } from "better-auth/plugins/organization";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -51,7 +48,9 @@ export default function MasterListPage() {
     "member-data",
     organizationData?.id,
   ]);
-  const isOwner = isOrgAdmin(memberData?.role);
+  const canConfigurePipeline = can(memberData?.role, {
+    field: ["configure"],
+  });
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
@@ -349,7 +348,7 @@ export default function MasterListPage() {
               )}
               {view === "table" ? "Pipeline" : "Table"}
             </Button>
-            {view === "kanban" && isOwner && (
+            {view === "kanban" && canConfigurePipeline && (
               <Button
                 variant="outline"
                 onClick={() => setOpenPipelineSettings(true)}

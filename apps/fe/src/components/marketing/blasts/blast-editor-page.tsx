@@ -7,7 +7,7 @@ import {
   type MarketingBlast,
 } from "@/services/marketing/blast-service";
 import { getCampaigns } from "@/services/marketing/campaign-service";
-import { isOrgAdmin } from "@dashboard/shared";
+import { can } from "@/lib/permissions";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Form,
@@ -117,7 +117,7 @@ export const BlastEditorPage = () => {
     "member-data",
     organizationData?.id,
   ]);
-  const isOwner = isOrgAdmin(memberData?.role);
+  const canSend = can(memberData?.role, { outreach: ["send"] });
 
   // Local edit wins while the user is filtering, otherwise show the saved filter
   const [editedAudienceFilter, setEditedAudienceFilter] =
@@ -234,7 +234,7 @@ export const BlastEditorPage = () => {
                 Save Draft
               </Button>
             )}
-            {isDraft && isOwner && (
+            {isDraft && canSend && (
               <Button
                 className="bg-brand text-white hover:bg-brand/90"
                 onClick={() => setSendDialogBlast(blast)}

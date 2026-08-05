@@ -2,6 +2,7 @@ import {
   DOMAIN_ROLE_PERMISSIONS,
   DOMAIN_STATEMENT,
   ROLES,
+  type DomainPermission,
 } from "@dashboard/shared";
 import { createAccessControl } from "better-auth/plugins/access";
 import {
@@ -43,3 +44,18 @@ export const admission_manager = ac.newRole({
 export const liaison = ac.newRole({
   ...DOMAIN_ROLE_PERMISSIONS[ROLES.LIAISON],
 });
+
+// Keyed by the stored member.role value, which misspells liaison.
+const orgRoles: Record<string, { authorize: (p: DomainPermission) => { success: boolean } }> = {
+  [ROLES.OWNER]: owner,
+  [ROLES.ADMIN]: admin,
+  [ROLES.ADMISSION_MANAGER]: admission_manager,
+  [ROLES.LIAISON]: liaison,
+};
+
+// Same grant table and same Better Auth engine the API guard uses, so the two
+// cannot drift. An unknown role fails closed.
+export const can = (
+  role: string | null | undefined,
+  permission: DomainPermission
+) => (role ? orgRoles[role]?.authorize(permission).success === true : false);

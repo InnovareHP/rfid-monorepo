@@ -1,7 +1,7 @@
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
-import { isOrgAdmin, ROLES } from "@dashboard/shared";
+import { can } from "@/lib/permissions";
 import {
   Sidebar,
   SidebarContent,
@@ -135,7 +135,7 @@ export function AppSidebar({
             },
           ],
         },
-        ...(memberData?.role !== ROLES.LIAISON
+        ...(can(memberData?.role, { report: ["read"] })
           ? [
               {
                 title: "Records",
@@ -150,7 +150,7 @@ export function AppSidebar({
               },
             ]
           : []),
-        ...(!isOrgAdmin(memberData?.role)
+        ...(can(memberData?.role, { log: ["create"] })
           ? [
               {
                 title: "Marketing",
@@ -175,7 +175,7 @@ export function AppSidebar({
               },
             ]
           : []),
-        ...(isOrgAdmin(memberData?.role)
+        ...(can(memberData?.role, { report: ["read"] })
           ? [
               {
                 title: "Reports",
@@ -200,7 +200,7 @@ export function AppSidebar({
               },
             ]
           : []),
-        ...(isOrgAdmin(memberData?.role)
+        ...(can(memberData?.role, { record: ["import"] })
           ? [
               {
                 title: "Import",
@@ -235,7 +235,7 @@ export function AppSidebar({
               url: `/${activeOrganizationId}/settings/booking`,
               icon: CalendarClock,
             },
-            ...(memberData?.role === ROLES.OWNER
+            ...(can(memberData?.role, { billing: ["manage_billing"] })
               ? [
                   {
                     title: "Plans",

@@ -5,7 +5,7 @@ import {
   getBlasts,
   type MarketingBlast,
 } from "@/services/marketing/blast-service";
-import { isOrgAdmin } from "@dashboard/shared";
+import { can } from "@/lib/permissions";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -36,7 +36,7 @@ export const MarketingBlastsListPage = () => {
     "member-data",
     organizationData?.id,
   ]);
-  const isOwner = isOrgAdmin(memberData?.role);
+  const canSend = can(memberData?.role, { outreach: ["send"] });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
@@ -161,7 +161,7 @@ export const MarketingBlastsListPage = () => {
 
       <BlastListTable
         blasts={filtered.slice((page - 1) * pageSize, page * pageSize)}
-        canSend={isOwner}
+        canSend={canSend}
         isLoading={isLoading}
         currentPage={page}
         pageSize={pageSize}
