@@ -34,8 +34,8 @@ describe("applyTenantScope", () => {
     );
   });
 
-  it("throws when the context has no active organization", () => {
-    runWithTenant("", () => {
+  it("throws when the context has no active organization", async () => {
+    await runWithTenant("", () => {
       expect(() => applyTenantScope("Board", "findMany", {})).toThrow(
         TenantScopeError
       );
@@ -47,8 +47,8 @@ describe("applyTenantScope", () => {
     expect(applyTenantScope("User", "findMany", args)).toBe(args);
   });
 
-  it("injects the organization into every where based operation", () => {
-    runWithTenant(ORG, () => {
+  it("injects the organization into every where based operation", async () => {
+    await runWithTenant(ORG, () => {
       for (const operation of [
         "findFirst",
         "findMany",
@@ -67,16 +67,16 @@ describe("applyTenantScope", () => {
     });
   });
 
-  it("injects the organization when no where was given", () => {
-    runWithTenant(ORG, () => {
+  it("injects the organization when no where was given", async () => {
+    await runWithTenant(ORG, () => {
       expect(applyTenantScope("Board", "findMany", undefined).where).toEqual({
         organizationId: ORG,
       });
     });
   });
 
-  it("stamps the organization onto creates", () => {
-    runWithTenant(ORG, () => {
+  it("stamps the organization onto creates", async () => {
+    await runWithTenant(ORG, () => {
       const scoped = applyTenantScope("Board", "create", {
         data: { recordName: "Acme" },
       });
@@ -84,8 +84,8 @@ describe("applyTenantScope", () => {
     });
   });
 
-  it("stamps every row of a createMany", () => {
-    runWithTenant(ORG, () => {
+  it("stamps every row of a createMany", async () => {
+    await runWithTenant(ORG, () => {
       const scoped = applyTenantScope("Board", "createMany", {
         data: [{ recordName: "a" }, { recordName: "b" }],
       });
@@ -96,8 +96,8 @@ describe("applyTenantScope", () => {
     });
   });
 
-  it("refuses a write aimed at another organization", () => {
-    runWithTenant(ORG, () => {
+  it("refuses a write aimed at another organization", async () => {
+    await runWithTenant(ORG, () => {
       expect(() =>
         applyTenantScope("Board", "create", {
           data: { recordName: "Acme", organizationId: "org_b" },
@@ -107,15 +107,18 @@ describe("applyTenantScope", () => {
   });
 
   // Setting the scalar and the relation together is a Prisma error.
-  it("leaves a nested organization connect untouched", () => {
-    runWithTenant(ORG, () => {
-      const data = { recordName: "Acme", organization: { connect: { id: ORG } } };
+  it("leaves a nested organization connect untouched", async () => {
+    await runWithTenant(ORG, () => {
+      const data = {
+        recordName: "Acme",
+        organization: { connect: { id: ORG } },
+      };
       expect(applyTenantScope("Board", "create", { data }).data).toBe(data);
     });
   });
 
-  it("scopes both halves of an upsert", () => {
-    runWithTenant(ORG, () => {
+  it("scopes both halves of an upsert", async () => {
+    await runWithTenant(ORG, () => {
       const scoped = applyTenantScope("Board", "upsert", {
         where: { id: "b1" },
         create: { recordName: "Acme" },
@@ -127,20 +130,30 @@ describe("applyTenantScope", () => {
     });
   });
 
-  it("stands down inside the unscoped escape hatch", () => {
-    runUnscoped(() => {
+  // Prisma queries are lazy, so a callback that returns one without awaiting it
+  // used to let the store close before the query ran.
+  it("holds the context open for a promise the callback only returns", async () => {
+    const deferred = () =>
+      Promise.resolve().then(() => applyTenantScope("Board", "findMany", {}));
+
+    const scoped = await runWithTenant(ORG, deferred);
+    expect(scoped.where).toEqual({ organizationId: ORG });
+  });
+
+  it("stands down inside the unscoped escape hatch", async () => {
+    await runUnscoped(() => {
       const args = { where: { slug: "public-form" } };
       expect(applyTenantScope("Form", "findFirst", args)).toBe(args);
     });
   });
 
-  it("keeps one tenant's context out of another's", () => {
-    runWithTenant("org_a", () => {
+  it("keeps one tenant's context out of another's", async () => {
+    await runWithTenant("org_a", async () => {
       expect(applyTenantScope("Board", "findMany", {}).where).toEqual({
         organizationId: "org_a",
       });
 
-      runWithTenant("org_b", () => {
+      await runWithTenant("org_b", () => {
         expect(applyTenantScope("Board", "findMany", {}).where).toEqual({
           organizationId: "org_b",
         });
