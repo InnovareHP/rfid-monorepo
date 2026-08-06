@@ -37,7 +37,7 @@ import { BookingConfirmation } from "./booking-confirmation";
 import { BookingPageSkeleton, SlotListSkeleton } from "./booking-skeleton";
 import { SlotPicker } from "./slot-picker";
 
-const BRAND_WORDMARK = "/branding/full/Refidly [Full] - White-no-bg.png";
+const BRAND_WORDMARK = "/branding/Full/Refidly [Full] - White-no-bg.png";
 
 const SHELL_GRADIENT =
   "bg-[linear-gradient(58deg,#01184d_0%,#0d3185_25.66%,#2c86d9_53.06%,#64d1f4_74.2%,#f5f5f5_100%)]";
@@ -200,12 +200,20 @@ export function PublicBookingPage({
         SHELL_GRADIENT
       )}
     >
-      <div className="flex w-full max-w-[1061px] overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
+      <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
         <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-8 lg:w-[396px]">
-          {page.organizationName && (
-            <p className="text-lg font-semibold text-[#0d3185]">
-              {page.organizationName}
-            </p>
+          {page.organizationLogo ? (
+            <img
+              src={page.organizationLogo}
+              alt={page.organizationName ?? "Organization"}
+              className="h-16 w-auto max-w-[192px] self-start object-contain"
+            />
+          ) : (
+            page.organizationName && (
+              <p className="text-lg font-semibold text-[#0d3185]">
+                {page.organizationName}
+              </p>
+            )
           )}
 
           <h1 className="text-[40px] font-semibold leading-[50px] text-[#0d3185]">
@@ -350,7 +358,7 @@ export function PublicBookingPage({
             </Form>
           ) : (
             <>
-              <div className="flex overflow-hidden rounded-xl border max-md:flex-col">
+              <div className="flex overflow-hidden rounded-xl relative border max-md:flex-col">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -362,7 +370,7 @@ export function PublicBookingPage({
                     setSelectedDate(next);
                     setSelectedSlot(null);
                   }}
-                  className="flex-1 p-4"
+                  className="flex-1"
                 />
 
                 {slotsQuery.isLoading ? (

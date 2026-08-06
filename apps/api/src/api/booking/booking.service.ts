@@ -268,7 +268,7 @@ export class BookingService {
 
     const organization = await prisma.organization.findFirst({
       where: { id: page.organizationId },
-      select: { name: true },
+      select: { name: true, logo: true },
     });
 
     return {
@@ -280,6 +280,7 @@ export class BookingService {
       timezone: page.timezone,
       hostName: page.user.name,
       organizationName: organization?.name ?? null,
+      organizationLogo: organization?.logo ?? null,
     };
   }
 

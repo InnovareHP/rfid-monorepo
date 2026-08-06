@@ -12,6 +12,7 @@ export interface PublicBookingPage {
   timezone: string;
   hostName: string;
   organizationName: string | null;
+  organizationLogo: string | null;
 }
 
 export const getPublicBookingPage = async (
