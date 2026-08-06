@@ -26,9 +26,9 @@ describe("AdminRoleGuard", () => {
     ROLES.USER,
     ROLES.SUPER_ADMIN,
   ])("rejects %s", (role) => {
-    expect(() =>
-      guard.canActivate(contextFor(sessionWithRole(role)))
-    ).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(contextFor(sessionWithRole(role)))).toThrow(
+      ForbiddenException
+    );
   });
 
   it("rejects a session whose role is missing", () => {

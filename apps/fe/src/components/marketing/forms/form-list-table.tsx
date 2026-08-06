@@ -1,79 +1,126 @@
 import type { MarketingForm } from "@/services/marketing/form-service";
-import { Badge } from "@dashboard/ui/components/badge";
+import { formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import { Copy, ExternalLink, Pencil, Send, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { Pencil, Trash2, UsersRound } from "lucide-react";
+import { ReportTable } from "../../reusable-table/report-table";
+import { SortableHeader } from "../../reusable-table/sortable-header";
+import { StatusPill, type StatusTone } from "../../reusable-table/status-pill";
+
+export const FORM_STATUS_TONES: Record<MarketingForm["status"], StatusTone> = {
+  DRAFT: "muted",
+  PUBLISHED: "success",
+};
+
+export const FORM_STATUS_LABELS: Record<MarketingForm["status"], string> = {
+  DRAFT: "Draft",
+  PUBLISHED: "Published",
+};
 
 type FormListTableProps = {
   forms: MarketingForm[];
+  isLoading?: boolean;
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  onToggleStatusSort: () => void;
   onEdit: (form: MarketingForm) => void;
-  onPublish: (form: MarketingForm) => void;
   onDelete: (form: MarketingForm) => void;
 };
 
 export const FormListTable = ({
   forms,
+  isLoading,
+  currentPage,
+  pageSize,
+  totalCount,
+  onPageChange,
+  onPageSizeChange,
+  onToggleStatusSort,
   onEdit,
-  onPublish,
   onDelete,
-}: FormListTableProps) => {
-  const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/f/${slug}`);
-    toast.success("Link copied");
-  };
-
-  if (forms.length === 0) {
-    return (
-      <p className="text-sm text-gray-400 text-center py-12">
-        No forms yet. Create one to start capturing leads.
-      </p>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white divide-y divide-gray-100">
-      {forms.map((form) => (
-        <div
-          key={form.id}
-          className="flex items-center justify-between gap-4 px-4 py-3"
-        >
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900 truncate">
-                {form.name}
-              </span>
-              <Badge variant={form.status === "PUBLISHED" ? "default" : "outline"}>
-                {form.status}
-              </Badge>
-            </div>
-            {form.status === "PUBLISHED" && (
-              <button
-                type="button"
-                onClick={() => copyLink(form.slug)}
-                className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {`${window.location.origin}/f/${form.slug}`}
-                <Copy className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {form.status === "DRAFT" && (
-              <Button variant="outline" size="sm" onClick={() => onPublish(form)}>
-                <Send className="h-4 w-4 mr-1" />
-                Publish
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={() => onEdit(form)}>
-              <Pencil className="h-4 w-4" />
+}: FormListTableProps) => (
+  <ReportTable
+    rows={forms}
+    isLoading={isLoading}
+    emptyMessage="No forms yet"
+    currentPage={currentPage}
+    pageSize={pageSize}
+    totalCount={totalCount}
+    onPageChange={onPageChange}
+    onPageSizeChange={onPageSizeChange}
+    tableClassName="table-fixed min-w-[1000px]"
+    columns={[
+      {
+        key: "name",
+        header: "Form",
+        className: "w-[24%]",
+        render: (row: MarketingForm) => (
+          <span className="font-medium text-gray-900">{row.name}</span>
+        ),
+      },
+      {
+        key: "status",
+        header: <SortableHeader label="Status" onToggle={onToggleStatusSort} />,
+        className: "w-[14%]",
+        render: (row: MarketingForm) => (
+          <StatusPill
+            label={FORM_STATUS_LABELS[row.status]}
+            tone={FORM_STATUS_TONES[row.status]}
+          />
+        ),
+      },
+      {
+        key: "submissions",
+        header: "Submissions",
+        className: "w-[17%] text-gray-600",
+        render: (row: MarketingForm) => (
+          <span className="flex items-center gap-1.5 text-sm">
+            <UsersRound className="size-4 text-gray-400" />
+            {row._count?.submissions ?? 0} responses
+          </span>
+        ),
+      },
+      {
+        key: "createdAt",
+        header: "Created",
+        className: "w-[16%] text-gray-600",
+        render: (row: MarketingForm) => formatDateTime(row.createdAt),
+      },
+      {
+        key: "updatedAt",
+        header: "Last Updated",
+        className: "w-[16%] text-gray-600",
+        render: (row: MarketingForm) => formatDateTime(row.updatedAt),
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        className: "w-[13%]",
+        render: (row: MarketingForm) => (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-primary"
+              aria-label="Edit form"
+              onClick={() => onEdit(row)}
+            >
+              <Pencil className="size-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => onDelete(form)}>
-              <Trash2 className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-red-600"
+              aria-label="Delete form"
+              onClick={() => onDelete(row)}
+            >
+              <Trash2 className="size-4" />
             </Button>
           </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+        ),
+      },
+    ]}
+  />
+);

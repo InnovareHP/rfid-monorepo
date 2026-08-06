@@ -1,91 +1,86 @@
 import {
+  formBuilderSchema,
+  type FormBuilderValues,
+} from "@/components/marketing/forms/form-builder-schema";
+import { FormFieldsPanel } from "@/components/marketing/forms/form-fields-panel";
+import { FormRenderer } from "@/components/marketing/forms/form-renderer";
+import { FormSettingsPanel } from "@/components/marketing/forms/form-settings-panel";
+import {
   getForm,
   getFormFields,
   publishForm,
   updateForm,
-  type BoardField,
-  type FormFieldMapping,
-  type MarketingForm,
+  type PublicForm,
 } from "@/services/marketing/form-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
-import { Input } from "@dashboard/ui/components/input";
+import { Form } from "@dashboard/ui/components/form";
 import {
-  closestCenter,
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@dashboard/ui/components/tabs";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Copy, Loader2, Send } from "lucide-react";
+import { ArrowLeft, Loader2, PencilLine, Send } from "lucide-react";
 import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
-import { FormFieldItem } from "./form-field-item";
-import { FormFieldPicker } from "./form-field-picker";
-import { FormSettingsPanel } from "./form-settings-panel";
 
 export const MarketingFormBuilderPage = () => {
-  const { formId } = useParams({ strict: false }) as { formId: string };
+  const { team, formId } = useParams({ strict: false }) as {
+    team: string;
+    formId: string;
+  };
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const { data: form, isLoading } = useQuery({
+  const [tab, setTab] = useState("fields");
+
+  const { data: marketingForm, isLoading } = useQuery({
     queryKey: ["marketing-form", formId],
     queryFn: () => getForm(formId),
   });
 
-  const { data: fields = [] } = useQuery({
+  const { data: boardFields = [] } = useQuery({
     queryKey: ["marketing-form-fields", formId],
     queryFn: () => getFormFields(formId),
   });
 
-  if (isLoading || !form) {
-    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
-  }
+  const form = useForm<FormBuilderValues>({
+    resolver: zodResolver(formBuilderSchema),
+    defaultValues: {
+      name: "",
+      submitButtonText: "Submit",
+      redirectUrl: "",
+      fieldMappings: [],
+    },
+    values: marketingForm
+      ? {
+          name: marketingForm.name,
+          submitButtonText: marketingForm.submitButtonText,
+          redirectUrl: marketingForm.redirectUrl ?? "",
+          fieldMappings: marketingForm.fieldMappings,
+        }
+      : undefined,
+  });
 
-  return <FormBuilder key={form.id} form={form} fields={fields} />;
-};
-
-function FormBuilder({
-  form,
-  fields,
-}: {
-  form: MarketingForm;
-  fields: BoardField[];
-}) {
-  const { team } = useParams({ strict: false }) as { team: string };
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const formId = form.id;
-
-  const [name, setName] = useState(form.name);
-  const [mappings, setMappings] = useState<FormFieldMapping[]>(
-    form.fieldMappings
-  );
-  const [submitButtonText, setSubmitButtonText] = useState(
-    form.submitButtonText
-  );
-  const [redirectUrl, setRedirectUrl] = useState(form.redirectUrl ?? "");
-
-  const mappedFieldIds = new Set(mappings.map((m) => m.fieldId));
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  const name = useWatch({ control: form.control, name: "name" });
+  const submitButtonText = useWatch({
+    control: form.control,
+    name: "submitButtonText",
+  });
+  const fieldMappings = useWatch({ control: form.control, name: "fieldMappings" });
 
   const saveMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: FormBuilderValues) =>
       updateForm(formId, {
-        name,
-        fieldMappings: mappings,
-        submitButtonText,
-        redirectUrl: redirectUrl || undefined,
+        name: values.name,
+        fieldMappings: values.fieldMappings,
+        submitButtonText: values.submitButtonText,
+        redirectUrl: values.redirectUrl || undefined,
       }),
     onSuccess: () => {
       toast.success("Form saved");
@@ -105,151 +100,115 @@ function FormBuilder({
     onError: () => toast.error("Failed to publish form"),
   });
 
-  const handleAdd = (field: BoardField) => {
-    setMappings((prev) => [
-      ...prev,
-      { fieldId: field.id, label: field.fieldName, required: false },
-    ]);
-  };
+  if (isLoading || !marketingForm) {
+    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
+  }
 
-  const handleRemove = (fieldId: string) => {
-    setMappings((prev) => prev.filter((m) => m.fieldId !== fieldId));
-  };
+  const publicUrl = `${window.location.origin}/f/${marketingForm.slug}`;
 
-  const handleLabelChange = (fieldId: string, label: string) => {
-    setMappings((prev) =>
-      prev.map((m) => (m.fieldId === fieldId ? { ...m, label } : m))
-    );
-  };
-
-  const handleRequiredChange = (fieldId: string, required: boolean) => {
-    setMappings((prev) =>
-      prev.map((m) => (m.fieldId === fieldId ? { ...m, required } : m))
-    );
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = mappings.findIndex((m) => m.fieldId === active.id);
-    const newIndex = mappings.findIndex((m) => m.fieldId === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    setMappings((prev) => arrayMove(prev, oldIndex, newIndex));
-  };
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`);
-    toast.success("Link copied");
+  const previewForm: PublicForm = {
+    id: marketingForm.id,
+    name,
+    submitButtonText: submitButtonText || "Submit",
+    fieldMappings: fieldMappings.map((mapping) => ({
+      ...mapping,
+      fieldType:
+        boardFields.find((boardField) => boardField.id === mapping.fieldId)
+          ?.fieldType ?? "TEXT",
+    })),
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <Form {...form}>
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-white px-6 py-4">
           <div className="flex items-center gap-3">
             <Button
-              variant="ghost"
-              size="sm"
+              type="button"
+              variant="outline"
+              size="icon"
               onClick={() =>
                 navigate({ to: "/$team/marketing/forms", params: { team } })
               }
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="text-lg font-semibold w-64"
-            />
-            <Badge variant={form.status === "PUBLISHED" ? "default" : "outline"}>
-              {form.status}
+            <h1 className="page-title text-3xl font-semibold tracking-tight sm:text-4xl">
+              {name}
+            </h1>
+            <Badge variant="outline" className="gap-1 text-gray-500">
+              <PencilLine className="h-3 w-3" />
+              {marketingForm.status === "PUBLISHED" ? "Published" : "Draft"}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
-            {form.status === "DRAFT" && (
-              <Button
-                variant="outline"
-                onClick={() => publishMutation.mutate()}
-                disabled={publishMutation.isPending}
-              >
-                <Send className="h-4 w-4 mr-1" />
-                Publish
-              </Button>
-            )}
             <Button
-              onClick={() => saveMutation.mutate()}
+              type="button"
+              variant="outline"
               disabled={saveMutation.isPending}
+              onClick={form.handleSubmit((values) => saveMutation.mutate(values))}
             >
               {saveMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save
+              Save Draft
+            </Button>
+            <Button
+              type="button"
+              className="bg-brand text-white hover:bg-brand/90"
+              disabled={publishMutation.isPending}
+              onClick={() => publishMutation.mutate()}
+            >
+              <Send className="mr-1 h-4 w-4" />
+              Publish
             </Button>
           </div>
-        </div>
+        </header>
 
-        {form.status === "PUBLISHED" && (
-          <button
-            type="button"
-            onClick={copyLink}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            {`${window.location.origin}/f/${form.slug}`}
-          </button>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <FormFieldPicker
-              fields={fields}
-              mappedFieldIds={mappedFieldIds}
-              onAdd={handleAdd}
-            />
+        <div className="flex flex-1 flex-col lg:flex-row">
+          <div className="flex-1 bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,rgba(0,0,0,0.02)_6px,rgba(0,0,0,0.02)_12px)] p-8">
+            <div className="mx-auto w-full max-w-2xl rounded-xl bg-white px-7 py-12 shadow-sm">
+              {previewForm.fieldMappings.length === 0 ? (
+                <p className="text-center text-sm text-gray-400">
+                  Add a field from the right panel to build this form.
+                </p>
+              ) : (
+                <FormRenderer
+                  form={previewForm}
+                  onSubmit={() => undefined}
+                  submitted={false}
+                  preview
+                />
+              )}
+            </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700">
-              Mapped fields
-            </h3>
-            {mappings.length === 0 ? (
-              <p className="text-sm text-gray-400">
-                Add fields from the left panel to build this form.
-              </p>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={mappings.map((m) => m.fieldId)}
-                  strategy={verticalListSortingStrategy}
+          <aside className="w-full shrink-0 border-l border-gray-200 bg-white p-4 lg:w-80">
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList className="grid w-full grid-cols-2 bg-blue-50">
+                <TabsTrigger
+                  value="fields"
+                  className="data-[state=active]:bg-brand data-[state=active]:text-white"
                 >
-                  <div className="space-y-2">
-                    {mappings.map((mapping) => (
-                      <FormFieldItem
-                        key={mapping.fieldId}
-                        mapping={mapping}
-                        onLabelChange={handleLabelChange}
-                        onRequiredChange={handleRequiredChange}
-                        onRemove={handleRemove}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-
-            <FormSettingsPanel
-              submitButtonText={submitButtonText}
-              redirectUrl={redirectUrl}
-              onSubmitButtonTextChange={setSubmitButtonText}
-              onRedirectUrlChange={setRedirectUrl}
-            />
-          </div>
+                  Fields
+                </TabsTrigger>
+                <TabsTrigger
+                  value="settings"
+                  className="data-[state=active]:bg-brand data-[state=active]:text-white"
+                >
+                  Form Settings
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="fields" className="pt-4">
+                <FormFieldsPanel form={form} fields={boardFields} />
+              </TabsContent>
+              <TabsContent value="settings" className="pt-4">
+                <FormSettingsPanel form={form} publicUrl={publicUrl} />
+              </TabsContent>
+            </Tabs>
+          </aside>
         </div>
       </div>
-    </div>
+    </Form>
   );
-}
+};

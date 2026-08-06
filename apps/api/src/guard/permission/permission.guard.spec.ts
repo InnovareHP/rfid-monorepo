@@ -16,7 +16,9 @@ const contextFor = (memberRole?: string) =>
   ({
     switchToHttp: () => ({
       getRequest: () =>
-        memberRole === undefined ? {} : { session: { session: { memberRole } } },
+        memberRole === undefined
+          ? {}
+          : { session: { session: { memberRole } } },
     }),
     getHandler: () => () => undefined,
     getClass: () => class {},
@@ -35,7 +37,9 @@ describe("PermissionGuard", () => {
   });
 
   it("allows a handler that declares no permission", () => {
-    expect(guardWith(undefined).canActivate(contextFor(ROLES.OWNER))).toBe(true);
+    expect(guardWith(undefined).canActivate(contextFor(ROLES.OWNER))).toBe(
+      true
+    );
     expect(authorize).not.toHaveBeenCalled();
   });
 

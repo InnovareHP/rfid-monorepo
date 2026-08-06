@@ -27,6 +27,7 @@ export class FormService {
     return prisma.form.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
+      include: { _count: { select: { submissions: true } } },
     });
   }
 

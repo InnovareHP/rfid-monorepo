@@ -60,7 +60,7 @@ describe("LiaisonService tenant isolation", () => {
     ["marketing", "getMarketingById", "updateMarketing", "deleteMarketing"],
     ["expense", null, "updateExpense", "deleteExpense"],
   ] as const)("%s", (model, getter, updater, deleter) => {
-    const delegate = () => delegates[model as keyof typeof delegates];
+    const delegate = () => delegates[model];
 
     if (getter) {
       it(`${getter} refuses a row belonging to another organization`, async () => {
@@ -122,7 +122,9 @@ describe("LiaisonService tenant isolation", () => {
 
       await (service as any)[deleter](OTHER_ORG_ROW, ORG, null);
 
-      expect(delegate().findFirst.mock.calls[0][0].where.memberId).toBeUndefined();
+      expect(
+        delegate().findFirst.mock.calls[0][0].where.memberId
+      ).toBeUndefined();
     });
   });
 });

@@ -1,39 +1,97 @@
+import type { FormBuilderValues } from "@/components/marketing/forms/form-builder-schema";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
+import { Copy } from "lucide-react";
+import type { UseFormReturn } from "react-hook-form";
+import { toast } from "sonner";
 
 type FormSettingsPanelProps = {
-  submitButtonText: string;
-  redirectUrl: string;
-  onSubmitButtonTextChange: (value: string) => void;
-  onRedirectUrlChange: (value: string) => void;
+  form: UseFormReturn<FormBuilderValues>;
+  publicUrl: string;
 };
 
 export const FormSettingsPanel = ({
-  submitButtonText,
-  redirectUrl,
-  onSubmitButtonTextChange,
-  onRedirectUrlChange,
+  form,
+  publicUrl,
 }: FormSettingsPanelProps) => {
+  const copyPublicUrl = () => {
+    navigator.clipboard.writeText(publicUrl);
+    toast.success("Link copied");
+  };
+
   return (
-    <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="text-sm font-semibold text-gray-700">Settings</h3>
+    <div className="space-y-5">
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem className="space-y-1.5">
+            <FormLabel>Form Name</FormLabel>
+            <FormControl>
+              <Input placeholder="Lead Generation" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       <div className="space-y-1.5">
-        <Label htmlFor="submit-button-text">Submit button text</Label>
-        <Input
-          id="submit-button-text"
-          value={submitButtonText}
-          onChange={(event) => onSubmitButtonTextChange(event.target.value)}
-        />
+        <Label htmlFor="public-url">URL Slug</Label>
+        <div className="relative">
+          <Input
+            id="public-url"
+            value={publicUrl}
+            readOnly
+            className="pr-9 text-muted-foreground"
+          />
+          <button
+            type="button"
+            onClick={copyPublicUrl}
+            aria-label="Copy form link"
+            className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-gray-400 hover:text-gray-600"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="redirect-url">Redirect URL (optional)</Label>
-        <Input
-          id="redirect-url"
-          value={redirectUrl}
-          onChange={(event) => onRedirectUrlChange(event.target.value)}
-          placeholder="https://example.com/thank-you"
-        />
-      </div>
+
+      <FormField
+        control={form.control}
+        name="submitButtonText"
+        render={({ field }) => (
+          <FormItem className="space-y-1.5">
+            <FormLabel>Submit Button Text</FormLabel>
+            <FormControl>
+              <Input placeholder="Submit" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="redirectUrl"
+        render={({ field }) => (
+          <FormItem className="space-y-1.5">
+            <FormLabel>
+              Redirect URL{" "}
+              <span className="text-xs text-muted-foreground">(Optional)</span>
+            </FormLabel>
+            <FormControl>
+              <Input placeholder="https://" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 };

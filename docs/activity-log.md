@@ -394,3 +394,15 @@ Not wired, and why:
 Design mapping notes: booking cancellations have no reason field in the API, and the design's Facility row maps to the booking page's location label (falling back to its title). The layout keeps the existing support and report-suspicious-activity footer links rather than the design's copyright-only footer.
 
 Verified: `pnpm build:api` passes after each step. `pnpm lint` unchanged at the same 34 pre-existing `apps/api` errors, none in touched files. No email was actually sent and no runtime pass was done.
+
+## Forms list — Figma Dashboard - Forms (2026-08-05)
+
+Applied frame `530:1556` to the forms list, matching the landing pages rework.
+
+- `form.service.getForms` now includes `_count: { select: { submissions: true } }`; `MarketingForm` on the FE gained the optional `_count`.
+- `form-list-table.tsx` moved from a plain div list to `ReportTable`: `Form | Status | Submissions | Created | Last Updated | Actions`, sortable Status via `SortableHeader`, `StatusPill` for Draft/Published, submissions rendered as "N responses" with the users icon, `TablePagination` in the footer.
+- `marketing-forms-list-page.tsx` gained the three KPI tiles (Total Forms / Published / Total Submissions), a search box, pagination and sort state, and optimistic delete with rollback. The create dialog moved to `DialogFormHeader` plus react-hook-form and zod; board selection resets the chosen fields, and the field list validates through `FormMessage` instead of a disabled submit.
+- Row-level Publish is gone, per the design's two-icon Actions column. Publish already lives in the form builder, so it is not lost.
+- Search placeholder reads "Search forms...." — the frame says "Search campaigns....", which is a copy-paste leftover from the campaigns screen.
+
+Verified: `pnpm build:fe` and `pnpm build:api` both pass. No runtime pass.

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import {
   getOwnAvailability,
   getOwnBookingPage,
@@ -46,7 +47,8 @@ const numberField = (min: number, max: number) =>
   z
     .string()
     .refine(
-      (v) => Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max,
+      (v) =>
+        Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max,
       `Must be a whole number between ${min} and ${max}`
     );
 
@@ -211,13 +213,11 @@ export function BookingSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Booking Page</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure your public scheduling link and availability.
-        </p>
-      </div>
+    <div className="mx-auto space-y-6 p-6">
+      <PageHeader
+        title="Booking Page"
+        description="Configure your public scheduling link and availability."
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
@@ -229,7 +229,7 @@ export function BookingSettingsPage() {
           { label: "Available Hours/Week", value: String(weeklyHours) },
         ].map((tile) => (
           <Card key={tile.label}>
-            <CardContent className="space-y-1.5 pt-6">
+            <CardContent className="space-y-1.5">
               <p className="text-sm text-muted-foreground">{tile.label}</p>
               <p className="text-2xl font-semibold text-[#0d3185]">
                 {tile.value}
@@ -241,7 +241,7 @@ export function BookingSettingsPage() {
 
       {pageQuery.data && (
         <Card>
-          <CardContent className="space-y-3 pt-6">
+          <CardContent className="space-y-3">
             <p className="text-sm font-medium">Your Public Booking Link</p>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border px-3 py-2">
@@ -270,103 +270,35 @@ export function BookingSettingsPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_471px]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Meeting Details</CardTitle>
-          <CardDescription>
-            What invitees see on your booking page.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((values) =>
-                updatePageMutation.mutate({
-                  ...values,
-                  durationMinutes: Number(values.durationMinutes),
-                  bufferBeforeMinutes: Number(values.bufferBeforeMinutes),
-                  bufferAfterMinutes: Number(values.bufferAfterMinutes),
-                  minNoticeHours: Number(values.minNoticeHours),
-                })
-              )}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+        <Card>
+          <CardHeader>
+            <CardTitle>Meeting Details</CardTitle>
+            <CardDescription>
+              What invitees see on your booking page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit((values) =>
+                  updatePageMutation.mutate({
+                    ...values,
+                    durationMinutes: Number(values.durationMinutes),
+                    bufferBeforeMinutes: Number(values.bufferBeforeMinutes),
+                    bufferAfterMinutes: Number(values.bufferAfterMinutes),
+                    minNoticeHours: Number(values.minNoticeHours),
+                  })
                 )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea rows={3} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="locationType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Meeting Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="VIDEO">Video call</SelectItem>
-                        <SelectItem value="IN_PERSON">In person</SelectItem>
-                        <SelectItem value="BOTH">
-                          Let the invitee choose
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="locationLabel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                className="space-y-4"
+              >
                 <FormField
                   control={form.control}
-                  name="durationMinutes"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Duration (minutes)</FormLabel>
+                      <FormLabel>Title</FormLabel>
                       <FormControl>
-                        <Input type="number" min={5} max={480} {...field} />
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -375,12 +307,12 @@ export function BookingSettingsPage() {
 
                 <FormField
                   control={form.control}
-                  name="timezone"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Timezone</FormLabel>
+                      <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="America/New_York" {...field} />
+                        <Textarea rows={3} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -389,13 +321,27 @@ export function BookingSettingsPage() {
 
                 <FormField
                   control={form.control}
-                  name="bufferBeforeMinutes"
+                  name="locationType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Buffer before</FormLabel>
-                      <FormControl>
-                        <Input type="number" min={0} max={120} {...field} />
-                      </FormControl>
+                      <FormLabel>Meeting Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="VIDEO">Video call</SelectItem>
+                          <SelectItem value="IN_PERSON">In person</SelectItem>
+                          <SelectItem value="BOTH">
+                            Let the invitee choose
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -403,118 +349,174 @@ export function BookingSettingsPage() {
 
                 <FormField
                   control={form.control}
-                  name="bufferAfterMinutes"
+                  name="locationLabel"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Buffer after</FormLabel>
+                      <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <Input type="number" min={0} max={120} {...field} />
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="minNoticeHours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Minimum notice (hours)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min={0} max={168} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="durationMinutes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Duration (minutes)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={5} max={480} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="timezone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Timezone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="America/New_York" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="bufferBeforeMinutes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Buffer before</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={0} max={120} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="bufferAfterMinutes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Buffer after</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={0} max={120} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="minNoticeHours"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Minimum notice (hours)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={0} max={168} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button type="submit" disabled={updatePageMutation.isPending}>
+                  {updatePageMutation.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                />
-              </div>
+                  Save
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
 
-              <Button type="submit" disabled={updatePageMutation.isPending}>
-                {updatePageMutation.isPending && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                Save
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Availability</CardTitle>
-          <CardDescription>
-            Hours you&apos;re available for bookings, in your booking page
-            timezone.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {days.map((row, dayOfWeek) => (
-            <div key={dayOfWeek} className="flex items-center gap-4">
-              <div className="flex items-center gap-2 w-24 shrink-0">
-                <Switch
-                  checked={row.enabled}
-                  onCheckedChange={(checked) =>
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly Availability</CardTitle>
+            <CardDescription>
+              Hours you&apos;re available for bookings, in your booking page
+              timezone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {days.map((row, dayOfWeek) => (
+              <div key={dayOfWeek} className="flex items-center gap-4">
+                <div className="flex items-center gap-2 w-24 shrink-0">
+                  <Switch
+                    checked={row.enabled}
+                    onCheckedChange={(checked) =>
+                      setDays((prev) =>
+                        prev.map((r, i) =>
+                          i === dayOfWeek ? { ...r, enabled: checked } : r
+                        )
+                      )
+                    }
+                  />
+                  <span className="text-sm font-medium">
+                    {DAY_LABELS[dayOfWeek]}
+                  </span>
+                </div>
+                <Input
+                  type="time"
+                  className="w-32 h-13"
+                  disabled={!row.enabled}
+                  value={row.startTime}
+                  onChange={(e) =>
                     setDays((prev) =>
                       prev.map((r, i) =>
-                        i === dayOfWeek ? { ...r, enabled: checked } : r
+                        i === dayOfWeek
+                          ? { ...r, startTime: e.target.value }
+                          : r
                       )
                     )
                   }
                 />
-                <span className="text-sm font-medium">
-                  {DAY_LABELS[dayOfWeek]}
-                </span>
+                <span className="text-muted-foreground text-sm">to</span>
+                <Input
+                  type="time"
+                  className="w-32"
+                  disabled={!row.enabled}
+                  value={row.endTime}
+                  onChange={(e) =>
+                    setDays((prev) =>
+                      prev.map((r, i) =>
+                        i === dayOfWeek ? { ...r, endTime: e.target.value } : r
+                      )
+                    )
+                  }
+                />
               </div>
-              <Input
-                type="time"
-                className="w-32"
-                disabled={!row.enabled}
-                value={row.startTime}
-                onChange={(e) =>
-                  setDays((prev) =>
-                    prev.map((r, i) =>
-                      i === dayOfWeek
-                        ? { ...r, startTime: e.target.value }
-                        : r
-                    )
-                  )
-                }
-              />
-              <span className="text-muted-foreground text-sm">to</span>
-              <Input
-                type="time"
-                className="w-32"
-                disabled={!row.enabled}
-                value={row.endTime}
-                onChange={(e) =>
-                  setDays((prev) =>
-                    prev.map((r, i) =>
-                      i === dayOfWeek ? { ...r, endTime: e.target.value } : r
-                    )
-                  )
-                }
-              />
-            </div>
-          ))}
+            ))}
 
-          <Button
-            onClick={handleSaveAvailability}
-            disabled={availabilityMutation.isPending}
-          >
-            {availabilityMutation.isPending && (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            )}
-            Save Availability
-          </Button>
-        </CardContent>
-      </Card>
-
+            <Button
+              onClick={handleSaveAvailability}
+              disabled={availabilityMutation.isPending}
+            >
+              {availabilityMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Save Availability
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <BookingListTable />
-
     </div>
   );
 }

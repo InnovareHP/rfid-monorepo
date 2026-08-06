@@ -1,4 +1,8 @@
-import { DOMAIN_ROLE_PERMISSIONS, DOMAIN_STATEMENT, ROLES } from "@dashboard/shared";
+import {
+  DOMAIN_ROLE_PERMISSIONS,
+  DOMAIN_STATEMENT,
+  ROLES,
+} from "@dashboard/shared";
 import { createAccessControl } from "better-auth/plugins/access";
 import {
   adminAc as AdminAccess,

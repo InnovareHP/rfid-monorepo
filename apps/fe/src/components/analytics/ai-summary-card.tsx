@@ -32,7 +32,9 @@ function InsightSection({ title, items, text }: AiInsightSection) {
         <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
       ) : (
         <ul className="ml-5 list-disc space-y-1.5 text-sm leading-relaxed text-muted-foreground">
-          {items?.map((item, index) => <li key={index}>{item}</li>)}
+          {items?.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
         </ul>
       )}
     </div>
@@ -108,7 +110,7 @@ export function AiSummaryCard({
           ) : null}
 
           <Button
-            className="h-11 w-fit rounded-lg bg-brand px-5 text-sm font-medium hover:bg-brand/90"
+            className="h-11 w-fit"
             disabled={!hasSections}
             onClick={() => setExpanded((open) => !open)}
           >

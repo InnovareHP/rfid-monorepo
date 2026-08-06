@@ -21,7 +21,11 @@ import {
 @Injectable()
 export class LiaisonService {
   private readonly logger = new Logger(LiaisonService.name);
-  async createMillage(createMillageDto: CreateMillageDto, memberId: string) {
+  async createMillage(
+    createMillageDto: CreateMillageDto,
+    memberId: string,
+    organizationId: string
+  ) {
     await prisma.$transaction(async (tx) => {
       const existingMileageToday = await tx.mileage.findFirst({
         where: {
@@ -49,6 +53,7 @@ export class LiaisonService {
           ratePerMile: createMillageDto.ratePerMile,
           reimbursementAmount: createMillageDto.reimbursementAmount,
           memberId,
+          organizationId,
         },
       });
     });
@@ -199,6 +204,7 @@ export class LiaisonService {
           notes: createMarketingDto.notes,
           reasonForVisit: createMarketingDto.reasonForVisit,
           memberId,
+          organizationId,
         },
       });
 
@@ -337,7 +343,11 @@ export class LiaisonService {
     });
   }
 
-  async createExpense(dto: CreateExpenseDto, memberId: string) {
+  async createExpense(
+    dto: CreateExpenseDto,
+    memberId: string,
+    organizationId: string
+  ) {
     await prisma.$transaction(async (tx) => {
       await tx.expense.create({
         data: {
@@ -346,6 +356,7 @@ export class LiaisonService {
           description: dto.description,
           notes: dto.notes,
           memberId,
+          organizationId,
         },
       });
     });

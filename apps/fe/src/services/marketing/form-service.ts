@@ -20,6 +20,7 @@ export type MarketingForm = {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: { submissions: number };
 };
 
 export type BoardField = {

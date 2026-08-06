@@ -54,7 +54,7 @@ export const PublicFormPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white rounded-lg border border-gray-200 p-6">
+      <div className="w-full max-w-2xl rounded-xl bg-white px-7 py-12 shadow-sm">
         <FormRenderer form={form} onSubmit={onSubmit} submitted={submitted} />
       </div>
     </div>

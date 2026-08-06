@@ -13,8 +13,17 @@ body {
 body {
   @apply m-0;
   font-family:
-    "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    "Manrope",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -192,14 +201,23 @@ code {
 }
 
 /* FullCalendar theme overrides */
+
 .fc {
   --fc-border-color: #e2e8f0;
   --fc-button-bg-color: var(--primary);
   --fc-button-border-color: var(--primary);
   --fc-button-hover-bg-color: color-mix(in oklch, var(--primary), black 15%);
-  --fc-button-hover-border-color: color-mix(in oklch, var(--primary), black 15%);
+  --fc-button-hover-border-color: color-mix(
+    in oklch,
+    var(--primary),
+    black 15%
+  );
   --fc-button-active-bg-color: color-mix(in oklch, var(--primary), black 25%);
-  --fc-button-active-border-color: color-mix(in oklch, var(--primary), black 25%);
+  --fc-button-active-border-color: color-mix(
+    in oklch,
+    var(--primary),
+    black 25%
+  );
   --fc-today-bg-color: transparent;
   --fc-neutral-bg-color: #f1f5f9;
   --fc-page-bg-color: transparent;
@@ -238,7 +256,11 @@ code {
   letter-spacing: 0.05em;
   color: #ffffff;
   padding: 0.625rem 0;
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 20%), var(--primary));
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 20%),
+    var(--primary)
+  );
   border-bottom: none;
 }
 
@@ -306,12 +328,21 @@ code {
 }
 
 .fc .fc-daygrid-body tr:nth-child(even) .fc-daygrid-day {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 92%) 0%, color-mix(in oklch, var(--primary), white 90%) 50%, color-mix(in oklch, var(--primary), white 85%) 100%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 92%) 0%,
+    color-mix(in oklch, var(--primary), white 90%) 50%,
+    color-mix(in oklch, var(--primary), white 85%) 100%
+  );
 }
 
 /* Today cell - distinct primary glow */
 .fc .fc-daygrid-day.fc-day-today {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 82%) 0%, color-mix(in oklch, var(--primary), white 85%) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 82%) 0%,
+    color-mix(in oklch, var(--primary), white 85%) 100%
+  ) !important;
   position: relative;
 }
 
@@ -330,7 +361,11 @@ code {
 /* Override weekend + striped row combo */
 .fc .fc-daygrid-body tr:nth-child(even) .fc-day-sat:not(.fc-day-today),
 .fc .fc-daygrid-body tr:nth-child(even) .fc-day-sun:not(.fc-day-today) {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 85%) 0%, color-mix(in oklch, var(--primary), white 90%) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 85%) 0%,
+    color-mix(in oklch, var(--primary), white 90%) 100%
+  ) !important;
 }
 
 /* Timegrid (week/day) - cool alternating hour bands */
@@ -340,7 +375,11 @@ code {
 
 .fc .fc-timegrid-slot:nth-child(4n + 1),
 .fc .fc-timegrid-slot:nth-child(4n + 2) {
-  background: linear-gradient(90deg, #f8fafc, color-mix(in oklch, var(--primary), white 92%));
+  background: linear-gradient(
+    90deg,
+    #f8fafc,
+    color-mix(in oklch, var(--primary), white 92%)
+  );
 }
 
 .fc .fc-timegrid-slot:nth-child(4n + 3),
@@ -378,7 +417,11 @@ code {
 
 /* Day cell hover */
 .fc .fc-daygrid-day:hover {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 92%) 0%, color-mix(in oklch, var(--primary), white 90%) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 92%) 0%,
+    color-mix(in oklch, var(--primary), white 90%) 100%
+  ) !important;
   transition: background 0.2s;
 }
 
@@ -418,6 +461,9 @@ code {
     isolation: isolate;
   }
 
+  .page-style {
+    @apply min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8;
+  }
   .primary-active-border::before {
     content: "";
     position: absolute;

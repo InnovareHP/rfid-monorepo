@@ -671,11 +671,7 @@ export class BoardService {
   }
 
   // Job ids are queue-sequential, so the payload's organization is the only proof.
-  async getJobStatus(
-    jobId: string,
-    queueName: string,
-    organizationId: string
-  ) {
+  async getJobStatus(jobId: string, queueName: string, organizationId: string) {
     const job = await this.getQueueByName(queueName).getJob(jobId);
     if (!job || job.data?.organizationId !== organizationId) {
       throw new NotFoundException("Job not found");

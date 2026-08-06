@@ -126,10 +126,12 @@ describe("SupportService cross-account isolation", () => {
         service.createLiveChatMessage("chat-1", ATTACKER, "hello")
       ).rejects.toThrow(NotFoundException);
 
-      expect(db.supportLiveChat.findFirst.mock.calls[0][0].where).toMatchObject({
-        id: "chat-1",
-        sender: ATTACKER,
-      });
+      expect(db.supportLiveChat.findFirst.mock.calls[0][0].where).toMatchObject(
+        {
+          id: "chat-1",
+          sender: ATTACKER,
+        }
+      );
       expect(db.supportLiveChatMessage.create).not.toHaveBeenCalled();
     });
   });

@@ -60,7 +60,9 @@ const db = prisma as unknown as {
   $transaction: jest.Mock;
 };
 
-const queueStub = (job: unknown) => ({ getJob: jest.fn().mockResolvedValue(job) });
+const queueStub = (job: unknown) => ({
+  getJob: jest.fn().mockResolvedValue(job),
+});
 
 describe("BoardService tenant isolation", () => {
   let service: BoardService;
@@ -85,9 +87,9 @@ describe("BoardService tenant isolation", () => {
   // proven through the Board relation, whose organizationId is required.
   describe("deleteRecordHistory", () => {
     it("refuses an audit row belonging to another organization", async () => {
-      await expect(
-        service.deleteRecordHistory(FOREIGN, ORG)
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.deleteRecordHistory(FOREIGN, ORG)).rejects.toThrow(
+        NotFoundException
+      );
 
       expect(db.history.findFirst.mock.calls[0][0].where).toMatchObject({
         record: { organizationId: ORG },

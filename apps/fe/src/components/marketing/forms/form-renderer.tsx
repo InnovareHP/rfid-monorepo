@@ -26,11 +26,17 @@ type FormRendererProps = {
   form: PublicForm;
   onSubmit: (values: Record<string, string>) => void | Promise<void>;
   submitted: boolean;
+  preview?: boolean;
 };
 
-// Presentational form body shared between the standalone public form page
-// and a FORM_EMBED section on a landing page — same markup, same states.
-export const FormRenderer = ({ form, onSubmit, submitted }: FormRendererProps) => {
+// Presentational form body shared between the standalone public form page,
+// a FORM_EMBED section on a landing page, and the builder preview canvas.
+export const FormRenderer = ({
+  form,
+  onSubmit,
+  submitted,
+  preview = false,
+}: FormRendererProps) => {
   const schema = z.object(
     Object.fromEntries(
       form.fieldMappings.map((mapping) => [
@@ -48,9 +54,11 @@ export const FormRenderer = ({ form, onSubmit, submitted }: FormRendererProps) =
     values: Object.fromEntries(form.fieldMappings.map((m) => [m.fieldId, ""])),
   });
 
+  const hasRequired = form.fieldMappings.some((mapping) => mapping.required);
+
   if (submitted) {
     return (
-      <div className="text-center space-y-2">
+      <div className="space-y-2 text-center">
         <h1 className="text-lg font-semibold text-gray-900">Thank you</h1>
         <p className="text-sm text-gray-500">
           Your submission has been received.
@@ -60,66 +68,80 @@ export const FormRenderer = ({ form, onSubmit, submitted }: FormRendererProps) =
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-gray-900">{form.name}</h1>
+    <div className="space-y-6">
+      <div className="space-y-1 text-center">
+        <h1 className="text-2xl font-semibold text-gray-900">{form.name}</h1>
+        {hasRequired && (
+          <p className="text-sm text-gray-500">
+            Fields marked with <span className="text-red-500">*</span> are
+            required.
+          </p>
+        )}
+      </div>
+
       <Form {...rhForm}>
-        <form onSubmit={rhForm.handleSubmit(onSubmit)} className="space-y-4">
-          {form.fieldMappings.map((mapping) => (
-            <FormField
-              key={mapping.fieldId}
-              control={rhForm.control}
-              name={mapping.fieldId}
-              render={({ field }) =>
-                mapping.fieldType === "CHECKBOX" ? (
-                  <FormItem className="flex items-center gap-2">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value === "true"}
-                        onCheckedChange={(checked) =>
-                          field.onChange(checked ? "true" : "false")
-                        }
-                      />
-                    </FormControl>
-                    <FormLabel className="text-sm">
-                      {mapping.label}
-                      {mapping.required && (
-                        <span className="text-red-500">*</span>
-                      )}
-                    </FormLabel>
-                    <FormMessage />
-                  </FormItem>
-                ) : (
-                  <FormItem className="space-y-1.5">
-                    <FormLabel>
-                      {mapping.label}
-                      {mapping.required && (
-                        <span className="text-red-500 ml-0.5">*</span>
-                      )}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type={
-                          INPUT_TYPE_BY_FIELD_TYPE[mapping.fieldType] ?? "text"
-                        }
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )
-              }
-            />
-          ))}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={rhForm.formState.isSubmitting}
-          >
-            {rhForm.formState.isSubmitting && (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            )}
-            {form.submitButtonText}
-          </Button>
+        <form onSubmit={rhForm.handleSubmit(onSubmit)} className="space-y-6">
+          <fieldset disabled={preview} className="space-y-4">
+            {form.fieldMappings.map((mapping) => (
+              <FormField
+                key={mapping.fieldId}
+                control={rhForm.control}
+                name={mapping.fieldId}
+                render={({ field }) =>
+                  mapping.fieldType === "CHECKBOX" ? (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === "true"}
+                          onCheckedChange={(checked) =>
+                            field.onChange(checked ? "true" : "false")
+                          }
+                        />
+                      </FormControl>
+                      <FormLabel className="text-sm">
+                        {mapping.label}
+                        {mapping.required && (
+                          <span className="text-red-500">*</span>
+                        )}
+                      </FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  ) : (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel>
+                        {mapping.label}
+                        {mapping.required && (
+                          <span className="ml-0.5 text-red-500">*</span>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type={
+                            INPUT_TYPE_BY_FIELD_TYPE[mapping.fieldType] ?? "text"
+                          }
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }
+              />
+            ))}
+          </fieldset>
+
+          <div className="flex justify-center">
+            <Button
+              type="submit"
+              className="bg-brand px-8 text-white hover:bg-brand/90"
+              disabled={preview || rhForm.formState.isSubmitting}
+            >
+              {rhForm.formState.isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {form.submitButtonText}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
