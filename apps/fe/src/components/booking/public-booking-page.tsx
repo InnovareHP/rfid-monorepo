@@ -351,7 +351,7 @@ export function PublicBookingPage({
             </Form>
           ) : (
             <>
-              <div className="flex rounded-xl border max-md:flex-col relative h-[35vh]">
+              <div className="flex rounded-xl border max-md:flex-col md:h-[420px]">
                 <Calendar
                   mode="single"
                   selected={selectedDate}

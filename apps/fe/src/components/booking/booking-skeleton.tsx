@@ -34,12 +34,13 @@ export function CalendarSkeleton() {
   );
 }
 
-// Matches the slot column's own padding and border so the seam stays put.
+// Matches the slot column's width, padding and border so the seam stays put,
+// and clips rather than scrolls: a placeholder has nothing to scroll to.
 export function SlotListSkeleton() {
   return (
-    <div className="flex w-full shrink-0 flex-col gap-2 border-l p-6">
+    <div className="flex h-full w-[240px] shrink-0 flex-col gap-2 overflow-hidden border-l p-6 max-md:h-[280px] max-md:w-full">
       {SLOTS.map((key) => (
-        <Skeleton key={key} className="h-9 shrink-0 w-full" />
+        <Skeleton key={key} className="h-9 w-full shrink-0" />
       ))}
     </div>
   );
@@ -74,7 +75,7 @@ export function BookingPageSkeleton() {
       <section className="flex min-w-0 flex-1 flex-col p-6">
         <Skeleton className="mb-4 h-8 w-56" />
 
-        <div className="flex rounded-xl border max-md:flex-col">
+        <div className="flex rounded-xl border max-md:flex-col md:h-[420px]">
           <CalendarSkeleton />
           <SlotListSkeleton />
         </div>
