@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { BookingLocation, LocationType, Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import type { z } from "zod";
 import { appConfig } from "../../config/app-config";
@@ -26,6 +26,21 @@ import {
 type UpdateBookingPageData = z.infer<typeof UpdateBookingPageSchema>;
 
 const DEFAULT_TIMEZONE = "UTC";
+
+// Only a page offering BOTH lets the invitee decide; anything else fixes the
+// mode, and a request asking for the other one is rejected rather than coerced.
+function resolveLocation(
+  offered: LocationType,
+  requested: BookingLocation | undefined
+): BookingLocation {
+  if (offered === "BOTH") return requested ?? "VIDEO";
+  if (requested && requested !== offered) {
+    throw new BadRequestException(
+      "This booking page does not offer that meeting type"
+    );
+  }
+  return offered;
+}
 
 @Injectable()
 export class BookingService {
@@ -260,6 +275,7 @@ export class BookingService {
       title: page.title,
       description: page.description,
       durationMinutes: page.durationMinutes,
+      locationType: page.locationType,
       locationLabel: page.locationLabel,
       timezone: page.timezone,
       hostName: page.user.name,
@@ -384,6 +400,7 @@ export class BookingService {
             inviteeName: dto.inviteeName,
             inviteeEmail: dto.inviteeEmail,
             inviteeNotes: dto.inviteeNotes,
+            locationType: resolveLocation(page.locationType, dto.locationType),
             startTime,
             endTime,
           },

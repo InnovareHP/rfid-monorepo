@@ -27,5 +27,6 @@ export const CreateBookingSchema = z.object({
   inviteeName: z.string().min(1),
   inviteeEmail: z.email(),
   inviteeNotes: z.string().optional(),
+  locationType: z.enum(["VIDEO", "IN_PERSON"]).optional(),
   boardId: z.string().optional(),
 });
