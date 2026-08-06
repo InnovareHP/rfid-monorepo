@@ -1,5 +1,4 @@
 import {
-  cancelBooking,
   getOwnAvailability,
   getOwnBookingPage,
   getOwnBookings,
@@ -23,16 +22,23 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Separator } from "@dashboard/ui/components/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@dashboard/ui/components/select";
 import { Switch } from "@dashboard/ui/components/switch";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Copy, Eye, Link as LinkIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { BookingListTable } from "./booking-list-table";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -47,6 +53,7 @@ const numberField = (min: number, max: number) =>
 const pageFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
+  locationType: z.enum(["VIDEO", "IN_PERSON", "BOTH"]),
   locationLabel: z.string().optional(),
   durationMinutes: numberField(5, 480),
   timezone: z.string().min(1, "Timezone is required"),
@@ -113,12 +120,26 @@ export function BookingSettingsPage() {
     queryFn: () => getOwnBookings(),
   });
 
+  // Both tiles are counted off data already on screen rather than a new endpoint.
+  const upcomingCount = (bookingsQuery.data?.data ?? []).filter(
+    (booking) =>
+      booking.status === "CONFIRMED" && new Date(booking.startTime) > new Date()
+  ).length;
+
+  const weeklyHours = Math.round(
+    (availabilityQuery.data ?? []).reduce(
+      (total, rule) => total + (rule.endMinute - rule.startMinute),
+      0
+    ) / 60
+  );
+
   const form = useForm<PageFormValues>({
     resolver: zodResolver(pageFormSchema),
     values: pageQuery.data
       ? {
           title: pageQuery.data.title,
           description: pageQuery.data.description ?? "",
+          locationType: pageQuery.data.locationType,
           locationLabel: pageQuery.data.locationLabel ?? "",
           durationMinutes: String(pageQuery.data.durationMinutes),
           timezone: pageQuery.data.timezone,
@@ -157,15 +178,6 @@ export function BookingSettingsPage() {
     onError: () => toast.error("Failed to update availability"),
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: cancelBooking,
-    onSuccess: () => {
-      toast.success("Booking cancelled");
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-    },
-    onError: () => toast.error("Failed to cancel booking"),
-  });
-
   const handleSaveAvailability = () => {
     const rules = days
       .map((row, dayOfWeek) => ({ ...row, dayOfWeek }))
@@ -199,7 +211,7 @@ export function BookingSettingsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Booking Page</h1>
         <p className="text-sm text-muted-foreground">
@@ -207,23 +219,57 @@ export function BookingSettingsPage() {
         </p>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          {
+            label: "Link Status",
+            value: pageQuery.data?.isActive ? "Active" : "Inactive",
+          },
+          { label: "Upcoming Bookings", value: String(upcomingCount) },
+          { label: "Available Hours/Week", value: String(weeklyHours) },
+        ].map((tile) => (
+          <Card key={tile.label}>
+            <CardContent className="space-y-1.5 pt-6">
+              <p className="text-sm text-muted-foreground">{tile.label}</p>
+              <p className="text-2xl font-semibold text-[#0d3185]">
+                {tile.value}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {pageQuery.data && (
         <Card>
-          <CardContent className="flex items-center justify-between gap-2 pt-6">
-            <div className="flex items-center gap-2 min-w-0">
-              <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="truncate text-sm">
-                {pageQuery.data.publicUrl}
-              </span>
+          <CardContent className="space-y-3 pt-6">
+            <p className="text-sm font-medium">Your Public Booking Link</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border px-3 py-2">
+                <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="truncate text-sm">
+                  {pageQuery.data.publicUrl}
+                </span>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href={pageQuery.data.publicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Live
+                </a>
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleCopyLink}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
           </CardContent>
         </Card>
       )}
 
+      <div className="grid gap-6 lg:grid-cols-[1fr_471px]">
       <Card>
         <CardHeader>
           <CardTitle>Meeting Details</CardTitle>
@@ -268,6 +314,31 @@ export function BookingSettingsPage() {
                     <FormControl>
                       <Textarea rows={3} {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="locationType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Meeting Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="VIDEO">Video call</SelectItem>
+                        <SelectItem value="IN_PERSON">In person</SelectItem>
+                        <SelectItem value="BOTH">
+                          Let the invitee choose
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -440,54 +511,10 @@ export function BookingSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Bookings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {bookingsQuery.isLoading ? (
-            <div className="flex items-center gap-2 text-muted-foreground py-4">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading bookings...
-            </div>
-          ) : (bookingsQuery.data?.data.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">
-              No bookings yet.
-            </p>
-          ) : (
-            bookingsQuery.data?.data.map((booking) => (
-              <div key={booking.id}>
-                <div className="flex items-center justify-between gap-4 py-2">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">
-                      {booking.inviteeName}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(booking.startTime).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                      {" · "}
-                      {booking.status}
-                    </p>
-                  </div>
-                  {booking.status === "CONFIRMED" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={cancelMutation.isPending}
-                      onClick={() => cancelMutation.mutate(booking.id)}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                </div>
-                <Separator />
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      </div>
+
+      <BookingListTable />
+
     </div>
   );
 }

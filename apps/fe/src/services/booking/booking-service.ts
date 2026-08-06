@@ -5,6 +5,7 @@ export interface BookingPage {
   slug: string;
   title: string;
   description: string | null;
+  locationType: "VIDEO" | "IN_PERSON" | "BOTH";
   locationLabel: string | null;
   durationMinutes: number;
   timezone: string;
@@ -50,6 +51,7 @@ export const updateOwnBookingPage = async (
   data: Partial<{
     title: string;
     description: string;
+    locationType: "VIDEO" | "IN_PERSON" | "BOTH";
     locationLabel: string;
     durationMinutes: number;
     timezone: string;
