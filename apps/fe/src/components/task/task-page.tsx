@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import {
   useTaskLists,
   useTaskMutations,
@@ -234,14 +235,10 @@ const TaskPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="space-y-6">
-        <div>
-          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-            Tasks
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Plan, assign, and track work across your team.
-          </p>
-        </div>
+        <PageHeader
+        title="Tasks"
+        description="Plan, assign, and track work across your team."
+      />
 
         <TaskStatsStrip stats={stats} isLoading={isLoading} />
 

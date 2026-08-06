@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { authClient } from "@/lib/auth-client";
 import {
   Tabs,
@@ -88,14 +89,10 @@ export function ProfilePage({
       {...props}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-            Account Settings
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your account, security, and active sessions.
-          </p>
-        </div>
+        <PageHeader
+        title="Account Settings"
+        description="Manage your account, security, and active sessions."
+      />
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="h-auto w-fit gap-1 self-start rounded-lg bg-table-header p-1.5">

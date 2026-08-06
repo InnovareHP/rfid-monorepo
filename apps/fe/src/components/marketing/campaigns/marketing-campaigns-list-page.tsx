@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import {
   archiveCampaign,
   createCampaign,
@@ -230,14 +231,10 @@ export const MarketingCampaignsListPage = () => {
   return (
     <div className="min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-            Campaigns
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Group forms, blasts, and landing pages together.
-          </p>
-        </div>
+        <PageHeader
+        title="Campaigns"
+        description="Group forms, blasts, and landing pages together."
+      />
 
         <Button
           onClick={() => setCreateOpen(true)}

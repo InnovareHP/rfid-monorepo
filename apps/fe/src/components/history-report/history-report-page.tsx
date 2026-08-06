@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import {
   getLeadHistory,
   getLeadHistoryMeta,
@@ -285,15 +286,10 @@ export default function HistoryReportPage() {
   return (
     <>
       <div className="min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8">
-        <div>
-          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-            History Check
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Audit every change made to your records - see what changed, who
-            changed it, and undo it in one click.
-          </p>
-        </div>
+        <PageHeader
+        title="History Check"
+        description="Audit every change made to your records - see what changed, who changed it, and undo it in one click."
+      />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <KpiStatTile

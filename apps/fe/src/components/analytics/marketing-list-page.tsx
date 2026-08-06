@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { exportElementToPdf } from "@/lib/helper/pdf-export";
 import { getMarketingList } from "@/services/analytics/analytics-service";
 import { getLiaisons } from "@/services/options/options-service";
@@ -98,14 +99,10 @@ const MarketingListPage = () => {
       <div className="space-y-6">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div>
-            <h1 className="page-title text-4xl font-bold tracking-tight">
-              Master List Analytics Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track performance, insights, and engagement metrics.
-            </p>
-          </div>
+          <PageHeader
+        title="Master List Analytics Dashboard"
+        description="Track performance, insights, and engagement metrics."
+      />
 
           <DateRangeFilter
             from={pendingFilters.start}

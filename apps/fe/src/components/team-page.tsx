@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
 import { authClient } from "@/lib/auth-client";
 import { isOrgAdmin } from "@dashboard/shared";
@@ -200,14 +201,10 @@ const TeamPage = () => {
     <div className="min-h-screen p-4 bg-gray-50 sm:p-8 rounded-xl">
       <div className="max-w-8xl mx-auto space-y-8">
         <div className="flex flex-wrap space-y-4 items-center justify-between">
-          <div>
-            <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-              Team Management
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Manage who has access to your organization and what they can see.
-            </p>
-          </div>
+          <PageHeader
+        title="Team Management"
+        description="Manage who has access to your organization and what they can see."
+      />
           {canManageTeam && (
             <InviteMemberDialog
               open={isInviteDialogOpen}

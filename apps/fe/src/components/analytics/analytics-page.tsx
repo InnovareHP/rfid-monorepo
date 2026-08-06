@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { lazy, Suspense, useState } from "react";
 
 import {
@@ -124,14 +125,10 @@ export default function ReferralAnalyticsDashboard() {
       <div className="space-y-6">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div>
-            <h1 className="page-title text-4xl font-bold tracking-tight">
-              Referral Analytics Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track key outreach and referral performance metrics.
-            </p>
-          </div>
+          <PageHeader
+        title="Referral Analytics Dashboard"
+        description="Track key outreach and referral performance metrics."
+      />
 
           <AnalyticsDateFilter
             onChange={(range) => {

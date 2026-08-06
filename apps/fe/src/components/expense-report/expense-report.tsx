@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import {
   exportExpenseLogs,
   getExpenseLogs,
@@ -93,14 +94,10 @@ export default function ExpenseReportPage() {
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-              Expense Report
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track and manage business expenses and receipts.
-            </p>
-          </div>
+          <PageHeader
+        title="Expense Report"
+        description="Track and manage business expenses and receipts."
+      />
 
           <Button
             onClick={handleExport}

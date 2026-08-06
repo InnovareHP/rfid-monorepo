@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { authClient } from "@/lib/auth-client";
 import {
   createBlast,
@@ -113,14 +114,10 @@ export const MarketingBlastsListPage = () => {
   return (
     <div className="min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-            Blasts
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Email a filtered audience of leads or referrals.
-          </p>
-        </div>
+        <PageHeader
+        title="Blasts"
+        description="Email a filtered audience of leads or referrals."
+      />
 
         <Button
           onClick={() => setCreateOpen(true)}

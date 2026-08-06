@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { getMileageLogs } from "@/services/mileage/mileage-service";
 import type { MileageLogRow } from "@dashboard/shared";
@@ -144,14 +145,10 @@ export default function MileageReportPage() {
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-              Mileage Report
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track and manage mileage reimbursements.
-            </p>
-          </div>
+          <PageHeader
+        title="Mileage Report"
+        description="Track and manage mileage reimbursements."
+      />
 
           <Button
             onClick={handleExportCSV}

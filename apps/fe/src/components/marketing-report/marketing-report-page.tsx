@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { getMarketLogs } from "@/services/market/market-service";
 import type { MarketLogRow } from "@dashboard/shared";
@@ -137,14 +138,10 @@ export default function MarketingReportPage() {
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-              Marketing Report
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track outreach activities and referral generation efforts.
-            </p>
-          </div>
+          <PageHeader
+        title="Marketing Report"
+        description="Track outreach activities and referral generation efforts."
+      />
 
           <Button
             onClick={handleExportCSV}
