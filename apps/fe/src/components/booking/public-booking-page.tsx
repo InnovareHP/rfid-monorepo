@@ -37,8 +37,7 @@ import { BookingConfirmation } from "./booking-confirmation";
 import { BookingPageSkeleton, SlotListSkeleton } from "./booking-skeleton";
 import { SlotPicker } from "./slot-picker";
 
-const BRAND_WORDMARK =
-  "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
+const BRAND_WORDMARK = "/branding/full/Refidly [Full] - White-no-bg.png";
 
 const SHELL_GRADIENT =
   "bg-[linear-gradient(58deg,#01184d_0%,#0d3185_25.66%,#2c86d9_53.06%,#64d1f4_74.2%,#f5f5f5_100%)]";
@@ -351,7 +350,7 @@ export function PublicBookingPage({
             </Form>
           ) : (
             <>
-              <div className="flex rounded-xl border max-md:flex-col md:h-[420px]">
+              <div className="flex overflow-hidden rounded-xl border max-md:flex-col">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -363,7 +362,7 @@ export function PublicBookingPage({
                     setSelectedDate(next);
                     setSelectedSlot(null);
                   }}
-                  className="shrink-0 p-6 min-w-[380px] max-w-[400px]"
+                  className="flex-1 p-4"
                 />
 
                 {slotsQuery.isLoading ? (
