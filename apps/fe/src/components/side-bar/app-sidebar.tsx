@@ -1,6 +1,7 @@
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
+import { useEntitlement } from "@/hooks/use-entitlement";
 import { can } from "@/lib/permissions";
 import {
   Sidebar,
@@ -53,6 +54,10 @@ export function AppSidebar({
   user,
   ...props
 }: AppSidebarProps) {
+  // HIPAA mode and the BAA are a Scale feature, so the tab is hidden rather
+  // than shown leading to an upsell the plan cannot act on.
+  const canUseHipaa = useEntitlement(activeOrganizationId).has("hipaa");
+
   const data = React.useMemo(
     () => ({
       navMain: [
@@ -236,11 +241,15 @@ export function AppSidebar({
               url: `/${activeOrganizationId}/settings/booking`,
               icon: CalendarClock,
             },
-            {
-              title: "Compliance",
-              url: `/${activeOrganizationId}/settings/compliance`,
-              icon: ShieldCheck,
-            },
+            ...(canUseHipaa
+              ? [
+                  {
+                    title: "Compliance",
+                    url: `/${activeOrganizationId}/settings/compliance`,
+                    icon: ShieldCheck,
+                  },
+                ]
+              : []),
             ...(can(memberData?.role, { billing: ["manage_billing"] })
               ? [
                   {
@@ -259,7 +268,7 @@ export function AppSidebar({
         },
       ],
     }),
-    [activeOrganizationId, memberData?.role]
+    [activeOrganizationId, memberData?.role, canUseHipaa]
   );
 
   return (
