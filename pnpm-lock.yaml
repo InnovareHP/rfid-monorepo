@@ -101,6 +101,9 @@ importers:
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       googleapis:
         specifier: ^171.4.0
         version: 171.4.0
