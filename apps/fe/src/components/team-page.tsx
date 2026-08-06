@@ -198,7 +198,7 @@ const TeamPage = () => {
     : [];
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50 sm:p-8 rounded-xl">
+    <div className="page-style rounded-xl">
       <div className="max-w-8xl mx-auto space-y-8">
         <div className="flex flex-wrap space-y-4 items-center justify-between">
           <PageHeader

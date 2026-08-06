@@ -129,7 +129,7 @@ const TaskDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
+    <div className="page-style">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center gap-3 flex-wrap">
           <Button variant="ghost" size="sm" onClick={goBack}>

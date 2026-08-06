@@ -285,7 +285,7 @@ export default function HistoryReportPage() {
 
   return (
     <>
-      <div className="min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8">
+      <div className="page-style">
         <PageHeader
         title="History Check"
         description="Audit every change made to your records - see what changed, who changed it, and undo it in one click."

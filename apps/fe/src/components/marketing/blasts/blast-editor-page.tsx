@@ -197,7 +197,7 @@ export const BlastEditorPage = () => {
 
   return (
     <Form {...form}>
-      <div className="min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8">
+      <div className="page-style">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button

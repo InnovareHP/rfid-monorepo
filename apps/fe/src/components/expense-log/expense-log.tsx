@@ -124,7 +124,7 @@ const ExpenseLogPage = () => {
   const lastEntry = rows[0]?.createdAt ? formatDateTime(rows[0].createdAt) : "—";
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
+    <div className="page-style">
       <div className="max-w-7xl mx-auto space-y-6">
         <LogPageHeader
           icon={Receipt}

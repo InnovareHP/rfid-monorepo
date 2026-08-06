@@ -326,7 +326,7 @@ const RecordCreateForm = ({
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <div className="page-style">
       <div className="w-full space-y-4">
         <div className="flex items-start gap-3 sm:gap-4">
           <Button

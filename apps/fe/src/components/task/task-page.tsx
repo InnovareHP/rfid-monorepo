@@ -233,7 +233,7 @@ const TaskPage = () => {
     projectsQuery.isLoading || listsQuery.isLoading || tasksQuery.isLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
+    <div className="page-style">
       <div className="space-y-6">
         <PageHeader
         title="Tasks"

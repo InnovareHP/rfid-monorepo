@@ -104,7 +104,7 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full min-h-screen bg-gradient-to-br from-slate-50 via-primary/5 to-primary/5">
+    <div className="page-style flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-primary/15 bg-white/80 backdrop-blur-sm px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">

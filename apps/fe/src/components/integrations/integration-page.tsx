@@ -234,7 +234,7 @@ export default function IntegrationPage() {
   }, [queryClient, search?.outlook_calendar, search?.message]);
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-gray-50 via-primary/5 to-gray-50">
+    <div className="page-style w-full">
       <div className="sticky top-0 z-50 border-b-2 border-primary/30 bg-white shadow-md">
         <div className="mx-auto max-w-7xl p-6 sm:p-8">
           <div className="flex items-center gap-3">
