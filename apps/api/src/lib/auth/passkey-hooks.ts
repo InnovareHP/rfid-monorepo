@@ -1,5 +1,6 @@
 import { APIError } from "better-auth/api";
 import type { GenericEndpointContext } from "@better-auth/core";
+import { invalidateTwoFactorCache } from "../../guard/hipaa/hipaa.guard";
 import { prisma } from "../prisma/prisma";
 import { getAuthenticatorName } from "./authenticator-names";
 import {
@@ -60,6 +61,10 @@ export const afterPasskeyRegistration = async ({
   const deviceLabel = getAuthenticatorName(
     verification.registrationInfo?.aaguid
   );
+
+  // The HIPAA gate accepts a passkey as the second factor, so a fresh
+  // enrollment has to open that gate now rather than when the TTL lapses.
+  await invalidateTwoFactorCache(user.id);
 
   // No context means an authenticated user adding another device.
   if (!context) {

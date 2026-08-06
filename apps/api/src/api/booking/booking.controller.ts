@@ -16,6 +16,7 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { ZodValidationPipe } from "nestjs-zod";
 import { BookingService } from "./booking.service";
@@ -25,7 +26,7 @@ import {
 } from "./dto/booking.schema";
 
 @Controller("booking")
-@UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard, HipaaGuard)
 @UsePipes(ZodValidationPipe)
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}

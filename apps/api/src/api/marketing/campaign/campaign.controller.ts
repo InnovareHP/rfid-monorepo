@@ -14,6 +14,7 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import {
   PermissionGuard,
@@ -23,7 +24,7 @@ import { CampaignService } from "./campaign.service";
 import { CreateCampaignDto, UpdateCampaignDto } from "./dto/campaign.dto";
 
 @Controller("marketing/campaigns")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
 export class CampaignController {
   constructor(private readonly campaignService: CampaignService) {}
 

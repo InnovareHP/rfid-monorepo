@@ -14,6 +14,7 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import {
   PermissionGuard,
@@ -23,7 +24,7 @@ import { CreateFormDto, UpdateFormDto } from "./dto/form.dto";
 import { FormService } from "./form.service";
 
 @Controller("marketing/forms")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
 export class FormController {
   constructor(private readonly formService: FormService) {}
 

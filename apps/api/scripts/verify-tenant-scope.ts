@@ -1,33 +1,28 @@
 import { prisma } from "../src/lib/prisma/prisma";
 import { runUnscoped, runWithTenant } from "../src/lib/prisma/tenant-context";
 
-// Exercises the real extended client. The engine is never reached: the guard
-// runs inside the query pipeline before any connection is opened, so a thrown
-// TenantScopeError proves the extension is installed on the exported singleton.
-const checks: [string, () => Promise<unknown>, "throws" | "reaches-engine"][] =
+// Exercises the real extended client. What is asserted is whether the guard
+// blocked the call, not whether a database answered it, so the script gives the
+// same result against a reachable and an unreachable DATABASE_URL.
+const checks: [string, () => Promise<unknown>, "blocked" | "allowed"][] = [
+  ["scoped read with no context", () => prisma.board.findMany(), "blocked"],
   [
-    ["scoped read with no context", () => prisma.board.findMany(), "throws"],
-    [
-      "scoped write with no context",
-      () => prisma.field.create({ data: {} as never }),
-      "throws",
-    ],
-    [
-      "scoped read inside a tenant",
-      () => runWithTenant("org_a", () => prisma.board.findMany()),
-      "reaches-engine",
-    ],
-    [
-      "scoped read inside the escape hatch",
-      () => runUnscoped(() => prisma.board.findMany()),
-      "reaches-engine",
-    ],
-    [
-      "unscoped model with no context",
-      () => prisma.user.findMany(),
-      "reaches-engine",
-    ],
-  ];
+    "scoped write with no context",
+    () => prisma.field.create({ data: {} as never }),
+    "blocked",
+  ],
+  [
+    "scoped read inside a tenant",
+    () => runWithTenant("org_a", () => prisma.board.findMany()),
+    "allowed",
+  ],
+  [
+    "scoped read inside the escape hatch",
+    () => runUnscoped(() => prisma.board.findMany()),
+    "allowed",
+  ],
+  ["unscoped model with no context", () => prisma.user.findMany(), "allowed"],
+];
 
 async function main() {
   let failed = 0;
@@ -36,12 +31,13 @@ async function main() {
     let outcome: string;
     try {
       await run();
-      outcome = "resolved";
+      outcome = "allowed";
     } catch (error) {
+      // Anything other than the guard's own error means the call got past it.
       outcome =
         error instanceof Error && error.name === "TenantScopeError"
-          ? "throws"
-          : "reaches-engine";
+          ? "blocked"
+          : "allowed";
     }
 
     const ok = outcome === expected;

@@ -13,6 +13,7 @@ export const DOMAIN_STATEMENT = {
   analytics: ["read"],
   billing: ["manage_billing"],
   license: ["manage_licenses"],
+  compliance: ["read", "manage", "download"],
 } as const;
 
 export type DomainStatement = typeof DOMAIN_STATEMENT;
@@ -42,6 +43,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     analytics: ["read"],
     billing: ["manage_billing"],
     license: ["manage_licenses"],
+    compliance: ["read", "manage", "download"],
   },
   [ROLES.ADMIN]: {
     record: [...RECORD_WRITE, "import", "export"],
@@ -51,6 +53,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     outreach: [...OUTREACH_WRITE, "send"],
     task: [...TASK_WRITE],
     analytics: ["read"],
+    compliance: ["read", "download"],
   },
   [ROLES.ADMISSION_MANAGER]: {
     record: [...RECORD_WRITE],
@@ -60,6 +63,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     outreach: [...OUTREACH_WRITE],
     task: [...TASK_WRITE],
     analytics: ["read"],
+    compliance: ["read"],
   },
   [ROLES.LIAISON]: {
     record: [...RECORD_WRITE],
@@ -68,6 +72,7 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     outreach: [...OUTREACH_WRITE],
     task: [...TASK_WRITE],
     analytics: ["read"],
+    compliance: ["read"],
   },
 } as const satisfies Record<string, DomainPermission>;
 

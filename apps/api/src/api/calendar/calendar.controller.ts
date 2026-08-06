@@ -14,12 +14,13 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { GoogleCalendarService } from "./google-calendar.service";
 import { OutlookCalendarService } from "./outlook-calendar.service";
 
 @Controller("calendar")
-@UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard, HipaaGuard)
 export class CalendarController {
   constructor(
     private readonly googleCalendarService: GoogleCalendarService,

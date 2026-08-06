@@ -16,6 +16,7 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import { Queue } from "bullmq";
 import {
@@ -27,7 +28,7 @@ import { BlastService } from "./blast.service";
 import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
 @Controller("marketing/blasts")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
 export class BlastController {
   constructor(
     private readonly blastService: BlastService,

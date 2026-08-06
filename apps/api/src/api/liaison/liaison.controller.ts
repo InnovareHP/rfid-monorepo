@@ -17,6 +17,7 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import {
   PermissionGuard,
@@ -35,7 +36,7 @@ import {
 import { LiaisonService } from "./liaison.service";
 
 @Controller("liaison")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
 export class LiaisonController {
   constructor(
     private readonly liaisonService: LiaisonService,

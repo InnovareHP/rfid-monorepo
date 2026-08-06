@@ -28,6 +28,7 @@ import {
   MapPin,
   Route,
   Settings,
+  ShieldCheck,
   Sparkles,
   SquareTerminal,
   Target,
@@ -234,6 +235,11 @@ export function AppSidebar({
               title: "Booking",
               url: `/${activeOrganizationId}/settings/booking`,
               icon: CalendarClock,
+            },
+            {
+              title: "Compliance",
+              url: `/${activeOrganizationId}/settings/compliance`,
+              icon: ShieldCheck,
             },
             ...(can(memberData?.role, { billing: ["manage_billing"] })
               ? [

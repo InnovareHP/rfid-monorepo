@@ -16,6 +16,15 @@ describe("entitlements", () => {
     expect(hasFeature("scale", "priority_support")).toBe(true);
   });
 
+  // The compliance tab renders an upsell rather than the signing UI on the
+  // same flag the API guard enforces.
+  it("keeps HIPAA on the top tier", () => {
+    expect(hasFeature("essentials", "hipaa")).toBe(false);
+    expect(hasFeature("growth", "hipaa")).toBe(false);
+    expect(hasFeature("scale", "hipaa")).toBe(true);
+    expect(hasFeature(null, "hipaa")).toBe(false);
+  });
+
   it("grants nothing when the plan is missing or unknown", () => {
     expect(hasFeature(null, "ai")).toBe(false);
     expect(hasFeature(undefined, "export")).toBe(false);

@@ -5,6 +5,7 @@ import { BillingModule } from "./billing/billing.module";
 import { BoardModule } from "./board/board.module";
 import { BookingModule } from "./booking/booking.module";
 import { CalendarModule } from "./calendar/calendar.module";
+import { ComplianceModule } from "./compliance/compliance.module";
 import { EmailModule } from "./email/email.module";
 import { FaxModule } from "./fax/fax.module";
 import { ImageModule } from "./image/image.module";
@@ -25,6 +26,7 @@ import { UserModule } from "./user/user.module";
   imports: [
     AuthModule,
     BillingModule,
+    ComplianceModule,
     PasskeysModule,
     RegistrationModule,
     EmailModule,

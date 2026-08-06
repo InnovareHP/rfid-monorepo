@@ -3,6 +3,7 @@
  * It exports all the modules from the library.
  */
 
+export * from "./lib/baa";
 export * from "./lib/constant";
 export * from "./lib/entitlement";
 export * from "./lib/helper";

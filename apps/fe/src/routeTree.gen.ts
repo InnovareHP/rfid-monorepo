@@ -45,6 +45,7 @@ import { Route as TeamTeamHistoryIndexRouteImport } from './routes/_team/$team/h
 import { Route as TeamTeamContactsIndexRouteImport } from './routes/_team/$team/contacts/index'
 import { Route as TeamTeamCompaniesIndexRouteImport } from './routes/_team/$team/companies/index'
 import { Route as TeamTeamTasksTaskRouteImport } from './routes/_team/$team/tasks/$task'
+import { Route as TeamTeamSettingsComplianceRouteImport } from './routes/_team/$team/settings/compliance'
 import { Route as TeamTeamSettingsBookingRouteImport } from './routes/_team/$team/settings/booking'
 import { Route as TeamTeamSettingsBillingRouteImport } from './routes/_team/$team/settings/billing'
 import { Route as TeamTeamReferralListCreateRouteImport } from './routes/_team/$team/referral-list/create'
@@ -251,6 +252,12 @@ const TeamTeamTasksTaskRoute = TeamTeamTasksTaskRouteImport.update({
   path: '/$team/tasks/$task',
   getParentRoute: () => TeamRoute,
 } as any)
+const TeamTeamSettingsComplianceRoute =
+  TeamTeamSettingsComplianceRouteImport.update({
+    id: '/compliance',
+    path: '/compliance',
+    getParentRoute: () => TeamTeamSettingsRoute,
+  } as any)
 const TeamTeamSettingsBookingRoute = TeamTeamSettingsBookingRouteImport.update({
   id: '/booking',
   path: '/booking',
@@ -423,6 +430,7 @@ export interface FileRoutesByFullPath {
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
+  '/$team/settings/compliance': typeof TeamTeamSettingsComplianceRoute
   '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/companies/': typeof TeamTeamCompaniesIndexRoute
   '/$team/contacts/': typeof TeamTeamContactsIndexRoute
@@ -483,6 +491,7 @@ export interface FileRoutesByTo {
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
+  '/$team/settings/compliance': typeof TeamTeamSettingsComplianceRoute
   '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/companies': typeof TeamTeamCompaniesIndexRoute
   '/$team/contacts': typeof TeamTeamContactsIndexRoute
@@ -546,6 +555,7 @@ export interface FileRoutesById {
   '/_team/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/_team/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/_team/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
+  '/_team/$team/settings/compliance': typeof TeamTeamSettingsComplianceRoute
   '/_team/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/_team/$team/companies/': typeof TeamTeamCompaniesIndexRoute
   '/_team/$team/contacts/': typeof TeamTeamContactsIndexRoute
@@ -608,6 +618,7 @@ export interface FileRouteTypes {
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
     | '/$team/settings/booking'
+    | '/$team/settings/compliance'
     | '/$team/tasks/$task'
     | '/$team/companies/'
     | '/$team/contacts/'
@@ -668,6 +679,7 @@ export interface FileRouteTypes {
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
     | '/$team/settings/booking'
+    | '/$team/settings/compliance'
     | '/$team/tasks/$task'
     | '/$team/companies'
     | '/$team/contacts'
@@ -730,6 +742,7 @@ export interface FileRouteTypes {
     | '/_team/$team/referral-list/create'
     | '/_team/$team/settings/billing'
     | '/_team/$team/settings/booking'
+    | '/_team/$team/settings/compliance'
     | '/_team/$team/tasks/$task'
     | '/_team/$team/companies/'
     | '/_team/$team/contacts/'
@@ -1024,6 +1037,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamTasksTaskRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/settings/compliance': {
+      id: '/_team/$team/settings/compliance'
+      path: '/compliance'
+      fullPath: '/$team/settings/compliance'
+      preLoaderRoute: typeof TeamTeamSettingsComplianceRouteImport
+      parentRoute: typeof TeamTeamSettingsRoute
+    }
     '/_team/$team/settings/booking': {
       id: '/_team/$team/settings/booking'
       path: '/booking'
@@ -1220,11 +1240,13 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 interface TeamTeamSettingsRouteChildren {
   TeamTeamSettingsBillingRoute: typeof TeamTeamSettingsBillingRoute
   TeamTeamSettingsBookingRoute: typeof TeamTeamSettingsBookingRoute
+  TeamTeamSettingsComplianceRoute: typeof TeamTeamSettingsComplianceRoute
 }
 
 const TeamTeamSettingsRouteChildren: TeamTeamSettingsRouteChildren = {
   TeamTeamSettingsBillingRoute: TeamTeamSettingsBillingRoute,
   TeamTeamSettingsBookingRoute: TeamTeamSettingsBookingRoute,
+  TeamTeamSettingsComplianceRoute: TeamTeamSettingsComplianceRoute,
 }
 
 const TeamTeamSettingsRouteWithChildren =

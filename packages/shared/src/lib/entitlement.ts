@@ -1,7 +1,12 @@
 // What a plan buys. Prices and Stripe price ids stay in the API catalog because
 // they read validated config; the limits live here so both apps gate on one table.
 
-export const PLAN_FEATURES = ["ai", "export", "priority_support"] as const;
+export const PLAN_FEATURES = [
+  "ai",
+  "export",
+  "priority_support",
+  "hipaa",
+] as const;
 
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
@@ -13,7 +18,10 @@ export type PlanEntitlement = {
 export const PLAN_ENTITLEMENTS = {
   essentials: { seats: 10, features: [] },
   growth: { seats: 25, features: ["ai", "export"] },
-  scale: { seats: 50, features: ["ai", "export", "priority_support"] },
+  scale: {
+    seats: 50,
+    features: ["ai", "export", "priority_support", "hipaa"],
+  },
 } as const satisfies Record<string, PlanEntitlement>;
 
 export type PlanName = keyof typeof PLAN_ENTITLEMENTS;

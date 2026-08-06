@@ -14,6 +14,7 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import {
   PermissionGuard,
@@ -26,7 +27,7 @@ import {
 import { LandingPageService } from "./landing-page.service";
 
 @Controller("marketing/landing-pages")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
 export class LandingPageController {
   constructor(private readonly landingPageService: LandingPageService) {}
 

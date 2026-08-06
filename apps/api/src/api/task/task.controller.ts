@@ -16,6 +16,7 @@ import {
   EntitlementGuard,
   RequireFeature,
 } from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import {
   PermissionGuard,
@@ -45,7 +46,7 @@ import {
 import { TaskService } from "./task.service";
 
 @Controller("task")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
