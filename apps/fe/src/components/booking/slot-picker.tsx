@@ -16,14 +16,14 @@ export function SlotPicker({
 }: SlotPickerProps) {
   if (slots.length === 0) {
     return (
-      <p className="w-[191px] shrink-0 border-l p-6 text-sm text-muted-foreground">
+      <p className="w-full shrink-0 border-l p-6 text-sm text-muted-foreground">
         No available times on this date.
       </p>
     );
   }
 
   return (
-    <div className="flex w-[191px] shrink-0 flex-col gap-2 overflow-y-auto border-l p-6">
+    <div className="flex w-[240px] shrink-0 flex-col gap-2 overflow-y-auto border-l p-6">
       {slots.map((slot) => (
         <button
           key={slot}

@@ -34,6 +34,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { BookingConfirmation } from "./booking-confirmation";
+import { BookingPageSkeleton, SlotListSkeleton } from "./booking-skeleton";
 import { SlotPicker } from "./slot-picker";
 
 const BRAND_WORDMARK =
@@ -127,7 +128,12 @@ export function PublicBookingPage({
 
   if (confirmed) {
     return (
-      <div className={cn("flex min-h-screen items-center justify-center p-6", SHELL_GRADIENT)}>
+      <div
+        className={cn(
+          "flex min-h-screen items-center justify-center p-6",
+          SHELL_GRADIENT
+        )}
+      >
         <BookingConfirmation {...confirmed} />
       </div>
     );
@@ -135,15 +141,25 @@ export function PublicBookingPage({
 
   if (pageQuery.isLoading) {
     return (
-      <div className={cn("flex min-h-screen items-center justify-center", SHELL_GRADIENT)}>
-        <Loader2 className="h-6 w-6 animate-spin text-white" />
+      <div
+        className={cn(
+          "flex min-h-screen flex-col items-center justify-center gap-10 p-6",
+          SHELL_GRADIENT
+        )}
+      >
+        <BookingPageSkeleton />
       </div>
     );
   }
 
   if (pageQuery.isError || !pageQuery.data) {
     return (
-      <div className={cn("flex min-h-screen items-center justify-center p-6", SHELL_GRADIENT)}>
+      <div
+        className={cn(
+          "flex min-h-screen items-center justify-center p-6",
+          SHELL_GRADIENT
+        )}
+      >
         <p className="rounded-xl bg-white px-6 py-4 text-muted-foreground">
           This booking page is not available.
         </p>
@@ -179,7 +195,12 @@ export function PublicBookingPage({
     });
 
   return (
-    <div className={cn("flex min-h-screen flex-col items-center justify-center gap-10 p-6", SHELL_GRADIENT)}>
+    <div
+      className={cn(
+        "flex min-h-screen flex-col items-center justify-center gap-10 p-6  ",
+        SHELL_GRADIENT
+      )}
+    >
       <div className="flex w-full max-w-[1061px] overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
         <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-8 lg:w-[396px]">
           {page.organizationName && (
@@ -223,7 +244,9 @@ export function PublicBookingPage({
             ))}
           </div>
 
-          <p className="text-sm leading-[25px] text-[#807f7f]">{locationHint}</p>
+          <p className="text-sm leading-[25px] text-[#807f7f]">
+            {locationHint}
+          </p>
 
           <div className="mt-2 space-y-2">
             <Label htmlFor="booking-timezone" className="text-[#202020]">
@@ -328,7 +351,7 @@ export function PublicBookingPage({
             </Form>
           ) : (
             <>
-              <div className="flex rounded-xl border max-md:flex-col">
+              <div className="flex rounded-xl border max-md:flex-col relative h-[35vh]">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -340,14 +363,11 @@ export function PublicBookingPage({
                     setSelectedDate(next);
                     setSelectedSlot(null);
                   }}
-                  className="shrink-0 p-6"
+                  className="shrink-0 p-6 min-w-[380px] max-w-[400px]"
                 />
 
                 {slotsQuery.isLoading ? (
-                  <p className="flex w-[191px] shrink-0 items-center gap-2 border-l p-6 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading...
-                  </p>
+                  <SlotListSkeleton />
                 ) : (
                   <SlotPicker
                     slots={slotsQuery.data ?? []}
