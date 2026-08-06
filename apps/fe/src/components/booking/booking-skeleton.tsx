@@ -12,7 +12,7 @@ const PANEL_LINES = keys("line", 3);
 // Mirrors the month grid so the calendar does not jump when the real one lands.
 export function CalendarSkeleton() {
   return (
-    <div className="min-w-[380px] max-w-[400px] shrink-0 space-y-4 p-6">
+    <div className="flex-1 space-y-4 p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <Skeleton className="size-8" />
         <Skeleton className="h-5 w-28" />
@@ -38,7 +38,7 @@ export function CalendarSkeleton() {
 // and clips rather than scrolls: a placeholder has nothing to scroll to.
 export function SlotListSkeleton() {
   return (
-    <div className="flex h-full w-[240px] shrink-0 flex-col gap-2 overflow-hidden border-l p-6 max-md:h-[280px] max-md:w-full">
+    <div className="grid h-full w-[240px] shrink-0 grid-cols-3 gap-2 overflow-hidden border-l p-4 max-md:h-[220px] max-md:w-full max-md:border-l-0 max-md:border-t md:flex md:flex-col md:p-6">
       {SLOTS.map((key) => (
         <Skeleton key={key} className="h-9 w-full shrink-0" />
       ))}

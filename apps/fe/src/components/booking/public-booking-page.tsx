@@ -196,27 +196,27 @@ export function PublicBookingPage({
   return (
     <div
       className={cn(
-        "flex min-h-screen flex-col items-center justify-center gap-10 p-6  ",
+        "flex min-h-screen flex-col items-center gap-6 p-4 sm:justify-center sm:gap-10 sm:p-6",
         SHELL_GRADIENT
       )}
     >
       <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
-        <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-8 lg:w-[396px]">
-          {page.organizationLogo ? (
-            <img
-              src={page.organizationLogo}
-              alt={page.organizationName ?? "Organization"}
-              className="h-16 w-auto max-w-[192px] self-start object-contain"
-            />
-          ) : (
-            page.organizationName && (
+        <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-6 sm:p-8 lg:w-[396px]">
+          <div className="flex items-center space-x-4">
+            {page.organizationLogo && (
+              <img
+                src={page.organizationLogo}
+                alt={page.organizationName ?? "Organization"}
+                className="h-10 w-auto max-w-[192px] self-start object-contain"
+              />
+            )}
+            {page.organizationName && (
               <p className="text-lg font-semibold text-[#0d3185]">
                 {page.organizationName}
               </p>
-            )
-          )}
-
-          <h1 className="text-[40px] font-semibold leading-[50px] text-[#0d3185]">
+            )}
+          </div>
+          <h1 className="text-3xl font-semibold leading-tight text-[#0d3185] sm:text-[40px] sm:leading-[50px]">
             {page.title}
           </h1>
 
@@ -280,8 +280,8 @@ export function PublicBookingPage({
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col p-6">
-          <h2 className="mb-4 text-2xl font-semibold text-[#0d3185]">
+        <section className="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+          <h2 className="mb-4 text-xl font-semibold text-[#0d3185] sm:text-2xl">
             {collectingDetails ? "Your Details" : "Select Date and Time"}
           </h2>
 
@@ -385,7 +385,7 @@ export function PublicBookingPage({
                 )}
               </div>
 
-              <div className="mt-4 flex items-center gap-4 border-t pt-5">
+              <div className="mt-4 flex flex-col items-stretch gap-3 border-t pt-5 sm:flex-row sm:items-center sm:gap-4">
                 <p className="flex-1 text-sm font-medium text-[#202020]">
                   {selectedSlot ? (
                     <>
@@ -415,7 +415,7 @@ export function PublicBookingPage({
       <img
         src={BRAND_WORDMARK}
         alt="Refidly"
-        className="h-[70px] w-[258px] object-contain"
+        className="h-12 w-auto object-contain sm:h-[70px]"
       />
     </div>
   );

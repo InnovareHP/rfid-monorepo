@@ -8,8 +8,9 @@ type SlotPickerProps = {
   onSelect: (slot: string) => void;
 };
 
-// Height comes from the row beside the calendar, so a day with many openings
-// scrolls inside the card instead of stretching it.
+// Beside the calendar this is a fixed-width column taking its height from the
+// row; stacked under it on a phone it becomes a short grid, since a single
+// column of times wastes the width and buries the later slots.
 export function SlotPicker({
   slots,
   selected,
@@ -18,15 +19,15 @@ export function SlotPicker({
 }: SlotPickerProps) {
   if (slots.length === 0) {
     return (
-      <div className="w-[240px] shrink-0 border-l p-6 text-sm text-muted-foreground max-md:w-full">
+      <div className="w-[240px] shrink-0 border-l p-6 text-sm text-muted-foreground max-md:w-full max-md:border-l-0 max-md:border-t max-md:p-4">
         No available times on this date.
       </div>
     );
   }
 
   return (
-    <ScrollArea className="h-full w-[240px] shrink-0 border-l max-md:h-[280px] max-md:w-full">
-      <div className="flex flex-col gap-2 p-6">
+    <ScrollArea className="h-full w-[240px] shrink-0 border-l max-md:h-[220px] max-md:w-full max-md:border-l-0 max-md:border-t">
+      <div className="grid grid-cols-3 gap-2 p-4 md:flex md:flex-col md:p-6">
         {slots.map((slot) => (
           <button
             key={slot}
