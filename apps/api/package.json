@@ -16,7 +16,7 @@
     "test:int": "jest --config jest.int.config.js --runInBand --forceExit",
     "verify:permissions": "node scripts/verify-permissions.mjs",
     "verify:tenant-scope": "ts-node scripts/verify-tenant-scope.ts",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "prisma:generate": "prisma generate --schema=./prisma",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

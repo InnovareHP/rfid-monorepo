@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { exportElementToPdf } from "@/lib/helper/pdf-export";
 import { getMarketingList } from "@/services/analytics/analytics-service";
 import { getLiaisons } from "@/services/options/options-service";

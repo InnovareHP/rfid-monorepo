@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
 import { authClient } from "@/lib/auth-client";
 import { isOrgAdmin } from "@dashboard/shared";
@@ -199,7 +199,7 @@ const TeamPage = () => {
 
   return (
     <div className="page-style rounded-xl">
-      <div className="max-w-8xl mx-auto space-y-8">
+      <div className="space-y-8">
         <div className="flex flex-wrap space-y-4 items-center justify-between">
           <PageHeader
         title="Team Management"

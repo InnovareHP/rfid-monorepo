@@ -12,7 +12,7 @@ function RouteComponent() {
   return (
     <CrmRecordCreate
       moduleType="CONTACT"
-      title="Create Contacts"
+      title="Add to Phonebook"
       description="Add one or multiple contacts to your list"
       entityLabel="Contact"
       entityLabelPlural="Contacts"

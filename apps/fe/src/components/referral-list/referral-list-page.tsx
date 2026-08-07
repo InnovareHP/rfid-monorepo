@@ -5,6 +5,7 @@ import {
   getReferral,
 } from "@/services/referral/referral-service";
 import type { LeadRow, ReferralRow } from "@dashboard/shared";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
@@ -270,27 +271,16 @@ export default function ReferralListPage() {
           initialTab="history"
         />
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight page-title">
-              Referral
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Manage your referrals and export data for reporting.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <ColumnFilter tableColumns={tableColumns as any} />
-            <Button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Referral Logs"
+          description="Manage your referrals and export data for reporting."
+        >
+          <ColumnFilter tableColumns={tableColumns as any} />
+          <Button onClick={handleExportCSV} className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        </PageHeader>
 
         <ReferralStatsStrip
           dateFrom={filterMeta.boardDateFrom}
@@ -308,7 +298,7 @@ export default function ReferralListPage() {
               to="/$team/referral-list/create"
               params={{ team: activeOrganizationId }}
             >
-              <Button className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90">
+              <Button className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Add Referral
               </Button>

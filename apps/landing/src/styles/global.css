@@ -7,6 +7,12 @@
 
 :root {
   --radius: 0.65rem;
+  --brand: #0d3185;
+  --brand-foreground: #ffffff;
+  --success: oklch(0.48 0.12 163.225);
+  --warning: oklch(0.48 0.13 70.08);
+  --warning-foreground: oklch(0.98 0.01 70.08);
+  --info: oklch(0.48 0.15 250);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -31,6 +37,12 @@
 }
 
 @theme inline {
+  --color-brand: var(--brand);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-brand-foreground: var(--brand-foreground);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
