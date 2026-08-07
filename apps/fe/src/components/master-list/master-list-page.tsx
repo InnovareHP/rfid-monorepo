@@ -214,7 +214,7 @@ export default function MasterListPage() {
 
     let total = 0;
     let columns: any[] = [];
-    let users: OptionsResponse[] =
+    const users: OptionsResponse[] =
       queryClient.getQueryData(["assigned-to-users"]) ?? [];
 
     do {
