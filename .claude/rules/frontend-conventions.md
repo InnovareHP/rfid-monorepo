@@ -1,7 +1,8 @@
 # Frontend conventions (apps/fe, apps/fe-support)
 
-These apply to code you write or modify. Pre-existing violations elsewhere are
-tracked as cleanup, not blockers — do not fix them inside an unrelated change.
+These apply to the lines you write or change, not to every line of a file you
+happened to touch. Pre-existing violations are tracked as cleanup, not blockers
+— do not fix them inside an unrelated change, and say what you left behind.
 
 ```
 src/
@@ -85,8 +86,12 @@ Every form uses the shadcn `Form` stack from `@dashboard/ui/components/form`:
 
 ## Styling
 
-Tailwind v4. Theme tokens live in `apps/fe/src/styles.css` (`:root`, `.dark`,
-`@theme`). Tokens are the only source of color.
+Tailwind v4. Tokens are the only source of color. Each app declares its own in
+`:root`, `.dark`, and `@theme inline`:
+
+- `apps/fe/src/styles.css`
+- `apps/fe-support/src/index.css`
+- `apps/landing/src/styles/global.css`
 
 ### Color
 
@@ -120,6 +125,38 @@ Tailwind v4. Theme tokens live in `apps/fe/src/styles.css` (`:root`, `.dark`,
 - Do not thin small text with an opacity modifier to show hierarchy. Keep the
   text solid and vary the background.
 - Do not add a token until something uses it.
+
+### Tokens crossing into packages/ui
+
+A component in `packages/ui` may only use tokens that **every** consuming app
+defines. `Button`, `Badge`, and the rest render in all three.
+
+- Adding a token that `packages/ui` will reference means adding it to all three
+  stylesheets in the same change — `:root`, `.dark` if it is theme-dependent,
+  and the `@theme inline` map. Miss one app and that app breaks.
+- An undefined token fails silently. `color: var(--missing)` drops the
+  declaration and the element inherits, so a white label turns near-black and it
+  reads as a styling mistake rather than a missing variable. Nothing errors and
+  the build stays green.
+- Before swapping a token in `packages/ui`, check every app defines the
+  replacement:
+  `grep -l "\-\-token-name" apps/*/src/**/*.css`
+- Prefer a token the shared components already rely on over introducing a new
+  one.
+
+### Verifying a styling change
+
+- Restart the dev server after editing `packages/ui` or any `styles.css`.
+  Tailwind discovers classes in sibling packages through `@source`, and a
+  running server does not reliably rescan them. A stale server serves CSS with
+  the new utility missing, which looks exactly like a broken style.
+- A green `pnpm build` proves the CSS compiles, never that it renders. Colour
+  changes need a browser pass in both themes.
+- `pnpm lint` enforces the color rules in `apps/fe` and `apps/fe-support`
+  through eslint. `apps/landing` is Astro, and template `class` attributes are
+  not JS literals, so an AST rule cannot see them; it runs
+  `scripts/check-styles.mjs` instead, which covers the same patterns by text.
+  Adding an Astro eslint plugin would not close that gap.
 
 ### Variants, not class strings
 
