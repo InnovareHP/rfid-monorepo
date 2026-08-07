@@ -42,6 +42,11 @@ type LocationCellProps = {
   onChange?: (value: string) => void;
   onSelectComponents?: (components: AddressComponents) => void;
   className?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  // Public pages proxy the geocoder through their own slug-scoped route.
+  autocompleteUrl?: string;
+  detailsUrl?: string;
 };
 
 const LocationCell: React.FC<LocationCellProps> = ({
@@ -49,6 +54,10 @@ const LocationCell: React.FC<LocationCellProps> = ({
   onChange,
   onSelectComponents,
   className = "w-96",
+  placeholder = "Search for an address...",
+  disabled = false,
+  autocompleteUrl = "/api/places/autocomplete",
+  detailsUrl = "/api/places/details",
 }) => {
   const [address, setAddress] = useState(value);
   const [syncedValue, setSyncedValue] = useState(value);
@@ -58,7 +67,6 @@ const LocationCell: React.FC<LocationCellProps> = ({
   const [confirmClear, setConfirmClear] = useState(false);
   const confirmedRef = useRef(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sessionRef = useRef(crypto.randomUUID());
 
   // Adopt a new external value during render instead of in an effect
   if (value !== syncedValue) {
@@ -67,15 +75,16 @@ const LocationCell: React.FC<LocationCellProps> = ({
     confirmedRef.current = value;
   }
 
-  const fetchPredictions = useCallback(async (input: string) => {
+  const fetchPredictions = useCallback(
+    async (input: string) => {
     if (input.length < 2) {
       setPredictions([]);
       return;
     }
     setLoading(true);
     try {
-      const { data } = await axiosClient.get("/api/places/autocomplete", {
-        params: { input, sessionToken: sessionRef.current },
+      const { data } = await axiosClient.get(autocompleteUrl, {
+        params: { input },
       });
       setPredictions(data);
     } catch {
@@ -83,7 +92,9 @@ const LocationCell: React.FC<LocationCellProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+    },
+    [autocompleteUrl]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -104,18 +115,14 @@ const LocationCell: React.FC<LocationCellProps> = ({
 
   const handleSelect = async (prediction: Prediction) => {
     try {
-      const { data } = await axiosClient.get("/api/places/details", {
-        params: {
-          placeId: prediction.place_id,
-          sessionToken: sessionRef.current,
-        },
+      const { data } = await axiosClient.get(detailsUrl, {
+        params: { placeId: prediction.place_id },
       });
       const addr = data.formatted_address;
       setAddress(addr);
       confirmedRef.current = addr;
       setOpen(false);
       setPredictions([]);
-      sessionRef.current = crypto.randomUUID();
       onChange?.(addr);
       if (data.components) onSelectComponents?.(data.components);
     } catch {
@@ -130,6 +137,7 @@ const LocationCell: React.FC<LocationCellProps> = ({
           <input
             type="text"
             value={address}
+            disabled={disabled}
             onChange={handleInputChange}
             onFocus={() => {
               if (predictions.length > 0) setOpen(true);
@@ -140,7 +148,7 @@ const LocationCell: React.FC<LocationCellProps> = ({
                 setOpen(false);
               }
             }}
-            placeholder="Search for an address..."
+            placeholder={placeholder}
             className={cn(
               "border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary",
               className

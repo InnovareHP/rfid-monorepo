@@ -1,3 +1,4 @@
+import { GeocodeCommand } from "@aws-sdk/client-geo-places";
 import { formatPhoneNumber } from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import {
@@ -18,11 +19,12 @@ import {
   purgeAllCacheKeys,
 } from "src/lib/redis/redis";
 import { v4 as uuidv4 } from "uuid";
-import { lookupByName } from "zipcodes-perogi";
 import { CACHE_PREFIX } from "../../lib/constant";
+import { geoPlaces } from "../../lib/geo/geo-places";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
+import { toComponents } from "../places/places.service";
 import { BoardGateway } from "./board.gateway";
 import { UpdateContactDto } from "./dto/board.schema";
 import { EmailDispatchService } from "./email-dispatch.service";
@@ -2663,7 +2665,7 @@ export class BoardService {
   }
 
   /**
-   * Geocode a location string via Geocodify API.
+   * Geocode a location string via Amazon Location Service.
    * Runs OUTSIDE the transaction to avoid timeout from external HTTP calls.
    */
   private async geocodeLocation(location_name: string, recordId: string) {
@@ -2678,35 +2680,31 @@ export class BoardService {
       return { cached: true, address: location_name } as const;
     }
 
-    const geocodifyResponse = await fetch(
-      `https://api.geocodify.com/v2/geocode?api_key=${appConfig.GEOCODIFY_API_KEY}&q=${encodeURIComponent(
-        location_name
-      )}`
+    const response = await geoPlaces.send(
+      new GeocodeCommand({
+        QueryText: location_name,
+        MaxResults: 1,
+        IntendedUse: "Storage",
+        Filter: { IncludeCountries: ["USA"] },
+      })
     );
 
-    if (!geocodifyResponse.ok) {
-      throw new Error("Geocodify request failed");
-    }
+    const result = response.ResultItems?.[0];
 
-    const data = await geocodifyResponse.json();
-    const feature = data?.response?.features?.[0];
-
-    if (!feature) {
+    if (!result) {
       throw new Error("No geocoding result found");
     }
 
-    const props = feature.properties;
+    const components = toComponents(result.Address);
 
     return {
       geocoded: true,
-      address: props.name as string,
-      city: (props.locality ?? null) as string | null,
-      state: (props.region_a ?? null) as string | null,
-      zip: lookupByName(props.locality, props.region_a)[0].zip as string,
-      county: props.county
-        ? (props.county.replace(/ County/g, "") as string)
-        : null,
-      country: (props.country ?? null) as string | null,
+      address: result.Address?.Label ?? result.Title ?? location_name,
+      city: components.city || null,
+      state: components.state || null,
+      zip: components.zipCode,
+      county: components.county || null,
+      country: result.Address?.Country?.Name ?? null,
     } as const;
   }
 

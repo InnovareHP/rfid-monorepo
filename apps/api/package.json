@@ -29,14 +29,17 @@
     "crypto:encrypt-phi": "ts-node prisma/scripts/encrypt-phi.ts",
     "crypto:decrypt-phi": "ts-node prisma/scripts/decrypt-phi.ts",
     "seed:task-statuses": "ts-node prisma/scripts/seed-task-statuses.ts",
+    "migrate:cloudinary-s3": "ts-node prisma/scripts/migrate-cloudinary-to-s3.ts",
     "docker:build": "docker build -t dashboard-backend .",
     "auth:generate": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/auth.ts",
     "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1046.0",
+    "@aws-sdk/client-geo-places": "^3.1105.0",
     "@aws-sdk/client-s3": "^3.1095.0",
     "@aws-sdk/client-sesv2": "^3.1046.0",
+    "@aws-sdk/s3-request-presigner": "^3.1105.0",
     "@better-auth/core": "1.6.25",
     "@better-auth/passkey": "1.6.25",
     "@better-auth/stripe": "1.6.25",
@@ -59,9 +62,7 @@
     "axios": "^1.13.4",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.6.25",
-    "buffer-to-stream": "^1.0.0",
     "bullmq": "^5.70.1",
-    "cloudinary": "^2.7.0",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "googleapis": "^171.4.0",
@@ -88,7 +89,6 @@
     "stripe": "^20.4.0",
     "twilio": "^5.8.0",
     "uuid": "^11.1.0",
-    "zipcodes-perogi": "^1.4.201908",
     "zod": "^4.0.14"
   },
   "devDependencies": {
@@ -103,7 +103,6 @@
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
     "@types/bcrypt": "^6.0.0",
-    "@types/buffer-to-stream": "^1.0.3",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/multer": "^2.0.0",

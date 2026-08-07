@@ -221,7 +221,8 @@ Copy `.env.example` to `.env` and fill in required values. Critical variables in
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: OAuth credentials
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`: Stripe integration
 - `RESEND_API_KEY`: Email sending
-- `CLOUDINARY_*`: Image upload configuration
+- `S3_UPLOADS_BUCKET`, `S3_PUBLIC_BASE_URL`: Image upload configuration
+- `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`: S3, Bedrock, SES, and Amazon Location
 - `WEBSITE_URL`: Frontend URL for CORS and redirects
 
 ### Package Manager

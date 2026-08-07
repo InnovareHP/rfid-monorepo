@@ -1,5 +1,11 @@
-import { Injectable } from "@nestjs/common";
-import { appConfig } from "../../config/app-config";
+import {
+  Address,
+  AutocompleteCommand,
+  GeocodeCommand,
+  GetPlaceCommand,
+} from "@aws-sdk/client-geo-places";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { geoPlaces } from "../../lib/geo/geo-places";
 
 type PlacePrediction = {
   description: string;
@@ -19,96 +25,76 @@ type PlaceDetail = {
   components: PlaceComponents;
 };
 
-const COMPONENT_TYPES: Record<keyof PlaceComponents, string> = {
-  city: "locality",
-  state: "administrative_area_level_1",
-  zipCode: "postal_code",
-  county: "administrative_area_level_2",
-};
+// Amazon Location returns county names bare, but callers store them without the suffix.
+const stripCountySuffix = (value: string) =>
+  value.replace(/ county$/i, "").trim();
+
+export const toComponents = (
+  address: Address | undefined
+): PlaceComponents => ({
+  city: address?.Locality ?? "",
+  state: address?.Region?.Code ?? address?.Region?.Name ?? "",
+  zipCode: address?.PostalCode?.split("-")[0] ?? "",
+  county: stripCountySuffix(address?.SubRegion?.Name ?? ""),
+});
 
 @Injectable()
 export class PlacesService {
-  private readonly apiKey = appConfig.GOOGLE_PLACES_API_KEY;
+  async autocomplete(input: string): Promise<PlacePrediction[]> {
+    if (input.length < 2) return [];
 
-  async autocomplete(
-    input: string,
-    sessionToken?: string
-  ): Promise<PlacePrediction[]> {
-    if (!input || input.length < 2) return [];
-
-    const params = new URLSearchParams({
-      input,
-      types: "geocode",
-      components: "country:us",
-      key: this.apiKey,
-    });
-
-    if (sessionToken) {
-      params.set("sessiontoken", sessionToken);
-    }
-
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`
+    const response = await geoPlaces.send(
+      new AutocompleteCommand({
+        QueryText: input,
+        MaxResults: 5,
+        IntendedUse: "SingleUse",
+        Filter: {
+          IncludeCountries: ["USA"],
+          IncludePlaceTypes: ["Locality", "PostalCode", "Street", "Region"],
+        },
+      })
     );
 
-    const data = await res.json();
-
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(`Places API error: ${data.status}`);
-    }
-
-    return (data.predictions ?? []).map((p: any) => ({
-      description: p.description,
-      place_id: p.place_id,
-    }));
+    return (response.ResultItems ?? [])
+      .filter((item) => item.PlaceId)
+      .map((item) => ({
+        description: item.Address?.Label ?? item.Title ?? "",
+        place_id: item.PlaceId as string,
+      }));
   }
 
-  async getPlaceDetails(
-    placeId: string,
-    sessionToken?: string
-  ): Promise<PlaceDetail> {
-    const params = new URLSearchParams({
-      place_id: placeId,
-      fields: "formatted_address,address_components",
-      key: this.apiKey,
-    });
-
-    if (sessionToken) {
-      params.set("sessiontoken", sessionToken);
-    }
-
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/details/json?${params}`
+  async getPlaceDetails(placeId: string): Promise<PlaceDetail> {
+    const response = await geoPlaces.send(
+      new GetPlaceCommand({
+        PlaceId: placeId,
+        AdditionalFeatures: ["TimeZone"],
+      })
     );
 
-    const data = await res.json();
-
-    if (data.status !== "OK") {
-      throw new Error(`Place Details API error: ${data.status}`);
-    }
-
     return {
-      formatted_address: data.result.formatted_address,
+      formatted_address: response.Address?.Label ?? response.Title ?? "",
       place_id: placeId,
-      components: this.extractComponents(data.result.address_components ?? []),
+      components: toComponents(response.Address),
     };
   }
 
-  // Google returns components as an unordered list tagged by type
-  private extractComponents(
-    components: { long_name: string; types: string[] }[]
-  ): PlaceComponents {
-    const pick = (type: string) =>
-      components.find((component) => component.types.includes(type))
-        ?.long_name ?? "";
+  // The heat map needs a centre point per county name, not a full address.
+  async getCountyCenter(county: string): Promise<{ lng: number; lat: number }> {
+    const response = await geoPlaces.send(
+      new GeocodeCommand({
+        QueryText: `${county} County`,
+        MaxResults: 1,
+        IntendedUse: "SingleUse",
+        Filter: { IncludeCountries: ["USA"] },
+      })
+    );
 
-    return {
-      city: pick(COMPONENT_TYPES.city),
-      state: pick(COMPONENT_TYPES.state),
-      zipCode: pick(COMPONENT_TYPES.zipCode),
-      county: pick(COMPONENT_TYPES.county)
-        .replace(/ county$/i, "")
-        .trim(),
-    };
+    const position = response.ResultItems?.[0]?.Position;
+
+    if (!position) {
+      throw new NotFoundException(`No coordinates found for ${county}`);
+    }
+
+    return { lng: position[0], lat: position[1] };
   }
 }

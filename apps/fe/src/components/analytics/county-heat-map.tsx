@@ -1,10 +1,21 @@
-import "mapbox-gl/dist/mapbox-gl.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
+import { axiosClient } from "@/lib/axios-client";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapGL, { Layer, Popup, Source, type MapRef } from "react-map-gl/mapbox";
+import MapGL, {
+  Layer,
+  Popup,
+  Source,
+  type MapLayerMouseEvent,
+  type MapRef,
+} from "react-map-gl/maplibre";
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+const AWS_REGION = import.meta.env.VITE_AWS_REGION as string;
+const AWS_LOCATION_API_KEY = import.meta.env
+  .VITE_AWS_LOCATION_API_KEY as string;
+
+const MAP_STYLE = `https://maps.geo.${AWS_REGION}.amazonaws.com/v2/styles/Standard/descriptor?key=${AWS_LOCATION_API_KEY}&color-scheme=Light`;
 
 // Shared across mounts so a county is geocoded at most once per session
 const geocodeCache = new Map<string, [number, number] | null>();
@@ -18,17 +29,13 @@ type GeocodedCounty = {
   lat: number;
 };
 
-async function geocodeCounty(
-  county: string,
-  token: string
-): Promise<[number, number] | null> {
-  const query = encodeURIComponent(`${county} County`);
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?types=district&country=us&limit=1&access_token=${token}`;
+// Geocoding runs on the API so the Amazon Location credentials stay server side.
+async function geocodeCounty(county: string): Promise<[number, number] | null> {
   try {
-    const res = await fetch(url);
-    const data = await res.json();
-    const center = data.features?.[0]?.center as [number, number] | undefined;
-    return center ?? null;
+    const { data } = await axiosClient.get("/api/places/county-center", {
+      params: { county },
+    });
+    return [data.lng, data.lat];
   } catch {
     return null;
   }
@@ -54,7 +61,7 @@ export default function CountyHeatMap({
 
           let coords = geocodeCache.get(name);
           if (coords === undefined) {
-            coords = await geocodeCounty(name, MAPBOX_TOKEN);
+            coords = await geocodeCounty(name);
             geocodeCache.set(name, coords);
           }
 
@@ -126,17 +133,14 @@ export default function CountyHeatMap({
     };
   }, [points]);
 
-  const handleMouseEnter = useCallback((e: mapboxgl.MapLayerMouseEvent) => {
+  const handleMouseEnter = useCallback((e: MapLayerMouseEvent) => {
     const feature = e.features?.[0];
     if (!feature || feature.geometry.type !== "Point") return;
     const { name, count } = feature.properties as {
       name: string;
       count: number;
     };
-    const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates as [
-      number,
-      number,
-    ];
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
     setHoveredPoint({ name, count, lng, lat });
   }, []);
 
@@ -162,8 +166,7 @@ export default function CountyHeatMap({
           zoom: 4,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
-        mapboxAccessToken={MAPBOX_TOKEN}
+        mapStyle={MAP_STYLE}
         interactiveLayerIds={["county-circles"]}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

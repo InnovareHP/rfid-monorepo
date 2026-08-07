@@ -30,7 +30,7 @@ import { TrendLine } from "./charts/trend-line";
 import { TrendPill } from "./charts/trend-pill";
 import { DenialReasonsTable } from "./denial-reasons-table";
 
-// Mapbox is the heaviest dependency on the page, so it loads on demand.
+// MapLibre is the heaviest dependency on the page, so it loads on demand.
 const CountyHeatMap = lazy(() => import("./county-heat-map"));
 
 export default function ReferralAnalyticsDashboard() {

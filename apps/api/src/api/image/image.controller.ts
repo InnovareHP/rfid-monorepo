@@ -2,24 +2,27 @@ import {
   BadRequestException,
   Controller,
   Delete,
+  Get,
   Post,
   Query,
+  Redirect,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import {
-  EntitlementGuard,
-  RequireFeature,
-} from "../../guard/entitlement/entitlement.guard";
-import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { memoryStorage } from "multer";
-import { DeleteImageDto } from "./dto/image-schema";
+import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
+  DeleteImageDto,
+  UploadImageQueryDto,
+  ViewImageQueryDto,
+} from "./dto/image-schema";
 import { ImageService } from "./image.service";
 
-// Org members share one folder so any admin can clean up; support users get their own.
+// Org members share one prefix so any admin can clean up; support users get their own.
 const scopeOf = (session: AuthenticatedSession) =>
   session.session.activeOrganizationId ?? session.user.id;
 
@@ -37,6 +40,7 @@ export class ImageController {
   )
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
+    @Query() query: UploadImageQueryDto,
     @Session() session: AuthenticatedSession
   ) {
     if (!file) {
@@ -45,7 +49,22 @@ export class ImageController {
       );
     }
 
-    return await this.imageService.uploadImage(file, scopeOf(session));
+    return await this.imageService.uploadImage(
+      file,
+      scopeOf(session),
+      query.visibility
+    );
+  }
+
+  @Get("view")
+  @Redirect()
+  async viewImage(
+    @Query() query: ViewImageQueryDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    const url = await this.imageService.getViewUrl(query.key, scopeOf(session));
+
+    return { url, statusCode: 302 };
   }
 
   @Delete()

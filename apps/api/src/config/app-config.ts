@@ -41,10 +41,10 @@ export const appConfigSchema = z.object({
   STRIPE_PRICE_ESSENTIALS_SEAT: z.string().min(1).optional(),
   STRIPE_PRICE_GROWTH_SEAT: z.string().min(1).optional(),
   STRIPE_PRICE_SCALE_SEAT: z.string().min(1).optional(),
-  // Cloudinary
-  CLOUDINARY_CLOUD_NAME: z.string().min(1),
-  CLOUDINARY_API_KEY: z.string().min(1),
-  CLOUDINARY_API_SECRET: z.string().min(1),
+  // Uploads bucket. Objects under public/ are world readable via bucket policy,
+  // everything under private/ is only reachable through a presigned redirect.
+  S3_UPLOADS_BUCKET: z.string().min(1),
+  S3_PUBLIC_BASE_URL: z.url().optional(),
   JWT_SECRET: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.url(),
@@ -57,8 +57,6 @@ export const appConfigSchema = z.object({
     .transform((v) => v.toLowerCase() !== "false"),
   ELDONFAX_API_KEY: z.string().min(1).optional(),
   ELDONFAX_BASE_URL: z.url().default("https://api.eldonfax.com"),
-  GEOCODIFY_API_KEY: z.string().min(1),
-  GOOGLE_PLACES_API_KEY: z.string().min(1),
   SES_CONFIGURATION_SET: z.string().min(1),
   EMAIL_INGEST_DOMAIN: z.string().min(1).optional(),
   SES_INBOUND_BUCKET: z.string().min(1).optional(),

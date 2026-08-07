@@ -119,7 +119,7 @@ Field types handled:
 - `DROPDOWN`: Select with option creation
 - `STATUS`: Status select (owner role only)
 - `CHECKBOX`: Boolean toggle
-- `LOCATION`: Google Maps autocomplete
+- `LOCATION`: Amazon Location autocomplete
 - `ASSIGNED_TO`: User assignment
 
 Pattern for updates:
@@ -180,6 +180,7 @@ await createReferralDropdownOption(fieldKey, optionName)
 
 Required:
 - `VITE_API_URL`: Backend API URL (proxied to `/api` in dev server)
+- `VITE_AWS_REGION`, `VITE_AWS_LOCATION_API_KEY`: Amazon Location map tiles for the county heat map
 
 ## File Organization
 
