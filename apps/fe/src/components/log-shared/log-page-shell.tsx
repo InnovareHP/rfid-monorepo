@@ -5,40 +5,6 @@ import { Plus, Trash2, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { ConfirmationDialog } from "../confirmation-dialog";
 
-type LogPageHeaderProps = {
-  icon: LucideIcon;
-  title: string;
-  subtitle: string;
-  actionLabel: string;
-  onAction: () => void;
-};
-
-export const LogPageHeader = ({
-  icon: Icon,
-  title,
-  subtitle,
-  actionLabel,
-  onAction,
-}: LogPageHeaderProps) => (
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div className="flex items-center gap-3">
-      <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shrink-0">
-        <Icon className="h-6 w-6 text-primary-foreground" />
-      </div>
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          {title}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
-      </div>
-    </div>
-    <Button onClick={onAction} className="bg-primary hover:bg-primary/90">
-      <Plus className="h-4 w-4 mr-2" />
-      {actionLabel}
-    </Button>
-  </div>
-);
-
 type LogStatCardProps = {
   icon: LucideIcon;
   label: string;
@@ -89,7 +55,9 @@ export const LogEmptyState = ({
     </div>
     <div>
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      <p className="text-sm text-muted-foreground mt-1 max-w-sm">{description}</p>
+      <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+        {description}
+      </p>
     </div>
     <Button
       onClick={onAction}

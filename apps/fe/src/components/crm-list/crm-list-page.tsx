@@ -6,6 +6,7 @@ import {
   type CrmModuleType,
 } from "@/services/board/board-module-service";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouteContext, useSearch } from "@tanstack/react-router";
@@ -89,7 +90,13 @@ export default function CrmListPage({
         { sortBy: filterMeta.sortBy, sortOrder: filterMeta.sortOrder },
         handleSort
       ),
-    [moduleType, nameLabel, data?.columns, filterMeta.sortBy, filterMeta.sortOrder]
+    [
+      moduleType,
+      nameLabel,
+      data?.columns,
+      filterMeta.sortBy,
+      filterMeta.sortOrder,
+    ]
   );
 
   const SIZING_KEY = `${queryKey}-column-sizing`;
@@ -148,7 +155,7 @@ export default function CrmListPage({
       context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
         queryClient.setQueryData(key as any, data)
       );
-      toast.error(`Failed to delete ${title.toLowerCase()}.`);
+      toast.error("Failed to delete records.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [queryKey] });
@@ -180,7 +187,9 @@ export default function CrmListPage({
     [table]
   );
 
-  const totalPages = Math.ceil((data?.pagination?.count ?? 0) / filterMeta.limit);
+  const totalPages = Math.ceil(
+    (data?.pagination?.count ?? 0) / filterMeta.limit
+  );
   const currentPage = data?.pagination?.page ?? 1;
   const setCurrentPage = (page: number) =>
     setFilterMeta((prev) => ({ ...prev, page }));
@@ -188,39 +197,23 @@ export default function CrmListPage({
   return (
     <div className="page-style">
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              {title}
-            </h1>
-            <p className="text-gray-500 mt-1">{description}</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 border-gray-300 hover:bg-white hover:text-primary transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
+        <PageHeader title={title} description={description}>
+          <Button
+            variant="outline"
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 hover:text-primary transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <ColumnFilter tableColumns={tableColumns as any} />
+          <Link to={createPath} params={{ team: activeOrganizationId }}>
+            <Button className="flex items-center gap-2 shadow-sm">
+              <Plus className="h-4 w-4" />
+              {addLabel}
             </Button>
-            <ColumnFilter tableColumns={tableColumns as any} />
-            <Link
-              to={createPath}
-              params={{ team: activeOrganizationId }}
-              className="flex items-center gap-2 shadow-sm"
-            >
-              <Button
-                variant="default"
-                className="flex items-center gap-2 shadow-sm"
-              >
-                <Plus className="h-4 w-4" />
-                {addLabel}
-              </Button>
-            </Link>
-          </div>
-        </div>
+          </Link>
+        </PageHeader>
 
         <ReusableTable
           table={table}

@@ -499,7 +499,7 @@ code {
   }
 
   .page-style {
-    @apply min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8;
+    @apply min-h-screen space-y-6 bg-muted/50 p-6 sm:p-8;
   }
   .primary-active-border::before {
     content: "";
