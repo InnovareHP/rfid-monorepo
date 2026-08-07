@@ -53,14 +53,14 @@ const KIND_OPTIONS: {
   },
   {
     kind: "MANAGED_DOMAIN",
-    title: "Create a domain",
-    blurb: "We set up a sending subdomain for you. No DNS work on your side.",
+    title: "A domain we host",
+    blurb: "Sends as a subdomain of ours, not yours. No DNS work on your side.",
     icon: Building2,
   },
   {
     kind: "CUSTOM_DOMAIN",
-    title: "Use your work domain",
-    blurb: "Send as your own domain. You publish three DNS records.",
+    title: "My own domain",
+    blurb: "Sends as your domain. You publish three DNS records to verify it.",
     icon: Globe,
   },
 ];
@@ -336,6 +336,10 @@ export function SenderSetupDialog({
                         <FormControl>
                           <Input placeholder="acme" {...field} />
                         </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          A name only, no dots. Use "My own domain" to send as
+                          a domain you already have.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
