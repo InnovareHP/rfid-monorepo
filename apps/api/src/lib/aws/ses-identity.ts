@@ -68,7 +68,8 @@ export async function provisionDomainIdentity(
       })
     );
   } catch (error) {
-    if ((error as { name?: string }).name !== "AlreadyExistsException") throw error;
+    if ((error as { name?: string }).name !== "AlreadyExistsException")
+      throw error;
   }
 
   await ses.send(

@@ -12,17 +12,10 @@ import {
   provisionDomainIdentity,
 } from "../../../lib/aws/ses-identity";
 import { prisma } from "../../../lib/prisma/prisma";
-import { GmailService } from "../../board/gmail.service";
-import { OutlookService } from "../../board/outlook.service";
 import { CreateSenderDto, UpdateSenderDto } from "./dto/sender.dto";
 
 @Injectable()
 export class SenderService {
-  constructor(
-    private readonly gmailService: GmailService,
-    private readonly outlookService: OutlookService
-  ) {}
-
   async getSenders(organizationId: string) {
     return prisma.senderIdentity.findMany({
       where: { organizationId },
@@ -95,12 +88,20 @@ export class SenderService {
     organizationId: string,
     userId: string
   ) {
+    // Only the connected address is needed, so this reads the token rows
+    // directly rather than pulling the whole mailbox stack into this module.
     const [gmail, outlook] = await Promise.all([
-      this.gmailService.getConnectionStatus(userId),
-      this.outlookService.getConnectionStatus(userId),
+      prisma.gmailToken.findUnique({
+        where: { userId },
+        select: { gmailAddress: true },
+      }),
+      prisma.outlookToken.findUnique({
+        where: { userId },
+        select: { outlookEmail: true },
+      }),
     ]);
 
-    const email = gmail.email ?? outlook.email;
+    const email = gmail?.gmailAddress ?? outlook?.outlookEmail ?? null;
 
     if (!email) {
       throw new BadRequestException(
