@@ -37,7 +37,13 @@ import {
 import { FaxService } from "./fax.service";
 
 @Controller("fax")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class FaxController {
   constructor(private readonly faxService: FaxService) {}
 

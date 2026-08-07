@@ -46,7 +46,13 @@ import {
 import { TaskService } from "./task.service";
 
 @Controller("task")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 

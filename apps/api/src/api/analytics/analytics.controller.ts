@@ -20,7 +20,13 @@ import {
 import { AnalyticsService } from "./analytics.service";
 
 @Controller("analytics")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 

@@ -3,7 +3,7 @@ import {
   BAA_CLAUSES,
   BAA_ENTITY_TYPES,
   BAA_VERSION,
-  hasFeature,
+  entitlementHasFeature,
   isBaaCurrent,
 } from "@dashboard/shared";
 import {
@@ -76,7 +76,7 @@ export class ComplianceService {
     const organization = await this.organization(organizationId);
     if (!organization) throw new NotFoundException("Organization not found");
 
-    const { plan } = await getOrganizationEntitlement(organizationId);
+    const entitlement = await getOrganizationEntitlement(organizationId);
     const agreement = await this.currentAgreement(organizationId);
     const signed = isBaaCurrent(
       organization.baaAcceptedAt,
@@ -87,7 +87,7 @@ export class ComplianceService {
       hipaaEnabled: organization.hipaaEnabled,
       retentionDays: organization.retentionDays,
       ipAllowlist: organization.ipAllowlist,
-      planSupportsHipaa: hasFeature(plan, "hipaa"),
+      planSupportsHipaa: entitlementHasFeature(entitlement, "hipaa"),
       baa: {
         version: BAA_VERSION,
         signed,
@@ -107,14 +107,14 @@ export class ComplianceService {
   }
 
   async getTerms(organizationId: string) {
-    const { plan } = await getOrganizationEntitlement(organizationId);
+    const entitlement = await getOrganizationEntitlement(organizationId);
 
     return {
       version: BAA_VERSION,
       clauses: BAA_CLAUSES,
       acknowledgement: BAA_ACKNOWLEDGEMENT,
       entityTypes: BAA_ENTITY_TYPES,
-      planSupportsHipaa: hasFeature(plan, "hipaa"),
+      planSupportsHipaa: entitlementHasFeature(entitlement, "hipaa"),
     };
   }
 
@@ -173,8 +173,8 @@ export class ComplianceService {
     input: SignBaaInput,
     signer: SignerContext
   ) {
-    const { plan } = await getOrganizationEntitlement(organizationId);
-    if (!hasFeature(plan, "hipaa")) {
+    const entitlement = await getOrganizationEntitlement(organizationId);
+    if (!entitlementHasFeature(entitlement, "hipaa")) {
       throw new ForbiddenException(
         "A Business Associate Agreement requires the Scale plan"
       );

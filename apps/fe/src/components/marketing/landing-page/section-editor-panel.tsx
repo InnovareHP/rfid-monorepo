@@ -126,7 +126,7 @@ const UploadButton = ({ onUploaded }: UploadButtonProps) => {
     if (!file) return;
 
     try {
-      const result = await uploadImage(file);
+      const result = await uploadImage(file, "public");
       onUploaded(result.secure_url);
     } catch {
       toast.error("Failed to upload image");

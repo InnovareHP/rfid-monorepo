@@ -27,7 +27,13 @@ import {
 import { LandingPageService } from "./landing-page.service";
 
 @Controller("marketing/landing-pages")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class LandingPageController {
   constructor(private readonly landingPageService: LandingPageService) {}
 

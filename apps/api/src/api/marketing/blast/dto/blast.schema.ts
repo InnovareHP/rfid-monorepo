@@ -1,20 +1,13 @@
-import { ModuleType } from "@prisma/client";
 import { z } from "zod";
-
-export const AudienceFilterSchema = z.object({
-  filter: z.record(z.string(), z.string()).default({}),
-  search: z.string().optional(),
-  boardDateFrom: z.string().optional(),
-  boardDateTo: z.string().optional(),
-});
 
 export const CreateBlastSchema = z.object({
   name: z.string().min(1),
   campaignId: z.string().nullable().optional(),
   subject: z.string().min(1),
   bodyHtml: z.string().min(1),
-  moduleType: z.enum(ModuleType).default(ModuleType.LEAD),
-  audienceFilter: AudienceFilterSchema,
+  // A draft may have none yet; send is what requires at least one. Groups may
+  // target different modules; the send unions them and dedupes on record.
+  groupIds: z.array(z.string()).default([]),
   scheduledAt: z.string().optional(),
 });
 

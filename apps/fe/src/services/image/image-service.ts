@@ -1,10 +1,17 @@
 import { axiosClient } from "@/lib/axios-client";
 
-export const uploadImage = async (image: File) => {
+type Visibility = "public" | "private";
+
+export const uploadImage = async (
+  image: File,
+  visibility: Visibility = "private"
+) => {
   const form = new FormData();
   form.append("image", image);
 
-  const response = await axiosClient.post(`/api/image/upload`, form);
+  const response = await axiosClient.post(`/api/image/upload`, form, {
+    params: { visibility },
+  });
 
   return response.data;
 };

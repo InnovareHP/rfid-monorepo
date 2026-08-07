@@ -3,10 +3,10 @@ import {
   getBlast,
   getBlastAudienceCount,
   updateBlast,
-  type AudienceFilter,
   type MarketingBlast,
 } from "@/services/marketing/blast-service";
 import { getCampaigns } from "@/services/marketing/campaign-service";
+import { getGroups } from "@/services/marketing/group-service";
 import { can } from "@/lib/permissions";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -37,12 +37,11 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { StatusPill } from "../../reusable-table/status-pill";
-import { BlastAudienceFilter } from "./blast-audience-filter";
+import { BlastGroupPicker } from "./blast-group-picker";
 import { BLAST_STATUS_LABELS, BLAST_STATUS_TONES } from "./blast-list-table";
 import { BlastSendDialog } from "./blast-send-dialog";
 import { BlastSendProgress } from "./blast-send-progress";
 
-const MODULE_TYPES = ["LEAD", "REFERRAL", "CONTACT", "COMPANY"] as const;
 const NO_CAMPAIGN = "none";
 
 const blastFormSchema = z.object({
@@ -50,7 +49,7 @@ const blastFormSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   bodyHtml: z.string().min(1, "Body is required"),
   campaignId: z.string().optional(),
-  moduleType: z.string().min(1),
+  groupIds: z.array(z.string()).min(1, "Pick at least one group"),
 });
 
 type BlastFormValues = z.infer<typeof blastFormSchema>;
@@ -119,9 +118,6 @@ export const BlastEditorPage = () => {
   ]);
   const canSend = can(memberData?.role, { outreach: ["send"] });
 
-  // Local edit wins while the user is filtering, otherwise show the saved filter
-  const [editedAudienceFilter, setEditedAudienceFilter] =
-    useState<AudienceFilter | null>(null);
   const [sendDialogBlast, setSendDialogBlast] = useState<MarketingBlast | null>(
     null
   );
@@ -135,6 +131,11 @@ export const BlastEditorPage = () => {
   const { data: campaigns = [] } = useQuery({
     queryKey: ["marketing-campaigns"],
     queryFn: getCampaigns,
+  });
+
+  const { data: groups = [] } = useQuery({
+    queryKey: ["marketing-groups"],
+    queryFn: getGroups,
   });
 
   const { data: audience } = useQuery({
@@ -151,13 +152,10 @@ export const BlastEditorPage = () => {
           subject: blast.subject,
           bodyHtml: blast.bodyHtml,
           campaignId: blast.campaignId ?? NO_CAMPAIGN,
-          moduleType: blast.moduleType,
+          groupIds: blast.groups.map((link) => link.group.id),
         }
       : undefined,
   });
-
-  const audienceFilter = editedAudienceFilter ??
-    blast?.audienceFilter ?? { filter: {} };
 
   const isDraft = blast?.status === "DRAFT";
 
@@ -167,7 +165,6 @@ export const BlastEditorPage = () => {
         ...values,
         campaignId:
           values.campaignId === NO_CAMPAIGN ? null : values.campaignId,
-        audienceFilter,
       }),
     onSuccess: () => {
       toast.success("Blast saved");
@@ -185,15 +182,12 @@ export const BlastEditorPage = () => {
   }
 
   const campaignId = form.watch("campaignId");
-  const moduleType = form.watch("moduleType") || blast.moduleType;
   const campaignName =
     campaigns.find((campaign) => campaign.id === campaignId)?.name ?? "None";
-  const appliedFilterCount = Object.keys(audienceFilter.filter).length;
-  const hasAudienceFilters =
-    appliedFilterCount > 0 ||
-    Boolean(audienceFilter.search) ||
-    Boolean(audienceFilter.boardDateFrom) ||
-    Boolean(audienceFilter.boardDateTo);
+  const selectedGroupIds = form.watch("groupIds") ?? [];
+  const selectedGroupNames = groups
+    .filter((group) => selectedGroupIds.includes(group.id))
+    .map((group) => group.name);
 
   return (
     <Form {...form}>
@@ -308,73 +302,51 @@ export const BlastEditorPage = () => {
             )}
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="campaignId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Campaign</FormLabel>
-                  <Select
-                    disabled={!isDraft}
-                    value={field.value || NO_CAMPAIGN}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="None" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NO_CAMPAIGN}>None</SelectItem>
-                      {campaigns.map((campaign) => (
-                        <SelectItem key={campaign.id} value={campaign.id}>
-                          {campaign.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="moduleType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Module</FormLabel>
-                  <Select
-                    disabled={!isDraft}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {MODULE_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="campaignId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign</FormLabel>
+                <Select
+                  disabled={!isDraft}
+                  value={field.value || NO_CAMPAIGN}
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_CAMPAIGN}>None</SelectItem>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        {campaign.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </StepSection>
 
-        <StepSection step={2} title="Audience Filter">
-          <BlastAudienceFilter
-            moduleType={moduleType}
-            audienceFilter={audienceFilter}
-            onChange={setEditedAudienceFilter}
+        <StepSection step={2} title="Recipient Groups">
+          <FormField
+            control={form.control}
+            name="groupIds"
+            render={({ field }) => (
+              <FormItem>
+                <BlastGroupPicker
+                  value={field.value ?? []}
+                  disabled={!isDraft}
+                  onChange={field.onChange}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </StepSection>
 
@@ -394,21 +366,24 @@ export const BlastEditorPage = () => {
               <ReviewRow label="Subject" value={form.watch("subject")} />
               <ReviewRow label="Body" value={form.watch("bodyHtml")} />
               <ReviewRow label="Campaign" value={campaignName} />
-              <ReviewRow label="Module" value={moduleType} />
+              <ReviewRow
+                label="Groups"
+                value={selectedGroupNames.join(", ") || "None"}
+              />
             </div>
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground">
-              Audience Filters Applied
+            <h4 className="text-sm font-semibold text-gray-900">
+              Groups Selected
             </h4>
             <div className="border-b border-border" />
             <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-table-header p-4">
               <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-              <p className="text-sm text-foreground">
-                {hasAudienceFilters
-                  ? `${appliedFilterCount} field filter${appliedFilterCount === 1 ? "" : "s"} applied${audienceFilter.search ? ", plus a search term" : ""}. Recipients are limited to matching ${moduleType.toLowerCase()} records.`
-                  : `No audience filters are applied - sending now will email everyone in the ${moduleType.toLowerCase()} module. Go back to Step 2 to narrow the audience if that is not intended.`}
+              <p className="text-sm text-gray-700">
+                {selectedGroupNames.length
+                  ? `Sending to ${selectedGroupNames.join(", ")}. Records in more than one group are emailed once.`
+                  : "No groups are selected. Pick at least one in Step 2, then save the draft."}
               </p>
             </div>
           </div>

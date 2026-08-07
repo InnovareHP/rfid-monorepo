@@ -15,6 +15,17 @@ export interface DispatchInput {
   body: string;
   senderName: string;
   sendVia?: string;
+  sender?: DispatchSender;
+}
+
+// A campaign's chosen identity. A verified domain sends through SES as that
+// domain; a personal one pins the mailbox chain to whoever connected it.
+export interface DispatchSender {
+  kind: "PERSONAL" | "MANAGED_DOMAIN" | "CUSTOM_DOMAIN";
+  fromEmail: string;
+  fromName: string | null;
+  replyTo: string | null;
+  mailboxUserId: string | null;
 }
 
 export interface DispatchResult {
@@ -55,7 +66,27 @@ export class EmailDispatchService {
     html: string,
     references: string | null
   ): Promise<string> {
-    const { userId, to, subject, senderName, sendVia } = input;
+    const { to, subject, senderName, sendVia, sender } = input;
+    // A personal identity sends from its own mailbox, not the requester's.
+    const userId = sender?.mailboxUserId ?? input.userId;
+
+    // A domain identity skips the OAuth chain entirely: the whole point is that
+    // the mail leaves as the organization, not as a person's inbox. Nothing
+    // receives at that domain, so Reply-To carries replies to a real inbox.
+    if (sender && sender.kind !== "PERSONAL") {
+      await sendEmail({
+        to,
+        subject,
+        html,
+        from: sender.fromName
+          ? `${sender.fromName} <${sender.fromEmail}>`
+          : sender.fromEmail,
+        replyTo: sender.replyTo ?? undefined,
+        references,
+      });
+
+      return sender.fromEmail;
+    }
 
     const tryGmail = async () => {
       const sent = await this.gmailService.trySendViaGmail(

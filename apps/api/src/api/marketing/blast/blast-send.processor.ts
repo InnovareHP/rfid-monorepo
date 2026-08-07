@@ -5,6 +5,7 @@ import { prisma } from "../../../lib/prisma/prisma";
 import { runWithTenant } from "../../../lib/prisma/tenant-context";
 import { BoardGateway } from "../../board/board.gateway";
 import { EmailDispatchService } from "../../board/email-dispatch.service";
+import { SenderService } from "../sender/sender.service";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
 
 export interface BlastSendJobData {
@@ -20,7 +21,8 @@ export class BlastSendProcessor extends WorkerHost {
 
   constructor(
     private readonly boardGateway: BoardGateway,
-    private readonly emailDispatchService: EmailDispatchService
+    private readonly emailDispatchService: EmailDispatchService,
+    private readonly senderService: SenderService
   ) {
     super();
   }
@@ -40,6 +42,15 @@ export class BlastSendProcessor extends WorkerHost {
       where: { id: userId },
     });
 
+    // Resolved once for the whole run, and it throws if the campaign's domain
+    // is no longer verified, so a bad identity fails before any mail goes out.
+    const sender = blast.campaignId
+      ? await this.senderService.resolveForCampaign(
+          blast.campaignId,
+          organizationId
+        )
+      : null;
+
     const pending = await prisma.blastRecipient.findMany({
       where: { blastId, status: "PENDING" },
       include: { record: { select: { recordName: true } } },
@@ -56,8 +67,17 @@ export class BlastSendProcessor extends WorkerHost {
           subject: blast.subject,
           recipientName: recipient.record.recordName,
           body: blast.bodyHtml,
-          senderName: creator.name,
+          senderName: sender?.fromName ?? creator.name,
           sendVia,
+          sender: sender
+            ? {
+                kind: sender.kind,
+                fromEmail: sender.fromEmail,
+                fromName: sender.fromName,
+                replyTo: sender.replyTo,
+                mailboxUserId: sender.mailboxUserId,
+              }
+            : undefined,
         });
 
         await prisma.$transaction([

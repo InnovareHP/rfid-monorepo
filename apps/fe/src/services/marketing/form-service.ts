@@ -28,13 +28,24 @@ export type BoardField = {
   fieldName: string;
   fieldType: string;
   fieldOrder: number;
+  options: string[];
+};
+
+export type PublicFormField = FormFieldMapping & {
+  fieldType: string;
+  options: string[];
 };
 
 export type PublicForm = {
   id: string;
   name: string;
   submitButtonText: string;
-  fieldMappings: (FormFieldMapping & { fieldType: string })[];
+  fieldMappings: PublicFormField[];
+};
+
+export type PlacePrediction = {
+  description: string;
+  place_id: string;
 };
 
 export type PublicFormSubmitResult = {
@@ -103,6 +114,11 @@ export const getPublicForm = async (slug: string): Promise<PublicForm> => {
   );
   return response.data;
 };
+
+export const publicFormPlacesEndpoints = (slug: string) => ({
+  autocompleteUrl: `/api/marketing/public/forms/${slug}/places/autocomplete`,
+  detailsUrl: `/api/marketing/public/forms/${slug}/places/details`,
+});
 
 export const submitPublicForm = async (
   slug: string,

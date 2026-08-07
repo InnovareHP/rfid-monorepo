@@ -1,12 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
 
-export type AudienceFilter = {
-  filter: Record<string, string>;
-  search?: string;
-  boardDateFrom?: string;
-  boardDateTo?: string;
-};
-
 export type MarketingBlast = {
   id: string;
   organizationId: string;
@@ -15,8 +8,7 @@ export type MarketingBlast = {
   subject: string;
   bodyHtml: string;
   status: "DRAFT" | "SCHEDULED" | "SENDING" | "SENT" | "FAILED";
-  moduleType: string;
-  audienceFilter: AudienceFilter;
+  groups: { group: { id: string; name: string; moduleType: string } }[];
   scheduledAt: string | null;
   sentAt: string | null;
   createdBy: string | null;
@@ -64,8 +56,7 @@ export const createBlast = async (data: {
   campaignId?: string;
   subject: string;
   bodyHtml: string;
-  moduleType?: string;
-  audienceFilter: AudienceFilter;
+  groupIds?: string[];
   scheduledAt?: string;
 }): Promise<MarketingBlast> => {
   const response = await axiosClient.post("/api/marketing/blasts", data);
@@ -79,8 +70,7 @@ export const updateBlast = async (
     campaignId: string | null;
     subject: string;
     bodyHtml: string;
-    moduleType: string;
-    audienceFilter: AudienceFilter;
+    groupIds: string[];
     scheduledAt: string;
   }>
 ): Promise<MarketingBlast> => {
@@ -106,7 +96,7 @@ export const sendBlast = async (
 
 export const getBlastAudienceCount = async (
   id: string
-): Promise<{ count: number }> => {
+): Promise<{ count: number; total: number }> => {
   const response = await axiosClient.get(
     `/api/marketing/blasts/${id}/audience-count`
   );

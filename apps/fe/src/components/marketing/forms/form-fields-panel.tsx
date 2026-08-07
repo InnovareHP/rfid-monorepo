@@ -85,6 +85,11 @@ export const FormFieldsPanel = ({ form, fields }: FormFieldsPanelProps) => {
                         <FormFieldItem
                           key={mapping.fieldId}
                           mapping={mapping}
+                          fieldType={
+                            fields.find(
+                              (boardField) => boardField.id === mapping.fieldId
+                            )?.fieldType ?? "TEXT"
+                          }
                           onLabelChange={(fieldId, label) =>
                             field.onChange(
                               mappings.map((m) =>

@@ -135,7 +135,7 @@ export function AccountPage({
     try {
       setIsUploading(true);
 
-      const data = await uploadImage(file);
+      const data = await uploadImage(file, "public");
       if (!data?.url) throw new Error("Upload failed");
 
       updateUserMutation.mutate({ image: data.url });

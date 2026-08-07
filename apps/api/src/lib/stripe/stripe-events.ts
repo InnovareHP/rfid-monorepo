@@ -180,6 +180,12 @@ const handleEvent = async (event: Stripe.Event) => {
 
     case "customer.subscription.updated": {
       const subscription = event.data.object;
+
+      // A contract is not provisioned by the plugin and has no tier to be
+      // re-initialised from, so dates and status are taken off Stripe here and
+      // its negotiated limits are left untouched.
+      await refreshCustomSubscription(subscription);
+
       const previousItems = event.data.previous_attributes?.items;
       const previousPlan = planFromPriceId(previousItems?.data?.[0]?.price?.id);
 
@@ -275,6 +281,40 @@ const handleEvent = async (event: Stripe.Event) => {
 // handleEvent returns early for most subscription events, so the guard cache is
 // cleared here instead. The plugin may still write the row after this runs, in
 // which case the entry is only stale until the short TTL expires.
+// Stripe moved the period bounds onto the subscription item in the 2024 API,
+// so both shapes are read before giving up.
+const periodBoundsOf = (subscription: Stripe.Subscription) => {
+  const item = subscription.items.data[0] as unknown as {
+    current_period_start?: number;
+    current_period_end?: number;
+  };
+  const legacy = subscription as unknown as {
+    current_period_start?: number;
+    current_period_end?: number;
+  };
+
+  return {
+    start: item?.current_period_start ?? legacy.current_period_start ?? null,
+    end: item?.current_period_end ?? legacy.current_period_end ?? null,
+  };
+};
+
+// Writes dates and status only. Never plan, seats or customLimits: those are
+// the contract, and Stripe is not the source of truth for them.
+const refreshCustomSubscription = async (subscription: Stripe.Subscription) => {
+  const { start, end } = periodBoundsOf(subscription);
+
+  await prisma.subscription.updateMany({
+    where: { stripeSubscriptionId: subscription.id, isCustom: true },
+    data: {
+      status: subscription.status,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      ...(start ? { periodStart: new Date(start * 1000) } : {}),
+      ...(end ? { periodEnd: new Date(end * 1000) } : {}),
+    },
+  });
+};
+
 const clearEntitlementCache = async (event: Stripe.Event) => {
   if (!event.type.startsWith("customer.subscription.")) return;
 

@@ -175,7 +175,7 @@ const OnBoardingPage = () => {
 
       if (data.logoFile) {
         setProgress("Uploading your logo");
-        const uploadRes = await uploadImage(data.logoFile);
+        const uploadRes = await uploadImage(data.logoFile, "public");
         logo = uploadRes.url;
       }
 

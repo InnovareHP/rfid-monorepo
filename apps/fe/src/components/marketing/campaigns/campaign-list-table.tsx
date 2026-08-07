@@ -93,7 +93,7 @@ export const CampaignListTable = ({
       {
         key: "components",
         header: "Components",
-        className: "w-[24%] text-gray-600",
+        className: "w-[20%] text-gray-600",
         render: (row: MarketingCampaign) => (
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span className="flex items-center gap-1.5">
@@ -112,15 +112,26 @@ export const CampaignListTable = ({
         ),
       },
       {
+        key: "sender",
+        header: "Send From",
+        className: "w-[16%] text-gray-600",
+        render: (row: MarketingCampaign) =>
+          row.senderIdentity ? (
+            <span className="truncate">{row.senderIdentity.fromEmail}</span>
+          ) : (
+            <span className="text-gray-400">Default</span>
+          ),
+      },
+      {
         key: "createdAt",
         header: "Created",
-        className: "w-[15%] text-gray-600",
+        className: "w-[13%] text-gray-600",
         render: (row: MarketingCampaign) => formatDateTime(row.createdAt),
       },
       {
         key: "updatedAt",
         header: "Last Updated",
-        className: "w-[15%] text-gray-600",
+        className: "w-[13%] text-gray-600",
         render: (row: MarketingCampaign) => formatDateTime(row.updatedAt),
       },
       {

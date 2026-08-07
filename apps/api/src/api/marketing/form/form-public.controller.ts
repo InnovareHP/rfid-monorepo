@@ -6,11 +6,17 @@ import {
   HttpException,
   Param,
   Post,
+  Query,
   Req,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import { CrossTenant } from "../../../filter/tenant-context";
 import type { Request } from "express";
+import {
+  AutocompleteQueryDto,
+  PlaceDetailsQueryDto,
+} from "../../places/dto/places.schema";
 import { PublicFormSubmitDto } from "./dto/form.dto";
 import { FormService } from "./form.service";
 
@@ -24,6 +30,38 @@ export class FormPublicController {
   async getPublicForm(@Param("slug") slug: string) {
     try {
       return await this.formService.getPublicForm(slug);
+    } catch (error) {
+      throw this.toPublicError(error);
+    }
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
+  @Get("/:slug/places/autocomplete")
+  async autocompletePlaces(
+    @Param("slug") slug: string,
+    @Query() query: AutocompleteQueryDto
+  ) {
+    try {
+      return await this.formService.autocompletePublicFormPlaces(
+        slug,
+        query.input
+      );
+    } catch (error) {
+      throw this.toPublicError(error);
+    }
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
+  @Get("/:slug/places/details")
+  async getPlaceDetails(
+    @Param("slug") slug: string,
+    @Query() query: PlaceDetailsQueryDto
+  ) {
+    try {
+      return await this.formService.getPublicFormPlaceDetails(
+        slug,
+        query.placeId
+      );
     } catch (error) {
       throw this.toPublicError(error);
     }

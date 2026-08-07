@@ -17,6 +17,14 @@ model Subscription {
   billingInterval      String?
   stripeScheduleId     String?
 
+  // A negotiated contract carries its entitlements here instead of keying into
+  // the tier table. isCustom is the discriminator every resolver branches on.
+  isCustom         Boolean @default(false)
+  contractLabel    String?
+  customPriceCents Int?
+  setupFeeCents    Int?
+  customLimits     Json?
+
   @@schema("stripe_schema")
 }
 

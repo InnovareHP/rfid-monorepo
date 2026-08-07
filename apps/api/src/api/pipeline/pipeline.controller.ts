@@ -25,7 +25,13 @@ import {
 import { PipelineService } from "./pipeline.service";
 
 @Controller("pipeline")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class PipelineController {
   constructor(private readonly pipelineService: PipelineService) {}
 

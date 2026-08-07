@@ -50,7 +50,7 @@ export const AssistanceForm = ({ onSuccess }: { onSuccess: () => void }) => {
     const uploadedImages: Awaited<ReturnType<typeof uploadImage>>[] = [];
     try {
       for (const image of data.images ?? []) {
-        uploadedImages.push(await uploadImage(image));
+        uploadedImages.push(await uploadImage(image, "public"));
       }
 
       await createSupportTicket({

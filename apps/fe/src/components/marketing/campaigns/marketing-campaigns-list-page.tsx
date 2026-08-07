@@ -22,6 +22,7 @@ import { Loader2, Megaphone, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "../../analytics/charts/kpi-stat-tile";
+import { SenderSelect } from "../senders/sender-select";
 import {
   CAMPAIGN_STATUS_LABELS,
   CampaignListTable,
@@ -29,7 +30,11 @@ import {
 
 const CAMPAIGNS_KEY = ["marketing-campaigns"];
 
-type CampaignInput = { name: string; description: string };
+type CampaignInput = {
+  name: string;
+  description: string;
+  senderIdentityId: string | null;
+};
 
 export const MarketingCampaignsListPage = () => {
   const queryClient = useQueryClient();
@@ -38,6 +43,7 @@ export const MarketingCampaignsListPage = () => {
   const [editing, setEditing] = useState<MarketingCampaign | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [senderIdentityId, setSenderIdentityId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -51,6 +57,7 @@ export const MarketingCampaignsListPage = () => {
   const resetForm = () => {
     setName("");
     setDescription("");
+    setSenderIdentityId(null);
   };
 
   const createMutation = useMutation({
@@ -58,6 +65,7 @@ export const MarketingCampaignsListPage = () => {
       createCampaign({
         name: payload.name,
         description: payload.description || undefined,
+        senderIdentityId: payload.senderIdentityId,
       }),
     // Show the row immediately; the refetch reconciles the real id.
     onMutate: async (payload: CampaignInput) => {
@@ -80,6 +88,8 @@ export const MarketingCampaignsListPage = () => {
             name: optimisticName,
             description: optimisticDescription || null,
             status: "DRAFT",
+            senderIdentityId: null,
+            senderIdentity: null,
             createdBy: null,
             createdAt: now,
             updatedAt: now,
@@ -105,6 +115,7 @@ export const MarketingCampaignsListPage = () => {
       updateCampaign(payload.id, {
         name: payload.name,
         description: payload.description || undefined,
+        senderIdentityId: payload.senderIdentityId,
       }),
     onMutate: async (payload: CampaignInput & { id: string }) => {
       const editingId = payload.id;
@@ -204,6 +215,7 @@ export const MarketingCampaignsListPage = () => {
     setEditing(campaign);
     setName(campaign.name);
     setDescription(campaign.description ?? "");
+    setSenderIdentityId(campaign.senderIdentityId);
   };
 
   const filtered = useMemo(() => {
@@ -328,6 +340,10 @@ export const MarketingCampaignsListPage = () => {
                 onChange={(event) => setDescription(event.target.value)}
               />
             </div>
+            <SenderSelect
+              value={senderIdentityId}
+              onChange={setSenderIdentityId}
+            />
           </div>
 
           <DialogFormFooter>
@@ -347,6 +363,7 @@ export const MarketingCampaignsListPage = () => {
                 const payload = {
                   name: name.trim(),
                   description: description.trim(),
+                  senderIdentityId,
                 };
                 if (editing) {
                   updateMutation.mutate({ ...payload, id: editing.id });

@@ -18,7 +18,13 @@ import {
 import { EmailIngestService } from "./email-ingest.service";
 
 @Controller("email")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class EmailController {
   constructor(private readonly ingestService: EmailIngestService) {}
 

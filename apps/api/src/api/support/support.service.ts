@@ -1,4 +1,4 @@
-import { hasFeature, ROLES, User } from "@dashboard/shared";
+import { entitlementHasFeature, ROLES, User } from "@dashboard/shared";
 import {
   BadRequestException,
   Injectable,
@@ -192,8 +192,10 @@ export class SupportService {
   ): Promise<Priority | undefined> {
     if (requested !== Priority.HIGH || !organizationId) return requested;
 
-    const { plan } = await getOrganizationEntitlement(organizationId);
-    return hasFeature(plan, "priority_support") ? requested : Priority.MEDIUM;
+    const entitlement = await getOrganizationEntitlement(organizationId);
+    return entitlementHasFeature(entitlement, "priority_support")
+      ? requested
+      : Priority.MEDIUM;
   }
 
   async createTicket(

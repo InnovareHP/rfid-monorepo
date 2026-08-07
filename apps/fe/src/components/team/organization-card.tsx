@@ -39,7 +39,7 @@ export function OrganizationCard({
 
     setIsUploadingLogo(true);
 
-    const data = await uploadImage(file);
+    const data = await uploadImage(file, "public");
     if (!data?.url) throw new Error("Failed to upload image");
 
     try {

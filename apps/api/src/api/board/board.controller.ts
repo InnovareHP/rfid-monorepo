@@ -54,7 +54,13 @@ import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
 @Controller("boards")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class BoardController {
   constructor(
     private readonly boardService: BoardService,
