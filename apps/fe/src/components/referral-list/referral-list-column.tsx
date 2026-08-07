@@ -1,5 +1,5 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
-import { Button } from "@dashboard/ui/components/button";
+import { RecordActions } from "@/components/reusable-table/record-actions";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Bell, HistoryIcon } from "lucide-react";
@@ -127,14 +127,15 @@ export function generateReferralColumns(
             type="TEXT"
           />
         </div>
-        <div className="flex opacity-0 group-hover:opacity-100">
-          <Button
-            variant="outline"
-            onClick={() => onOpenMasterListView(row.original.id)}
-          >
-            <HistoryIcon /> History
-          </Button>
-        </div>
+        <RecordActions
+          actions={[
+            {
+              label: "View history",
+              icon: HistoryIcon,
+              onSelect: () => onOpenMasterListView(row.original.id),
+            },
+          ]}
+        />
       </div>
     ),
   };

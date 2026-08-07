@@ -11,11 +11,8 @@ import {
   CardTitle,
 } from "@dashboard/ui/components/card";
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { cn } from "@dashboard/ui/lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowRight,
@@ -30,17 +27,17 @@ import { toast } from "sonner";
 
 const priorityConfig = {
   high: {
-    badge: "bg-red-50 text-red-700 border-red-300",
-    card: "border-l-red-500",
-    dot: "bg-red-500",
+    badge: "border-destructive/40 bg-destructive/10 text-destructive",
+    card: "border-l-destructive",
+    dot: "bg-destructive",
   },
   medium: {
-    badge: "bg-amber-50 text-amber-700 border-amber-300",
-    card: "border-l-amber-500",
-    dot: "bg-amber-500",
+    badge: "border-warning/40 bg-warning/10 text-warning",
+    card: "border-l-warning",
+    dot: "bg-warning",
   },
   low: {
-    badge: "bg-primary/10 text-primary border-primary/40",
+    badge: "border-primary/40 bg-primary/10 text-primary",
     card: "border-l-primary",
     dot: "bg-primary",
   },
@@ -88,14 +85,14 @@ export function FollowUpSuggestions({
     return (
       <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
         <div className="space-y-4">
-          <div className="h-20 w-full rounded-xl bg-gradient-to-r from-primary/15 to-primary/15 animate-pulse" />
+          <div className="h-20 w-full animate-pulse rounded-lg bg-primary/10" />
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 w-full rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 animate-pulse"
+              className="h-28 w-full animate-pulse rounded-lg bg-muted"
             />
           ))}
-          <div className="h-16 w-full rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 animate-pulse" />
+          <div className="h-16 w-full animate-pulse rounded-lg bg-muted" />
         </div>
       </ScrollArea>
     );
@@ -104,11 +101,11 @@ export function FollowUpSuggestions({
   if (isError) {
     return (
       <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <div className="p-4 rounded-full bg-red-50">
-            <AlertTriangle className="h-8 w-8 text-red-400" />
+        <div className="flex flex-col items-center justify-center gap-3 py-16">
+          <div className="rounded-full bg-destructive/10 p-4">
+            <AlertTriangle className="size-8 text-destructive" />
           </div>
-          <p className="text-sm text-red-600 font-medium">
+          <p className="text-sm font-medium text-destructive">
             {(error as any)?.response?.data?.message ??
               "Failed to load suggestions"}
           </p>
@@ -133,24 +130,26 @@ export function FollowUpSuggestions({
             onClick={() => regenerateMutation.mutate()}
           >
             <RefreshCw
-              className={`h-3.5 w-3.5 ${regenerateMutation.isPending ? "animate-spin" : ""}`}
+              className={cn(
+                "size-3.5",
+                regenerateMutation.isPending && "animate-spin"
+              )}
             />
             Regenerate
           </Button>
         </div>
 
-        {/* Summary Card */}
-        <Card className="border-l-4 border-l-primary shadow-md bg-gradient-to-r from-primary/5 to-primary/5">
+        <Card className="border-l-4 border-l-primary bg-primary/5">
           <CardContent className="p-5">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Sparkles className="h-4 w-4 text-purple-600" />
+              <div className="rounded-md bg-primary/10 p-2">
+                <Sparkles className="size-4 text-primary" />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-purple-600 mb-1">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">
                   AI Summary
                 </p>
-                <p className="text-sm leading-relaxed text-gray-700 font-medium">
+                <p className="text-sm leading-relaxed text-foreground">
                   {data.summary}
                 </p>
               </div>
@@ -158,24 +157,23 @@ export function FollowUpSuggestions({
           </CardContent>
         </Card>
 
-        {/* Suggestions */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-primary shadow-md">
-              <Lightbulb className="h-4 w-4 text-white" />
+          <div className="mb-3 flex items-center gap-2">
+            <div className="rounded-md bg-primary p-2">
+              <Lightbulb className="size-4 text-primary-foreground" />
             </div>
-            <h3 className="text-base font-bold text-gray-900">
+            <h3 className="text-base font-semibold text-foreground">
               Suggested Actions
             </h3>
           </div>
 
           {data.suggestions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
-              <p className="text-sm text-gray-500 font-medium">
+              <p className="text-sm font-medium text-muted-foreground">
                 No suggestions right now
               </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Check back after there's more activity on this record.
+              <p className="mt-1 text-xs text-muted-foreground">
+                Check back after there&apos;s more activity on this record.
               </p>
             </div>
           ) : (
@@ -187,36 +185,42 @@ export function FollowUpSuggestions({
                 return (
                   <Card
                     key={i}
-                    className={`border-l-4 ${config.card} shadow-sm hover:shadow-md transition-all`}
+                    className={cn(
+                      "border-l-4 transition-colors hover:border-primary/40",
+                      config.card
+                    )}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="mb-2 flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <div
-                            className={`h-2.5 w-2.5 rounded-full ${config.dot}`}
+                            className={cn("size-2 rounded-full", config.dot)}
                           />
-                          <p className="text-sm font-bold text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             {suggestion.action}
                           </p>
                         </div>
                         <Badge
                           variant="outline"
-                          className={`${config.badge} text-xs font-semibold shrink-0`}
+                          className={cn(
+                            "shrink-0 text-xs font-medium",
+                            config.badge
+                          )}
                         >
                           {suggestion.priority.charAt(0).toUpperCase() +
                             suggestion.priority.slice(1)}
                         </Badge>
                       </div>
 
-                      <p className="text-sm text-gray-600 mb-3 pl-[18px]">
+                      <p className="mb-3 pl-4 text-sm text-muted-foreground">
                         {suggestion.reasoning}
                       </p>
 
-                      <div className="flex items-center justify-between gap-2 ml-[18px]">
-                        <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-lg font-semibold w-fit">
-                          <Clock className="h-3.5 w-3.5" />
+                      <div className="ml-4 flex flex-wrap items-center justify-between gap-2">
+                        <span className="flex w-fit items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+                          <Clock className="size-3.5" />
                           {suggestion.timing}
-                        </div>
+                        </span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -230,7 +234,7 @@ export function FollowUpSuggestions({
                             })
                           }
                         >
-                          <ListChecks className="h-3.5 w-3.5" />
+                          <ListChecks className="size-3.5" />
                           Create Activity
                         </Button>
                       </div>
@@ -242,31 +246,27 @@ export function FollowUpSuggestions({
           )}
         </div>
 
-        {/* Risk Factors */}
-        {data && data.riskFactors && data.riskFactors.length > 0 && (
-          <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50/50 to-amber-50/30">
+        {data.riskFactors && data.riskFactors.length > 0 && (
+          <Card className="border-warning/30 bg-warning/5">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold flex items-center gap-2.5 text-gray-900">
-                <div className="p-2 rounded-lg bg-orange-100">
-                  <ShieldAlert className="h-4 w-4 text-orange-600" />
+              <CardTitle className="flex items-center gap-2.5 text-base font-semibold text-foreground">
+                <div className="rounded-md bg-warning/10 p-2">
+                  <ShieldAlert className="size-4 text-warning" />
                 </div>
                 Risk Factors
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                {data &&
-                  data.riskFactors.map((risk, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 p-3 bg-white rounded-lg border border-orange-200"
-                    >
-                      <ArrowRight className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                      <p className="text-sm text-gray-700 font-medium">
-                        {risk}
-                      </p>
-                    </div>
-                  ))}
+                {data.riskFactors.map((risk, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 rounded-md border bg-card p-3"
+                  >
+                    <ArrowRight className="size-3.5 shrink-0 text-warning" />
+                    <p className="text-sm text-foreground">{risk}</p>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

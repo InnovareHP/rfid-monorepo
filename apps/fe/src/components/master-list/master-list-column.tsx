@@ -1,5 +1,5 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
-import { Button } from "@dashboard/ui/components/button";
+import { RecordActions } from "@/components/reusable-table/record-actions";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { User } from "better-auth";
@@ -128,22 +128,20 @@ export function generateLeadColumns(
             type="TEXT"
           />
         </div>
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          <div className="flex opacity-0 group-hover:opacity-100">
-            <Button onClick={() => onOpenAnalyzeDialog(row.original.id)}>
-              <SearchIcon /> Analyze
-            </Button>
-          </div>
-
-          <div className="flex opacity-0 group-hover:opacity-100">
-            <Button
-              variant="outline"
-              onClick={() => onOpenMasterListView(row.original.id)}
-            >
-              <HistoryIcon /> History
-            </Button>
-          </div>
-        </div>
+        <RecordActions
+          actions={[
+            {
+              label: "View history",
+              icon: HistoryIcon,
+              onSelect: () => onOpenMasterListView(row.original.id),
+            },
+            {
+              label: "Analyze",
+              icon: SearchIcon,
+              onSelect: () => onOpenAnalyzeDialog(row.original.id),
+            },
+          ]}
+        />
       </div>
     ),
   };
