@@ -7,7 +7,6 @@ import {
 import { Prisma, SenderKind, SenderStatus } from "@prisma/client";
 import { appConfig } from "../../../config/app-config";
 import {
-  deleteDomainIdentity,
   getDomainIdentityStatus,
   provisionDomainIdentity,
 } from "../../../lib/aws/ses-identity";
@@ -62,12 +61,16 @@ export class SenderService {
       throw new ConflictException("That domain is already set up here");
     }
 
-    const { dnsRecords } = await provisionDomainIdentity(domain);
+    // A domain already verified in this AWS account needs no DNS work here.
+    const { dnsRecords, alreadyVerified } =
+      await provisionDomainIdentity(domain);
 
     return prisma.senderIdentity.create({
       data: {
         label: dto.label,
         kind: dto.kind,
+        status: alreadyVerified ? SenderStatus.VERIFIED : SenderStatus.PENDING,
+        verifiedAt: alreadyVerified ? new Date() : null,
         fromEmail: `${dto.mailbox}@${domain}`,
         fromName: dto.fromName ?? null,
         // No inbox exists on a sending domain, so replies need somewhere real
@@ -175,9 +178,8 @@ export class SenderService {
       );
     }
 
-    // Releasing the SES identity keeps a re-add from colliding with a stale one.
-    if (sender.domain) await deleteDomainIdentity(sender.domain);
-
+    // The SES identity is left alone: it is account-wide, and another product
+    // in this account may be sending from the same domain.
     await prisma.senderIdentity.delete({ where: { id } });
 
     return { message: "Sender identity deleted successfully" };

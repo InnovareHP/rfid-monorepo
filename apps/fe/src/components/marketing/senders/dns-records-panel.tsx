@@ -62,10 +62,10 @@ export function DnsRecordsPanel({
           </>
         ) : (
           <>
-            Add these records to the DNS for{" "}
+            Add these {records.length} CNAME records to the DNS for{" "}
             <strong className="font-semibold">{sender.domain}</strong>, then
-            check verification. Propagation usually takes minutes but can take
-            up to 72 hours.
+            check verification. Nothing else is required. Propagation usually
+            takes minutes but can take up to 72 hours.
           </>
         )}
       </div>

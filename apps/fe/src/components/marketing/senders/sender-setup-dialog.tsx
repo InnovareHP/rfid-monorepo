@@ -60,7 +60,7 @@ const KIND_OPTIONS: {
   {
     kind: "CUSTOM_DOMAIN",
     title: "Use your work domain",
-    blurb: "Send as your own domain. You publish the MX and TXT records.",
+    blurb: "Send as your own domain. You publish three DNS records.",
     icon: Globe,
   },
 ];

@@ -3,7 +3,7 @@ import { axiosClient } from "@/lib/axios-client";
 export type SenderKind = "PERSONAL" | "MANAGED_DOMAIN" | "CUSTOM_DOMAIN";
 
 export type DnsRecord = {
-  type: "CNAME" | "MX" | "TXT";
+  type: "CNAME";
   name: string;
   value: string;
   purpose: string;
