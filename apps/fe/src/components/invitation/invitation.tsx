@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 import { getInvitationContext } from "@/services/passkeys/passkeys-service";
 import { Button } from "@dashboard/ui/components/button";
+import { Spinner } from "@dashboard/ui/components/spinner";
 import {
   Card,
   CardContent,
@@ -14,7 +15,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Fingerprint,
-  Loader2,
   Mail,
   ShieldCheck,
   XCircle,
@@ -162,27 +162,26 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
   if (state.step === "loading" || state.step === "accepting") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30 p-4">
         <div className="relative flex items-center justify-center">
           <div className="absolute w-16 h-16 border-4 border-primary/20 rounded-full" />
-          <Loader2
-            className="w-16 h-16 animate-spin text-primary"
-            strokeWidth={1.5}
-          />
+          <Spinner className="w-16 h-16 text-primary" />
         </div>
-        <h2 className="mt-8 text-xl font-medium text-slate-900">
+        <h2 className="mt-8 text-xl font-medium text-foreground">
           {state.step === "accepting"
             ? "Finalizing your access..."
             : "Checking invitation..."}
         </h2>
-        <p className="mt-2 text-slate-500">This will only take a moment.</p>
+        <p className="mt-2 text-muted-foreground">
+          This will only take a moment.
+        </p>
       </div>
     );
   }
 
   if (state.step === "rejected") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+      <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
         <Card className="w-full max-w-md shadow-xl border-none">
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Invitation declined</CardTitle>
@@ -197,7 +196,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
   if (state.step === "error") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+      <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
         <Card className="w-full max-w-md border-destructive/20 shadow-xl">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
@@ -222,13 +221,13 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
   if (state.step === "success") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+      <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
         <Card className="w-full max-w-md shadow-2xl border-none">
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <CheckCircle2 className="w-10 h-10 text-green-600" />
+            <div className="mx-auto w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mb-4 animate-bounce">
+              <CheckCircle2 className="w-10 h-10 text-success" />
             </div>
-            <CardTitle className="text-2xl font-bold text-slate-900">
+            <CardTitle className="text-2xl font-bold text-foreground">
               You're in!
             </CardTitle>
             <CardDescription className="text-base">
@@ -259,8 +258,8 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   const { invitation } = state;
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-slate-50 to-slate-100">
-      <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-slate-200">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-muted/30">
+      <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-border">
         <CardHeader className="space-y-1 text-center pb-8">
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
             <ShieldCheck className="w-8 h-8 text-primary" />
@@ -268,21 +267,21 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
           <CardTitle className="text-2xl font-bold tracking-tight">
             Join the team
           </CardTitle>
-          <CardDescription className="text-slate-500 text-base">
-            <span className="font-semibold text-slate-900">
+          <CardDescription className="text-muted-foreground text-base">
+            <span className="font-semibold text-foreground">
               {invitation.inviterName}
             </span>{" "}
             has invited you to join{" "}
-            <span className="font-semibold text-slate-900">
+            <span className="font-semibold text-foreground">
               {invitation.organizationName}
             </span>
             .
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-slate-50 rounded-lg p-3 mb-6 flex items-center gap-3 border border-slate-100">
-            <Mail className="w-5 h-5 text-slate-400" />
-            <span className="text-sm font-medium text-slate-600">
+          <div className="bg-muted/30 rounded-lg p-3 mb-6 flex items-center gap-3 border border-border">
+            <Mail className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">
               {invitation.email || "Your Email"}
             </span>
           </div>
@@ -294,7 +293,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
               onClick={handleEnrollAndJoin}
             >
               {pending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" className="text-current" />
               ) : (
                 <>
                   <Fingerprint className="mr-2 w-4 h-4" />
@@ -313,7 +312,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
             </Button>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-500">
+          <p className="mt-6 text-center text-xs text-muted-foreground">
             Passkeys stay on your device and are unlocked with your fingerprint,
             face, or device PIN. There is no password to set.
           </p>
