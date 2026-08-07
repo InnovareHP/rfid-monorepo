@@ -17,14 +17,18 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MoveRight, Pencil, Plus, RefreshCcw, RotateCcw, Trash2 } from "lucide-react";
+import {
+  MoveRight,
+  Pencil,
+  Plus,
+  RefreshCcw,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
-import {
-  ReportTable,
-  type ReportColumn,
-} from "../reusable-table/report-table";
+import { ReportTable, type ReportColumn } from "../reusable-table/report-table";
 import { RestoreHistoryModal } from "./restore-history-modal";
 
 const HISTORY_MODULES = [
@@ -83,19 +87,19 @@ const EMPTY_FILTERS: HistoryFilters = {
 const ACTION_CONFIG = {
   create: {
     icon: Plus,
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    className: "border-success/30 bg-success/10 text-success",
   },
   update: {
     icon: Pencil,
-    className: "border-amber-200 bg-amber-50 text-amber-700",
+    className: "border-warning/30 bg-warning/10 text-warning",
   },
   delete: {
     icon: Trash2,
-    className: "border-red-200 bg-red-50 text-red-700",
+    className: "border-destructive/30 bg-destructive/10 text-destructive",
   },
   restore: {
     icon: RotateCcw,
-    className: "border-blue-200 bg-blue-50 text-blue-700",
+    className: "border-info/30 bg-info/10 text-info",
   },
 } as const;
 
@@ -124,17 +128,17 @@ function ChangeCell({ row }: { row: HistoryRow }) {
       <span
         className={cn(
           "truncate text-sm",
-          row.oldValue ? "text-red-600" : "text-gray-400"
+          row.oldValue ? "text-destructive" : "text-muted-foreground"
         )}
         title={row.oldValue || undefined}
       >
         {row.oldValue || "Empty"}
       </span>
-      <MoveRight className="size-4 shrink-0 text-gray-400" />
+      <MoveRight className="size-4 shrink-0 text-muted-foreground" />
       <span
         className={cn(
           "truncate text-sm",
-          row.newValue ? "text-emerald-600" : "text-gray-400"
+          row.newValue ? "text-success" : "text-muted-foreground"
         )}
         title={row.newValue || undefined}
       >
@@ -154,7 +158,8 @@ export default function HistoryReportPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [restoreModalOpen, setRestoreModalOpen] = useState(false);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<RestoreTarget | null>(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] =
+    useState<RestoreTarget | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
 
   const { data, isFetching, refetch } = useQuery({
@@ -257,7 +262,9 @@ export default function HistoryReportPage() {
       key: "createdAt",
       header: "Created At",
       render: (row) => (
-        <span className="whitespace-nowrap">{formatDateTime(row.createdAt)}</span>
+        <span className="whitespace-nowrap">
+          {formatDateTime(row.createdAt)}
+        </span>
       ),
     },
     {
@@ -287,9 +294,9 @@ export default function HistoryReportPage() {
     <>
       <div className="page-style">
         <PageHeader
-        title="History Check"
-        description="Audit every change made to your records - see what changed, who changed it, and undo it in one click."
-      />
+          title="History Check"
+          description="Audit every change made to your records - see what changed, who changed it, and undo it in one click."
+        />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <KpiStatTile
@@ -346,7 +353,7 @@ export default function HistoryReportPage() {
               setPendingFilters((prev) => ({ ...prev, userId: value }))
             }
           >
-            <SelectTrigger className="w-[160px] bg-white">
+            <SelectTrigger className="w-[160px] bg-card">
               <SelectValue placeholder="All Users" />
             </SelectTrigger>
             <SelectContent>
@@ -365,7 +372,7 @@ export default function HistoryReportPage() {
               setPendingFilters((prev) => ({ ...prev, column: value }))
             }
           >
-            <SelectTrigger className="w-[160px] bg-white">
+            <SelectTrigger className="w-[160px] bg-card">
               <SelectValue placeholder="All Fields" />
             </SelectTrigger>
             <SelectContent>
@@ -396,12 +403,7 @@ export default function HistoryReportPage() {
               Reset
             </Button>
 
-            <Button
-              onClick={handleApplyFilters}
-              className="bg-brand text-white hover:bg-brand/90"
-            >
-              Apply Filters
-            </Button>
+            <Button onClick={handleApplyFilters}>Apply Filters</Button>
           </div>
         </div>
 
