@@ -9,8 +9,20 @@ Applies repo-wide. App-specific detail lives in `apps/*/CLAUDE.md`.
   defensive runtime checks — let the type system carry the weight.
 - One correct path. No fallbacks, no parallel ways to do the same thing.
 - Surgical changes: touch what the task needs, nothing else.
-- Comments are one line, one sentence. No emojis or special characters.
+- Comments are one line, one sentence, and only where the code cannot say it
+  itself. No block comments, no JSDoc on obvious functions, no emojis.
 - Markdown filenames are kebab-case.
+
+## React state discipline
+
+- `useState` and `useEffect` are a last resort, not the default reach.
+- Derive during render before storing. If a value is computable from props,
+  params, query data, or another state, do not put it in `useState`.
+- No `useEffect` for: syncing state to props, fetching (use TanStack Query),
+  or resetting form fields (use `form.reset`). Effects are for real external
+  subscriptions and imperative DOM only.
+- Forms carry their own state — see the forms rule in
+  `.claude/rules/frontend-conventions.md`. A form field in `useState` is a bug.
 
 ## Where code goes
 

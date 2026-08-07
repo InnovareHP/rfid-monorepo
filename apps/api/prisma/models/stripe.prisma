@@ -12,22 +12,30 @@ model Subscription {
   trialStart           DateTime? @db.Timestamptz(3)
   trialEnd             DateTime? @db.Timestamptz(3)
   cancelAt             DateTime? @db.Timestamptz(3)
+  canceledAt           DateTime? @db.Timestamptz(3)
+  endedAt              DateTime? @db.Timestamptz(3)
+  billingInterval      String?
+  stripeScheduleId     String?
+
+  // A negotiated contract carries its entitlements here instead of keying into
+  // the tier table. isCustom is the discriminator every resolver branches on.
+  isCustom         Boolean @default(false)
+  contractLabel    String?
+  customPriceCents Int?
+  setupFeeCents    Int?
+  customLimits     Json?
 
   @@schema("stripe_schema")
 }
 
-model Plan {
-  id            String    @id @default(uuid())
-  name          String
-  priceId       String?
-  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime? @db.Timestamptz(3)
-  photo         String?
-  description   String?
-  roleAvailable String?
-  isActive      Boolean
-  type          String?
-  limits        Json?
+// Provider-agnostic webhook dedupe. The unique constraint is the claim: insert
+// first and let parallel deliveries race at the database, never find-then-insert.
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  provider  String
+  eventId   String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 
+  @@unique([provider, eventId])
   @@schema("stripe_schema")
 }

@@ -12,8 +12,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@dashboard/ui/components/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -23,10 +30,31 @@ import {
 } from "@dashboard/ui/components/select";
 import { Switch } from "@dashboard/ui/components/switch";
 import { Textarea } from "@dashboard/ui/components/textarea";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const eventSchema = z
+  .object({
+    provider: z.enum(["google", "outlook"]),
+    title: z.string().trim().min(1, "Title is required"),
+    description: z.string().trim(),
+    allDay: z.boolean(),
+    startDate: z.string().min(1, "Start is required"),
+    endDate: z.string().min(1, "End is required"),
+    location: z.string().trim(),
+  })
+  .refine((values) => new Date(values.endDate) >= new Date(values.startDate), {
+    message: "End must be after start",
+    path: ["endDate"],
+  });
+
+type EventFormValues = z.infer<typeof eventSchema>;
+
+const toLocalInput = (date: Date) => date.toISOString().slice(0, 16);
 
 interface CreateEventDialogProps {
   open: boolean;
@@ -47,22 +75,24 @@ export function CreateEventDialog({
   if (connectionStatus.google.connected) connectedProviders.push("google");
   if (connectionStatus.outlook.connected) connectedProviders.push("outlook");
 
-  const [provider, setProvider] = useState<CalendarProvider>(
-    connectedProviders[0] || "google"
-  );
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [allDay, setAllDay] = useState(false);
-  const [startDate, setStartDate] = useState(() => {
-    const d = defaultDate || new Date();
-    return d.toISOString().slice(0, 16);
+  const start = defaultDate ?? new Date();
+  const end = new Date(start);
+  end.setHours(end.getHours() + 1);
+
+  const form = useForm<EventFormValues>({
+    resolver: zodResolver(eventSchema),
+    defaultValues: {
+      provider: connectedProviders[0] ?? "google",
+      title: "",
+      description: "",
+      allDay: false,
+      startDate: toLocalInput(start),
+      endDate: toLocalInput(end),
+      location: "",
+    },
   });
-  const [endDate, setEndDate] = useState(() => {
-    const d = defaultDate || new Date();
-    d.setHours(d.getHours() + 1);
-    return d.toISOString().slice(0, 16);
-  });
-  const [location, setLocation] = useState("");
+
+  const allDay = form.watch("allDay");
 
   const createMutation = useMutation({
     mutationFn: createCalendarEvent,
@@ -70,38 +100,24 @@ export function CreateEventDialog({
       queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
       toast.success("Event created");
       onOpenChange(false);
-      resetForm();
+      form.reset();
     },
     onError: () => {
       toast.error("Failed to create event");
     },
   });
 
-  function resetForm() {
-    setTitle("");
-    setDescription("");
-    setAllDay(false);
-    setLocation("");
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!title.trim()) {
-      toast.error("Title is required");
-      return;
-    }
-
+  const onSubmit = (values: EventFormValues) => {
     createMutation.mutate({
-      provider,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      startTime: new Date(startDate).toISOString(),
-      endTime: new Date(endDate).toISOString(),
-      allDay,
-      location: location.trim() || undefined,
+      provider: values.provider,
+      title: values.title,
+      description: values.description || undefined,
+      startTime: new Date(values.startDate).toISOString(),
+      endTime: new Date(values.endDate).toISOString(),
+      allDay: values.allDay,
+      location: values.location || undefined,
     });
-  }
+  };
 
   if (connectedProviders.length === 0) {
     return (
@@ -126,122 +142,168 @@ export function CreateEventDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Create Event</DialogTitle>
-            <DialogDescription>
-              Add a new event to your calendar
-            </DialogDescription>
-          </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Create Event</DialogTitle>
+              <DialogDescription>
+                Add a new event to your calendar
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            {connectedProviders.length > 1 && (
-              <div className="grid gap-2">
-                <Label htmlFor="provider">Calendar</Label>
-                <Select
-                  value={provider}
-                  onValueChange={(v) => setProvider(v as CalendarProvider)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {connectionStatus.google.connected && (
-                      <SelectItem value="google">
-                        Google ({connectionStatus.google.email})
-                      </SelectItem>
-                    )}
-                    {connectionStatus.outlook.connected && (
-                      <SelectItem value="outlook">
-                        Outlook ({connectionStatus.outlook.email})
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="grid gap-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Event title"
-                required
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional description"
-                rows={2}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="allDay"
-                checked={allDay}
-                onCheckedChange={setAllDay}
-              />
-              <Label htmlFor="allDay">All day</Label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="start">Start</Label>
-                <Input
-                  id="start"
-                  type={allDay ? "date" : "datetime-local"}
-                  value={allDay ? startDate.slice(0, 10) : startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  required
+            <div className="grid gap-4 py-4">
+              {connectedProviders.length > 1 && (
+                <FormField
+                  control={form.control}
+                  name="provider"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Calendar</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {connectionStatus.google.connected && (
+                            <SelectItem value="google">
+                              Google ({connectionStatus.google.email})
+                            </SelectItem>
+                          )}
+                          {connectionStatus.outlook.connected && (
+                            <SelectItem value="outlook">
+                              Outlook ({connectionStatus.outlook.email})
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="end">End</Label>
-                <Input
-                  id="end"
-                  type={allDay ? "date" : "datetime-local"}
-                  value={allDay ? endDate.slice(0, 10) : endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Optional location"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending && (
-                <Loader2 className="size-4 animate-spin mr-1" />
               )}
-              Create
-            </Button>
-          </DialogFooter>
-        </form>
+
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Event title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Optional description"
+                        rows={2}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="allDay"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel>All day</FormLabel>
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start</FormLabel>
+                      <FormControl>
+                        <Input
+                          type={allDay ? "date" : "datetime-local"}
+                          {...field}
+                          value={allDay ? field.value.slice(0, 10) : field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End</FormLabel>
+                      <FormControl>
+                        <Input
+                          type={allDay ? "date" : "datetime-local"}
+                          {...field}
+                          value={allDay ? field.value.slice(0, 10) : field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Optional location" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending && (
+                  <Loader2 className="size-4 animate-spin mr-1" />
+                )}
+                Create
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

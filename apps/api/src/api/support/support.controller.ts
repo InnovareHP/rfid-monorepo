@@ -57,9 +57,12 @@ export class SupportController {
 
   @Get("/tickets/:ticketId")
   @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN, ROLES.USER])
-  async getTicketById(@Param("ticketId") ticketId: string) {
+  async getTicketById(
+    @Param("ticketId") ticketId: string,
+    @Session() session: AuthenticatedSession
+  ) {
     try {
-      return await this.supportService.getTicketById(ticketId);
+      return await this.supportService.getTicketById(ticketId, session.user);
     } catch (error) {
       console.error(error);
       throw new BadRequestException(error.message);
@@ -73,7 +76,11 @@ export class SupportController {
     @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.supportService.createTicket(session.user.id, dto);
+      return await this.supportService.createTicket(
+        session.user.id,
+        session.session.activeOrganizationId ?? null,
+        dto
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -89,7 +96,7 @@ export class SupportController {
     try {
       return await this.supportService.updateTicket(
         ticketId,
-        session.user.id,
+        session.user,
         dto
       );
     } catch (error) {
@@ -104,7 +111,7 @@ export class SupportController {
     @Session() session: AuthenticatedSession
   ) {
     try {
-      return await this.supportService.deleteTicket(ticketId, session.user.id);
+      return await this.supportService.deleteTicket(ticketId, session.user);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -120,7 +127,7 @@ export class SupportController {
     try {
       return await this.supportService.createTicketMessage(
         ticketId,
-        session.user.id,
+        session.user,
         dto.message
       );
     } catch (error) {
@@ -132,11 +139,13 @@ export class SupportController {
   @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN, ROLES.USER])
   async createTicketAttachment(
     @Param("messageId") messageId: string,
-    @Body() dto: CreateTicketAttachmentDto
+    @Body() dto: CreateTicketAttachmentDto,
+    @Session() session: AuthenticatedSession
   ) {
     try {
       return await this.supportService.createTicketAttachment(
         messageId,
+        session.user,
         dto.imageUrl
       );
     } catch (error) {
@@ -168,7 +177,7 @@ export class SupportController {
       return await this.supportService.assignTicket(
         ticketId,
         dto.agentId,
-        session.user.id
+        session.user
       );
     } catch (error) {
       throw new BadRequestException(error.message);

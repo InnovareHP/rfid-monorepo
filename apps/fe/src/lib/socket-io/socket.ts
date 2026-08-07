@@ -20,7 +20,10 @@ function createSocket(token: string): Socket {
   });
 }
 
-export async function connectSocket(sessionToken: string): Promise<Socket> {
+export async function connectSocket(
+  sessionToken: string,
+  onSocketReplaced?: (socket: Socket) => void
+): Promise<Socket> {
   if (socket?.connected) return socket;
 
   if (socket) {
@@ -29,8 +32,17 @@ export async function connectSocket(sessionToken: string): Promise<Socket> {
   }
 
   socket = createSocket(sessionToken);
+  attachErrorHandler(socket, onSocketReplaced);
 
-  socket.on("connect_error", async (err) => {
+  return socket;
+}
+
+// A fresh token means a fresh socket, so subscribers must rebind their listeners
+function attachErrorHandler(
+  target: Socket,
+  onSocketReplaced?: (socket: Socket) => void
+) {
+  target.on("connect_error", async (err) => {
     console.error("Socket error:", err.message);
 
     if (!tokenGenerator || isReconnecting) return;
@@ -41,14 +53,13 @@ export async function connectSocket(sessionToken: string): Promise<Socket> {
       if (!newToken) return;
 
       socket?.disconnect();
-      socket = null;
       socket = createSocket(newToken);
+      attachErrorHandler(socket, onSocketReplaced);
+      onSocketReplaced?.(socket);
     } finally {
       isReconnecting = false;
     }
   });
-
-  return socket;
 }
 
 export function disconnectSocket(): void {

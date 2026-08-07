@@ -17,6 +17,24 @@ enum BlastStatus {
   @@schema("marketing_schema")
 }
 
+// How a campaign's mail leaves the building. PERSONAL reuses the sender's
+// connected mailbox; both domain kinds send through SES as the org's own domain.
+enum SenderKind {
+  PERSONAL
+  MANAGED_DOMAIN
+  CUSTOM_DOMAIN
+
+  @@schema("marketing_schema")
+}
+
+enum SenderStatus {
+  PENDING
+  VERIFIED
+  FAILED
+
+  @@schema("marketing_schema")
+}
+
 enum PageStatus {
   DRAFT
   PUBLISHED
@@ -32,6 +50,9 @@ model Campaign {
   description String?
   status      CampaignStatus @default(DRAFT)
 
+  senderIdentityId String?
+  senderIdentity   SenderIdentity? @relation(fields: [senderIdentityId], references: [id], onDelete: SetNull)
+
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -46,6 +67,42 @@ model Campaign {
   @@schema("marketing_schema")
 }
 
+// One verified way to send. A domain identity carries the DNS records the
+// owner has to publish; a personal one just names whose connected mailbox.
+model SenderIdentity {
+  id         String       @id @default(uuid())
+  createdAt  DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime     @updatedAt @db.Timestamptz(3)
+  label      String
+  kind       SenderKind
+  status     SenderStatus @default(PENDING)
+  fromEmail  String
+  fromName   String?
+  domain     String?
+  dnsRecords Json?
+  verifiedAt DateTime?    @db.Timestamptz(3)
+
+  // Replies land in a real inbox because we do not host one: every send stamps
+  // this as Reply-To.
+  replyTo String?
+
+  // Set for PERSONAL only: whose connected mailbox actually sends.
+  mailboxUserId String?
+  mailboxUser   User?   @relation("SenderIdentityMailbox", fields: [mailboxUserId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  creator   User?   @relation("SenderIdentityCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  campaigns Campaign[]
+
+  @@unique([organizationId, domain])
+  @@index([organizationId, status])
+  @@schema("marketing_schema")
+}
+
 model Blast {
   id             String      @id @default(uuid())
   createdAt      DateTime    @default(now()) @db.Timestamptz(3)
@@ -54,8 +111,6 @@ model Blast {
   subject        String
   bodyHtml       String
   status         BlastStatus @default(DRAFT)
-  moduleType     ModuleType  @default(LEAD)
-  audienceFilter Json
   scheduledAt    DateTime?   @db.Timestamptz(3)
   sentAt         DateTime?   @db.Timestamptz(3)
 
@@ -69,8 +124,44 @@ model Blast {
   creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
   recipients BlastRecipient[]
+  groups     BlastGroup[]
 
   @@index([organizationId, status])
+  @@schema("marketing_schema")
+}
+
+// A saved, reusable audience. The filter shape matches what the blast used to
+// carry inline, so a blast now names groups instead of describing recipients.
+model RecipientGroup {
+  id          String     @id @default(uuid())
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+  name        String
+  description String?
+  moduleType  ModuleType @default(LEAD)
+  filter      Json
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  blasts BlastGroup[]
+
+  @@index([organizationId, moduleType])
+  @@schema("marketing_schema")
+}
+
+model BlastGroup {
+  blastId String
+  blast   Blast  @relation(fields: [blastId], references: [id], onDelete: Cascade)
+
+  groupId String
+  group   RecipientGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([blastId, groupId])
+  @@index([groupId])
   @@schema("marketing_schema")
 }
 

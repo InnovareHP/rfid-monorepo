@@ -1,6 +1,6 @@
-import { Text } from "@react-email/components";
+import { Heading, Text } from "@react-email/components";
 import * as React from "react";
-import { EmailLayout, emailStyles } from "./email-layout";
+import { BRAND_NAME, EmailLayout, emailStyles } from "./email-layout";
 
 type ActivityEmailProps = {
   recipientName: string;
@@ -10,14 +10,18 @@ type ActivityEmailProps = {
 export const ActivityEmail = ({ recipientName, body }: ActivityEmailProps) => {
   return (
     <EmailLayout preview="You have new activity">
+      <Text style={emailStyles.eyebrow}>New activity</Text>
+
+      <Heading style={emailStyles.heading}>Here is what changed</Heading>
+
       <Text style={emailStyles.paragraph}>Hi {recipientName},</Text>
 
       <Text style={emailStyles.paragraph}>{body}</Text>
 
-      <Text style={emailStyles.paragraph}>
+      <Text style={emailStyles.muted}>
         Best regards,
         <br />
-        The {process.env.APP_NAME ?? "Dashboard"} Team
+        The {BRAND_NAME} team
       </Text>
     </EmailLayout>
   );

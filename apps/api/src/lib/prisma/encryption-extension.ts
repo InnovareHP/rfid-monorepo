@@ -26,6 +26,7 @@ const ENCRYPTED_FIELDS: FieldMap = {
   TaskChecklistItem: ["title"],
   TaskActivity: ["oldValue", "newValue"],
   Booking: ["inviteeName", "inviteeEmail", "inviteeNotes"],
+  ContractAgreement: ["signerName", "signerEmail"],
 };
 
 // Relation key → model, so encrypted models are handled when nested

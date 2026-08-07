@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import {
   exportExpenseLogs,
   getExpenseLogs,
@@ -5,97 +6,147 @@ import {
 import { formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { ReceiptViewer } from "@dashboard/ui/components/receipt-viewer";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { FileDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
 import { MasterListFilters } from "../master-list/master-list-filter";
-import { ReusableTable } from "../reusable-table/generic-table";
+import { ReportTable, type ReportColumn } from "../reusable-table/report-table";
+
+type ExpenseReportRow = {
+  id: string;
+  createdAt: string;
+  amount: number;
+  description: string;
+  notes: string;
+  imageUrl: string;
+  liaisonName?: string;
+};
+
+const columns: ReportColumn<ExpenseReportRow>[] = [
+  {
+    key: "date",
+    header: "Date",
+    render: (row) => formatDateTime(row.createdAt),
+  },
+  {
+    key: "liaison",
+    header: "Liaison",
+    render: (row) => row.liaisonName || "N/A",
+  },
+  {
+    key: "amount",
+    header: "Amount",
+    render: (row) => `$${row.amount}`,
+  },
+  {
+    key: "description",
+    header: "Description",
+    render: (row) => row.description || "N/A",
+  },
+  {
+    key: "notes",
+    header: "Notes",
+    render: (row) => row.notes || "N/A",
+  },
+  {
+    key: "receipt",
+    header: "Receipt",
+    render: (row) =>
+      row.imageUrl ? (
+        <ReceiptViewer url={row.imageUrl} label="View Receipt" />
+      ) : (
+        "N/A"
+      ),
+  },
+];
 
 export default function ExpenseReportPage() {
-  const [appliedFilterMeta, setAppliedFilterMeta] = useState({
-    filter: {
-      expenseDateFrom: null,
-      expenseDateTo: null,
-    },
-    limit: 20,
+  const [filterMeta, setFilterMeta] = useState({
+    filter: { expenseDateFrom: null, expenseDateTo: null },
+    limit: 10,
+  });
+  const [page, setPage] = useState(1);
+
+  const { data, refetch, isFetching } = useQuery({
+    queryKey: ["expense-report", filterMeta, page],
+    queryFn: () => getExpenseLogs({ ...filterMeta, page }),
   });
 
-  const { data, refetch, isFetchingNextPage, isFetching } = useInfiniteQuery({
-    queryKey: ["expense-report", appliedFilterMeta],
-    queryFn: ({ pageParam }) =>
-      getExpenseLogs({ ...appliedFilterMeta, page: pageParam }),
-    getNextPageParam: (lastPage) => lastPage.nextPage,
-    initialPageParam: 1,
-  });
+  const rows: ExpenseReportRow[] = data?.data ?? [];
+  const totals = data?.totals ?? {
+    amount: 0,
+    missingReceipts: 0,
+    averageAmount: 0,
+  };
 
-  const rows = data?.pages.flatMap((p) => p.data) ?? [];
-
-  const handleExportCSV = async () => {
+  const handleExport = async () => {
     if (rows.length === 0) {
       toast.error("No expense logs available to export.");
       return;
     }
 
-    await exportExpenseLogs(appliedFilterMeta);
+    await exportExpenseLogs(filterMeta);
   };
 
   return (
-    <div className="p-8 bg-gray-50 space-y-6">
-      <h1 className="text-3xl font-bold page-title">Expense Report</h1>
-
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={handleExportCSV}>
-          <Download className="h-4 w-4" />
-          Export PDF
-        </Button>
-      </div>
-
-      <MasterListFilters
-        columns={data?.pages[0]?.columns ?? []}
-        filterMeta={appliedFilterMeta}
-        refetch={refetch}
-        setFilterMeta={setAppliedFilterMeta}
-        isExpense={true}
+    <div className="page-style">
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <PageHeader
+        title="Expense Report"
+        description="Track and manage business expenses and receipts."
       />
 
-      <div className="border rounded-lg p-4">
-        <ReusableTable
-          data={rows ?? []}
-          columns={[
-            {
-              key: "amount",
-              header: "Amount",
-              render: (row: any) => `$${row.amount}`,
-            },
+          <Button
+            onClick={handleExport}
+            className="bg-brand text-white hover:bg-brand/90"
+          >
+            <FileDown className="mr-1 h-4 w-4" />
+            Export PDF
+          </Button>
+        </div>
 
-            {
-              key: "createdAt",
-              header: "Created At",
-              render: (row: any) => formatDateTime(row.createdAt),
-            },
-            {
-              key: "description",
-              header: "Description",
-              render: (row: any) => row.description,
-            },
-            {
-              key: "notes",
-              header: "Notes",
-              render: (row: any) => row.notes,
-            },
-            {
-              key: "receipt",
-              header: "Receipt",
-              render: (row: any) => (
-                <div className="flex items-center gap-2">
-                  <ReceiptViewer url={row.imageUrl} label="View Receipt" />
-                </div>
-              ),
-            },
-          ]}
-          isLoading={isFetchingNextPage || isFetching}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <KpiStatTile
+            label="Total Expenses"
+            value={`$${totals.amount.toFixed(2)}`}
+            isLoading={isFetching}
+          />
+          <KpiStatTile
+            label="Missing Receipts"
+            value={totals.missingReceipts.toLocaleString()}
+            isLoading={isFetching}
+          />
+          <KpiStatTile
+            label="Average Expense"
+            value={`$${totals.averageAmount.toFixed(2)}`}
+            isLoading={isFetching}
+          />
+        </div>
+
+        <MasterListFilters
+          columns={data?.columns ?? []}
+          filterMeta={filterMeta}
+          refetch={refetch}
+          setFilterMeta={setFilterMeta}
+          isExpense={true}
+        />
+
+        <ReportTable
+          columns={columns}
+          rows={rows}
+          isLoading={isFetching}
           emptyMessage="No expense logs found"
+          currentPage={page}
+          pageSize={filterMeta.limit}
+          totalCount={data?.total ?? 0}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setFilterMeta((prev) => ({ ...prev, limit: size }));
+            setPage(1);
+          }}
         />
       </div>
     </div>

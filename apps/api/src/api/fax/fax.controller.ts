@@ -1,3 +1,4 @@
+import { isOrgAdmin } from "@dashboard/shared";
 import {
   BadRequestException,
   Body,
@@ -16,6 +17,16 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import { memoryStorage } from "multer";
 import { EldonFaxError, FAX_MAX_FILE_BYTES } from "../../lib/eldonfax/eldonfax";
 import {
@@ -26,7 +37,13 @@ import {
 import { FaxService } from "./fax.service";
 
 @Controller("fax")
-@UseGuards(AuthGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class FaxController {
   constructor(private readonly faxService: FaxService) {}
 
@@ -39,18 +56,20 @@ export class FaxController {
   }
 
   private assertOwner(session: MemberSession) {
-    if (session.session.memberRole !== "owner") {
+    if (!isOrgAdmin(session.session.memberRole)) {
       throw new ForbiddenException(
-        "Only the organization owner can manage integrations"
+        "Only an organization owner or admin can manage integrations"
       );
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("integration")
   async integrationStatus(@Session() session: MemberSession) {
     return this.faxService.status(session.session.activeOrganizationId);
   }
 
+  @RequirePermission({ field: ["configure"] })
   @Put("integration")
   async connectIntegration(
     @Body() dto: ConnectFaxIntegrationDto,
@@ -64,6 +83,7 @@ export class FaxController {
     }
   }
 
+  @RequirePermission({ field: ["configure"] })
   @Delete("integration")
   async disconnectIntegration(@Session() session: MemberSession) {
     this.assertOwner(session);
@@ -71,6 +91,7 @@ export class FaxController {
   }
 
   @Post("send")
+  @RequirePermission({ log: ["create"] })
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
@@ -103,6 +124,7 @@ export class FaxController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get()
   async listFaxes(
     @Query() query: ListFaxesDto,
@@ -119,6 +141,7 @@ export class FaxController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get(":id")
   async getFax(@Param("id") id: string, @Session() session: MemberSession) {
     try {

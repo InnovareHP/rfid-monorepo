@@ -1,12 +1,15 @@
 import type { FormFieldMapping } from "@/services/marketing/form-service";
+import { Badge } from "@dashboard/ui/components/badge";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { Input } from "@dashboard/ui/components/input";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, X } from "lucide-react";
+import { fieldTypeLabel } from "./field-type-label";
 
 type FormFieldItemProps = {
   mapping: FormFieldMapping;
+  fieldType: string;
   onLabelChange: (fieldId: string, label: string) => void;
   onRequiredChange: (fieldId: string, required: boolean) => void;
   onRemove: (fieldId: string) => void;
@@ -14,6 +17,7 @@ type FormFieldItemProps = {
 
 export const FormFieldItem = ({
   mapping,
+  fieldType,
   onLabelChange,
   onRequiredChange,
   onRemove,
@@ -29,7 +33,7 @@ export const FormFieldItem = ({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="flex items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2"
+      className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2"
     >
       <button
         type="button"
@@ -44,9 +48,12 @@ export const FormFieldItem = ({
         value={mapping.label}
         onChange={(event) => onLabelChange(mapping.fieldId, event.target.value)}
         placeholder="Field label"
-        className="flex-1"
+        className="min-w-40 flex-1"
       />
-      <label className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0">
+      <Badge variant="secondary" className="shrink-0 font-normal">
+        {fieldTypeLabel(fieldType)}
+      </Badge>
+      <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500">
         <Checkbox
           checked={mapping.required}
           onCheckedChange={(checked) =>

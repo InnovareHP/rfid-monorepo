@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -16,6 +17,12 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { Queue } from "bullmq";
 import { memoryStorage } from "multer";
 import { EldonFaxError } from "../../lib/eldonfax/eldonfax";
@@ -36,14 +43,24 @@ import {
   RestoreHistoryDto,
   UpdateActivityDto,
   UpdateContactDto,
+  UpdateRecordCountyLiaisonDto,
   UpdateRecordValueDto,
 } from "./dto/board.schema";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
 @Controller("boards")
-@UseGuards(AuthGuard)
-// @UseGuards(StripeGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class BoardController {
   constructor(
     private readonly boardService: BoardService,
@@ -59,6 +76,7 @@ export class BoardController {
 
   // ─── GET ──────────────────────────────────────────────────────────────
 
+  @RequirePermission({ record: ["read"] })
   @Get("/")
   async getAllRecords(
     @Session()
@@ -94,6 +112,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/gmail/auth-url")
   async getGmailAuthUrl(@Session() session: AuthenticatedSession) {
     try {
@@ -108,6 +127,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/gmail/status")
   async getGmailStatus(@Session() session: AuthenticatedSession) {
     try {
@@ -117,6 +137,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/outlook/auth-url")
   async getOutlookAuthUrl(@Session() session: AuthenticatedSession) {
     try {
@@ -131,6 +152,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/outlook/status")
   async getOutlookStatus(@Session() session: AuthenticatedSession) {
     try {
@@ -140,6 +162,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/records")
   async getRecords(
     @Session() session: AuthenticatedSession,
@@ -160,6 +183,24 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
+  @Get("/stats")
+  async getBoardStats(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    const organizationId = session.session.activeOrganizationId;
+    try {
+      return await this.boardService.getBoardStats(
+        organizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ record: ["read"] })
   @Get("/duplicates")
   async findDuplicates(
     @Session() session: AuthenticatedSession,
@@ -182,6 +223,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/column")
   async getColumns(
     @Session() session: AuthenticatedSession,
@@ -198,13 +240,18 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ report: ["read"] })
   @Get("/history")
   async getAllRecordHistory(
     @Query("page") page = 1,
     @Query("limit") limit = 50,
     @Session()
     session: AuthenticatedSession,
-    @Query("moduleType") moduleType?: string
+    @Query("moduleType") moduleType?: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("userId") userId?: string,
+    @Query("column") column?: string
   ) {
     try {
       const organizationId = session.session.activeOrganizationId;
@@ -212,12 +259,35 @@ export class BoardController {
         page: Number(page),
         limit: Number(limit),
         moduleType: moduleType || "LEAD",
+        dateFrom,
+        dateTo,
+        userId,
+        column,
       });
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ report: ["read"] })
+  @Get("/history/meta")
+  async getRecordHistoryMeta(
+    @Session()
+    session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      const organizationId = session.session.activeOrganizationId;
+      return await this.boardService.getRecordHistoryMeta(
+        organizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ record: ["read"] })
   @Get("/county/configuration")
   async getCountyConfiguration(
     @Session()
@@ -231,36 +301,48 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/contact-info/:fieldId")
   async getValueIdContact(
     @Param("fieldId") fieldId: string,
-    @Query("value") value: string
+    @Query("value") value: string,
+    @Session()
+    session: AuthenticatedSession
   ) {
     try {
-      return await this.boardService.getValueId(fieldId, value);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Get("/timeline/:recordId")
-  async getRecordHistory(
-    @Param("recordId") recordId: string,
-    @Query("take") take: number = 15,
-    @Query("skip") skip: number = 1
-  ) {
-    try {
-      const offset = (skip - 1) * take;
-      return this.boardService.getHistory(
-        recordId,
-        Number(take),
-        Number(offset)
+      return await this.boardService.getValueId(
+        fieldId,
+        value,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["read"] })
+  @Get("/timeline/:recordId")
+  async getRecordHistory(
+    @Param("recordId") recordId: string,
+    @Query("take") take: number = 15,
+    @Query("skip") skip: number = 1,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      const offset = (skip - 1) * take;
+      return this.boardService.getHistory(
+        recordId,
+        Number(take),
+        Number(offset),
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ record: ["read"] })
   @Get("/field/:fieldId/options")
   async getRecordFieldOptions(
     @Param("fieldId") fieldId: string,
@@ -282,30 +364,21 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/jobs/:jobId/status")
   async getJobStatus(
     @Param("jobId") jobId: string,
-    @Query("queue") queueName: string
+    @Query("queue") queueName: string,
+    @Session() session: AuthenticatedSession
   ) {
-    try {
-      const queue = this.getQueueByName(queueName);
-      const job = await queue.getJob(jobId);
-      if (!job) {
-        throw new BadRequestException("Job not found");
-      }
-      const state = await job.getState();
-      return {
-        jobId: job.id,
-        status: state,
-        progress: job.progress,
-        result: job.returnvalue,
-        failedReason: job.failedReason,
-      };
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return await this.boardService.getJobStatus(
+      jobId,
+      queueName,
+      session.session.activeOrganizationId
+    );
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/:recordId")
   async getRecordById(
     @Param("recordId") recordId: string,
@@ -325,6 +398,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["read"] })
   @Get("/:recordId/related")
   async getRelatedRecords(
     @Param("recordId") recordId: string,
@@ -340,6 +414,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("/:recordId/activities")
   async getActivities(
     @Param("recordId") recordId: string,
@@ -359,6 +434,8 @@ export class BoardController {
     }
   }
 
+  @RequireFeature("ai")
+  @RequirePermission({ log: ["read"] })
   @Get("/:recordId/suggestions")
   async getFollowUpSuggestions(
     @Param("recordId") recordId: string,
@@ -376,17 +453,21 @@ export class BoardController {
     }
   }
 
+  @RequireFeature("ai")
+  @RequirePermission({ analytics: ["read"] })
   @Get("/:recordId/analyze")
   async getRecordAnalyze(
     @Param("recordId") recordId: string,
     @Query("dateStart") dateStart: string,
-    @Query("dateEnd") dateEnd: string
+    @Query("dateEnd") dateEnd: string,
+    @Session() session: AuthenticatedSession
   ) {
     try {
       const dateStartDate = dateStart ? new Date(dateStart) : undefined;
       const dateEndDate = dateEnd ? new Date(dateEnd) : undefined;
       return await this.boardService.getRecordAnalyze(
         recordId,
+        session.session.activeOrganizationId,
         dateStartDate,
         dateEndDate
       );
@@ -395,6 +476,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["create"] })
   @Post()
   async createRecord(
     @Body() dto: CreateRecordDto,
@@ -431,6 +513,8 @@ export class BoardController {
   }
 
   @Post("/scan-card")
+  @RequirePermission({ record: ["create"] })
+  @RequireFeature("ai")
   @UseInterceptors(
     FileInterceptor("image", {
       storage: memoryStorage(),
@@ -456,6 +540,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["create"] })
   @Post("/bulk-email")
   async sendBulkEmail(
     @Body() dto: BulkEmailDto,
@@ -477,6 +562,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["create"] })
   @Post("/activities")
   async createActivity(
     @Body() dto: CreateActivityDto,
@@ -494,6 +580,7 @@ export class BoardController {
   }
 
   @Post("/activities/fax")
+  @RequirePermission({ log: ["create"] })
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
@@ -539,6 +626,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Post("/activities/:activityId/complete")
   async completeActivity(
     @Param("activityId") activityId: string,
@@ -557,6 +645,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Post("/restore-history")
   async restoreRecord(
     @Body() dto: RestoreHistoryDto,
@@ -592,6 +681,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Post("/county/assignment")
   async createRecordCountyAssignment(
     @Body() dto: CreateRecordCountyAssignmentDto,
@@ -603,14 +693,35 @@ export class BoardController {
       return await this.boardService.createCountyAssignment(
         dto.name,
         organizationId,
-        dto.assignedTo
+        dto.liaisons
       );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ record: ["update"] })
+  @Put("/county/assignment/:countyId")
+  async updateCountyLiaisons(
+    @Param("countyId") countyId: string,
+    @Body() dto: UpdateRecordCountyLiaisonDto,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.updateCountyLiaisons(
+        countyId,
+        session.session.activeOrganizationId,
+        dto.liaisons
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequireFeature("export")
   @Post("/csv-import")
+  @RequirePermission({ record: ["import"] })
   async createRecordDataFromCSV(
     @Session()
     session: AuthenticatedSession,
@@ -619,7 +730,7 @@ export class BoardController {
     const organizationId = session.session.activeOrganizationId;
     try {
       return await this.boardService.createRecordDataFromCSV(
-        dto.excelData as Record<string, unknown>[],
+        dto.excelData,
         organizationId,
         dto.moduleType
       );
@@ -628,6 +739,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["create"] })
   @Post("/column")
   async createColumn(
     @Session()
@@ -647,15 +759,19 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["update"] })
   @Post("/field/:fieldId/options")
   async createRecordFieldOption(
     @Param("fieldId") fieldId: string,
-    @Body() dto: CreateFieldOptionDto
+    @Body() dto: CreateFieldOptionDto,
+    @Session()
+    session: AuthenticatedSession
   ) {
     try {
       return await this.boardService.createRecordFieldOption(
         fieldId,
         dto.optionName,
+        session.session.activeOrganizationId,
         dto.color
       );
     } catch (error) {
@@ -663,6 +779,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Patch("/activities/:activityId")
   async updateActivity(
     @Param("activityId") activityId: string,
@@ -680,27 +797,43 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Patch("/contact-form/:fieldId")
   async updateContactValue(
     @Param("fieldId") fieldId: string,
-    @Body() dto: UpdateContactDto
+    @Body() dto: UpdateContactDto,
+    @Session()
+    session: AuthenticatedSession
   ) {
     try {
-      return await this.boardService.updateContactValue(fieldId, dto);
+      return await this.boardService.updateContactValue(
+        fieldId,
+        dto,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Patch("/timeline/:recordId")
-  async updateRecordHistory(@Param("recordId") recordId: string) {
+  async updateRecordHistory(
+    @Param("recordId") recordId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.updateRecordHistory(recordId);
+      return await this.boardService.updateRecordHistory(
+        recordId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Patch("/:recordId")
   async updateRecordValue(
     @Param("recordId") recordId: string,
@@ -727,6 +860,7 @@ export class BoardController {
 
   // ─── DELETE ───────────────────────────────────────────────────────────
 
+  @RequirePermission({ record: ["delete"] })
   @Delete()
   async deleteRecords(
     @Body() dto: DeleteRecordsDto,
@@ -735,13 +869,16 @@ export class BoardController {
     try {
       return await this.boardService.deleteRecord(
         dto.column_ids,
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        session.session.userId,
+        dto.moduleType
       );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Delete("/gmail/disconnect")
   async disconnectGmail(@Session() session: AuthenticatedSession) {
     try {
@@ -752,6 +889,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Delete("/outlook/disconnect")
   async disconnectOutlook(@Session() session: AuthenticatedSession) {
     try {
@@ -762,6 +900,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
   @Delete("/activities/:activityId")
   async deleteActivity(
     @Param("activityId") activityId: string,
@@ -777,6 +916,7 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["delete"] })
   @Delete("/column/:columnId")
   async deleteColumn(
     @Param("columnId") columnId: string,
@@ -794,45 +934,54 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
   @Delete("/county/assignment/:countyId")
-  async deleteCountyAssignment(@Param("countyId") countyId: string) {
+  async deleteCountyAssignment(
+    @Param("countyId") countyId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.deleteCountyAssignment(countyId);
+      return await this.boardService.deleteCountyAssignment(
+        countyId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
   @Delete("/timeline/:recordId")
-  async deleteRecordHistory(@Param("recordId") recordId: string) {
+  async deleteRecordHistory(
+    @Param("recordId") recordId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.deleteRecordHistory(recordId);
+      return await this.boardService.deleteRecordHistory(
+        recordId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ field: ["delete"] })
   @Delete("/field/options/:optionId")
-  async deleteRecordFieldOption(@Param("optionId") optionId: string) {
+  async deleteRecordFieldOption(
+    @Param("optionId") optionId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
     try {
-      return await this.boardService.deleteRecordFieldOption(optionId);
+      return await this.boardService.deleteRecordFieldOption(
+        optionId,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
-    }
-  }
-
-  // ─── PRIVATE ──────────────────────────────────────────────────────────
-
-  private getQueueByName(name: string): Queue {
-    switch (name) {
-      case QUEUE_NAMES.BULK_EMAIL:
-        return this.bulkEmailQueue;
-      case QUEUE_NAMES.CSV_IMPORT:
-        return this.csvImportQueue;
-      case QUEUE_NAMES.GEMINI:
-        return this.geminiQueue;
-      default:
-        throw new BadRequestException(`Unknown queue: ${name}`);
     }
   }
 }

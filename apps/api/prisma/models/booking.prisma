@@ -7,6 +7,8 @@ model BookingPage {
   slug                 String   @unique
   title                String
   description          String?
+  // BOTH lets the invitee choose; the other two fix the mode for every booking.
+  locationType         LocationType @default(VIDEO)
   locationLabel        String?
   durationMinutes      Int      @default(30)
   timezone             String
@@ -47,6 +49,9 @@ model Booking {
   inviteeName        String
   inviteeEmail       String
   inviteeNotes       String?
+  // What the invitee actually picked, resolved at booking time so a later
+  // change to the page does not rewrite meetings already agreed.
+  locationType       BookingLocation @default(VIDEO)
   startTime          DateTime      @db.Timestamptz(3)
   endTime            DateTime      @db.Timestamptz(3)
   status             BookingStatus @default(CONFIRMED)
@@ -71,6 +76,23 @@ model Booking {
 enum BookingStatus {
   CONFIRMED
   CANCELLED
+
+  @@schema("booking_schema")
+}
+
+// What a page offers. BOTH is the only value that makes the invitee toggle live.
+enum LocationType {
+  VIDEO
+  IN_PERSON
+  BOTH
+
+  @@schema("booking_schema")
+}
+
+// What one booking resolved to. No BOTH: a meeting happens one way.
+enum BookingLocation {
+  VIDEO
+  IN_PERSON
 
   @@schema("booking_schema")
 }

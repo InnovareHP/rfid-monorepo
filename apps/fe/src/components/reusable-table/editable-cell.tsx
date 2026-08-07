@@ -48,7 +48,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
@@ -73,7 +73,7 @@ const validateEmail = (email: string): boolean => {
 };
 
 const validatePhone = (phone: string): boolean => {
-  const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+  const phoneRegex = /^[\d\s\-+()]+$/;
   return phone.length >= 10 && phoneRegex.test(phone);
 };
 
@@ -94,6 +94,7 @@ export function EditableCell({
 }: EditableCellProps) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
   const [validationError, setValidationError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
   const isreferralKey = moduleType
@@ -102,10 +103,11 @@ export function EditableCell({
       ? "referrals"
       : "leads";
 
-  // Sync value when prop changes
-  useEffect(() => {
+  // Adopt a new server value during render, never over an in-progress edit
+  if (!editing && value !== syncedValue) {
+    setSyncedValue(value);
     setVal(value);
-  }, [value]);
+  }
 
   const updateLeadMutation = useMutation({
     mutationFn: async ({
@@ -148,8 +150,12 @@ export function EditableCell({
       );
       toast.error("Failed to update.");
     },
-    // No invalidate: the optimistic write is authoritative locally and the
-    // board socket reconciles other clients + server-derived fields.
+    // No board-list invalidate: the optimistic write is authoritative locally
+    // and the board socket reconciles other clients + server-derived fields.
+    // Stat tiles are aggregates, so they still need a refetch.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board-stats"] });
+    },
   });
 
   const handleUpdate = async (
@@ -848,7 +854,7 @@ export function EditableCell({
         return [
           ...new Set(
             val
-              .replace(/[\[\]\\"]/g, "")
+              .replace(/[[\]\\"]/g, "")
               .split(",")
               .map((v) => v.trim())
               .filter(Boolean)

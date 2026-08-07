@@ -18,6 +18,8 @@ const TextSectionSchema = SectionBase.extend({
   props: z.object({
     heading: z.string().max(200).optional(),
     body: z.string().min(1).max(5000),
+    ctaLabel: z.string().max(100).optional(),
+    ctaHref: z.url({ protocol: /^https?$/ }).optional(),
   }),
 });
 
@@ -27,6 +29,8 @@ const ImageSectionSchema = SectionBase.extend({
     src: z.url({ protocol: /^https?$/ }),
     alt: z.string().max(200).default(""),
     caption: z.string().max(300).optional(),
+    ctaLabel: z.string().max(100).optional(),
+    ctaHref: z.url({ protocol: /^https?$/ }).optional(),
   }),
 });
 
@@ -73,4 +77,16 @@ export const CreateLandingPageSchema = z.object({
   seoDescription: z.string().max(160).optional(),
 });
 
-export const UpdateLandingPageSchema = CreateLandingPageSchema.partial();
+export const UpdateLandingPageSchema = CreateLandingPageSchema.partial().extend(
+  {
+    slug: z
+      .string()
+      .min(1)
+      .max(80)
+      .regex(
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+        "Slug may only contain lowercase letters, numbers and single hyphens"
+      )
+      .optional(),
+  }
+);

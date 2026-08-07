@@ -24,6 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - No external libraries unless absolutely necessary.
 - Use project dependency file for correct versions.
 - Avoid redundancy unless it improves usability.
+- Limit the use of useState and useEffect specially on forms.
 
 ## Version Control
 
@@ -133,8 +134,8 @@ File-based routing in `apps/fe/src/routes/`:
 
 ### Environment Variables
 
-- **Backend**: `.env` from `.env.example` — requires `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `CLOUDINARY_*`, `WEBSITE_URL`
-- **Frontend**: `VITE_API_URL` (backend URL)
+- **Backend**: `.env` from `.env.example` — requires `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `AWS_*`, `S3_UPLOADS_BUCKET`, `WEBSITE_URL`
+- **Frontend**: `VITE_API_URL` (backend URL), `VITE_AWS_REGION`, `VITE_AWS_LOCATION_API_KEY`
 
 ## Key Conventions
 

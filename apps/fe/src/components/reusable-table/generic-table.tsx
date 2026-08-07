@@ -27,6 +27,7 @@ interface ReusableTableProps<T> {
   totalCount?: number;
   emptyMessage?: string;
   isLoading?: boolean;
+  tableClassName?: string;
 }
 
 export function ReusableTable<T>({
@@ -38,6 +39,7 @@ export function ReusableTable<T>({
   totalCount,
   emptyMessage = "No records found",
   isLoading = false,
+  tableClassName,
 }: ReusableTableProps<T>) {
   const totalPages = totalCount ? Math.ceil(totalCount / itemsPerPage) : 1;
 
@@ -72,16 +74,16 @@ export function ReusableTable<T>({
   };
 
   return (
-    <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className="w-full border border-border rounded-lg overflow-hidden bg-card shadow-sm">
       <ScrollArea>
-        <Table className="border-0 w-full">
+        <Table className={cn("border-0 w-full", tableClassName)}>
           <TableHeader>
-            <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50">
+            <TableRow className="border-b border-border bg-table-header hover:bg-table-header">
               {columns.map((col, idx) => (
                 <TableHead
                   key={idx}
                   className={cn(
-                    "text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground border-r border-gray-200 last:border-r-0 px-4 py-3",
+                    "text-left text-sm font-semibold text-foreground px-4 py-3",
                     col.className
                   )}
                 >
@@ -128,10 +130,10 @@ export function ReusableTable<T>({
                       </svg>
                     </div>
                     <div className="space-y-1">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         {emptyMessage}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         No data available at the moment
                       </p>
                     </div>
@@ -142,13 +144,13 @@ export function ReusableTable<T>({
               data.map((row, rowIndex) => (
                 <TableRow
                   key={rowIndex}
-                  className="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                  className="border-b border-border bg-card hover:bg-muted/50 transition-colors"
                 >
                   {columns.map((col, colIndex) => (
                     <TableCell
                       key={colIndex}
                       className={cn(
-                        "border-r border-gray-200 last:border-r-0 px-4 py-2.5 text-sm",
+                        "px-4 py-3 text-sm",
                         col.className
                       )}
                     >
@@ -171,13 +173,13 @@ export function ReusableTable<T>({
 
       {/* Pagination */}
       {onPageChange && totalPages > 1 && !isLoading && (
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
-          <div className="text-sm text-gray-700">
+        <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-t border-border">
+          <div className="text-sm text-foreground">
             <span className="font-medium">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, totalCount ?? data.length)}
             </span>
-            <span className="text-gray-600">
+            <span className="text-muted-foreground">
               {" "}
               of {totalCount ?? data.length} entries
             </span>
@@ -199,7 +201,7 @@ export function ReusableTable<T>({
                   return (
                     <div
                       key={`ellipsis-${idx}`}
-                      className="w-8 h-8 flex items-center justify-center text-gray-500"
+                      className="w-8 h-8 flex items-center justify-center text-muted-foreground"
                     >
                       ...
                     </div>
@@ -218,7 +220,7 @@ export function ReusableTable<T>({
                     className={cn(
                       "w-8 h-8 p-0",
                       isActive
-                        ? "bg-primary hover:bg-primary/90 text-white shadow-sm"
+                        ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                         : "border-primary/40 hover:bg-primary/15"
                     )}
                   >

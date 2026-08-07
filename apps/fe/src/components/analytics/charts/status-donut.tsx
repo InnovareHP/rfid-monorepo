@@ -5,13 +5,15 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@dashboard/ui/components/chart";
-import { Cell, Label, Pie, PieChart, Sector } from "recharts";
+import { Cell, Pie, PieChart, Sector } from "recharts";
 import type { PieSectorShapeProps } from "recharts/types/polar/Pie";
 
 type StatusDonutProps = {
   slices: StatusSlice[];
   selectedStatus?: string;
   emptyMessage?: string;
+  totalLabel?: string;
+  activeSuffix?: string;
 };
 
 function slugify(name: string, index: number): string {
@@ -26,6 +28,8 @@ export function StatusDonut({
   slices,
   selectedStatus,
   emptyMessage = "No status data available",
+  totalLabel = "Total referrals",
+  activeSuffix = "Referrals",
 }: StatusDonutProps) {
   if (slices.length === 0) {
     return (
@@ -52,63 +56,47 @@ export function StatusDonut({
   }, {});
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-72 w-full">
-      <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-        <ChartTooltip content={<ChartTooltipContent nameKey="key" />} />
-        <Pie
-          data={rows}
-          dataKey="value"
-          nameKey="key"
-          innerRadius={62}
-          outerRadius={96}
-          paddingAngle={2}
-          stroke="var(--color-background)"
-          strokeWidth={2}
-          shape={(props: PieSectorShapeProps, index: number) => (
-            <Sector
-              {...props}
-              outerRadius={
-                index === activeIndex
-                  ? (props.outerRadius ?? 0) + 12
-                  : props.outerRadius
-              }
-            />
-          )}
-        >
-          {rows.map((row) => (
-            <Cell key={row.key} fill={row.color} />
-          ))}
-          <Label
-            position="center"
-            content={({ viewBox }) => {
-              if (!viewBox || !("cx" in viewBox)) return null;
+    <div className="relative">
+      <ChartContainer config={chartConfig} className="aspect-auto h-72 w-full">
+        <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+          <ChartTooltip content={<ChartTooltipContent nameKey="key" />} />
+          <Pie
+            data={rows}
+            dataKey="value"
+            nameKey="key"
+            innerRadius={62}
+            outerRadius={96}
+            paddingAngle={2}
+            stroke="var(--color-background)"
+            strokeWidth={2}
+            shape={(props: PieSectorShapeProps, index: number) => (
+              <Sector
+                {...props}
+                outerRadius={
+                  index === activeIndex
+                    ? (props.outerRadius ?? 0) + 12
+                    : props.outerRadius
+                }
+              />
+            )}
+          >
+            {rows.map((row) => (
+              <Cell key={row.key} fill={row.color} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
 
-              return (
-                <text
-                  x={viewBox.cx}
-                  y={viewBox.cy}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                >
-                  <tspan
-                    x={viewBox.cx}
-                    className="fill-brand text-4xl font-bold tabular-nums"
-                  >
-                    {(active?.value ?? total).toLocaleString()}
-                  </tspan>
-                  <tspan
-                    x={viewBox.cx}
-                    dy="1.6em"
-                    className="fill-muted-foreground text-xs"
-                  >
-                    {active ? `${active.name} Referrals` : "Total referrals"}
-                  </tspan>
-                </text>
-              );
-            }}
-          />
-        </Pie>
-      </PieChart>
-    </ChartContainer>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+        <span className="text-4xl font-bold tabular-nums text-brand">
+          {(active?.value ?? total).toLocaleString()}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {active
+            ? [active.name, activeSuffix].filter(Boolean).join(" ")
+            : totalLabel}
+        </span>
+      </div>
+    </div>
   );
 }

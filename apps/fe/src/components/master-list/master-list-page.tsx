@@ -2,9 +2,12 @@ import { generateLeadColumns } from "@/components/master-list/master-list-column
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import { authClient } from "@/lib/auth-client";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { can } from "@/lib/permissions";
 import { deleteLead, getLeads } from "@/services/lead/lead-service";
-import { ROLES, type LeadRow, type OptionsResponse } from "@dashboard/shared";
+import { type LeadRow, type OptionsResponse } from "@dashboard/shared";
 import type { Member } from "better-auth/plugins/organization";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,7 +22,7 @@ import {
   Settings,
   TableProperties,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -28,8 +31,10 @@ import ColumnFilter from "./column-filter";
 import KanbanView from "./kanban-view";
 import { MasterListFilters } from "./master-list-filter";
 import { PipelineSettingsDialog } from "./pipeline-settings-dialog";
+import { BoardStatsStrip } from "./board-stats-strip";
 import { MasterListView } from "./master-list-view";
 import { SmartScanDialog } from "./smart-scan-dialog";
+import AddRow from "../reusable-table/add-row";
 
 export default function MasterListPage() {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
@@ -45,30 +50,36 @@ export default function MasterListPage() {
     "member-data",
     organizationData?.id,
   ]);
-  const isOwner = memberData?.role === ROLES.OWNER;
+  const canConfigurePipeline = can(memberData?.role, {
+    field: ["configure"],
+  });
+  const entitlement = useEntitlement(organizationData?.id ?? "");
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
   const [filterMeta, setFilterMeta] = useState<{
-    BoardDateFrom: null | string;
-    BoardDateTo: null | string;
+    boardDateFrom: null | Date;
+    boardDateTo: null | Date;
     filter: Record<string, string>;
     limit: number;
     search?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }>({
-    BoardDateFrom: null,
-    BoardDateTo: null,
+    boardDateFrom: null,
+    boardDateTo: null,
     filter: {},
     limit: 10,
     search: undefined,
   });
 
-  useEffect(() => {
-    if (!routeSearch.q) return;
+  const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);
+
+  // Adopt a new route query during render instead of in an effect
+  if (routeSearch.q && routeSearch.q !== syncedQuery) {
+    setSyncedQuery(routeSearch.q);
     setFilterMeta((prev) => ({ ...prev, search: routeSearch.q }));
-  }, [routeSearch.q]);
+  }
 
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["leads", filterMeta],
@@ -183,6 +194,9 @@ export default function MasterListPage() {
       );
       toast.error("Failed to delete leads.");
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["board-stats"] });
+    },
   });
 
   const handleDeleteLeads = (columnIds: string[]) => {
@@ -201,7 +215,7 @@ export default function MasterListPage() {
 
     let total = 0;
     let columns: any[] = [];
-    let users: OptionsResponse[] =
+    const users: OptionsResponse[] =
       queryClient.getQueryData(["assigned-to-users"]) ?? [];
 
     do {
@@ -285,7 +299,7 @@ export default function MasterListPage() {
     }));
   };
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="page-style">
       <div className="space-y-6">
         {/* Header Section */}
         <AnalyzeLeadDialog
@@ -314,59 +328,64 @@ export default function MasterListPage() {
           }
           initialTab="history"
         />
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight page-title">
-              Master Marketing List
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Visualize, filter, and export your marketing leads database.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setView(view === "table" ? "kanban" : "table")}
-              className="flex items-center gap-2 border-gray-300 bg-white"
-            >
-              {view === "table" ? (
-                <KanbanSquare className="h-4 w-4" />
-              ) : (
-                <TableProperties className="h-4 w-4" />
-              )}
-              {view === "table" ? "Pipeline" : "Table"}
-            </Button>
-            {view === "kanban" && isOwner && (
-              <Button
-                variant="outline"
-                onClick={() => setOpenPipelineSettings(true)}
-                className="flex items-center gap-2 border-gray-300 bg-white"
-              >
-                <Settings className="h-4 w-4" />
-                Pipeline Settings
-              </Button>
+        <PageHeader
+          title="Master Marketing List"
+          description="Visualize, filter, and export your marketing leads database."
+        >
+          <Button
+            variant="outline"
+            onClick={() => setView(view === "table" ? "kanban" : "table")}
+            className="flex items-center gap-2"
+          >
+            {view === "table" ? (
+              <KanbanSquare className="h-4 w-4" />
+            ) : (
+              <TableProperties className="h-4 w-4" />
             )}
+            {view === "table" ? "Pipeline" : "Table"}
+          </Button>
+          {view === "kanban" && canConfigurePipeline && (
             <Button
               variant="outline"
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 border-gray-300 bg-white"
+              onClick={() => setOpenPipelineSettings(true)}
+              className="flex items-center gap-2"
             >
-              <Download className="h-4 w-4" />
-              Export CSV
+              <Settings className="h-4 w-4" />
+              Pipeline Settings
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setOpenSmartScan(true)}
-              className="flex items-center gap-2 border-gray-300 bg-white"
-            >
-              <ScanLine className="h-4 w-4" />
-              Smart Scan
-            </Button>
+          )}
 
-            <ColumnFilter tableColumns={tableColumns as any} />
-          </div>
-        </div>
+          <ColumnFilter tableColumns={tableColumns as any} />
+
+          <Button
+            onClick={handleExportCSV}
+            disabled={!entitlement.has("export")}
+            title={
+              entitlement.has("export")
+                ? undefined
+                : "Upgrade your plan to export data"
+            }
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button
+            onClick={() => setOpenSmartScan(true)}
+            disabled={!entitlement.has("ai")}
+            title={
+              entitlement.has("ai")
+                ? undefined
+                : "Upgrade your plan to use Smart Scan"
+            }
+            className="flex items-center gap-2"
+          >
+            <ScanLine className="h-4 w-4" />
+            Smart Scan
+          </Button>
+        </PageHeader>
+
+        {view === "table" && <BoardStatsStrip />}
 
         {view === "kanban" ? (
           <KanbanView
@@ -377,14 +396,13 @@ export default function MasterListPage() {
           />
         ) : (
           <>
-            <div className="bg-white">
-              <MasterListFilters
-                columns={data?.columns ?? []}
-                filterMeta={filterMeta}
-                refetch={refetch}
-                setFilterMeta={setFilterMeta}
-              />
-            </div>
+            <MasterListFilters
+              columns={data?.columns ?? []}
+              filterMeta={filterMeta}
+              refetch={refetch}
+              setFilterMeta={setFilterMeta}
+              actions={<AddRow />}
+            />
 
             {/* Table Wrapper */}
 

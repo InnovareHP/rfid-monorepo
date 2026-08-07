@@ -1,3 +1,4 @@
+import { REFERRAL_FORM_SECTIONS } from "@/components/referral-list/referral-form-sections";
 import RecordCreatePage, {
   type CreatedRecord,
   type RecordColumn,
@@ -35,6 +36,9 @@ function RouteComponent() {
     onSuccess: () => {
       toast.success("Referrals created successfully");
       queryClient.invalidateQueries({ queryKey: ["referrals"] });
+      queryClient.invalidateQueries({
+        queryKey: ["referral-pipeline-analytics"],
+      });
       goBack();
     },
     onError: () => {
@@ -59,10 +63,12 @@ function RouteComponent() {
   return (
     <RecordCreatePage
       title="Create Referrals"
-      description="Add one or multiple referrals to your list"
+      description="Add one or multiple referrals to your list. Fields marked * are required to keep pipeline and outreach reporting accurate."
       entityLabel="Referral"
+      entityLabelPlural="Referrals"
       nameLabel="Referral Name"
       columns={columns}
+      sections={REFERRAL_FORM_SECTIONS}
       isLoadingColumns={isLoadingColumns}
       isSubmitting={createReferralMutation.isPending}
       fetchDropdownOptions={getReferralDropdownOptions}

@@ -1,9 +1,14 @@
+import { PageHeader } from "@/components/page-header";
+import { KpiStatTile } from "@/components/analytics/charts/kpi-stat-tile";
+import {
+  FORM_STATUS_LABELS,
+  FormListTable,
+} from "@/components/marketing/forms/form-list-table";
 import { getBoardFieldsByModule } from "@/services/marketing/blast-service";
 import {
   createForm,
   deleteForm,
   getForms,
-  publishForm,
   type MarketingForm,
 } from "@/services/marketing/form-service";
 import { Button } from "@dashboard/ui/components/button";
@@ -11,13 +16,18 @@ import { Checkbox } from "@dashboard/ui/components/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  DialogFormFooter,
+  DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -25,14 +35,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { FileText, Plus } from "lucide-react";
-import { useState } from "react";
+import { FileText, Loader2, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { FormListTable } from "./form-list-table";
+import { z } from "zod";
+
+const FORMS_KEY = ["marketing-forms"];
 
 const MODULE_TYPES = ["LEAD", "REFERRAL", "CONTACT", "COMPANY"] as const;
+
+const createFormSchema = z.object({
+  name: z.string().trim().min(1, "Form name is required"),
+  moduleType: z.enum(MODULE_TYPES),
+  fieldIds: z.array(z.string()).min(1, "Select at least one field"),
+});
+
+type CreateFormValues = z.infer<typeof createFormSchema>;
 
 export const MarketingFormsListPage = () => {
   const { team } = useParams({ strict: false }) as { team: string };
@@ -40,15 +62,23 @@ export const MarketingFormsListPage = () => {
   const queryClient = useQueryClient();
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [moduleType, setModuleType] =
-    useState<(typeof MODULE_TYPES)[number]>("LEAD");
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [statusSort, setStatusSort] = useState<"asc" | "desc">("asc");
 
   const { data: forms = [], isLoading } = useQuery({
-    queryKey: ["marketing-forms"],
+    queryKey: FORMS_KEY,
     queryFn: getForms,
   });
+
+  const form = useForm<CreateFormValues>({
+    resolver: zodResolver(createFormSchema),
+    defaultValues: { name: "", moduleType: "LEAD", fieldIds: [] },
+  });
+
+  const moduleType = form.watch("moduleType");
+  const fieldIds = form.watch("fieldIds");
 
   const { data: boardFields = [] } = useQuery({
     queryKey: ["board-fields-by-module", moduleType],
@@ -56,34 +86,22 @@ export const MarketingFormsListPage = () => {
     enabled: createOpen,
   });
 
-  const resetCreateState = () => {
-    setName("");
-    setModuleType("LEAD");
-    setSelectedFieldIds([]);
-  };
-
-  const handleModuleTypeChange = (value: (typeof MODULE_TYPES)[number]) => {
-    setModuleType(value);
-    setSelectedFieldIds([]);
-  };
-
   const createMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: CreateFormValues) =>
       createForm({
-        name: name.trim(),
-        moduleType,
-        fieldMappings: selectedFieldIds.map((fieldId) => ({
+        name: values.name,
+        moduleType: values.moduleType,
+        fieldMappings: values.fieldIds.map((fieldId) => ({
           fieldId,
-          label:
-            boardFields.find((field) => field.id === fieldId)?.name ?? "",
+          label: boardFields.find((field) => field.id === fieldId)?.name ?? "",
           required: false,
         })),
       }),
     onSuccess: (created: MarketingForm) => {
       toast.success("Form created");
-      queryClient.invalidateQueries({ queryKey: ["marketing-forms"] });
+      queryClient.invalidateQueries({ queryKey: FORMS_KEY });
       setCreateOpen(false);
-      resetCreateState();
+      form.reset();
       navigate({
         to: "/$team/marketing/forms/$formId",
         params: { team, formId: created.id },
@@ -92,137 +110,245 @@ export const MarketingFormsListPage = () => {
     onError: () => toast.error("Failed to create form"),
   });
 
-  const publishMutation = useMutation({
-    mutationFn: (form: MarketingForm) => publishForm(form.id),
-    onSuccess: () => {
-      toast.success("Form published");
-      queryClient.invalidateQueries({ queryKey: ["marketing-forms"] });
+  const deleteMutation = useMutation({
+    mutationFn: (target: MarketingForm) => deleteForm(target.id),
+    onMutate: async (target: MarketingForm) => {
+      await queryClient.cancelQueries({ queryKey: FORMS_KEY });
+      const previous = queryClient.getQueryData<MarketingForm[]>(FORMS_KEY);
+
+      queryClient.setQueryData<MarketingForm[]>(FORMS_KEY, (current = []) =>
+        current.filter((row) => row.id !== target.id)
+      );
+
+      return { previous };
     },
-    onError: () => toast.error("Failed to publish form"),
+    onError: (_error, _target, context) => {
+      queryClient.setQueryData(FORMS_KEY, context?.previous);
+      toast.error("Failed to delete form");
+    },
+    onSuccess: () => toast.success("Form deleted"),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: FORMS_KEY });
+    },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (form: MarketingForm) => deleteForm(form.id),
-    onSuccess: () => {
-      toast.success("Form deleted");
-      queryClient.invalidateQueries({ queryKey: ["marketing-forms"] });
-    },
-    onError: () => toast.error("Failed to delete form"),
-  });
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const matched = term
+      ? forms.filter((row) => row.name.toLowerCase().includes(term))
+      : forms;
+
+    return [...matched].sort((a, b) => {
+      const compared = FORM_STATUS_LABELS[a.status].localeCompare(
+        FORM_STATUS_LABELS[b.status]
+      );
+      return statusSort === "asc" ? compared : -compared;
+    });
+  }, [forms, search, statusSort]);
+
+  const publishedCount = forms.filter(
+    (row) => row.status === "PUBLISHED"
+  ).length;
+  const totalSubmissions = forms.reduce(
+    (sum, row) => sum + (row._count?.submissions ?? 0),
+    0
+  );
 
   const toggleField = (fieldId: string) => {
-    setSelectedFieldIds((prev) =>
-      prev.includes(fieldId)
-        ? prev.filter((id) => id !== fieldId)
-        : [...prev, fieldId]
+    form.setValue(
+      "fieldIds",
+      fieldIds.includes(fieldId)
+        ? fieldIds.filter((id) => id !== fieldId)
+        : [...fieldIds, fieldId],
+      { shouldValidate: true, shouldDirty: true }
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Forms
-            </h1>
-            <p className="text-sm text-gray-500">
-              Capture leads with public forms.
-            </p>
-          </div>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            New Form
-          </Button>
-        </div>
+    <div className="page-style">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+        title="Forms"
+        description="Capture leads with public forms."
+      />
 
-        {isLoading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
-        ) : (
-          <FormListTable
-            forms={forms}
-            onEdit={(form) =>
-              navigate({
-                to: "/$team/marketing/forms/$formId",
-                params: { team, formId: form.id },
-              })
-            }
-            onPublish={(form) => publishMutation.mutate(form)}
-            onDelete={(form) => deleteMutation.mutate(form)}
-          />
-        )}
+        <Button
+          onClick={() => setCreateOpen(true)}
+          className="bg-brand text-white hover:bg-brand/90"
+        >
+          <Plus className="h-4 w-4" />
+          New Form
+        </Button>
       </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <KpiStatTile
+          label="Total Forms"
+          value={forms.length.toLocaleString()}
+          isLoading={isLoading}
+        />
+        <KpiStatTile
+          label="Published"
+          value={publishedCount.toLocaleString()}
+          isLoading={isLoading}
+        />
+        <KpiStatTile
+          label="Total Submissions"
+          value={totalSubmissions.toLocaleString()}
+          isLoading={isLoading}
+        />
+      </div>
+
+      <Input
+        placeholder="Search forms...."
+        value={search}
+        onChange={(event) => {
+          setSearch(event.target.value);
+          setPage(1);
+        }}
+        className="w-full bg-white sm:w-80"
+      />
+
+      <FormListTable
+        forms={filtered.slice((page - 1) * pageSize, page * pageSize)}
+        isLoading={isLoading}
+        currentPage={page}
+        pageSize={pageSize}
+        totalCount={filtered.length}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        onToggleStatusSort={() =>
+          setStatusSort((prev) => (prev === "asc" ? "desc" : "asc"))
+        }
+        onEdit={(row) =>
+          navigate({
+            to: "/$team/marketing/forms/$formId",
+            params: { team, formId: row.id },
+          })
+        }
+        onDelete={(row) => deleteMutation.mutate(row)}
+      />
 
       <Dialog
         open={createOpen}
         onOpenChange={(open) => {
           setCreateOpen(open);
-          if (!open) resetCreateState();
+          if (!open) form.reset();
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New Form</DialogTitle>
-            <DialogDescription>
-              Name your form, pick which board it submits to, and select at
-              least one field to capture.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="form-name">Name</Label>
-              <Input
-                id="form-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Board</Label>
-              <Select value={moduleType} onValueChange={handleModuleTypeChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODULE_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Fields</Label>
-              <div className="max-h-48 overflow-y-auto space-y-1 rounded-md border border-gray-200 p-2">
-                {boardFields.map((field) => (
-                  <label
-                    key={field.id}
-                    className="flex items-center gap-2 text-sm px-1 py-1"
-                  >
-                    <Checkbox
-                      checked={selectedFieldIds.includes(field.id)}
-                      onCheckedChange={() => toggleField(field.id)}
-                    />
-                    {field.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={
-                !name.trim() ||
-                selectedFieldIds.length === 0 ||
-                createMutation.isPending
-              }
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogFormHeader
+            icon={<FileText />}
+            title="New Form"
+            description="Name your form, pick which board it submits to, and select at least one field to capture."
+          />
+
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit((values) =>
+                createMutation.mutate(values)
+              )}
             >
-              Create
-            </Button>
-          </DialogFooter>
+              <div className="space-y-4 px-6 py-5">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Form Name <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="moduleType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Board</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("fieldIds", []);
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {MODULE_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="fieldIds"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Fields</FormLabel>
+                      <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-gray-200 p-2">
+                        {boardFields.map((boardField) => (
+                          <label
+                            key={boardField.id}
+                            className="flex items-center gap-2 px-1 py-1 text-sm"
+                          >
+                            <Checkbox
+                              checked={fieldIds.includes(boardField.id)}
+                              onCheckedChange={() => toggleField(boardField.id)}
+                            />
+                            {boardField.name}
+                          </label>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFormFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending}
+                  className="bg-brand text-white hover:bg-brand/90"
+                >
+                  {createMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Plus className="size-4" />
+                  )}
+                  Create Form
+                </Button>
+              </DialogFormFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

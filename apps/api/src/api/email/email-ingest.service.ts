@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { appConfig } from "../../config/app-config";
 import { AuditService } from "../../lib/audit/audit.service";
 import { prisma } from "../../lib/prisma/prisma";
+import { runUnscoped, runWithTenant } from "../../lib/prisma/tenant-context";
 
 export interface ParsedInboundEmail {
   from: string;
@@ -24,10 +25,9 @@ export class EmailIngestService {
 
   constructor(private readonly auditService: AuditService) {}
 
-  async getIngestAddress(organizationId: string): Promise<string> {
-    if (!appConfig.EMAIL_INGEST_DOMAIN) {
-      throw new Error("EMAIL_INGEST_DOMAIN is not configured");
-    }
+  // Null when inbound ingest is not set up: outbound sending does not need it.
+  async getIngestAddress(organizationId: string): Promise<string | null> {
+    if (!appConfig.EMAIL_INGEST_DOMAIN) return null;
 
     const existing = await prisma.emailIngestAddress.findUnique({
       where: { organizationId },
@@ -134,7 +134,11 @@ export class EmailIngestService {
 
   // Returns true when the message was logged, false when it was discarded unstored.
   async ingest(email: ParsedInboundEmail): Promise<boolean> {
-    const organizationId = await this.resolveOrganization(email.recipients);
+    // The recipient key is the only tenant hint an inbound message carries, so
+    // that one lookup runs unscoped and everything after it is scoped to the hit.
+    const organizationId = await runUnscoped(() =>
+      this.resolveOrganization(email.recipients)
+    );
 
     if (!organizationId) {
       this.logger.warn(
@@ -143,6 +147,15 @@ export class EmailIngestService {
       return false;
     }
 
+    return runWithTenant(organizationId, () =>
+      this.ingestForOrganization(email, organizationId)
+    );
+  }
+
+  private async ingestForOrganization(
+    email: ParsedInboundEmail,
+    organizationId: string
+  ): Promise<boolean> {
     const parent = await this.matchByThreadToken(email, organizationId);
     const recordId =
       parent?.recordId ??

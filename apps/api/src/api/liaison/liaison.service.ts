@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import axios from "axios";
 import * as PDFDocument from "pdfkit";
@@ -16,7 +21,11 @@ import {
 @Injectable()
 export class LiaisonService {
   private readonly logger = new Logger(LiaisonService.name);
-  async createMillage(createMillageDto: CreateMillageDto, memberId: string) {
+  async createMillage(
+    createMillageDto: CreateMillageDto,
+    memberId: string,
+    organizationId: string
+  ) {
     await prisma.$transaction(async (tx) => {
       const existingMileageToday = await tx.mileage.findFirst({
         where: {
@@ -44,6 +53,7 @@ export class LiaisonService {
           ratePerMile: createMillageDto.ratePerMile,
           reimbursementAmount: createMillageDto.reimbursementAmount,
           memberId,
+          organizationId,
         },
       });
     });
@@ -69,7 +79,7 @@ export class LiaisonService {
 
     const offset = (filter.page - 1) * filter.limit;
 
-    const [data, total] = await Promise.all([
+    const [data, total, sums] = await Promise.all([
       prisma.mileage.findMany({
         where,
         skip: offset,
@@ -79,25 +89,62 @@ export class LiaisonService {
       prisma.mileage.count({
         where,
       }),
+      prisma.mileage.aggregate({
+        where,
+        _sum: { reimbursementAmount: true, totalMiles: true },
+      }),
     ]);
     return {
       data,
       total,
+      totals: {
+        reimbursement: sums._sum.reimbursementAmount ?? 0,
+        miles: sums._sum.totalMiles ?? 0,
+        trips: total,
+      },
       nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
     };
   }
 
-  async getMillageById(id: string) {
-    const millage = await prisma.mileage.findUniqueOrThrow({
+  // Mileage carries no organizationId of its own, so ownership is proven
+  // through the member relation before the row is read or mutated.
+  // memberId is null for org admins, who may act on any member's entry.
+  private async assertMileageInOrg(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const mileage = await prisma.mileage.findFirst({
+      where: {
+        id,
+        member: { organizationId },
+        ...(memberId ? { memberId } : {}),
+      },
+      select: { id: true },
+    });
+    if (!mileage) throw new NotFoundException("Mileage not found");
+  }
+
+  async getMillageById(id: string, organizationId: string) {
+    const millage = await prisma.mileage.findFirst({
       where: {
         id,
         isDeleted: false,
+        member: { organizationId },
       },
     });
+    if (!millage) throw new NotFoundException("Mileage not found");
     return millage;
   }
 
-  async updateMillage(id: string, updateMillageDto: UpdateMillageDto) {
+  async updateMillage(
+    id: string,
+    updateMillageDto: UpdateMillageDto,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertMileageInOrg(id, organizationId, memberId);
+
     await prisma.mileage.update({
       where: {
         id,
@@ -106,7 +153,13 @@ export class LiaisonService {
     });
   }
 
-  async deleteMillage(id: string) {
+  async deleteMillage(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertMileageInOrg(id, organizationId, memberId);
+
     await prisma.mileage.update({
       where: {
         id,
@@ -151,6 +204,7 @@ export class LiaisonService {
           notes: createMarketingDto.notes,
           reasonForVisit: createMarketingDto.reasonForVisit,
           memberId,
+          organizationId,
         },
       });
 
@@ -196,35 +250,77 @@ export class LiaisonService {
 
     const offset = (filter.page - 1) * filter.limit;
 
-    const [data, total] = await Promise.all([
+    const [data, total, referrals] = await Promise.all([
       prisma.marketing.findMany({
         where,
         skip: offset,
         take: filter.limit,
         orderBy: { createdAt: "desc" },
+        include: { member: { select: { user: { select: { name: true } } } } },
       }),
       prisma.marketing.count({
         where,
       }),
+      prisma.marketing.count({
+        where: {
+          ...where,
+          reasonForVisit: { contains: "referral", mode: "insensitive" },
+        },
+      }),
     ]);
+
     return {
-      data,
+      data: data.map(({ member, ...row }) => ({
+        ...row,
+        liaisonName: member.user.name,
+      })),
       total,
+      totals: {
+        outreach: total,
+        referrals,
+        conversionRate: total ? Math.round((referrals / total) * 100) : 0,
+      },
       nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
     };
   }
 
-  async getMarketingById(id: string) {
-    const marketing = await prisma.marketing.findUniqueOrThrow({
+  // memberId is null for org admins, who may act on any member's entry.
+  private async assertMarketingInOrg(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const marketing = await prisma.marketing.findFirst({
+      where: {
+        id,
+        member: { organizationId },
+        ...(memberId ? { memberId } : {}),
+      },
+      select: { id: true },
+    });
+    if (!marketing) throw new NotFoundException("Marketing not found");
+  }
+
+  async getMarketingById(id: string, organizationId: string) {
+    const marketing = await prisma.marketing.findFirst({
       where: {
         id,
         isDeleted: false,
+        member: { organizationId },
       },
     });
+    if (!marketing) throw new NotFoundException("Marketing not found");
     return marketing;
   }
 
-  async updateMarketing(id: string, updateMarketingDto: UpdateMarketingDto) {
+  async updateMarketing(
+    id: string,
+    updateMarketingDto: UpdateMarketingDto,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertMarketingInOrg(id, organizationId, memberId);
+
     await prisma.marketing.update({
       where: {
         id,
@@ -233,7 +329,13 @@ export class LiaisonService {
     });
   }
 
-  async deleteMarketing(id: string) {
+  async deleteMarketing(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertMarketingInOrg(id, organizationId, memberId);
+
     await prisma.marketing.delete({
       where: {
         id,
@@ -241,7 +343,11 @@ export class LiaisonService {
     });
   }
 
-  async createExpense(dto: CreateExpenseDto, memberId: string) {
+  async createExpense(
+    dto: CreateExpenseDto,
+    memberId: string,
+    organizationId: string
+  ) {
     await prisma.$transaction(async (tx) => {
       await tx.expense.create({
         data: {
@@ -250,6 +356,7 @@ export class LiaisonService {
           description: dto.description,
           notes: dto.notes,
           memberId,
+          organizationId,
         },
       });
     });
@@ -277,7 +384,7 @@ export class LiaisonService {
 
     const offset = (filter.page - 1) * filter.limit;
 
-    const [data, total] = await Promise.all([
+    const [data, total, sums, missingReceipts] = await Promise.all([
       prisma.expense.findMany({
         where,
         skip: offset,
@@ -285,14 +392,28 @@ export class LiaisonService {
         orderBy: {
           createdAt: "desc",
         },
+        include: { member: { select: { user: { select: { name: true } } } } },
       }),
       prisma.expense.count({
         where,
       }),
+      prisma.expense.aggregate({ where, _sum: { amount: true } }),
+      prisma.expense.count({ where: { ...where, imageUrl: "" } }),
     ]);
+
+    const totalAmount = sums._sum.amount ?? 0;
+
     return {
-      data,
+      data: data.map(({ member, ...row }) => ({
+        ...row,
+        liaisonName: member.user.name,
+      })),
       total,
+      totals: {
+        amount: totalAmount,
+        missingReceipts,
+        averageAmount: total ? totalAmount / total : 0,
+      },
       nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
     };
   }
@@ -564,7 +685,31 @@ export class LiaisonService {
     });
   }
 
-  async updateExpense(id: string, updateExpenseDto: UpdateExpenseDto) {
+  // memberId is null for org admins, who may act on any member's entry.
+  private async assertExpenseInOrg(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const expense = await prisma.expense.findFirst({
+      where: {
+        id,
+        member: { organizationId },
+        ...(memberId ? { memberId } : {}),
+      },
+      select: { id: true },
+    });
+    if (!expense) throw new NotFoundException("Expense not found");
+  }
+
+  async updateExpense(
+    id: string,
+    updateExpenseDto: UpdateExpenseDto,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertExpenseInOrg(id, organizationId, memberId);
+
     await prisma.expense.update({
       where: {
         id,
@@ -573,7 +718,13 @@ export class LiaisonService {
     });
   }
 
-  async deleteExpense(id: string) {
+  async deleteExpense(
+    id: string,
+    organizationId: string,
+    memberId: string | null
+  ) {
+    await this.assertExpenseInOrg(id, organizationId, memberId);
+
     await prisma.expense.update({
       where: {
         id,

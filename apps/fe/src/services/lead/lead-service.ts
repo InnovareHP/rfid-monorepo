@@ -1,5 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
-import type { LeadAnalyze, LeadHistoryItem } from "@dashboard/shared";
+import type { BoardStats, LeadAnalyze, LeadHistoryItem } from "@dashboard/shared";
 
 export interface ScannedCardResult {
   recordName: string;
@@ -29,6 +29,16 @@ export const getLeads = async (filters: any) => {
       filter: JSON.stringify(filters.filter),
       moduleType: "LEAD",
     },
+  });
+
+  return response.data;
+};
+
+export const getBoardStats = async (
+  moduleType: string = "LEAD"
+): Promise<BoardStats> => {
+  const response = await axiosClient.get("/api/boards/stats", {
+    params: { moduleType },
   });
 
   return response.data;
@@ -233,6 +243,14 @@ export const getLeadHistory = async (filters: any, moduleType?: string) => {
 
   return response.data;
 };
+export const getLeadHistoryMeta = async (moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/history/meta`, {
+    params: { moduleType: moduleType || "LEAD" },
+  });
+
+  return response.data;
+};
+
 export const getleadValueId = async (fieldId: string, value: string) => {
   const response = await axiosClient.get(
     `/api/boards/contact-info/${fieldId}`,

@@ -21,8 +21,8 @@ const Loader = ({ isLoading, text, overlay = true }: Props) => {
   }
 
   return (
-    <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200">
-      <div className="flex flex-col items-center gap-3 p-6 bg-white rounded-lg shadow-lg border-2 border-primary/30">
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200">
+      <div className="flex flex-col items-center gap-3 p-6 bg-card rounded-lg shadow-lg border-2 border-primary/30">
         <Spinner size="lg" />
         {text && <p className="text-sm font-semibold text-foreground">{text}</p>}
       </div>

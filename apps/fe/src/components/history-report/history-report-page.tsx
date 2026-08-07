@@ -1,22 +1,34 @@
+import { PageHeader } from "@/components/page-header";
 import {
   getLeadHistory,
+  getLeadHistoryMeta,
   restoreLeadHistory,
 } from "@/services/lead/lead-service";
 import { formatDateTime } from "@dashboard/shared";
-import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
+import { DateRangeFilter } from "@dashboard/ui/components/date-range-filter";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@dashboard/ui/components/tabs";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@dashboard/ui/components/select";
+import { Tabs, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
 import { cn } from "@dashboard/ui/lib/utils";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Loader2, RotateCcw } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  MoveRight,
+  Pencil,
+  Plus,
+  RefreshCcw,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { RecordAvatar } from "../reusable-table/record-avatar";
-import { ReusableTable } from "../reusable-table/generic-table";
+import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
+import { ReportTable, type ReportColumn } from "../reusable-table/report-table";
 import { RestoreHistoryModal } from "./restore-history-modal";
 
 const HISTORY_MODULES = [
@@ -43,43 +55,94 @@ const HISTORY_MODULES = [
 
 type HistoryModule = (typeof HISTORY_MODULES)[number];
 
-const ACTION_STYLES: Record<string, string> = {
-  update: "bg-blue-100 text-blue-700 border-blue-200",
-  delete: "bg-red-100 text-red-700 border-red-200",
-  restore: "bg-amber-100 text-amber-700 border-amber-200",
+// Shape returned by getAllRecordHistory for each history row.
+type HistoryRow = {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  action: string;
+  recordId: string;
+  recordName?: string;
+  oldValue?: string;
+  newValue?: string;
+  column?: string;
 };
 
-const PAGE_SIZE = 20;
+type RestoreTarget = HistoryRow & { leadId: string; entityType: string };
 
-function ChangeCell({ row }: { row: any }) {
-  const action = row.action?.toLowerCase();
+type HistoryFilters = {
+  from: Date | null;
+  to: Date | null;
+  userId: string;
+  column: string;
+};
 
-  if (action === "delete") {
-    return <span className="text-sm text-red-600">Record deleted</span>;
-  }
+const EMPTY_FILTERS: HistoryFilters = {
+  from: null,
+  to: null,
+  userId: "all",
+  column: "all",
+};
+
+const ACTION_CONFIG = {
+  create: {
+    icon: Plus,
+    className: "border-success/30 bg-success/10 text-success",
+  },
+  update: {
+    icon: Pencil,
+    className: "border-warning/30 bg-warning/10 text-warning",
+  },
+  delete: {
+    icon: Trash2,
+    className: "border-destructive/30 bg-destructive/10 text-destructive",
+  },
+  restore: {
+    icon: RotateCcw,
+    className: "border-info/30 bg-info/10 text-info",
+  },
+} as const;
+
+function ActionBadge({ action }: { action: string }) {
+  const config =
+    ACTION_CONFIG[action?.toLowerCase() as keyof typeof ACTION_CONFIG] ??
+    ACTION_CONFIG.update;
+  const Icon = config.icon;
 
   return (
-    <div className="flex items-center gap-2 min-w-0 max-w-md">
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium capitalize",
+        config.className
+      )}
+    >
+      <Icon className="size-3" />
+      {action}
+    </span>
+  );
+}
+
+function ChangeCell({ row }: { row: HistoryRow }) {
+  return (
+    <div className="flex min-w-0 max-w-md items-center gap-3">
       <span
         className={cn(
           "truncate text-sm",
-          row.oldValue
-            ? "text-gray-500 line-through decoration-gray-400"
-            : "italic text-gray-400"
+          row.oldValue ? "text-destructive" : "text-muted-foreground"
         )}
         title={row.oldValue || undefined}
       >
-        {row.oldValue || "empty"}
+        {row.oldValue || "Empty"}
       </span>
-      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+      <MoveRight className="size-4 shrink-0 text-muted-foreground" />
       <span
         className={cn(
-          "truncate text-sm font-medium",
-          row.newValue ? "text-gray-900" : "italic text-gray-400"
+          "truncate text-sm",
+          row.newValue ? "text-success" : "text-muted-foreground"
         )}
         title={row.newValue || undefined}
       >
-        {row.newValue || "empty"}
+        {row.newValue || "Empty"}
       </span>
     </div>
   );
@@ -88,35 +151,66 @@ function ChangeCell({ row }: { row: any }) {
 export default function HistoryReportPage() {
   const queryClient = useQueryClient();
   const [module, setModule] = useState<HistoryModule>(HISTORY_MODULES[0]);
+  const [pendingFilters, setPendingFilters] =
+    useState<HistoryFilters>(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] =
+    useState<HistoryFilters>(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [restoreModalOpen, setRestoreModalOpen] = useState(false);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<any>(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] =
+    useState<RestoreTarget | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  const { data, isFetchingNextPage, isFetching, hasNextPage, fetchNextPage } =
-    useInfiniteQuery({
-      queryKey: ["history-report", module.value],
-      queryFn: ({ pageParam }) =>
-        getLeadHistory({ page: pageParam, limit: PAGE_SIZE }, module.value),
-      getNextPageParam: (lastPage, allPages) => {
-        const loaded = allPages.reduce(
-          (sum, page) => sum + (page.data?.length ?? 0),
-          0
-        );
-        return loaded < (lastPage.total ?? 0) ? allPages.length + 1 : undefined;
-      },
-      initialPageParam: 1,
-    });
+  const { data, isFetching, refetch } = useQuery({
+    queryKey: ["history-report", module.value, appliedFilters, page, pageSize],
+    queryFn: () =>
+      getLeadHistory(
+        {
+          page,
+          limit: pageSize,
+          dateFrom: appliedFilters.from ?? undefined,
+          dateTo: appliedFilters.to ?? undefined,
+          userId:
+            appliedFilters.userId === "all" ? undefined : appliedFilters.userId,
+          column:
+            appliedFilters.column === "all" ? undefined : appliedFilters.column,
+        },
+        module.value
+      ),
+  });
 
-  const rows = data?.pages?.flatMap((p) => p.data) ?? [];
-  const total = data?.pages?.[0]?.total ?? 0;
+  // Stats and dropdown options are org-wide, so they refetch only per module.
+  const { data: meta, isFetching: isFetchingMeta } = useQuery({
+    queryKey: ["history-report-meta", module.value],
+    queryFn: () => getLeadHistoryMeta(module.value),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const handleOpenRestoreModal = (row: any) => {
+  const rows: HistoryRow[] = data?.data ?? [];
+  const stats = meta?.stats;
+  const options = meta?.options ?? { users: [], fields: [] };
+
+  const handleOpenRestoreModal = (row: HistoryRow) => {
     setSelectedHistoryItem({
       ...row,
       leadId: row.recordId,
       entityType: module.entity,
     });
     setRestoreModalOpen(true);
+  };
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(pendingFilters);
+    setPage(1);
+    toast.success("Filters applied");
+  };
+
+  const handleReset = () => {
+    setPendingFilters(EMPTY_FILTERS);
+    setAppliedFilters(EMPTY_FILTERS);
+    setPage(1);
+    toast.info("Filters reset");
   };
 
   const handleRestoreHistory = async (
@@ -132,6 +226,9 @@ export default function HistoryReportPage() {
       await queryClient.invalidateQueries({
         queryKey: ["history-report", module.value],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["history-report-meta", module.value],
+      });
       await queryClient.invalidateQueries({ queryKey: [module.listKey] });
     } catch (error) {
       toast.error("Failed to restore history");
@@ -140,24 +237,92 @@ export default function HistoryReportPage() {
     }
   };
 
+  const columns: ReportColumn<HistoryRow>[] = [
+    {
+      key: "action",
+      header: "Action",
+      render: (row) => <ActionBadge action={row.action} />,
+    },
+    {
+      key: "column",
+      header: "Field",
+      render: (row) => row.column || "-",
+    },
+    {
+      key: "change",
+      header: "Change",
+      render: (row) => <ChangeCell row={row} />,
+    },
+    {
+      key: "changedBy",
+      header: "Changed By",
+      render: (row) => row.createdBy || "-",
+    },
+    {
+      key: "createdAt",
+      header: "Created At",
+      render: (row) => (
+        <span className="whitespace-nowrap">
+          {formatDateTime(row.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: "revert",
+      header: "Revert Action",
+      render: (row) => {
+        const action = row.action?.toLowerCase();
+        if (action !== "update" && action !== "delete") return null;
+
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleOpenRestoreModal(row)}
+            disabled={isRestoring}
+            className="h-auto gap-2 px-0 text-primary hover:bg-transparent hover:text-primary/80"
+          >
+            <RotateCcw className="size-4" />
+            Restore
+          </Button>
+        );
+      },
+    },
+  ];
+
   return (
     <>
-      <div className="p-8 bg-gray-50 min-h-screen space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            History Check
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Every change across your records. Revert an update or bring back a
-            deleted record.
-          </p>
+      <div className="page-style">
+        <PageHeader
+          title="History Check"
+          description="Audit every change made to your records - see what changed, who changed it, and undo it in one click."
+        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <KpiStatTile
+            label="Total Changes"
+            value={(stats?.totalChanges ?? 0).toLocaleString()}
+            isLoading={isFetchingMeta}
+          />
+          <KpiStatTile
+            label="Changes This Week"
+            value={(stats?.changesThisWeek ?? 0).toLocaleString()}
+            isLoading={isFetchingMeta}
+          />
+          <KpiStatTile
+            label="Most Active Editor"
+            value={stats?.mostActiveEditor ?? "-"}
+            isLoading={isFetchingMeta}
+          />
         </div>
 
         <Tabs
           value={module.value}
           onValueChange={(value) => {
             const next = HISTORY_MODULES.find((m) => m.value === value);
-            if (next) setModule(next);
+            if (!next) return;
+            setModule(next);
+            setPage(1);
           }}
         >
           <TabsList>
@@ -169,109 +334,93 @@ export default function HistoryReportPage() {
           </TabsList>
         </Tabs>
 
-        <div className="bg-white border rounded-lg p-4">
-          <ReusableTable
-            data={rows}
-            columns={[
-              {
-                key: "recordName",
-                header: module.entity,
-                render: (row: any) => (
-                  <div className="flex items-center gap-2 min-w-0">
-                    <RecordAvatar name={row.recordName ?? ""} />
-                    <span className="truncate font-medium text-gray-900">
-                      {row.recordName || "Unknown record"}
-                    </span>
-                  </div>
-                ),
-              },
-              {
-                key: "action",
-                header: "Action",
-                render: (row: any) => (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "capitalize",
-                      ACTION_STYLES[row.action?.toLowerCase()] ?? ""
-                    )}
-                  >
-                    {row.action}
-                  </Badge>
-                ),
-              },
-              {
-                key: "column",
-                header: "Field",
-                render: (row: any) => row.column || "-",
-              },
-              {
-                key: "change",
-                header: "Change",
-                render: (row: any) => <ChangeCell row={row} />,
-              },
-              {
-                key: "changedBy",
-                header: "By",
-                render: (row: any) => row.createdBy || "-",
-              },
-              {
-                key: "createdAt",
-                header: "When",
-                render: (row: any) => (
-                  <span className="whitespace-nowrap text-gray-500">
-                    {formatDateTime(row.createdAt)}
-                  </span>
-                ),
-              },
-              {
-                key: "revert",
-                header: "",
-                render: (row: any) => {
-                  const action = row.action?.toLowerCase();
-                  if (action !== "update" && action !== "delete") return null;
-
-                  return (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleOpenRestoreModal(row)}
-                      disabled={isRestoring}
-                      className="flex items-center gap-2"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      Restore
-                    </Button>
-                  );
-                },
-              },
-            ]}
-            isLoading={isFetching && !isFetchingNextPage}
-            emptyMessage={`No history for ${module.label.toLowerCase()} yet.`}
+        <div className="flex flex-wrap items-center gap-3">
+          <DateRangeFilter
+            from={pendingFilters.from}
+            to={pendingFilters.to}
+            onChange={(range) =>
+              setPendingFilters((prev) => ({
+                ...prev,
+                from: range.from,
+                to: range.to,
+              }))
+            }
           />
 
-          <div className="flex items-center justify-between pt-4">
-            <p className="text-sm text-gray-500">
-              Showing {rows.length} of {total}
-            </p>
-            {hasNextPage && (
-              <Button
-                variant="outline"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  "Load more"
-                )}
-              </Button>
-            )}
+          <Select
+            value={pendingFilters.userId}
+            onValueChange={(value) =>
+              setPendingFilters((prev) => ({ ...prev, userId: value }))
+            }
+          >
+            <SelectTrigger className="w-[160px] bg-card">
+              <SelectValue placeholder="All Users" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              {options.users.map((user: { id: string; name: string }) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={pendingFilters.column}
+            onValueChange={(value) =>
+              setPendingFilters((prev) => ({ ...prev, column: value }))
+            }
+          >
+            <SelectTrigger className="w-[160px] bg-card">
+              <SelectValue placeholder="All Fields" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Fields</SelectItem>
+              {options.fields.map((field: string) => (
+                <SelectItem key={field} value={field}>
+                  {field}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => refetch()}
+              className="text-muted-foreground"
+            >
+              <RefreshCcw className="mr-2 size-4" />
+              Refresh
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={handleReset}
+              className="text-muted-foreground"
+            >
+              Reset
+            </Button>
+
+            <Button onClick={handleApplyFilters}>Apply Filters</Button>
           </div>
         </div>
+
+        <ReportTable
+          columns={columns}
+          rows={rows}
+          isLoading={isFetching}
+          emptyMessage={`No history for ${module.label.toLowerCase()} yet.`}
+          currentPage={page}
+          pageSize={pageSize}
+          totalCount={data?.total ?? 0}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
 
       <RestoreHistoryModal

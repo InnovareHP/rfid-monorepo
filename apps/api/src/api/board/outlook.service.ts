@@ -68,7 +68,7 @@ export class OutlookService {
 
     const tokens = await tokenResponse.json();
 
-    if (!tokens.refreshToken) {
+    if (!tokens.refresh_token) {
       throw new Error(
         "No refresh token received. Please try connecting again."
       );
@@ -76,7 +76,7 @@ export class OutlookService {
 
     // Fetch user email via Graph API
     const meResponse = await fetch(`${GRAPH_API_URL}/me`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
 
     if (!meResponse.ok) {
@@ -89,15 +89,15 @@ export class OutlookService {
     await prisma.outlookToken.upsert({
       where: { userId: userId },
       update: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
         tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
         outlookEmail: outlookEmail,
       },
       create: {
         userId: userId,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
         tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
         outlookEmail: outlookEmail,
       },
@@ -216,8 +216,8 @@ export class OutlookService {
       body: new URLSearchParams({
         client_id: this.clientId,
         client_secret: this.clientSecret,
-        refreshToken: refreshToken,
-        grant_type: "refreshToken",
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
         scope: SCOPES.join(" "),
       }),
     });
@@ -235,12 +235,12 @@ export class OutlookService {
     await prisma.outlookToken.update({
       where: { userId: userId },
       data: {
-        accessToken: tokens.accessToken,
+        accessToken: tokens.access_token,
         tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
-        ...(tokens.refreshToken && { refreshToken: tokens.refreshToken }),
+        ...(tokens.refresh_token && { refreshToken: tokens.refresh_token }),
       },
     });
 
-    return tokens.accessToken;
+    return tokens.access_token;
   }
 }

@@ -19,6 +19,8 @@ export type TextSection = LandingSectionBase & {
   props: {
     heading?: string;
     body: string;
+    ctaLabel?: string;
+    ctaHref?: string;
   };
 };
 
@@ -28,6 +30,8 @@ export type ImageSection = LandingSectionBase & {
     src: string;
     alt: string;
     caption?: string;
+    ctaLabel?: string;
+    ctaHref?: string;
   };
 };
 
@@ -115,6 +119,7 @@ export const updateLandingPage = async (
   id: string,
   data: Partial<{
     name: string;
+    slug: string;
     campaignId: string;
     sections: LandingSection[];
     formId: string;

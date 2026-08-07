@@ -9,7 +9,8 @@
 
 Controllers guard with `@UseGuards(AuthGuard)` from
 `@thallesp/nestjs-better-auth`, plus the repo guards in `src/guard/`
-(`role.guard.ts`, `onboarding.guard.ts`, `stripe.guard.ts`) where the route
+(`role.guard.ts`, `onboarding.guard.ts`, `permission.guard.ts`,
+`subscription.guard.ts`, `entitlement.guard.ts`) where the route
 needs them. See `api/board/board.controller.ts` as the reference shape.
 
 ## Data access

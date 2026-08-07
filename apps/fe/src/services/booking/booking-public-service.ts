@@ -1,13 +1,18 @@
 import { axiosClient } from "@/lib/axios-client";
 
+export type BookingLocation = "VIDEO" | "IN_PERSON";
+
 export interface PublicBookingPage {
   title: string;
   description: string | null;
   durationMinutes: number;
+  // BOTH is the only value that lets the invitee pick.
+  locationType: BookingLocation | "BOTH";
   locationLabel: string | null;
   timezone: string;
   hostName: string;
   organizationName: string | null;
+  organizationLogo: string | null;
 }
 
 export const getPublicBookingPage = async (
@@ -35,6 +40,7 @@ export const createPublicBooking = async (
     inviteeName: string;
     inviteeEmail: string;
     inviteeNotes?: string;
+    locationType?: BookingLocation;
     boardId?: string;
   }
 ) => {

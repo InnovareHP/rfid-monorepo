@@ -19,7 +19,7 @@ export function BookingConfirmation({
 }: BookingConfirmationProps) {
   return (
     <Card className="max-w-md mx-auto">
-      <CardHeader className="items-center text-center">
+      <CardHeader className="flex flex-col justify-center items-center text-center">
         <CheckCircle className="h-10 w-10 text-green-600 mb-2" />
         <CardTitle>Booking Confirmed</CardTitle>
       </CardHeader>

@@ -7,4 +7,7 @@ export const TAX_CHECKOUT_BASE = {
   automatic_tax: { enabled: true },
   billing_address_collection: "required",
   tax_id_collection: { enabled: true },
+  // Checkout runs against the existing org customer, so Stripe needs explicit
+  // permission to write the collected name and address back onto it.
+  customer_update: { name: "auto", address: "auto" },
 } satisfies Partial<Stripe.Checkout.SessionCreateParams>;

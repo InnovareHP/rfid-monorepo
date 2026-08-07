@@ -6,9 +6,18 @@ export type MarketingCampaign = {
   name: string;
   description: string | null;
   status: "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
+  senderIdentityId: string | null;
+  senderIdentity: {
+    id: string;
+    label: string;
+    kind: string;
+    status: string;
+    fromEmail: string;
+  } | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: { forms: number; blasts: number; landingPages: number };
 };
 
 export const getCampaigns = async (): Promise<MarketingCampaign[]> => {
@@ -24,6 +33,7 @@ export const getCampaign = async (id: string): Promise<MarketingCampaign> => {
 export const createCampaign = async (data: {
   name: string;
   description?: string;
+  senderIdentityId?: string | null;
 }): Promise<MarketingCampaign> => {
   const response = await axiosClient.post("/api/marketing/campaigns", data);
   return response.data;
@@ -35,6 +45,7 @@ export const updateCampaign = async (
     name: string;
     description: string;
     status: MarketingCampaign["status"];
+    senderIdentityId: string | null;
   }>
 ): Promise<MarketingCampaign> => {
   const response = await axiosClient.patch(

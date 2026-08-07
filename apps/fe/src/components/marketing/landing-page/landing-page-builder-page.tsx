@@ -1,17 +1,27 @@
+import {
+  landingPageFormSchema,
+  type LandingPageFormValues,
+} from "@/components/marketing/landing-page/landing-page-form-schema";
+import { LandingPagePreview } from "@/components/marketing/landing-page/landing-page-preview";
+import { PageSettingsPanel } from "@/components/marketing/landing-page/page-settings-panel";
+import { PreviewSectionFrame } from "@/components/marketing/landing-page/preview-section-frame";
 import { SectionEditorPanel } from "@/components/marketing/landing-page/section-editor-panel";
-import { SectionListItem } from "@/components/marketing/landing-page/section-list-item";
 import { SectionTypePicker } from "@/components/marketing/landing-page/section-type-picker";
 import { getForms } from "@/services/marketing/form-service";
 import {
   getLandingPage,
   publishLandingPage,
   updateLandingPage,
-  type LandingSection,
 } from "@/services/marketing/landing-page-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
-import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
+import { Form } from "@dashboard/ui/components/form";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@dashboard/ui/components/tabs";
 import {
   closestCenter,
   DndContext,
@@ -25,29 +35,44 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import axios from "axios";
-import { ArrowLeft, Copy, Loader2, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Loader2, Plus, Send } from "lucide-react";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+type LandingSectionValue = LandingPageFormValues["sections"][number];
+
 const createDefaultSection = (
-  type: LandingSection["type"]
-): LandingSection => {
+  type: LandingSectionValue["type"]
+): LandingSectionValue => {
   const id = crypto.randomUUID();
 
   switch (type) {
     case "HERO":
-      return { id, type, props: { heading: "New hero heading" } };
+      return {
+        id,
+        type,
+        props: {
+          heading: "New Hero Heading",
+          subheading: "Hero subheading appears here",
+        },
+      };
     case "TEXT":
-      return { id, type, props: { body: "New text section" } };
+      return {
+        id,
+        type,
+        props: { heading: "Heading", body: "Body text appears here" },
+      };
     case "IMAGE":
       return { id, type, props: { src: "", alt: "" } };
     case "FORM_EMBED":
       return { id, type, props: {} };
     case "CTA":
-      return { id, type, props: { buttonLabel: "Learn more", href: "" } };
+      return { id, type, props: { buttonLabel: "Learn More", href: "" } };
   }
 };
 
@@ -76,42 +101,58 @@ export const LandingPageBuilderPage = () => {
     queryFn: getForms,
   });
 
-  const [name, setName] = useState("");
-  const [sections, setSections] = useState<LandingSection[]>([]);
-  const [formId, setFormId] = useState<string | null>(null);
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDescription, setSeoDescription] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
     null
   );
+  const [tab, setTab] = useState("section");
 
-  useEffect(() => {
-    if (!page) return;
-    setName(page.name);
-    setSections(page.sections);
-    setFormId(page.formId);
-    setSeoTitle(page.seoTitle ?? "");
-    setSeoDescription(page.seoDescription ?? "");
-    setSelectedSectionId((current) => current ?? page.sections[0]?.id ?? null);
-  }, [page]);
+  const form = useForm<LandingPageFormValues>({
+    resolver: zodResolver(landingPageFormSchema),
+    defaultValues: {
+      name: "",
+      slug: "",
+      seoTitle: "",
+      seoDescription: "",
+      formId: null,
+      sections: [],
+    },
+    values: page
+      ? {
+          name: page.name,
+          slug: page.slug,
+          seoTitle: page.seoTitle ?? "",
+          seoDescription: page.seoDescription ?? "",
+          formId: page.formId,
+          sections: page.sections,
+        }
+      : undefined,
+  });
 
-  const hasFormEmbed = sections.some(
-    (section) => section.type === "FORM_EMBED"
+  const sections = useWatch({ control: form.control, name: "sections" });
+  const formId = useWatch({ control: form.control, name: "formId" });
+  const name = useWatch({ control: form.control, name: "name" });
+
+  const selectedIndex = sections.findIndex(
+    (section) => section.id === selectedSectionId
   );
-  const selectedSection = sections.find((s) => s.id === selectedSectionId);
+  const selectedSection = selectedIndex === -1 ? null : sections[selectedIndex];
+  const hasFormEmbed = sections.some((section) => section.type === "FORM_EMBED");
+  const embeddedFormName =
+    forms.find((candidate) => candidate.id === formId)?.name ?? null;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   const saveMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: LandingPageFormValues) =>
       updateLandingPage(pageId, {
-        name,
-        sections,
-        formId: formId ?? undefined,
-        seoTitle: seoTitle || undefined,
-        seoDescription: seoDescription || undefined,
+        name: values.name,
+        slug: values.slug,
+        sections: values.sections,
+        formId: values.formId ?? undefined,
+        seoTitle: values.seoTitle || undefined,
+        seoDescription: values.seoDescription || undefined,
       }),
     onSuccess: () => {
       toast.success("Landing page saved");
@@ -134,26 +175,31 @@ export const LandingPageBuilderPage = () => {
       queryClient.invalidateQueries({ queryKey: ["marketing-landing-pages"] });
     },
     onError: (error: unknown) =>
-      toast.error(
-        extractErrorMessage(error, "Failed to publish landing page")
-      ),
+      toast.error(extractErrorMessage(error, "Failed to publish landing page")),
   });
 
-  const handleAddSection = (type: LandingSection["type"]) => {
+  const setSections = (next: LandingSectionValue[]) =>
+    form.setValue("sections", next, { shouldDirty: true });
+
+  const handleAddSection = (type: LandingSectionValue["type"]) => {
     const section = createDefaultSection(type);
-    setSections((prev) => [...prev, section]);
+    setSections([...sections, section]);
     setSelectedSectionId(section.id);
   };
 
-  const handleRemoveSection = (id: string) => {
-    setSections((prev) => prev.filter((section) => section.id !== id));
-    setSelectedSectionId((current) => (current === id ? null : current));
+  const handleDuplicateSection = (index: number) => {
+    const copy = { ...sections[index], id: crypto.randomUUID() };
+    setSections([
+      ...sections.slice(0, index + 1),
+      copy,
+      ...sections.slice(index + 1),
+    ]);
+    setSelectedSectionId(copy.id);
   };
 
-  const handleSectionChange = (updated: LandingSection) => {
-    setSections((prev) =>
-      prev.map((section) => (section.id === updated.id ? updated : section))
-    );
+  const handleRemoveSection = (index: number) => {
+    setSections(sections.filter((_, position) => position !== index));
+    setSelectedSectionId(null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -162,13 +208,7 @@ export const LandingPageBuilderPage = () => {
     const oldIndex = sections.findIndex((s) => s.id === active.id);
     const newIndex = sections.findIndex((s) => s.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
-    setSections((prev) => arrayMove(prev, oldIndex, newIndex));
-  };
-
-  const copyLink = () => {
-    if (!page) return;
-    navigator.clipboard.writeText(`${window.location.origin}/l/${page.slug}`);
-    toast.success("Link copied");
+    setSections(arrayMove(sections, oldIndex, newIndex));
   };
 
   if (isLoading || !page) {
@@ -176,11 +216,12 @@ export const LandingPageBuilderPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <Form {...form}>
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-white px-6 py-4">
           <div className="flex items-center gap-3">
             <Button
+              type="button"
               variant="ghost"
               size="sm"
               onClick={() =>
@@ -192,122 +233,114 @@ export const LandingPageBuilderPage = () => {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="text-lg font-semibold w-64"
-            />
+            <h1 className="text-2xl font-semibold text-primary">{name}</h1>
             <Badge variant={page.status === "PUBLISHED" ? "default" : "outline"}>
-              {page.status}
+              {page.status === "PUBLISHED" ? "Published" : "Draft"}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
-            {page.status === "DRAFT" && (
-              <Button
-                variant="outline"
-                onClick={() => publishMutation.mutate()}
-                disabled={publishMutation.isPending}
-              >
-                <Send className="h-4 w-4 mr-1" />
-                Publish
-              </Button>
-            )}
             <Button
-              onClick={() => saveMutation.mutate()}
+              type="button"
+              variant="outline"
               disabled={saveMutation.isPending}
+              onClick={form.handleSubmit((values) => saveMutation.mutate(values))}
             >
               {saveMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Save
+              Save Draft
+            </Button>
+            <Button
+              type="button"
+              disabled={publishMutation.isPending}
+              onClick={() => publishMutation.mutate()}
+            >
+              <Send className="h-4 w-4 mr-1" />
+              Publish
             </Button>
           </div>
-        </div>
+        </header>
 
-        {page.status === "PUBLISHED" && (
-          <button
-            type="button"
-            onClick={copyLink}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            {`${window.location.origin}/l/${page.slug}`}
-          </button>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-6">
-            <SectionTypePicker
-              hasFormEmbed={hasFormEmbed}
-              onAdd={handleAddSection}
-            />
-
-            <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-gray-700">SEO</h3>
-              <div className="space-y-1.5">
-                <Label htmlFor="seo-title">Title</Label>
-                <Input
-                  id="seo-title"
-                  value={seoTitle}
-                  onChange={(event) => setSeoTitle(event.target.value)}
-                  maxLength={70}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="seo-description">Description</Label>
-                <Input
-                  id="seo-description"
-                  value={seoDescription}
-                  onChange={(event) => setSeoDescription(event.target.value)}
-                  maxLength={160}
-                />
-              </div>
+        <div className="flex flex-1 flex-col lg:flex-row">
+          <div className="flex-1 bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,rgba(0,0,0,0.02)_6px,rgba(0,0,0,0.02)_12px)] p-8">
+            <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-sm">
+              {sections.length === 0 ? (
+                <p className="p-12 text-center text-sm text-gray-400">
+                  Add a section from the right panel to build this page.
+                </p>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={sections.map((section) => section.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <LandingPagePreview
+                      sections={sections}
+                      embeddedForm={null}
+                      editing
+                      embeddedFormName={embeddedFormName}
+                      wrapSection={(section, node) => (
+                        <PreviewSectionFrame
+                          id={section.id}
+                          selected={section.id === selectedSectionId}
+                          onSelect={setSelectedSectionId}
+                        >
+                          {node}
+                        </PreviewSectionFrame>
+                      )}
+                    />
+                  </SortableContext>
+                </DndContext>
+              )}
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700">Sections</h3>
-            {sections.length === 0 ? (
-              <p className="text-sm text-gray-400">
-                Add a section from the left panel to build this page.
-              </p>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={sections.map((s) => s.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-2">
-                    {sections.map((section) => (
-                      <SectionListItem
-                        key={section.id}
-                        section={section}
-                        selected={section.id === selectedSectionId}
-                        onSelect={setSelectedSectionId}
-                        onRemove={handleRemoveSection}
-                      />
-                    ))}
+          <aside className="w-full shrink-0 border-l border-gray-200 bg-white p-4 lg:w-80">
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="section">Section</TabsTrigger>
+                <TabsTrigger value="settings">Page Settings</TabsTrigger>
+              </TabsList>
+              <TabsContent value="section" className="pt-4">
+                {selectedSection ? (
+                  <div className="space-y-4">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedSectionId(null)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Section
+                    </Button>
+                    <SectionEditorPanel
+                      key={selectedSection.id}
+                      form={form}
+                      section={selectedSection}
+                      index={selectedIndex}
+                      availableForms={forms}
+                      onDuplicate={() => handleDuplicateSection(selectedIndex)}
+                      onDelete={() => handleRemoveSection(selectedIndex)}
+                    />
                   </div>
-                </SortableContext>
-              </DndContext>
-            )}
-
-            {selectedSection && (
-              <SectionEditorPanel
-                section={selectedSection}
-                onChange={handleSectionChange}
-                formId={formId}
-                onFormIdChange={setFormId}
-                availableForms={forms}
-              />
-            )}
-          </div>
+                ) : (
+                  <SectionTypePicker
+                    hasFormEmbed={hasFormEmbed}
+                    onAdd={handleAddSection}
+                  />
+                )}
+              </TabsContent>
+              <TabsContent value="settings" className="pt-4">
+                <PageSettingsPanel form={form} />
+              </TabsContent>
+            </Tabs>
+          </aside>
         </div>
       </div>
-    </div>
+    </Form>
   );
 };

@@ -1,6 +1,12 @@
+import { NOTIFICATION_ENTITY, NOTIFICATION_TYPE } from "@dashboard/shared";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma, TaskStatusCategory } from "@prisma/client";
+import { appConfig } from "../../config/app-config";
+import { renderEmailHtml } from "../../lib/aws/ses";
 import { prisma } from "../../lib/prisma/prisma";
+import { emailQueue } from "../../lib/queue/email-queue";
+import { TaskAssignedEmail } from "../../react-email/task-assigned-email";
+import { NotificationService } from "../notification/notification.service";
 import {
   CreateAttachmentDto,
   CreateChecklistItemDto,
@@ -43,6 +49,105 @@ type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class TaskService {
+  constructor(private readonly notificationService: NotificationService) {}
+
+  // Raises an in-app notification for a task event, never inside a transaction.
+  private async notifyTask(input: {
+    organizationId: string;
+    actorUserId: string;
+    recipientMemberIds: string[];
+    type: string;
+    title: string;
+    body?: string | null;
+    taskId: string;
+  }) {
+    await this.notificationService.notify({
+      organizationId: input.organizationId,
+      recipientMemberIds: input.recipientMemberIds,
+      actorUserId: input.actorUserId,
+      type: input.type,
+      title: input.title,
+      body: input.body ?? null,
+      link: `/${input.organizationId}/tasks/${input.taskId}`,
+      entityType: NOTIFICATION_ENTITY.TASK,
+      entityId: input.taskId,
+    });
+  }
+
+  // Mirrors the in-app assignment notice as an email, same recipients.
+  private async emailAssignees(input: {
+    organizationId: string;
+    taskId: string;
+    actorUserId: string;
+    recipientMemberIds: string[];
+  }) {
+    const [task, actor, recipients] = await Promise.all([
+      prisma.task.findFirst({
+        where: { id: input.taskId, organizationId: input.organizationId },
+        select: { name: true, dueDate: true, priority: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: input.actorUserId },
+        select: { name: true },
+      }),
+      prisma.member.findMany({
+        where: {
+          id: { in: input.recipientMemberIds },
+          organizationId: input.organizationId,
+        },
+        select: { user: { select: { name: true, email: true } } },
+      }),
+    ]);
+
+    if (!task || recipients.length === 0) return;
+
+    const dueDate = task.dueDate
+      ? new Intl.DateTimeFormat("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }).format(task.dueDate)
+      : "No due date";
+
+    const priority =
+      task.priority.charAt(0) + task.priority.slice(1).toLowerCase();
+
+    for (const recipient of recipients) {
+      await emailQueue.add("send", {
+        to: recipient.user.email,
+        subject: `You've been assigned: ${task.name}`,
+        html: await renderEmailHtml(
+          TaskAssignedEmail({
+            recipientName: recipient.user.name,
+            assignerName: actor?.name ?? "A teammate",
+            taskTitle: task.name,
+            dueDate,
+            priority,
+            taskUrl: `${appConfig.WEBSITE_URL}/${input.organizationId}/tasks/${input.taskId}`,
+          })
+        ),
+        from: `${appConfig.APP_EMAIL}`,
+      });
+    }
+  }
+
+  private async taskAudience(taskId: string) {
+    const [assignees, watchers] = await Promise.all([
+      prisma.taskAssignee.findMany({
+        where: { taskId },
+        select: { memberId: true },
+      }),
+      prisma.taskWatcher.findMany({
+        where: { taskId },
+        select: { memberId: true },
+      }),
+    ]);
+    return [
+      ...assignees.map((row) => row.memberId),
+      ...watchers.map((row) => row.memberId),
+    ];
+  }
+
   private toMemberDto(pivot: {
     memberId: string;
     member: { user: { name: string; image: string | null } };
@@ -391,7 +496,7 @@ export class TaskService {
     const organizationId = session.session.activeOrganizationId;
     const userId = session.session.userId;
 
-    return prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       const list = await tx.taskList.findFirstOrThrow({
         where: { id: dto.listId, organizationId, isDeleted: false },
       });
@@ -496,6 +601,26 @@ export class TaskService {
 
       return task;
     });
+
+    if (dto.assigneeMemberIds?.length) {
+      await this.notifyTask({
+        organizationId,
+        actorUserId: userId,
+        recipientMemberIds: dto.assigneeMemberIds,
+        type: NOTIFICATION_TYPE.TASK_ASSIGNED,
+        title: `Assigned to ${created.name}`,
+        taskId: created.id,
+      });
+
+      await this.emailAssignees({
+        organizationId,
+        taskId: created.id,
+        actorUserId: userId,
+        recipientMemberIds: dto.assigneeMemberIds,
+      });
+    }
+
+    return created;
   }
 
   async updateTask(
@@ -734,7 +859,7 @@ export class TaskService {
   }
 
   async completeTask(id: string, organizationId: string, userId: string) {
-    return prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx) => {
       const task = await this.findTaskOrThrow(tx, id, organizationId);
       const doneStatus = await tx.taskStatus.findFirstOrThrow({
         where: { organizationId, category: TaskStatusCategory.DONE },
@@ -758,6 +883,25 @@ export class TaskService {
       );
       return updated;
     });
+
+    const creatorMember = await prisma.member.findFirst({
+      where: { userId: updated.createdBy, organizationId },
+      select: { id: true },
+    });
+    const audience = await this.taskAudience(updated.id);
+
+    await this.notifyTask({
+      organizationId,
+      actorUserId: userId,
+      recipientMemberIds: creatorMember
+        ? [...audience, creatorMember.id]
+        : audience,
+      type: NOTIFICATION_TYPE.TASK_COMPLETED,
+      title: `Completed ${updated.name}`,
+      taskId: updated.id,
+    });
+
+    return updated;
   }
 
   async uncompleteTask(id: string, organizationId: string, userId: string) {
@@ -955,7 +1099,7 @@ export class TaskService {
     userId: string,
     kind: "assignees" | "watchers"
   ) {
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const task = await this.findTaskOrThrow(tx, taskId, organizationId);
 
       const uniqueIds = [...new Set(memberIds)];
@@ -968,6 +1112,8 @@ export class TaskService {
           throw new BadRequestException("Invalid members for organization");
         }
       }
+
+      let addedAssignees: string[] = [];
 
       if (kind === "assignees") {
         await tx.taskAssignee.deleteMany({
@@ -984,6 +1130,7 @@ export class TaskService {
             data: toAdd.map((memberId) => ({ taskId: task.id, memberId })),
           });
         }
+        addedAssignees = toAdd;
       } else {
         await tx.taskWatcher.deleteMany({
           where: { taskId: task.id, memberId: { notIn: uniqueIds } },
@@ -1010,7 +1157,27 @@ export class TaskService {
         null,
         String(uniqueIds.length)
       );
+
+      return { taskId: task.id, taskName: task.name, addedAssignees };
     });
+
+    if (result.addedAssignees.length) {
+      await this.notifyTask({
+        organizationId,
+        actorUserId: userId,
+        recipientMemberIds: result.addedAssignees,
+        type: NOTIFICATION_TYPE.TASK_ASSIGNED,
+        title: `Assigned to ${result.taskName}`,
+        taskId: result.taskId,
+      });
+
+      await this.emailAssignees({
+        organizationId,
+        taskId: result.taskId,
+        actorUserId: userId,
+        recipientMemberIds: result.addedAssignees,
+      });
+    }
   }
 
   async setLabels(
@@ -1170,14 +1337,27 @@ export class TaskService {
     memberId: string,
     userId: string
   ) {
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const task = await this.findTaskOrThrow(tx, taskId, organizationId);
       const comment = await tx.taskComment.create({
         data: { taskId: task.id, memberId, body: dto.body },
       });
       await this.logActivity(tx, task.id, userId, "comment", "added");
-      return comment;
+      return { comment, taskName: task.name };
     });
+
+    const audience = await this.taskAudience(taskId);
+    await this.notifyTask({
+      organizationId,
+      actorUserId: userId,
+      recipientMemberIds: audience.filter((id) => id !== memberId),
+      type: NOTIFICATION_TYPE.TASK_COMMENTED,
+      title: `New comment on ${result.taskName}`,
+      body: dto.body,
+      taskId,
+    });
+
+    return result.comment;
   }
 
   async updateComment(

@@ -13,6 +13,18 @@ export class CampaignService {
     return prisma.campaign.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { forms: true, blasts: true, landingPages: true } },
+        senderIdentity: {
+          select: {
+            id: true,
+            label: true,
+            kind: true,
+            status: true,
+            fromEmail: true,
+          },
+        },
+      },
     });
   }
 
@@ -31,10 +43,15 @@ export class CampaignService {
     organizationId: string,
     userId: string
   ) {
+    if (dto.senderIdentityId) {
+      await this.assertSenderInOrg(dto.senderIdentityId, organizationId);
+    }
+
     return prisma.campaign.create({
       data: {
         name: dto.name,
         description: dto.description ?? null,
+        senderIdentityId: dto.senderIdentityId ?? null,
         organizationId,
         createdBy: userId,
       },
@@ -48,12 +65,19 @@ export class CampaignService {
   ) {
     await this.getCampaign(id, organizationId);
 
+    if (dto.senderIdentityId) {
+      await this.assertSenderInOrg(dto.senderIdentityId, organizationId);
+    }
+
     return prisma.campaign.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.status !== undefined && { status: dto.status }),
+        ...(dto.senderIdentityId !== undefined && {
+          senderIdentityId: dto.senderIdentityId,
+        }),
       },
     });
   }
@@ -85,5 +109,21 @@ export class CampaignService {
     await prisma.campaign.delete({ where: { id } });
 
     return { message: "Campaign deleted successfully" };
+  }
+
+  private async assertSenderInOrg(
+    senderIdentityId: string,
+    organizationId: string
+  ) {
+    const sender = await prisma.senderIdentity.findFirst({
+      where: { id: senderIdentityId, organizationId },
+      select: { id: true },
+    });
+
+    if (!sender) {
+      throw new BadRequestException(
+        "Sender identity not found in this organization"
+      );
+    }
   }
 }

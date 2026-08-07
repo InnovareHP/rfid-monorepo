@@ -3,6 +3,7 @@ import { z } from "zod";
 export const UpdateBookingPageSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
+  locationType: z.enum(["VIDEO", "IN_PERSON", "BOTH"]).optional(),
   locationLabel: z.string().optional(),
   durationMinutes: z.number().int().min(5).max(480).optional(),
   timezone: z.string().min(1).optional(),
@@ -27,5 +28,6 @@ export const CreateBookingSchema = z.object({
   inviteeName: z.string().min(1),
   inviteeEmail: z.email(),
   inviteeNotes: z.string().optional(),
+  locationType: z.enum(["VIDEO", "IN_PERSON"]).optional(),
   boardId: z.string().optional(),
 });

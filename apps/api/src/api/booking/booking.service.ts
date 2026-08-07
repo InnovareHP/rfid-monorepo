@@ -5,12 +5,13 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { BookingLocation, LocationType, Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import type { z } from "zod";
 import { appConfig } from "../../config/app-config";
 import { sendEmail } from "../../lib/aws/ses";
 import { prisma } from "../../lib/prisma/prisma";
+import { BookingCanceledEmail } from "../../react-email/booking-canceled-email";
 import { BookingConfirmationEmail } from "../../react-email/booking-confirmation-email";
 import { GoogleCalendarService } from "../calendar/google-calendar.service";
 import { OutlookCalendarService } from "../calendar/outlook-calendar.service";
@@ -25,6 +26,21 @@ import {
 type UpdateBookingPageData = z.infer<typeof UpdateBookingPageSchema>;
 
 const DEFAULT_TIMEZONE = "UTC";
+
+// Only a page offering BOTH lets the invitee decide; anything else fixes the
+// mode, and a request asking for the other one is rejected rather than coerced.
+function resolveLocation(
+  offered: LocationType,
+  requested: BookingLocation | undefined
+): BookingLocation {
+  if (offered === "BOTH") return requested ?? "VIDEO";
+  if (requested && requested !== offered) {
+    throw new BadRequestException(
+      "This booking page does not offer that meeting type"
+    );
+  }
+  return offered;
+}
 
 @Injectable()
 export class BookingService {
@@ -149,10 +165,70 @@ export class BookingService {
       }
     }
 
-    return prisma.booking.update({
+    const cancelled = await prisma.booking.update({
       where: { id: bookingId },
       data: { status: "CANCELLED" },
     });
+
+    await this.sendCancellationEmails(userId, organizationId, cancelled);
+
+    return cancelled;
+  }
+
+  private async sendCancellationEmails(
+    userId: string,
+    organizationId: string,
+    booking: {
+      inviteeName: string;
+      inviteeEmail: string;
+      startTime: Date;
+    }
+  ) {
+    try {
+      const [host, page] = await Promise.all([
+        prisma.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: { name: true, email: true },
+        }),
+        prisma.bookingPage.findFirst({
+          where: { userId, organizationId },
+          select: { title: true, timezone: true, locationLabel: true },
+        }),
+      ]);
+
+      const formattedTime = booking.startTime.toLocaleString("en-US", {
+        timeZone: page?.timezone ?? DEFAULT_TIMEZONE,
+        dateStyle: "full",
+        timeStyle: "short",
+      });
+
+      const props = {
+        referralName: booking.inviteeName,
+        facility: page?.locationLabel ?? page?.title ?? "—",
+        originalDateTime: formattedTime,
+        canceledBy: host.name,
+        bookingUrl: `${appConfig.WEBSITE_URL}/${organizationId}/calendar`,
+      };
+
+      await sendEmail({
+        to: booking.inviteeEmail,
+        subject: `Canceled: booking on ${formattedTime}`,
+        html: BookingCanceledEmail({
+          ...props,
+          recipientName: booking.inviteeName,
+        }),
+        from: appConfig.APP_EMAIL,
+      });
+
+      await sendEmail({
+        to: host.email,
+        subject: `Canceled: booking with ${booking.inviteeName}`,
+        html: BookingCanceledEmail({ ...props, recipientName: host.name }),
+        from: appConfig.APP_EMAIL,
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to send cancellation emails: ${error.message}`);
+    }
   }
 
   private async getOrCreatePage(userId: string, organizationId: string) {
@@ -192,17 +268,19 @@ export class BookingService {
 
     const organization = await prisma.organization.findFirst({
       where: { id: page.organizationId },
-      select: { name: true },
+      select: { name: true, logo: true },
     });
 
     return {
       title: page.title,
       description: page.description,
       durationMinutes: page.durationMinutes,
+      locationType: page.locationType,
       locationLabel: page.locationLabel,
       timezone: page.timezone,
       hostName: page.user.name,
       organizationName: organization?.name ?? null,
+      organizationLogo: organization?.logo ?? null,
     };
   }
 
@@ -323,6 +401,7 @@ export class BookingService {
             inviteeName: dto.inviteeName,
             inviteeEmail: dto.inviteeEmail,
             inviteeNotes: dto.inviteeNotes,
+            locationType: resolveLocation(page.locationType, dto.locationType),
             startTime,
             endTime,
           },

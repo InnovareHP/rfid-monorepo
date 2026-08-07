@@ -26,7 +26,13 @@ import { formatDateTime } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
-import { Form } from "@dashboard/ui/components/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import {
   Popover,
@@ -65,73 +71,96 @@ import {
   X,
 } from "lucide-react";
 import * as React from "react";
-import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { toast } from "sonner";
 
 const activityTypeConfig = {
   CALL: {
     icon: Phone,
     label: "Call",
-    color: "from-primary to-primary",
+    color: "bg-primary",
     badge: "bg-primary/10 text-primary border-primary/40",
   },
   EMAIL: {
     icon: Mail,
     label: "Email",
-    color: "from-primary to-primary",
-    badge: "bg-purple-50 text-purple-700 border-purple-300",
+    color: "bg-primary",
+    badge: "bg-primary/10 text-primary border-primary/30",
   },
   MEETING: {
     icon: Users,
     label: "Meeting",
-    color: "from-amber-500 to-orange-600",
-    badge: "bg-amber-50 text-amber-700 border-amber-300",
+    color: "bg-warning",
+    badge: "bg-warning/10 text-warning border-warning/30",
   },
   NOTE: {
     icon: StickyNote,
     label: "Note",
-    color: "from-gray-500 to-slate-600",
-    badge: "bg-gray-50 text-gray-700 border-gray-300",
+    color: "bg-muted-foreground",
+    badge: "bg-muted text-foreground border-border",
   },
   FAX: {
     icon: Printer,
     label: "Fax",
-    color: "from-teal-500 to-cyan-600",
-    badge: "bg-teal-50 text-teal-700 border-teal-300",
+    color: "bg-info",
+    badge: "bg-info/10 text-info border-info/30",
   },
 };
 
 const statusConfig = {
   PENDING: {
-    badge: "bg-yellow-50 text-yellow-700 border-yellow-300",
-    dot: "bg-yellow-500",
+    badge: "bg-warning/10 text-warning border-warning/30",
+    dot: "bg-warning",
   },
   COMPLETED: {
-    badge: "bg-green-50 text-green-700 border-green-300",
-    dot: "bg-green-500",
+    badge: "bg-success/10 text-success border-success/30",
+    dot: "bg-success",
   },
   CANCELLED: {
-    badge: "bg-red-50 text-red-700 border-red-300",
-    dot: "bg-red-500",
+    badge: "bg-destructive/10 text-destructive border-destructive/30",
+    dot: "bg-destructive",
   },
 };
 
 type ActivityType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "FAX";
 
-type FormValues = {
-  title: string;
-  description?: string;
-  activityType: ActivityType;
-  dueDate?: Date;
-  recipientEmail?: string;
-  emailSubject?: string;
-  emailBody?: string;
-  sendVia?: "AUTO" | "GMAIL" | "OUTLOOK";
-  meetingEndDate?: Date;
-  calendarProvider?: "google" | "outlook";
-  faxNumber?: string;
-  faxFile?: File;
-};
+const activitySchema = z
+  .object({
+    title: z.string().trim().min(1, "Title is required"),
+    description: z.string().optional(),
+    activityType: z.enum(["CALL", "EMAIL", "MEETING", "NOTE", "FAX"]),
+    dueDate: z.date().optional(),
+    recipientEmail: z.string().optional(),
+    emailSubject: z.string().optional(),
+    emailBody: z.string().optional(),
+    sendVia: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
+    meetingEndDate: z.date().optional(),
+    calendarProvider: z.enum(["google", "outlook"]).optional(),
+    faxNumber: z.string().optional(),
+    faxFile: z.instanceof(File).optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.activityType !== "FAX") return;
+
+    if (!values.faxNumber?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Fax number is required",
+        path: ["faxNumber"],
+      });
+    }
+    if (!values.faxFile) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Attach a document to fax",
+        path: ["faxFile"],
+      });
+    }
+  });
+
+type FormValues = z.infer<typeof activitySchema>;
 
 export function ActivityTab({
   recordId,
@@ -277,6 +306,7 @@ export function ActivityTab({
   });
 
   const form = useForm<FormValues>({
+    resolver: zodResolver(activitySchema),
     defaultValues: {
       title: "",
       description: "",
@@ -300,16 +330,13 @@ export function ActivityTab({
   const { handleSubmit, watch, control, reset } = form;
   const watchActivityType = watch("activityType");
 
-  React.useEffect(() => {
-    if (
-      showForm &&
-      watchActivityType === "FAX" &&
-      existingFax &&
-      !form.getValues("faxNumber")
-    ) {
+  // Prefill the record's fax number the moment FAX is picked, not in an effect
+  const handleActivityTypeChange = (value: ActivityType) => {
+    form.setValue("activityType", value);
+    if (value === "FAX" && existingFax && !form.getValues("faxNumber")) {
       form.setValue("faxNumber", existingFax);
     }
-  }, [showForm, watchActivityType, existingFax]);
+  };
 
   const resetForm = () => {
     reset();
@@ -317,23 +344,13 @@ export function ActivityTab({
   };
 
   const onSubmit = async (data: FormValues) => {
-    if (!data.title.trim()) return;
-
     if (data.activityType === "FAX") {
-      if (!data.faxNumber?.trim()) {
-        toast.error("Fax number is required");
-        return;
-      }
-      if (!data.faxFile) {
-        toast.error("Attach a document to fax");
-        return;
-      }
       faxMutation.mutate({
         recordId: recordId,
         title: data.title.trim(),
         description: data.description?.trim() || undefined,
-        faxNumber: data.faxNumber.trim(),
-        file: data.faxFile,
+        faxNumber: data.faxNumber!.trim(),
+        file: data.faxFile!,
       });
       return;
     }
@@ -391,7 +408,7 @@ export function ActivityTab({
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-24 w-full rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 animate-pulse"
+              className="h-24 w-full rounded-xl bg-muted animate-pulse"
             />
           ))}
         </div>
@@ -406,7 +423,7 @@ export function ActivityTab({
         {!showForm ? (
           <Button
             onClick={() => setShowForm(true)}
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-md"
+            className="w-full bg-warning hover:bg-warning/90 text-warning-foreground font-semibold shadow-md"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Activity
@@ -415,10 +432,10 @@ export function ActivityTab({
           <Form {...form}>
             <form
               onSubmit={handleSubmit(onSubmit)}
-              className="rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50/50 to-orange-50/30 p-5 space-y-4"
+              className="rounded-xl border-2 border-warning/30 bg-warning/5 p-5 space-y-4"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900">
+                <h3 className="text-sm font-bold text-foreground">
                   Create Activity
                 </h3>
                 <Button
@@ -433,218 +450,82 @@ export function ActivityTab({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <Controller
+                  <FormField
                     control={control}
                     name="title"
-                    rules={{ required: true }}
                     render={({ field }) => (
-                      <Input
-                        {...field}
-                        placeholder="Activity title *"
-                        className="font-medium"
-                      />
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Activity title *"
+                            className="font-medium"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
                 </div>
 
-                <Controller
+                <FormField
                   control={control}
                   name="activityType"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(activityTypeConfig)
-                          .filter((key) => key !== "MEETING" || hasCalendar)
-                          .filter((key) => key !== "FAX" || hasFax)
-                          .map((key) => (
-                            <SelectItem key={key} value={key}>
-                              <span className="flex items-center gap-2">
-                                {React.createElement(
-                                  activityTypeConfig[key as ActivityType].icon,
+                    <FormItem>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) =>
+                          handleActivityTypeChange(value as ActivityType)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(activityTypeConfig)
+                            .filter((key) => key !== "MEETING" || hasCalendar)
+                            .filter((key) => key !== "FAX" || hasFax)
+                            .map((key) => (
+                              <SelectItem key={key} value={key}>
+                                <span className="flex items-center gap-2">
+                                  {React.createElement(
+                                    activityTypeConfig[key as ActivityType]
+                                      .icon,
+                                    {
+                                      className: "h-3.5 w-3.5",
+                                    }
+                                  )}
                                   {
-                                    className: "h-3.5 w-3.5",
+                                    activityTypeConfig[key as ActivityType]
+                                      .label
                                   }
-                                )}
-                                {activityTypeConfig[key as ActivityType].label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                                </span>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
 
-                <Controller
+                <FormField
                   control={control}
                   name="dueDate"
                   render={({ field }) => (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="h-4 w-4 mr-2" />
-                          {field.value
-                            ? field.value.toLocaleDateString()
-                            : "Due date (optional)"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  )}
-                />
-              </div>
-
-              <Controller
-                control={control}
-                name="description"
-                render={({ field }) => (
-                  <Textarea
-                    {...field}
-                    placeholder="Description (optional)"
-                    rows={2}
-                  />
-                )}
-              />
-
-              {watchActivityType === "EMAIL" && (
-                <div className="space-y-3 rounded-lg border border-purple-200 bg-purple-50/50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-purple-600">
-                    Email Details
-                  </p>
-
-                  <Controller
-                    control={control}
-                    name="recipientEmail"
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="Recipient email *"
-                      />
-                    )}
-                  />
-
-                  <Controller
-                    control={control}
-                    name="emailSubject"
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Email subject" />
-                    )}
-                  />
-
-                  <Controller
-                    control={control}
-                    name="emailBody"
-                    render={({ field }) => (
-                      <Textarea {...field} placeholder="Email body" rows={3} />
-                    )}
-                  />
-
-                  <Controller
-                    control={control}
-                    name="sendVia"
-                    render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Send via" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="AUTO">Auto-detect</SelectItem>
-                          {gmailStatus?.connected && (
-                            <SelectItem value="GMAIL">
-                              Gmail ({gmailStatus.email})
-                            </SelectItem>
-                          )}
-                          {outlookStatus?.connected && (
-                            <SelectItem value="OUTLOOK">
-                              Outlook ({outlookStatus.email})
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
-              )}
-
-              {watchActivityType === "FAX" && hasFax && (
-                <div className="space-y-3 rounded-lg border border-teal-200 bg-teal-50/50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-teal-600">
-                    Fax Details
-                  </p>
-
-                  <Controller
-                    control={control}
-                    name="faxNumber"
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        type="tel"
-                        placeholder="Fax number (E.164, e.g. +15551234567) *"
-                      />
-                    )}
-                  />
-
-                  <Controller
-                    control={control}
-                    name="faxFile"
-                    render={({ field }) => (
-                      <Input
-                        type="file"
-                        accept=".pdf,.tiff,.tif,.png,.jpg,.jpeg,.gif,.bmp"
-                        onChange={(e) => field.onChange(e.target.files?.[0])}
-                      />
-                    )}
-                  />
-
-                  <p className="text-xs text-teal-700">
-                    The document is faxed immediately when you create this
-                    activity (max 25 MB).
-                  </p>
-                </div>
-              )}
-
-              {watchActivityType === "MEETING" && hasCalendar && (
-                <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-600">
-                    Meeting Details
-                  </p>
-
-                  <Controller
-                    control={control}
-                    name="meetingEndDate"
-                    render={({ field }) => (
+                    <FormItem>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full justify-start text-left font-normal"
+                            className="justify-start text-left font-normal"
                           >
                             <CalendarIcon className="h-4 w-4 mr-2" />
                             {field.value
-                              ? field.value.toLocaleDateString() +
-                                " " +
-                                field.value.toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "End time (defaults to 1 hour)"}
+                              ? field.value.toLocaleDateString()
+                              : "Due date (optional)"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -655,39 +536,239 @@ export function ActivityTab({
                           />
                         </PopoverContent>
                       </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Description (optional)"
+                        rows={2}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {watchActivityType === "EMAIL" && (
+                <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/10/50 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                    Email Details
+                  </p>
+
+                  <FormField
+                    control={control}
+                    name="recipientEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="Recipient email *"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
-                  <Controller
+                  <FormField
+                    control={control}
+                    name="emailSubject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input {...field} placeholder="Email subject" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={control}
+                    name="emailBody"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Email body"
+                            rows={3}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={control}
+                    name="sendVia"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Send via" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AUTO">Auto-detect</SelectItem>
+                            {gmailStatus?.connected && (
+                              <SelectItem value="GMAIL">
+                                Gmail ({gmailStatus.email})
+                              </SelectItem>
+                            )}
+                            {outlookStatus?.connected && (
+                              <SelectItem value="OUTLOOK">
+                                Outlook ({outlookStatus.email})
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {watchActivityType === "FAX" && hasFax && (
+                <div className="space-y-3 rounded-lg border border-info/30 bg-info/10/50 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-info">
+                    Fax Details
+                  </p>
+
+                  <FormField
+                    control={control}
+                    name="faxNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="tel"
+                            placeholder="Fax number (E.164, e.g. +15551234567) *"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={control}
+                    name="faxFile"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept=".pdf,.tiff,.tif,.png,.jpg,.jpeg,.gif,.bmp"
+                            onChange={(e) =>
+                              field.onChange(e.target.files?.[0])
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <p className="text-xs text-info">
+                    The document is faxed immediately when you create this
+                    activity (max 25 MB).
+                  </p>
+                </div>
+              )}
+
+              {watchActivityType === "MEETING" && hasCalendar && (
+                <div className="space-y-3 rounded-lg border border-warning/30 bg-warning/10/50 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-warning">
+                    Meeting Details
+                  </p>
+
+                  <FormField
+                    control={control}
+                    name="meetingEndDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="h-4 w-4 mr-2" />
+                              {field.value
+                                ? field.value.toLocaleDateString() +
+                                  " " +
+                                  field.value.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "End time (defaults to 1 hour)"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
                     control={control}
                     name="calendarProvider"
                     render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select calendar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {calendarStatus?.google?.connected && (
-                            <SelectItem value="google">
-                              Google Calendar
-                              {calendarStatus.google.email
-                                ? ` (${calendarStatus.google.email})`
-                                : ""}
-                            </SelectItem>
-                          )}
-                          {calendarStatus?.outlook?.connected && (
-                            <SelectItem value="outlook">
-                              Outlook Calendar
-                              {calendarStatus.outlook.email
-                                ? ` (${calendarStatus.outlook.email})`
-                                : ""}
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select calendar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {calendarStatus?.google?.connected && (
+                              <SelectItem value="google">
+                                Google Calendar
+                                {calendarStatus.google.email
+                                  ? ` (${calendarStatus.google.email})`
+                                  : ""}
+                              </SelectItem>
+                            )}
+                            {calendarStatus?.outlook?.connected && (
+                              <SelectItem value="outlook">
+                                Outlook Calendar
+                                {calendarStatus.outlook.email
+                                  ? ` (${calendarStatus.outlook.email})`
+                                  : ""}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
                 </div>
@@ -705,7 +786,7 @@ export function ActivityTab({
                 <Button
                   type="submit"
                   disabled={createMutation.isPending || faxMutation.isPending}
-                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold"
+                  className="bg-warning hover:bg-warning/90 text-warning-foreground font-semibold"
                 >
                   {faxMutation.isPending
                     ? "Sending fax..."
@@ -723,13 +804,13 @@ export function ActivityTab({
         {/* Activity List */}
         {allActivities.length === 0 && !showForm && (
           <div className="flex flex-col items-center justify-center py-16">
-            <div className="p-4 rounded-full bg-gray-100 mb-3">
-              <MessageSquare className="h-8 w-8 text-gray-400" />
+            <div className="p-4 rounded-full bg-muted mb-3">
+              <MessageSquare className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="text-center text-gray-500 font-medium">
+            <p className="text-center text-muted-foreground font-medium">
               No activities yet
             </p>
-            <p className="text-center text-gray-400 text-sm mt-1">
+            <p className="text-center text-muted-foreground text-sm mt-1">
               Create your first activity to start tracking interactions
             </p>
           </div>
@@ -737,7 +818,7 @@ export function ActivityTab({
 
         {allActivities.length > 0 && (
           <div className="relative">
-            <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-500 via-orange-400 to-red-500"></div>
+            <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-warning to-destructive"></div>
 
             <div className="space-y-4">
               {allActivities.map((activity) => (
@@ -769,7 +850,7 @@ export function ActivityTab({
             <Button
               variant="outline"
               onClick={() => fetchNextPage()}
-              className="hover:bg-amber-50 hover:text-amber-600 hover:border-amber-300 font-semibold"
+              className="hover:bg-warning/10 hover:text-warning hover:border-warning/30 font-semibold"
             >
               Load More
             </Button>
@@ -809,20 +890,20 @@ function ActivityCard({
   return (
     <div className="relative pl-12 group">
       <div
-        className={`absolute left-0 w-10 h-10 rounded-full bg-gradient-to-br ${typeConfig.color} flex items-center justify-center border-4 border-white shadow-lg group-hover:scale-110 transition-transform`}
+        className={`absolute left-0 w-10 h-10 rounded-full ${typeConfig.color} flex items-center justify-center border-4 border-card shadow-lg group-hover:scale-110 transition-transform`}
       >
-        <Icon className="h-5 w-5 text-white" />
+        <Icon className="h-5 w-5 text-primary-foreground" />
       </div>
 
-      <div className="bg-white rounded-xl border-2 border-gray-200 hover:border-amber-300 p-4 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-card rounded-xl border-2 border-border hover:border-warning/30 p-4 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p
                 className={`text-sm font-bold ${
                   activity.status === "COMPLETED"
-                    ? "text-gray-400 line-through"
-                    : "text-gray-900"
+                    ? "text-muted-foreground line-through"
+                    : "text-foreground"
                 }`}
               >
                 {activity.title}
@@ -836,7 +917,7 @@ function ActivityCard({
               {activity.direction === "INBOUND" && (
                 <Badge
                   variant="outline"
-                  className="bg-sky-50 text-sky-700 border-sky-200 text-xs font-semibold shrink-0"
+                  className="bg-info/10 text-info border-info/30 text-xs font-semibold shrink-0"
                 >
                   <CornerDownLeft className="h-3 w-3 mr-1" />
                   Reply
@@ -855,7 +936,7 @@ function ActivityCard({
             </div>
 
             {activity.description && (
-              <p className="text-sm text-gray-600 mt-1.5">
+              <p className="text-sm text-muted-foreground mt-1.5">
                 {activity.description}
               </p>
             )}
@@ -866,7 +947,7 @@ function ActivityCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 gap-1.5 text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-300 font-semibold"
+                className="h-7 gap-1.5 text-xs hover:bg-success/10 hover:text-success hover:border-success/30 font-semibold"
                 onClick={() =>
                   onComplete(activity.id, {
                     emailBody: activity.emailBody ?? undefined,
@@ -898,7 +979,7 @@ function ActivityCard({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600"
+              className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
               onClick={() => onDelete(activity.id)}
               disabled={isDeleting}
             >
@@ -908,11 +989,11 @@ function ActivityCard({
         </div>
 
         {/* Meta info */}
-        <div className="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100">
-          <span className="text-xs text-gray-500 font-medium">
+        <div className="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-border">
+          <span className="text-xs text-muted-foreground font-medium">
             {activity.createdBy}
           </span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted-foreground">
             {formatDateTime(activity.createdAt)}
           </span>
 
@@ -920,8 +1001,8 @@ function ActivityCard({
             <span
               className={`text-xs font-medium flex items-center gap-1 px-2 py-0.5 rounded-md ${
                 isPending && new Date(activity.dueDate) < new Date()
-                  ? "bg-red-50 text-red-600"
-                  : "bg-gray-100 text-gray-600"
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               <CalendarIcon className="h-3 w-3" />
@@ -930,35 +1011,35 @@ function ActivityCard({
           )}
 
           {activity.activityType === "EMAIL" && activity.recipientEmail && (
-            <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
+            <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
               <Mail className="h-3 w-3" />
               {activity.recipientEmail}
             </span>
           )}
 
           {activity.activityType === "FAX" && activity.faxNumber && (
-            <span className="text-xs text-teal-600 bg-teal-50 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
+            <span className="text-xs text-info bg-info/10 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
               <Printer className="h-3 w-3" />
               {activity.faxNumber}
             </span>
           )}
 
           {activity.faxSentAt && (
-            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+            <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
               <Check className="h-3 w-3" />
               Faxed {formatDateTime(activity.faxSentAt)}
             </span>
           )}
 
           {activity.emailSentAt && (
-            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+            <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
               <Check className="h-3 w-3" />
               Sent{activity.senderEmail ? ` via ${activity.senderEmail}` : ""}
             </span>
           )}
 
           {activity.openCount > 0 && (
-            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+            <span className="text-xs text-info bg-info/10 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
               <Eye className="h-3 w-3" />
               Opened {activity.openCount}
               {activity.lastOpenedAt

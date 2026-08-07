@@ -6,6 +6,7 @@ import {
 } from "@/services/market/market-service";
 import { formatDateTime } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
 import {
@@ -36,14 +37,19 @@ import {
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
-import { Building2, Loader2, Megaphone, MessagesSquare } from "lucide-react";
+import {
+  Building2,
+  Loader2,
+  Megaphone,
+  MessagesSquare,
+  Plus,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
 import {
   LogEmptyState,
-  LogPageHeader,
   LogRowDelete,
   LogStatCard,
   LogTableSkeleton,
@@ -166,15 +172,17 @@ const MarketLogPage = () => {
   const isLoading = marketLogsQuery.isLoading || facilityOptionsQuery.isLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <LogPageHeader
-          icon={Megaphone}
+    <div className="page-style">
+      <div className="space-y-6">
+        <PageHeader
           title="Marketing Log"
-          subtitle="Track facility visits, touchpoints, and outreach activity"
-          actionLabel="Log Activity"
-          onAction={() => setOpen(true)}
-        />
+          description="Track facility visits, touchpoints, and outreach activity"
+        >
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Log Activity
+          </Button>
+        </PageHeader>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <LogStatCard
@@ -320,7 +328,7 @@ const MarketLogPage = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="overflow-hidden border border-gray-200">
+        <Card className="overflow-hidden border border-border">
           <div className="overflow-x-auto p-4">
             {isLoading ? (
               <LogTableSkeleton />
@@ -332,7 +340,7 @@ const MarketLogPage = () => {
                     key: "facility",
                     header: "Facility",
                     render: (row: any) => (
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-foreground">
                         {row.facility}
                       </span>
                     ),
@@ -364,7 +372,7 @@ const MarketLogPage = () => {
                     header: "Reason for Visit",
                     render: (row: any) => (
                       <span
-                        className="block max-w-56 truncate text-gray-600"
+                        className="block max-w-56 truncate text-muted-foreground"
                         title={row.reasonForVisit ?? ""}
                       >
                         {row.reasonForVisit || "—"}
@@ -375,7 +383,7 @@ const MarketLogPage = () => {
                     key: "createdAt",
                     header: "Logged",
                     render: (row: any) => (
-                      <span className="text-gray-500 whitespace-nowrap">
+                      <span className="text-muted-foreground whitespace-nowrap">
                         {formatDateTime(row.createdAt)}
                       </span>
                     ),
@@ -385,7 +393,7 @@ const MarketLogPage = () => {
                     header: "Notes",
                     render: (row: any) => (
                       <span
-                        className="block max-w-48 truncate text-gray-600"
+                        className="block max-w-48 truncate text-muted-foreground"
                         title={row.notes ?? ""}
                       >
                         {row.notes || "—"}

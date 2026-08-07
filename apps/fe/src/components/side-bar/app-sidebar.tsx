@@ -1,7 +1,8 @@
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
-import { ROLES } from "@dashboard/shared";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { can } from "@/lib/permissions";
 import {
   Sidebar,
   SidebarContent,
@@ -17,15 +18,20 @@ import {
   CircuitBoard,
   ClipboardList,
   Contact,
+  CreditCard,
   DollarSign,
   FileText,
   Folder,
   HistoryIcon,
   LayoutTemplate,
   Megaphone,
+  MailCheck,
   MailPlus,
+  MapPin,
   Route,
   Settings,
+  ShieldCheck,
+  Sparkles,
   SquareTerminal,
   Target,
   Upload,
@@ -49,6 +55,10 @@ export function AppSidebar({
   user,
   ...props
 }: AppSidebarProps) {
+  // HIPAA mode and the BAA are a Scale feature, so the tab is hidden rather
+  // than shown leading to an upsell the plan cannot act on.
+  const canUseHipaa = useEntitlement(activeOrganizationId).has("hipaa");
+
   const data = React.useMemo(
     () => ({
       navMain: [
@@ -63,7 +73,7 @@ export function AppSidebar({
               icon: FileText,
             },
             {
-              title: "Master List Analytics",
+              title: "Master Marketing List Analytics",
               url: `/${activeOrganizationId}/master-list-analytics`,
               icon: Users,
             },
@@ -74,17 +84,17 @@ export function AppSidebar({
           icon: Contact,
           items: [
             {
-              title: "Master List",
+              title: "Master Marketing List",
               url: `/${activeOrganizationId}/master-list`,
               icon: FileText,
             },
             {
-              title: "Referral",
+              title: "Referral Logs",
               url: `/${activeOrganizationId}/referral-list`,
               icon: Users,
             },
             {
-              title: "Contacts",
+              title: "Phonebook",
               url: `/${activeOrganizationId}/contacts`,
               icon: Contact,
             },
@@ -126,27 +136,43 @@ export function AppSidebar({
               icon: MailPlus,
             },
             {
+              title: "Groups",
+              url: `/${activeOrganizationId}/marketing/groups`,
+              icon: Users,
+            },
+            {
+              title: "Senders",
+              url: `/${activeOrganizationId}/marketing/senders`,
+              icon: MailCheck,
+            },
+            {
               title: "Landing Pages",
               url: `/${activeOrganizationId}/marketing/landing-pages`,
               icon: LayoutTemplate,
             },
           ],
         },
-        {
-          title: "Marketing",
-          icon: CircuitBoard,
-          items: [
-            ...(memberData?.role !== ROLES.LIAISON
-              ? [
+        ...(can(memberData?.role, { report: ["read"] })
+          ? [
+              {
+                title: "Records",
+                icon: HistoryIcon,
+                items: [
                   {
                     title: "History Check",
                     url: `/${activeOrganizationId}/history`,
                     icon: HistoryIcon,
                   },
-                ]
-              : []),
-            ...(memberData?.role !== ROLES.OWNER
-              ? [
+                ],
+              },
+            ]
+          : []),
+        ...(can(memberData?.role, { log: ["create"] })
+          ? [
+              {
+                title: "Marketing",
+                icon: CircuitBoard,
+                items: [
                   {
                     title: "Mileage Log",
                     url: `/${activeOrganizationId}/log/mileage`,
@@ -162,11 +188,11 @@ export function AppSidebar({
                     url: `/${activeOrganizationId}/log/expense`,
                     icon: DollarSign,
                   },
-                ]
-              : []),
-          ],
-        },
-        ...(memberData?.role === ROLES.OWNER
+                ],
+              },
+            ]
+          : []),
+        ...(can(memberData?.role, { report: ["read"] })
           ? [
               {
                 title: "Reports",
@@ -191,14 +217,14 @@ export function AppSidebar({
               },
             ]
           : []),
-        ...(memberData?.role === ROLES.OWNER
+        ...(can(memberData?.role, { record: ["import"] })
           ? [
               {
                 title: "Import",
                 icon: Folder,
                 items: [
                   {
-                    title: "Master List",
+                    title: "Master Marketing List",
                     url: `/${activeOrganizationId}/import/master-list`,
                     icon: Upload,
                   },
@@ -217,34 +243,43 @@ export function AppSidebar({
               icon: Users,
             },
             {
-              title: "County Configuration",
+              title: "Counties",
               url: `/${activeOrganizationId}/county-config`,
-              icon: Settings,
+              icon: MapPin,
             },
             {
               title: "Booking",
               url: `/${activeOrganizationId}/settings/booking`,
               icon: CalendarClock,
             },
-            ...(memberData?.role === ROLES.OWNER
+            ...(canUseHipaa
               ? [
-                  // {
-                  //   title: "Plans",
-                  //   url: `/${activeOrganizationId}/plans`,
-                  //   icon: Sparkles,
-                  // },
-                  // {
-                  //   title: "Billing",
-                  //   url: `/${activeOrganizationId}/settings/billing`,
-                  //   icon: CreditCard,
-                  // },
+                  {
+                    title: "Compliance",
+                    url: `/${activeOrganizationId}/settings/compliance`,
+                    icon: ShieldCheck,
+                  },
+                ]
+              : []),
+            ...(can(memberData?.role, { billing: ["manage_billing"] })
+              ? [
+                  {
+                    title: "Plans",
+                    url: `/${activeOrganizationId}/plans`,
+                    icon: Sparkles,
+                  },
+                  {
+                    title: "Billing",
+                    url: `/${activeOrganizationId}/settings/billing`,
+                    icon: CreditCard,
+                  },
                 ]
               : []),
           ],
         },
       ],
     }),
-    [activeOrganizationId, memberData?.role]
+    [activeOrganizationId, memberData?.role, canUseHipaa]
   );
 
   return (

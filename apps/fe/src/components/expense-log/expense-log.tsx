@@ -6,6 +6,7 @@ import {
 } from "@/services/expense/expense-service";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
 import { formatDateTime } from "@dashboard/shared";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
 import {
@@ -30,14 +31,19 @@ import { ReceiptViewer } from "@dashboard/ui/components/receipt-viewer";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, DollarSign, Loader2, Receipt } from "lucide-react";
+import {
+  CalendarClock,
+  DollarSign,
+  Loader2,
+  Plus,
+  Receipt,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
 import {
   LogEmptyState,
-  LogPageHeader,
   LogRowDelete,
   LogStatCard,
   LogTableSkeleton,
@@ -75,7 +81,7 @@ const ExpenseLogPage = () => {
       try {
         return await createExpenseLog({ ...values, image: image.url });
       } catch (error) {
-        await deleteImage(image.id);
+        await deleteImage(image.public_id);
         throw error;
       }
     },
@@ -121,18 +127,22 @@ const ExpenseLogPage = () => {
   const totalEntries = expenseLogsQuery.data?.total ?? 0;
 
   const pageAmount = rows.reduce((sum, row) => sum + (row.amount ?? 0), 0);
-  const lastEntry = rows[0]?.createdAt ? formatDateTime(rows[0].createdAt) : "—";
+  const lastEntry = rows[0]?.createdAt
+    ? formatDateTime(rows[0].createdAt)
+    : "—";
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <LogPageHeader
-          icon={Receipt}
+    <div className="page-style">
+      <div className="space-y-6">
+        <PageHeader
           title="Expense Log"
-          subtitle="Track expenses and receipts for reimbursement"
-          actionLabel="Log Expense"
-          onAction={() => setOpen(true)}
-        />
+          description="Track expenses and receipts for reimbursement"
+        >
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Log Expense
+          </Button>
+        </PageHeader>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <LogStatCard
@@ -242,7 +252,7 @@ const ExpenseLogPage = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="overflow-hidden border border-gray-200">
+        <Card className="overflow-hidden border border-border">
           <div className="overflow-x-auto p-4">
             {expenseLogsQuery.isLoading ? (
               <LogTableSkeleton />
@@ -254,7 +264,7 @@ const ExpenseLogPage = () => {
                     key: "amount",
                     header: "Amount",
                     render: (row: any) => (
-                      <span className="font-semibold text-gray-900 tabular-nums">
+                      <span className="font-semibold text-foreground tabular-nums">
                         {formatCurrency(row.amount ?? 0)}
                       </span>
                     ),
@@ -276,7 +286,7 @@ const ExpenseLogPage = () => {
                     header: "Notes",
                     render: (row: any) => (
                       <span
-                        className="block max-w-48 truncate text-gray-600"
+                        className="block max-w-48 truncate text-muted-foreground"
                         title={row.notes ?? ""}
                       >
                         {row.notes || "—"}
@@ -287,7 +297,7 @@ const ExpenseLogPage = () => {
                     key: "createdAt",
                     header: "Logged",
                     render: (row: any) => (
-                      <span className="text-gray-500 whitespace-nowrap">
+                      <span className="text-muted-foreground whitespace-nowrap">
                         {formatDateTime(row.createdAt)}
                       </span>
                     ),

@@ -93,7 +93,7 @@ export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
   }
   emitColumnCreated(
     orgId: string,
-    column: string,
+    column: { id: string; name: string; type: string },
     moduleType: string = "LEAD"
   ) {
     this.server
@@ -151,33 +151,18 @@ export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
       .emit("board:activity-updated", { recordId, activityId, status });
   }
 
-  emitRecordValueMultiselectUpdated(
-    orgId: string,
-    recordId: string,
-    fieldId: string,
-    value: any,
-    moduleType: string = "LEAD"
-  ) {
-    this.server.to(`org:${orgId}`).emit("board:update-multiselect", {
-      recordId,
-      fieldId,
-      value,
-      moduleType,
-    });
-  }
-
   emitRecordValueStatusUpdated(
     orgId: string,
     recordId: string,
-    fieldId: string,
+    fieldName: string,
     value: string,
     moduleType: string = "LEAD",
-    reason: { id: string; value: string },
-    actionDate: { id: string; value: string }
+    reason: { fieldName: string; value: string },
+    actionDate: { fieldName: string; value: string }
   ) {
     this.server.to(`org:${orgId}`).emit("board:update-status", {
       recordId,
-      fieldId,
+      fieldName,
       value,
       moduleType,
       reason,

@@ -1,6 +1,7 @@
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
-import { ArrowDown, ChevronUp } from "lucide-react";
+import { cn } from "@dashboard/ui/lib/utils";
+import { ArrowDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 export type AiInsightSection = {
@@ -14,6 +15,8 @@ type AiSummaryCardProps = {
   preview: string | undefined;
   sections: AiInsightSection[];
   fallbackPreview?: string;
+  error?: string | null;
+  onRegenerate?: () => void;
 };
 
 const DEFAULT_FALLBACK =
@@ -29,7 +32,9 @@ function InsightSection({ title, items, text }: AiInsightSection) {
         <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
       ) : (
         <ul className="ml-5 list-disc space-y-1.5 text-sm leading-relaxed text-muted-foreground">
-          {items?.map((item, index) => <li key={index}>{item}</li>)}
+          {items?.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
         </ul>
       )}
     </div>
@@ -41,6 +46,8 @@ export function AiSummaryCard({
   preview,
   sections,
   fallbackPreview = DEFAULT_FALLBACK,
+  error,
+  onRegenerate,
 }: AiSummaryCardProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSections = sections.some(
@@ -57,11 +64,31 @@ export function AiSummaryCard({
         />
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <h3 className="text-base font-semibold text-foreground">
-            AI Powered Insight
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base font-semibold text-foreground">
+              AI Powered Insight
+            </h3>
+            {onRegenerate ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={isLoading}
+                onClick={onRegenerate}
+                className="text-muted-foreground"
+              >
+                <RefreshCw
+                  className={cn("size-3.5", isLoading && "animate-spin")}
+                />
+                Regenerate
+              </Button>
+            ) : null}
+          </div>
 
-          {isLoading && !preview ? (
+          {error ? (
+            <p className="rounded-xl bg-background px-5 py-4 text-sm text-red-600">
+              {error}
+            </p>
+          ) : isLoading && !preview ? (
             <div className="flex items-center gap-3 rounded-xl bg-background px-5 py-4">
               <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">
@@ -83,7 +110,7 @@ export function AiSummaryCard({
           ) : null}
 
           <Button
-            className="h-11 w-fit rounded-lg bg-brand px-5 text-sm font-medium hover:bg-brand/90"
+            className="h-11 w-fit"
             disabled={!hasSections}
             onClick={() => setExpanded((open) => !open)}
           >

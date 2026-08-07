@@ -4,10 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { ModuleType, PageStatus, Prisma } from "@prisma/client";
+import { BoardFieldType, ModuleType, PageStatus, Prisma } from "@prisma/client";
 import { prisma } from "../../../lib/prisma/prisma";
 import { AuditService } from "../../../lib/audit/audit.service";
 import { BoardService } from "../../board/board.service";
+import { PlacesService } from "../../places/places.service";
 import { CreateFormDto, UpdateFormDto } from "./dto/form.dto";
 
 type FieldMapping = {
@@ -20,13 +21,15 @@ type FieldMapping = {
 export class FormService {
   constructor(
     private readonly boardService: BoardService,
-    private readonly auditService: AuditService
+    private readonly auditService: AuditService,
+    private readonly placesService: PlacesService
   ) {}
 
   async getForms(organizationId: string) {
     return prisma.form.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
+      include: { _count: { select: { submissions: true } } },
     });
   }
 
@@ -43,14 +46,30 @@ export class FormService {
   async getFormFields(id: string, organizationId: string) {
     const form = await this.getForm(id, organizationId);
 
-    return prisma.field.findMany({
+    const fields = await prisma.field.findMany({
       where: {
         organizationId,
         moduleType: form.moduleType,
         isDeleted: false,
       },
       orderBy: { fieldOrder: "asc" },
+      select: {
+        id: true,
+        fieldName: true,
+        fieldType: true,
+        fieldOrder: true,
+        options: {
+          where: { isDeleted: false },
+          orderBy: { optionOrder: "asc" },
+          select: { optionName: true },
+        },
+      },
     });
+
+    return fields.map((field) => ({
+      ...field,
+      options: field.options.map((option) => option.optionName),
+    }));
   }
 
   async createForm(dto: CreateFormDto, organizationId: string, userId: string) {
@@ -145,22 +164,74 @@ export class FormService {
     const fields = fieldIds.length
       ? await prisma.field.findMany({
           where: { id: { in: fieldIds }, organizationId: form.organizationId },
-          select: { id: true, fieldType: true },
+          select: {
+            id: true,
+            fieldType: true,
+            options: {
+              where: { isDeleted: false },
+              orderBy: { optionOrder: "asc" },
+              select: { optionName: true },
+            },
+          },
         })
       : [];
-    const fieldTypeById = new Map(fields.map((f) => [f.id, f.fieldType]));
+    const fieldById = new Map(fields.map((f) => [f.id, f]));
 
     return {
       id: form.id,
       name: form.name,
       submitButtonText: form.submitButtonText,
-      fieldMappings: fieldMappings.map((m) => ({
-        fieldId: m.fieldId,
-        label: m.label,
-        required: m.required,
-        fieldType: fieldTypeById.get(m.fieldId) ?? "TEXT",
-      })),
+      fieldMappings: fieldMappings.map((m) => {
+        const field = fieldById.get(m.fieldId);
+
+        return {
+          fieldId: m.fieldId,
+          label: m.label,
+          required: m.required,
+          fieldType: field?.fieldType ?? "TEXT",
+          options: (field?.options ?? []).map((o) => o.optionName),
+        };
+      }),
     };
+  }
+
+  async autocompletePublicFormPlaces(slug: string, input: string) {
+    await this.assertPublicFormHasLocation(slug);
+
+    return this.placesService.autocomplete(input);
+  }
+
+  async getPublicFormPlaceDetails(slug: string, placeId: string) {
+    await this.assertPublicFormHasLocation(slug);
+
+    return this.placesService.getPlaceDetails(placeId);
+  }
+
+  // The geocoder is metered, so an anonymous caller only reaches it through a
+  // published form that actually renders a LOCATION field.
+  private async assertPublicFormHasLocation(slug: string) {
+    const form = await prisma.form.findUnique({
+      where: { slug, status: PageStatus.PUBLISHED },
+      select: { organizationId: true, fieldMappings: true },
+    });
+
+    if (!form) throw new NotFoundException("Form not found");
+
+    const fieldIds = (form.fieldMappings as FieldMapping[]).map(
+      (m) => m.fieldId
+    );
+
+    const locationField = await prisma.field.findFirst({
+      where: {
+        id: { in: fieldIds },
+        organizationId: form.organizationId,
+        fieldType: BoardFieldType.LOCATION,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+
+    if (!locationField) throw new NotFoundException("Form not found");
   }
 
   async submitPublicForm(

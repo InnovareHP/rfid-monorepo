@@ -1,5 +1,10 @@
 import { createZodDto } from "nestjs-zod";
-import { DeleteImageSchema, UploadImageSchema } from "./image.dto";
+import {
+  DeleteImageSchema,
+  UploadImageQuerySchema,
+  ViewImageQuerySchema,
+} from "./image.dto";
 
-export class UploadImageDto extends createZodDto(UploadImageSchema) {}
+export class UploadImageQueryDto extends createZodDto(UploadImageQuerySchema) {}
 export class DeleteImageDto extends createZodDto(DeleteImageSchema) {}
+export class ViewImageQueryDto extends createZodDto(ViewImageQuerySchema) {}

@@ -1,3 +1,4 @@
+import { isOrgAdmin } from "@dashboard/shared";
 import {
   BadRequestException,
   Body,
@@ -12,6 +13,16 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import { Response } from "express";
 import { AuditService } from "../../lib/audit/audit.service";
 import {
@@ -25,13 +36,20 @@ import {
 import { LiaisonService } from "./liaison.service";
 
 @Controller("liaison")
-@UseGuards(AuthGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class LiaisonController {
   constructor(
     private readonly liaisonService: LiaisonService,
     private readonly audit: AuditService
   ) {}
 
+  @RequirePermission({ log: ["create"] })
   @Post("mileage")
   async createMillage(
     @Body() createMillageDto: CreateMillageDto,
@@ -41,13 +59,15 @@ export class LiaisonController {
     try {
       return await this.liaisonService.createMillage(
         createMillageDto,
-        session.session.memberId
+        session.session.memberId,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("mileage")
   async getMillage(
     @Session()
@@ -64,7 +84,7 @@ export class LiaisonController {
         limit: Number(limit),
       };
 
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
 
       return await this.liaisonService.getMillage(
         isOwner ? null : session.session.memberId,
@@ -76,36 +96,62 @@ export class LiaisonController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("mileage/:id")
-  async getMillageById(@Param("id") id: string) {
+  async getMillageById(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.getMillageById(id);
+      return await this.liaisonService.getMillageById(
+        id,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Patch("mileage/:id")
   async updateMillage(
     @Param("id") id: string,
-    @Body() updateMillageDto: UpdateMillageDto
+    @Body() updateMillageDto: UpdateMillageDto,
+    @Session()
+    session: MemberSession
   ) {
     try {
-      return await this.liaisonService.updateMillage(id, updateMillageDto);
+      return await this.liaisonService.updateMillage(
+        id,
+        updateMillageDto,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
   @Delete("mileage/:id")
-  async deleteMillage(@Param("id") id: string) {
+  async deleteMillage(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.deleteMillage(id);
+      return await this.liaisonService.deleteMillage(
+        id,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["create"] })
   @Post("marketing")
   async createMarketing(
     @Body() createMarketingDto: CreateMarketingDto,
@@ -124,6 +170,7 @@ export class LiaisonController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("marketing")
   async getMarketing(
     @Session()
@@ -135,7 +182,7 @@ export class LiaisonController {
     try {
       const filter = filtersQuery ? JSON.parse(filtersQuery) : {};
 
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
       const memberId = isOwner ? null : session.session.memberId;
       const filters = {
         filter,
@@ -153,36 +200,62 @@ export class LiaisonController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("marketing/:id")
-  async getMarketingById(@Param("id") id: string) {
+  async getMarketingById(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.getMarketingById(id);
+      return await this.liaisonService.getMarketingById(
+        id,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Patch("marketing/:id")
   async updateMarketing(
     @Param("id") id: string,
-    @Body() updateMarketingDto: UpdateMarketingDto
+    @Body() updateMarketingDto: UpdateMarketingDto,
+    @Session()
+    session: MemberSession
   ) {
     try {
-      return await this.liaisonService.updateMarketing(id, updateMarketingDto);
+      return await this.liaisonService.updateMarketing(
+        id,
+        updateMarketingDto,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
   @Delete("marketing/:id")
-  async deleteMarketing(@Param("id") id: string) {
+  async deleteMarketing(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.deleteMarketing(id);
+      return await this.liaisonService.deleteMarketing(
+        id,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["create"] })
   @Post("expense")
   async createExpense(
     @Body() createExpenseDto: CreateExpenseDto,
@@ -192,13 +265,15 @@ export class LiaisonController {
     try {
       return await this.liaisonService.createExpense(
         createExpenseDto,
-        session.session.memberId
+        session.session.memberId,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["read"] })
   @Get("expense")
   async getExpense(
     @Query("page") page: number = 1,
@@ -215,7 +290,7 @@ export class LiaisonController {
     };
 
     try {
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
       const organizationId = session.session.activeOrganizationId;
       return await this.liaisonService.getExpense(
         isOwner ? null : session.session.memberId,
@@ -227,6 +302,8 @@ export class LiaisonController {
     }
   }
 
+  @RequireFeature("export")
+  @RequirePermission({ report: ["export"] })
   @Get("expense/export")
   async getExpenseExport(
     @Session()
@@ -243,7 +320,7 @@ export class LiaisonController {
         limit: 10000,
       };
 
-      const isOwner = session.session.memberRole === "owner";
+      const isOwner = isOrgAdmin(session.session.memberRole);
       const organizationId = session.session.activeOrganizationId;
       const pdfBuffer = await this.liaisonService.getExpenseExport(
         isOwner ? null : session.session.memberId,
@@ -274,22 +351,39 @@ export class LiaisonController {
     }
   }
 
+  @RequirePermission({ log: ["update"] })
   @Patch("expense/:id")
   async updateExpense(
     @Param("id") id: string,
-    @Body() updateExpenseDto: UpdateExpenseDto
+    @Body() updateExpenseDto: UpdateExpenseDto,
+    @Session()
+    session: MemberSession
   ) {
     try {
-      return await this.liaisonService.updateExpense(id, updateExpenseDto);
+      return await this.liaisonService.updateExpense(
+        id,
+        updateExpenseDto,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
   @Delete("expense/:id")
-  async deleteExpense(@Param("id") id: string) {
+  async deleteExpense(
+    @Param("id") id: string,
+    @Session()
+    session: MemberSession
+  ) {
     try {
-      return await this.liaisonService.deleteExpense(id);
+      return await this.liaisonService.deleteExpense(
+        id,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

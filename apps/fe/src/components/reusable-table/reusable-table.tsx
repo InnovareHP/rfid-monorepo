@@ -1,37 +1,13 @@
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@dashboard/ui/components/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
-import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-} from "@dashboard/ui/components/pagination";
 import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dashboard/ui/components/select";
 import {
   Table,
   TableBody,
@@ -40,10 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@dashboard/ui/components/table";
-import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
 import {
   type ColumnDef,
   flexRender,
@@ -55,21 +28,15 @@ import {
   Loader2,
   MailIcon,
   MoreHorizontalIcon,
-  SendIcon,
   Trash2Icon,
   X,
 } from "lucide-react";
 import React, { useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
-import {
-  getGmailStatus,
-  getOutlookStatus,
-  sendBulkEmail,
-} from "../../services/lead/lead-service";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
-import AddRow from "./add-row";
+import { BulkEmailDialog } from "./bulk-email-dialog";
+import { DeleteRecordsDialog } from "./delete-records-dialog";
+import { TablePagination } from "./table-pagination";
 
 type Props<T> = {
   table: ReactTable<T>;
@@ -114,52 +81,13 @@ const ReusableTable = <T extends { id: string }>({
   onPageSizeChange,
 }: Props<T>) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-
-  const emailSchema = z.object({
-    subject: z.string().min(1, "Subject is required"),
-    body: z.string().min(1, "Body is required"),
-    sendVia: z.enum(["AUTO", "GMAIL", "OUTLOOK"]),
-  });
-
-  const emailForm = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { subject: "", body: "", sendVia: "AUTO" },
-  });
-
-  const { data: gmailStatus } = useQuery({
-    queryKey: ["gmail-status"],
-    queryFn: getGmailStatus,
-  });
-
-  const { data: outlookStatus } = useQuery({
-    queryKey: ["outlook-status"],
-    queryFn: getOutlookStatus,
-  });
 
   const selectedRows = table.getSelectedRowModel().rows;
   const hasSelected = selectedRows.length > 0;
   const selectedIds = selectedRows.map((r) => r.original.id);
   const totalRows = table.getRowModel().rows.length;
-
-  const handleDelete = async () => {
-    if (selectedIds.length === 0) return;
-
-    setIsDeleting(true);
-    try {
-      await onDelete(selectedIds);
-      setDeleteDialogOpen(false);
-      table.resetRowSelection();
-      toast.success(`Successfully deleted ${selectedIds.length} item(s).`);
-    } catch (error) {
-      console.error("Delete error:", error);
-      toast.error("Failed to delete items. Please try again.");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true);
@@ -173,45 +101,17 @@ const ReusableTable = <T extends { id: string }>({
     }
   };
 
-  const handleSendEmail = async (values: z.infer<typeof emailSchema>) => {
-    try {
-      const result = await sendBulkEmail({
-        recordIds: selectedIds,
-        emailSubject: values.subject,
-        emailBody: values.body,
-        moduleType: moduleType ?? (isReferral ? "REFERRAL" : "LEAD"),
-        send_via: values.sendVia,
-      });
-
-      const parts: string[] = [];
-      if (result.sent > 0) parts.push(`Sent ${result.sent}`);
-      if (result.skipped > 0) parts.push(`Skipped ${result.skipped}`);
-      if (result.errors > 0) parts.push(`Failed ${result.errors}`);
-
-      toast.success(parts.join(", "));
-      setEmailDialogOpen(false);
-      emailForm.reset();
-      table.resetRowSelection();
-    } catch {
-      toast.error("Failed to send emails. Please try again.");
-    }
-  };
-
   const handleClearSelection = () => {
     table.resetRowSelection();
     toast.info("Selection cleared.");
   };
 
-  const visiblePages = Array.from(
-    { length: Math.min(10, totalPages - currentPage + 1) },
-    (_, i) => currentPage + i
-  );
   return (
     <>
       {hasSelected && (
         <div className="flex items-center gap-3 m-4 p-4 bg-primary/10 border-2 border-primary/50 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm">
               {selectedIds.length}
             </div>
             <span className="text-sm font-semibold text-foreground">
@@ -233,7 +133,7 @@ const ReusableTable = <T extends { id: string }>({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 bg-white hover:bg-primary/10 border-primary/50"
+                  className="h-9 bg-card hover:bg-primary/10 border-primary/50"
                   aria-label="More Options"
                 >
                   <MoreHorizontalIcon className="h-4 w-4 mr-1" />
@@ -259,7 +159,7 @@ const ReusableTable = <T extends { id: string }>({
           </div>
         </div>
       )}
-      <Card className="border border-gray-200 shadow-sm py-0 gap-0 overflow-hidden">
+      <Card className="border border-border shadow-sm py-0 gap-0 overflow-hidden">
         <CardContent className="relative p-0">
           <ScrollArea className="relative w-full max-h-[calc(100vh-260px)]">
             <Table
@@ -270,7 +170,7 @@ const ReusableTable = <T extends { id: string }>({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
                     key={headerGroup.id}
-                    className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50"
+                    className="border-b border-border bg-table-header hover:bg-table-header"
                   >
                     {headerGroup.headers.map((header, headerIndex) => {
                       const stickyLeft = headerIndex < 2;
@@ -281,7 +181,7 @@ const ReusableTable = <T extends { id: string }>({
                       return (
                       <TableHead
                         className={cn(
-                          "text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground border-r border-gray-200 last:border-r-0 px-4 py-3 relative group/header overflow-visible sticky top-0 bg-gray-50",
+                          "text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
                           stickyLeft ? "z-30" : "z-20"
                         )}
                         key={header.id}
@@ -310,7 +210,7 @@ const ReusableTable = <T extends { id: string }>({
                               "absolute -right-1 top-0 h-full w-2 cursor-col-resize select-none touch-none z-50",
                               header.column.getIsResizing()
                                 ? "bg-primary"
-                                : "opacity-0 group-hover/header:opacity-100 bg-gray-400"
+                                : "opacity-0 group-hover/header:opacity-100 bg-muted-foreground"
                             )}
                             style={{ touchAction: "none" }}
                           />
@@ -327,13 +227,13 @@ const ReusableTable = <T extends { id: string }>({
                   Array.from({ length: 8 }).map((_, rowIdx) => (
                     <TableRow
                       key={`skeleton-${rowIdx}`}
-                      className="border-b border-gray-200 bg-white"
+                      className="border-b border-border bg-card"
                     >
                       {table.getAllLeafColumns().map((col) => (
                         <TableCell
                           key={col.id}
                           style={{ width: col.getSize(), maxWidth: col.getSize() }}
-                          className="border-r border-gray-200 last:border-r-0 px-4 py-3"
+                          className="px-4 py-3"
                         >
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -344,16 +244,16 @@ const ReusableTable = <T extends { id: string }>({
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="text-center py-16 bg-red-50"
+                      className="text-center py-16 bg-destructive/5"
                     >
                       <div className="flex flex-col items-center gap-3">
-                        <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                          <AlertCircle className="h-8 w-8 text-red-600" />
+                        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                          <AlertCircle className="h-8 w-8 text-destructive" />
                         </div>
-                        <p className="font-semibold text-red-900">
+                        <p className="font-semibold text-destructive">
                           {errorMessage}
                         </p>
-                        <p className="text-sm text-red-700">
+                        <p className="text-sm text-muted-foreground">
                           Please refresh the page or contact support if the
                           problem persists.
                         </p>
@@ -365,15 +265,15 @@ const ReusableTable = <T extends { id: string }>({
                     const cells = row.getVisibleCells();
                     const col0Width = cells[0]?.column.getSize() ?? 0;
                     const isSelected = row.getIsSelected();
-                    const rowBg = isSelected ? "bg-primary/10" : "bg-white";
+                    const rowBg = isSelected ? "bg-primary/10" : "bg-card";
                     return (
                     <TableRow
                       className={cn(
-                        "border-b border-gray-200 transition-colors duration-150 group w-full",
+                        "border-b border-border transition-colors duration-150 group w-full",
                         rowBg,
                         isSelected
                           ? "border-primary/30 hover:bg-primary/10"
-                          : "hover:bg-gray-50"
+                          : "hover:bg-muted/50"
                       )}
                       key={row.id}
                       data-selected={isSelected}
@@ -403,10 +303,10 @@ const ReusableTable = <T extends { id: string }>({
                               : {}),
                           }}
                           className={cn(
-                            "border-r border-gray-200 last:border-r-0 px-4 py-2.5 text-sm overflow-hidden text-ellipsis",
-                            cellIndex === 0 && "font-medium text-gray-900",
+                            "px-4 py-3 text-sm overflow-hidden text-ellipsis",
+                            cellIndex === 0 && "font-medium text-foreground",
                             stickyLeft && rowBg,
-                            stickyLeft && !isSelected && "group-hover:bg-gray-50"
+                            stickyLeft && !isSelected && "group-hover:bg-muted/50"
                           )}
                         >
                           {flexRender(
@@ -423,7 +323,7 @@ const ReusableTable = <T extends { id: string }>({
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="text-center py-20 bg-gray-50 border-t border-gray-200"
+                      className="text-center py-20 bg-muted/50 border-t border-border"
                     >
                       <div className="flex flex-col items-center gap-4">
                         <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center border-2 border-primary/30">
@@ -442,10 +342,10 @@ const ReusableTable = <T extends { id: string }>({
                           </svg>
                         </div>
                         <div className="space-y-2">
-                          <p className="font-semibold text-gray-900 text-lg">
+                          <p className="font-semibold text-foreground text-lg">
                             {emptyMessage}
                           </p>
-                          <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                             Add your first entry to get started and see your
                             data here.
                           </p>
@@ -484,239 +384,31 @@ const ReusableTable = <T extends { id: string }>({
             </div>
           )}
 
-          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
-            <div className="flex items-center gap-3">
-              <AddRow
-                isReferral={isReferral || (!!moduleType && moduleType !== "LEAD")}
-              />
-              {onPageSizeChange && (
-                <div className="flex items-center gap-2">
-                  <span className="hidden text-sm text-muted-foreground whitespace-nowrap sm:inline">
-                    Rows per page
-                  </span>
-                  <Select
-                    value={String(pageSize ?? 10)}
-                    onValueChange={(v) => onPageSizeChange(Number(v))}
-                  >
-                    <SelectTrigger className="h-8 w-[72px] bg-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[10, 25, 50, 100].map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount ?? totalRows}
+            selectedCount={selectedIds.length}
+            pageSize={pageSize}
+            setCurrentPage={setCurrentPage}
+            onPageSizeChange={onPageSizeChange}
+          />
 
-            <div className="flex items-center gap-4 text-sm">
-              {totalCount !== undefined && totalCount > 0 && (
-                <span className="text-muted-foreground whitespace-nowrap hidden md:inline">
-                  {(() => {
-                    const size = pageSize ?? 10;
-                    const start = (currentPage - 1) * size + 1;
-                    const end = Math.min(currentPage * size, totalCount);
-                    return `${start}–${end} of ${totalCount}`;
-                  })()}
-                  {hasSelected && ` · ${selectedIds.length} selected`}
-                </span>
-              )}
-              {totalPages > 1 && (
-                <Pagination>
-                  <PaginationContent>
-                    {currentPage > 1 && (
-                      <PaginationItem>
-                        <PaginationEllipsis
-                          onClick={() =>
-                            setCurrentPage(Math.max(1, currentPage - 10))
-                          }
-                        />
-                      </PaginationItem>
-                    )}
+          <DeleteRecordsDialog
+            open={deleteDialogOpen}
+            setOpen={setDeleteDialogOpen}
+            recordIds={selectedIds}
+            onDelete={onDelete}
+            onDeleted={() => table.resetRowSelection()}
+          />
 
-                    {visiblePages.map((page) => (
-                      <PaginationItem
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        <PaginationLink isActive={page === currentPage}>
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-
-                    {currentPage + 10 <= totalPages && (
-                      <PaginationItem>
-                        <PaginationEllipsis
-                          onClick={() => setCurrentPage(currentPage + 10)}
-                        />
-                      </PaginationItem>
-                    )}
-                  </PaginationContent>
-                </Pagination>
-              )}
-            </div>
-          </div>
-
-          {/* Delete Confirmation Dialog */}
-          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-            <DialogContent className="max-w-md">
-              <DialogHeader className="space-y-3">
-                <div className="mx-auto h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                  <Trash2Icon className="h-6 w-6 text-red-600" />
-                </div>
-                <DialogTitle className="text-center text-xl">
-                  Delete {selectedIds.length}{" "}
-                  {selectedIds.length === 1 ? "item" : "items"}?
-                </DialogTitle>
-                <DialogDescription className="text-center">
-                  Are you sure you want to delete {selectedIds.length} selected{" "}
-                  {selectedIds.length === 1 ? "item" : "items"}? This action
-                  cannot be undone and all associated data will be permanently
-                  removed.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteDialogOpen(false)}
-                  disabled={isDeleting}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="flex-1"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2Icon className="w-4 h-4 mr-2" />
-                      Delete Permanently
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          {/* Send Email Compose Dialog */}
-          <Dialog
+          <BulkEmailDialog
             open={emailDialogOpen}
-            onOpenChange={(open) => {
-              setEmailDialogOpen(open);
-              if (!open) emailForm.reset();
-            }}
-          >
-            <DialogContent className="max-w-lg">
-              <DialogHeader className="space-y-3">
-                <div className="mx-auto h-12 w-12 rounded-full bg-primary/15 flex items-center justify-center">
-                  <MailIcon className="h-6 w-6 text-primary" />
-                </div>
-                <DialogTitle className="text-center text-xl">
-                  Send Email
-                </DialogTitle>
-                <DialogDescription className="text-center">
-                  Send an email to {selectedIds.length} selected{" "}
-                  {selectedIds.length === 1 ? "recipient" : "recipients"}.
-                  Records without an email address will be skipped.
-                </DialogDescription>
-              </DialogHeader>
-              <form
-                onSubmit={emailForm.handleSubmit(handleSendEmail)}
-                className="space-y-4 py-2"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="email-subject">Subject</Label>
-                  <Input
-                    id="email-subject"
-                    placeholder="Enter email subject..."
-                    {...emailForm.register("subject")}
-                    disabled={emailForm.formState.isSubmitting}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email-body">Body</Label>
-                  <Textarea
-                    id="email-body"
-                    placeholder="Enter email body..."
-                    {...emailForm.register("body")}
-                    disabled={emailForm.formState.isSubmitting}
-                    rows={6}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Send via</Label>
-                  <Select
-                    value={emailForm.watch("sendVia")}
-                    onValueChange={(val) =>
-                      emailForm.setValue(
-                        "sendVia",
-                        val as "AUTO" | "GMAIL" | "OUTLOOK"
-                      )
-                    }
-                    disabled={emailForm.formState.isSubmitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Send via" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AUTO">Auto-detect</SelectItem>
-                      {gmailStatus?.connected && (
-                        <SelectItem value="GMAIL">
-                          Gmail ({gmailStatus.email})
-                        </SelectItem>
-                      )}
-                      {outlookStatus?.connected && (
-                        <SelectItem value="OUTLOOK">
-                          Outlook ({outlookStatus.email})
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <DialogFooter className="gap-2 sm:gap-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEmailDialogOpen(false)}
-                    disabled={emailForm.formState.isSubmitting}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={emailForm.formState.isSubmitting}
-                    className="flex-1"
-                  >
-                    {emailForm.formState.isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <SendIcon className="w-4 h-4 mr-2" />
-                        Send to {selectedIds.length}{" "}
-                        {selectedIds.length === 1 ? "recipient" : "recipients"}
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+            setOpen={setEmailDialogOpen}
+            recordIds={selectedIds}
+            moduleType={moduleType ?? (isReferral ? "REFERRAL" : "LEAD")}
+            onSent={() => table.resetRowSelection()}
+          />
         </CardContent>
       </Card>
     </>

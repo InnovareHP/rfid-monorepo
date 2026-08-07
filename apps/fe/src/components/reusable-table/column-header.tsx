@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Trash2 } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, ChevronsUpDown, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -78,16 +78,18 @@ export function ColumnHeader({
         <DropdownMenuTrigger asChild>
           <Button
             variant={"ghost"}
-            className="flex justify-between w-full gap-1 hover:text-primary transition-colors cursor-pointer select-none " 
+            className="flex justify-between w-full gap-1 px-0 font-semibold text-gray-900 hover:text-primary transition-colors cursor-pointer select-none"
           >
             <span>{columnName}</span>
             {isActive && currentOrder === "asc" && (
-              <ArrowUpAZ className="h-3.5 w-3.5 text-primary" />
+              <ArrowUpAZ className="h-3.5 w-3.5 text-gray-900" />
             )}
             {isActive && currentOrder === "desc" && (
-              <ArrowDownAZ className="h-3.5 w-3.5 text-primary" />
+              <ArrowDownAZ className="h-3.5 w-3.5 text-gray-900" />
             )}
-            {!isActive && <ChevronDown className="h-3.5 w-3.5 opacity-50" />}
+            {!isActive && (
+              <ChevronsUpDown className="h-3.5 w-3.5 text-gray-600" />
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-44">

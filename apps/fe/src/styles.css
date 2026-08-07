@@ -13,8 +13,17 @@ body {
 body {
   @apply m-0;
   font-family:
-    "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    "Manrope",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -33,6 +42,8 @@ code {
 :root {
   --radius: 0.65rem;
   --brand: #0d3185;
+  --brand-foreground: #ffffff;
+  --table-header: #f4f9ff;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -48,9 +59,27 @@ code {
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Equal lightness band, sized for small text on a /10 tint of themselves. */
+  --success: oklch(0.48 0.12 163.225);
+  --warning: oklch(0.48 0.13 70.08);
+  --warning-foreground: oklch(0.98 0.01 70.08);
+  --info: oklch(0.48 0.15 250);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.623 0.214 259.815);
+
+  /* Avatar identity colors. Deliberately theme-independent so a person keeps
+     the same color in light and dark. Cycled by name hash. The foreground is
+     fixed for the same reason — it must not flip with the theme. */
+  --avatar-foreground: #ffffff;
+  --avatar-1: #e8637b;
+  --avatar-2: #eb6834;
+  --avatar-3: #eda100;
+  --avatar-4: #1baf7a;
+  --avatar-5: #12a8a0;
+  --avatar-6: #2c86d9;
+  --avatar-7: #5a6ee0;
+  --avatar-8: #8b5cf6;
   /* Categorical — identity. Fixed slot order, never cycled. Validated:
      lightness band, chroma floor, CVD + normal-vision separation all pass.
      Slots 3-5 sit below 3:1 on a light surface, so charts using them must
@@ -92,6 +121,10 @@ code {
   --accent: oklch(0.274 0.006 286.033);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.75 0.16 162.48);
+  --warning: oklch(0.82 0.17 84.429);
+  --warning-foreground: oklch(0.24 0.06 84.429);
+  --info: oklch(0.74 0.15 254);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.488 0.243 264.376);
@@ -117,6 +150,8 @@ code {
     "Red Hat Display", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     sans-serif;
   --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-table-header: var(--table-header);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -133,6 +168,19 @@ code {
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-avatar-foreground: var(--avatar-foreground);
+  --color-avatar-1: var(--avatar-1);
+  --color-avatar-2: var(--avatar-2);
+  --color-avatar-3: var(--avatar-3);
+  --color-avatar-4: var(--avatar-4);
+  --color-avatar-5: var(--avatar-5);
+  --color-avatar-6: var(--avatar-6);
+  --color-avatar-7: var(--avatar-7);
+  --color-avatar-8: var(--avatar-8);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -190,14 +238,23 @@ code {
 }
 
 /* FullCalendar theme overrides */
+
 .fc {
   --fc-border-color: #e2e8f0;
   --fc-button-bg-color: var(--primary);
   --fc-button-border-color: var(--primary);
   --fc-button-hover-bg-color: color-mix(in oklch, var(--primary), black 15%);
-  --fc-button-hover-border-color: color-mix(in oklch, var(--primary), black 15%);
+  --fc-button-hover-border-color: color-mix(
+    in oklch,
+    var(--primary),
+    black 15%
+  );
   --fc-button-active-bg-color: color-mix(in oklch, var(--primary), black 25%);
-  --fc-button-active-border-color: color-mix(in oklch, var(--primary), black 25%);
+  --fc-button-active-border-color: color-mix(
+    in oklch,
+    var(--primary),
+    black 25%
+  );
   --fc-today-bg-color: transparent;
   --fc-neutral-bg-color: #f1f5f9;
   --fc-page-bg-color: transparent;
@@ -236,7 +293,11 @@ code {
   letter-spacing: 0.05em;
   color: #ffffff;
   padding: 0.625rem 0;
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 20%), var(--primary));
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 20%),
+    var(--primary)
+  );
   border-bottom: none;
 }
 
@@ -304,12 +365,21 @@ code {
 }
 
 .fc .fc-daygrid-body tr:nth-child(even) .fc-daygrid-day {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 92%) 0%, color-mix(in oklch, var(--primary), white 90%) 50%, color-mix(in oklch, var(--primary), white 85%) 100%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 92%) 0%,
+    color-mix(in oklch, var(--primary), white 90%) 50%,
+    color-mix(in oklch, var(--primary), white 85%) 100%
+  );
 }
 
 /* Today cell - distinct primary glow */
 .fc .fc-daygrid-day.fc-day-today {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 82%) 0%, color-mix(in oklch, var(--primary), white 85%) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 82%) 0%,
+    color-mix(in oklch, var(--primary), white 85%) 100%
+  ) !important;
   position: relative;
 }
 
@@ -328,7 +398,11 @@ code {
 /* Override weekend + striped row combo */
 .fc .fc-daygrid-body tr:nth-child(even) .fc-day-sat:not(.fc-day-today),
 .fc .fc-daygrid-body tr:nth-child(even) .fc-day-sun:not(.fc-day-today) {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 85%) 0%, color-mix(in oklch, var(--primary), white 90%) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 85%) 0%,
+    color-mix(in oklch, var(--primary), white 90%) 100%
+  ) !important;
 }
 
 /* Timegrid (week/day) - cool alternating hour bands */
@@ -338,7 +412,11 @@ code {
 
 .fc .fc-timegrid-slot:nth-child(4n + 1),
 .fc .fc-timegrid-slot:nth-child(4n + 2) {
-  background: linear-gradient(90deg, #f8fafc, color-mix(in oklch, var(--primary), white 92%));
+  background: linear-gradient(
+    90deg,
+    #f8fafc,
+    color-mix(in oklch, var(--primary), white 92%)
+  );
 }
 
 .fc .fc-timegrid-slot:nth-child(4n + 3),
@@ -376,7 +454,11 @@ code {
 
 /* Day cell hover */
 .fc .fc-daygrid-day:hover {
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary), white 92%) 0%, color-mix(in oklch, var(--primary), white 90%) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary), white 92%) 0%,
+    color-mix(in oklch, var(--primary), white 90%) 100%
+  ) !important;
   transition: background 0.2s;
 }
 
@@ -416,6 +498,21 @@ code {
     isolation: isolate;
   }
 
+  .page-style {
+    min-height: 100vh;
+    background-color: var(--color-gray-50);
+    padding: 1.5rem;
+  }
+
+  .page-style > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.5rem;
+  }
+
+  @media (min-width: 40rem) {
+    .page-style {
+      padding: 2rem;
+    }
+  }
   .primary-active-border::before {
     content: "";
     position: absolute;

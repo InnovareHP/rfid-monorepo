@@ -1,4 +1,4 @@
-import { formatCapitalize } from "@dashboard/shared";
+import { formatCapitalize, resolveEntitlement } from "@dashboard/shared";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
@@ -154,13 +154,10 @@ export const sendVerificationEmail = async ({
   token: string;
 }) => {
   const tokenUrl = `${url}?token=${token}`;
-  const emailLogoUrl =
-    appConfig.EMAIL_LOGO_URL ?? `${appConfig.WEBSITE_URL}/login-page/rfid.png`;
   const html = await renderEmailHtml(
     ReferralDashboardEmail({
       magicLink: tokenUrl,
       name: user.name,
-      logoUrl: emailLogoUrl,
     })
   );
   await emailQueue.add("send", {
@@ -218,12 +215,9 @@ export const sendMagicLink = async ({
   token: string;
 }) => {
   const tokenUrl = `${url}?token=${token}`;
-  const emailLogoUrl =
-    appConfig.EMAIL_LOGO_URL ?? `${appConfig.WEBSITE_URL}/login-page/rfid.png`;
   const html = await renderEmailHtml(
     ReferralDashboardEmail({
       magicLink: tokenUrl,
-      logoUrl: emailLogoUrl,
     })
   );
   await emailQueue.add("send", {
@@ -315,14 +309,22 @@ export const beforeAddMember = async ({
     }),
     prisma.subscription.findFirst({
       where: { referenceId: organization.id },
-      select: { seats: true },
+      select: {
+        plan: true,
+        isCustom: true,
+        contractLabel: true,
+        customLimits: true,
+      },
     }),
   ]);
 
-  const maxSeats = subscription?.seats ?? 10;
+  // Seats bill per member, so subscription.seats tracks the current head count
+  // and can never be the ceiling. The resolved entitlement is — a negotiated
+  // contract carries its own seat count rather than a tier's.
+  const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount >= maxSeats) {
     throw new Error(
-      `Organization has reached its seat limit (${maxSeats}). Upgrade your subscription to add more members.`
+      `Organization has reached its plan limit of ${maxSeats} members. Upgrade your plan to add more.`
     );
   }
 
@@ -461,14 +463,19 @@ export const beforeCreateInvitation = async ({
     }),
     prisma.subscription.findFirst({
       where: { referenceId: organization.id },
-      select: { seats: true },
+      select: {
+        plan: true,
+        isCustom: true,
+        contractLabel: true,
+        customLimits: true,
+      },
     }),
   ]);
 
-  const maxSeats = subscription?.seats ?? 10;
+  const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount + pendingInvitations >= maxSeats) {
     throw new Error(
-      `Cannot send invitation. Organization has reached its seat limit (${maxSeats} seats, ${memberCount} members, ${pendingInvitations} pending invitations).`
+      `Cannot send invitation. Organization has reached its plan limit of ${maxSeats} members (${memberCount} members, ${pendingInvitations} pending invitations).`
     );
   }
 
@@ -501,11 +508,16 @@ export const beforeAcceptInvitation = async ({
     }),
     prisma.subscription.findFirst({
       where: { referenceId: organization.id },
-      select: { seats: true },
+      select: {
+        plan: true,
+        isCustom: true,
+        contractLabel: true,
+        customLimits: true,
+      },
     }),
   ]);
 
-  const maxSeats = subscription?.seats ?? 10;
+  const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount >= maxSeats) {
     throw new Error(
       "This organization has reached its member limit. Contact the organization admin."

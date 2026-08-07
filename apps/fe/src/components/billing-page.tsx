@@ -1,6 +1,12 @@
 import { authClient } from "@/lib/auth-client";
+import {
+  cancelSubscription,
+  getPlanCard,
+  resumeSubscription,
+} from "@/services/billing/billing-service";
 import { formatCapitalize, ROLES, type Subscription } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -9,10 +15,10 @@ import {
   CardTitle,
 } from "@dashboard/ui/components/card";
 import { cn } from "@dashboard/ui/lib/utils";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
-import { Calendar, LogOut } from "lucide-react";
+import { Calendar, LogOut, Users } from "lucide-react";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { PlansPage } from "./plans-page";
@@ -57,6 +63,30 @@ export function BillingPage({
     status: subscriptions?.status,
   };
 
+  const { data: planCard } = useQuery({
+    queryKey: ["billing-plan", activeOrganizationId],
+    enabled: !!activeOrganizationId,
+    queryFn: getPlanCard,
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: cancelSubscription,
+    onSuccess: async () => {
+      toast.success("Subscription will cancel at the end of the period");
+      await queryClient.invalidateQueries({ queryKey: ["billing-plan"] });
+    },
+    onError: () => toast.error("Could not cancel the subscription"),
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: resumeSubscription,
+    onSuccess: async () => {
+      toast.success("Subscription resumed");
+      await queryClient.invalidateQueries({ queryKey: ["billing-plan"] });
+    },
+    onError: () => toast.error("Could not resume the subscription"),
+  });
+
   const openBillingPortal = useCallback(async () => {
     if (!activeOrganizationId) return;
 
@@ -87,17 +117,13 @@ export function BillingPage({
 
   return (
     <div
-      className={cn("w-full max-w-7xl mx-auto p-6 space-y-8", className)}
+      className={cn("w-full p-6 space-y-8", className)}
       {...props}
     >
-      <div className="text-center space-y-2 mb-12">
-        <h1 className="text-4xl font-bold tracking-tight page-title">
-          Billing & Subscription
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Manage your subscription, payment methods, and view billing history
-        </p>
-      </div>
+      <PageHeader
+        title="Billing & Subscription"
+        description="Manage your subscription, payment methods, and view billing history"
+      />
 
       <Card>
         <CardHeader>
@@ -139,6 +165,45 @@ export function BillingPage({
             )}
           </div>
 
+          {planCard?.pricePerSeat != null && (
+            <div className="rounded-lg border p-4 space-y-1">
+              <div className="flex items-center gap-2 text-sm">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <span>
+                  <strong>{planCard.seats}</strong>{" "}
+                  {planCard.seats === 1 ? "seat" : "seats"} at $
+                  {planCard.pricePerSeat} per seat
+                </span>
+              </div>
+              <p className="text-2xl font-bold">
+                ${planCard.monthlyTotal}
+                <span className="text-sm font-normal text-muted-foreground">
+                  /month
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Seats follow your team size. Adding or removing a member adjusts
+                this on your next invoice.
+              </p>
+            </div>
+          )}
+
+          {planCard?.cancelAtPeriodEnd && (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+              This subscription is set to cancel at the end of the current
+              period.
+            </div>
+          )}
+
+          {planCard?.pendingInvoice?.hostedInvoiceUrl && (
+            <a
+              href={planCard.pendingInvoice.hostedInvoiceUrl}
+              className="block rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning hover:bg-warning/15"
+            >
+              An invoice is awaiting payment. Open it to complete payment.
+            </a>
+          )}
+
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -147,6 +212,27 @@ export function BillingPage({
             >
               Manage Billing
             </Button>
+
+            {(memberData as Member)?.role === ROLES.OWNER &&
+              (planCard?.cancelAtPeriodEnd ? (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  disabled={resumeMutation.isPending}
+                  onClick={() => resumeMutation.mutate()}
+                >
+                  Resume Subscription
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  disabled={cancelMutation.isPending}
+                  onClick={() => cancelMutation.mutate()}
+                >
+                  Cancel Subscription
+                </Button>
+              ))}
 
             {propContext === "/billing" && (
               <Button variant="ghost" className="flex-1" onClick={handleLogout}>

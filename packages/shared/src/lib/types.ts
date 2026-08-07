@@ -98,6 +98,17 @@ export type LeadRow = {
   [key: string]: string | number;
 };
 
+export type BoardStatMetric = {
+  value: number;
+  previous: number;
+};
+
+export type BoardStats = {
+  totalFacilities: BoardStatMetric;
+  activePartners: BoardStatMetric;
+  countiesCovered: BoardStatMetric;
+};
+
 export type ReferralRow = {
   id: string;
   [key: string]: string | number;
@@ -168,7 +179,12 @@ export type LeadHistoryItem = {
 export type CountyRow = {
   id: string;
   name: string;
-  assigned_to: string;
+  liaisons: string[];
+};
+
+export type CountyAssignmentPayload = {
+  name: string;
+  liaisons: string[];
 };
 
 export type AnalyticsResponse = {
@@ -518,3 +534,8 @@ export type TicketDetail = {
   SupportHistory: TicketHistoryEntry[];
   SupportTicketRating: TicketRating | null;
 };
+
+export type OnboardingStreamEvent =
+  | { type: "progress"; step: string; label: string }
+  | { type: "done"; organizationId: string }
+  | { type: "error"; message: string };

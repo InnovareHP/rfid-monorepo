@@ -12,7 +12,7 @@ import {
 
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Loader2, RefreshCcw, SearchIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { FilterComponent } from "./filter-component";
 
@@ -25,6 +25,7 @@ export function MasterListFilters({
   isMarketing = false,
   refetch,
   isExpense = false,
+  actions,
 }: {
   columns: { id: string; name: string; type: string }[];
   filterMeta: any;
@@ -34,41 +35,32 @@ export function MasterListFilters({
   isMarketing?: boolean;
   refetch: () => void;
   isExpense?: boolean;
+  actions?: ReactNode;
 }) {
   const [searchValue, setSearchValue] = useState("");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
 
   // Staging area for filters (not applied until user clicks Apply)
-  const [pendingFilters, setPendingFilters] = useState<any>({
-    filter: {},
-    recordName: "",
-    dateFrom: null,
-    dateTo: null,
-  });
+  const [pendingFilters, setPendingFilters] = useState<any>(() => {
+    const dateKey = isExpense
+      ? "expense"
+      : isMileage
+        ? "mileage"
+        : isMarketing
+          ? "marketing"
+          : null;
 
-  // Initialize pending filters from current filterMeta
-  useEffect(() => {
-    if (isExpense) {
-      setPendingFilters({
-        filter: filterMeta?.filter || {},
-        dateFrom: filterMeta?.filter?.expenseDateFrom || null,
-        dateTo: filterMeta?.filter?.expenseDateTo || null,
-      });
-    } else if (isMileage) {
-      setPendingFilters({
-        filter: filterMeta?.filter || {},
-        dateFrom: filterMeta?.filter?.mileageDateFrom || null,
-        dateTo: filterMeta?.filter?.mileageDateTo || null,
-      });
-    } else if (isMarketing) {
-      setPendingFilters({
-        filter: filterMeta?.filter || {},
-        dateFrom: filterMeta?.filter?.marketingDateFrom || null,
-        dateTo: filterMeta?.filter?.marketingDateTo || null,
-      });
+    if (!dateKey) {
+      return { filter: {}, recordName: "", dateFrom: null, dateTo: null };
     }
-  }, [isExpense, isMileage, isMarketing]);
+
+    return {
+      filter: filterMeta?.filter || {},
+      dateFrom: filterMeta?.filter?.[`${dateKey}DateFrom`] || null,
+      dateTo: filterMeta?.filter?.[`${dateKey}DateTo`] || null,
+    };
+  });
 
   const updatePendingFilter = (key: string, value: any) => {
     setPendingFilters((prev: any) => ({
@@ -138,12 +130,9 @@ export function MasterListFilters({
       limit: filterMeta?.limit || 20,
     };
 
-    if (isReferral) {
-      baseReset.referralDateFrom = null;
-      baseReset.referralDateTo = null;
-    } else if (!isMileage && !isMarketing && !isExpense) {
-      baseReset.leadDateFrom = null;
-      baseReset.leadDateTo = null;
+    if (!isMileage && !isMarketing && !isExpense) {
+      baseReset.boardDateFrom = null;
+      baseReset.boardDateTo = null;
     }
 
     setFilterMeta(baseReset);
@@ -164,12 +153,9 @@ export function MasterListFilters({
       limit: filterMeta?.limit || 20,
     };
 
-    if (isReferral) {
-      baseReset.referralDateFrom = null;
-      baseReset.referralDateTo = null;
-    } else if (!isMileage && !isMarketing && !isExpense) {
-      baseReset.leadDateFrom = null;
-      baseReset.leadDateTo = null;
+    if (!isMileage && !isMarketing && !isExpense) {
+      baseReset.boardDateFrom = null;
+      baseReset.boardDateTo = null;
     }
 
     setFilterMeta(baseReset);
@@ -183,130 +169,105 @@ export function MasterListFilters({
     toast.info("Filters reset");
   };
 
-  if (isMileage) {
+  // Reports share one bar: pick a date range, refine in the sheet, refresh or reset.
+  if (isMileage || isMarketing || isExpense) {
+    const dateKey = isExpense ? "expense" : isMileage ? "mileage" : "marketing";
+
+    // The report bar has no Apply button, so a completed range applies at once.
+    const applyDateRange = (range: { from: Date | null; to: Date | null }) => {
+      setPendingFilters((prev: any) => ({
+        ...prev,
+        dateFrom: range.from,
+        dateTo: range.to,
+      }));
+      if (!range.from || !range.to) return;
+      setFilterMeta((prev: any) => ({
+        ...prev,
+        filter: {
+          ...prev.filter,
+          [`${dateKey}DateFrom`]: range.from,
+          [`${dateKey}DateTo`]: range.to,
+        },
+      }));
+    };
+
     return (
       <>
-        <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
-          <div className="flex justify-start flex-wrap items-start gap-4">
-            <Button onClick={handleRefresh} variant="outline">
+        <div className="flex flex-wrap items-center gap-3">
+          <DateRangeFilter
+            from={pendingFilters.dateFrom}
+            to={pendingFilters.dateTo}
+            onChange={applyDateRange}
+          />
+
+          <Button variant="outline" onClick={() => setIsSheetOpen(true)}>
+            Advanced Filters
+          </Button>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleRefresh}
+              className="text-muted-foreground"
+            >
               <RefreshCcw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
 
-            {/* ONLY DATE RANGE SHOWN */}
-            <DateRangeFilter
-              from={pendingFilters.dateFrom}
-              to={pendingFilters.dateTo}
-              onChange={(range) =>
-                setPendingFilters((prev: any) => ({
-                  ...prev,
-                  dateFrom: range.from,
-                  dateTo: range.to,
-                }))
-              }
-            />
-
-            <Button onClick={handleApplyFilters} disabled={isApplying}>
-              {isApplying ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Applying...
-                </>
-              ) : (
-                "Apply Filters"
-              )}
-            </Button>
-
-            <Button variant="secondary" onClick={handleReset}>
+            <Button
+              variant="ghost"
+              onClick={handleReset}
+              className="text-muted-foreground"
+            >
               Reset
             </Button>
           </div>
         </div>
-      </>
-    );
-  }
 
-  if (isMarketing) {
-    return (
-      <>
-        <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
-          <div className="flex justify-start flex-wrap items-start gap-4">
-            <Button onClick={handleRefresh} variant="outline">
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent side="right" className="w-[350px] sm:w-[400px] p-4">
+            <SheetHeader>
+              <SheetTitle>Advanced Filters</SheetTitle>
+            </SheetHeader>
 
-            {/* ONLY DATE RANGE SHOWN */}
-            <DateRangeFilter
-              from={pendingFilters.dateFrom}
-              to={pendingFilters.dateTo}
-              onChange={(range) =>
-                setPendingFilters((prev: any) => ({
-                  ...prev,
-                  dateFrom: range.from,
-                  dateTo: range.to,
-                }))
-              }
-            />
+            <div className="mt-6 space-y-2">
+              <label className="text-sm font-medium text-gray-900">
+                Date range
+              </label>
+              <DateRangeFilter
+                from={pendingFilters.dateFrom}
+                to={pendingFilters.dateTo}
+                onChange={(range) =>
+                  setPendingFilters((prev: any) => ({
+                    ...prev,
+                    dateFrom: range.from,
+                    dateTo: range.to,
+                  }))
+                }
+              />
+            </div>
 
-            <Button onClick={handleApplyFilters} disabled={isApplying}>
-              {isApplying ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Applying...
-                </>
-              ) : (
-                "Apply Filters"
-              )}
-            </Button>
-
-            <Button variant="secondary" onClick={handleReset}>
-              Reset
-            </Button>
-          </div>
-        </div>
-      </>
-    );
-  }
-  if (isExpense) {
-    return (
-      <>
-        <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
-          <div className="flex justify-start flex-wrap items-start gap-4">
-            <Button onClick={handleRefresh} variant="outline">
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-
-            {/* ONLY DATE RANGE SHOWN */}
-            <DateRangeFilter
-              from={pendingFilters.dateFrom}
-              to={pendingFilters.dateTo}
-              onChange={(range) =>
-                setPendingFilters((prev: any) => ({
-                  ...prev,
-                  dateFrom: range.from,
-                  dateTo: range.to,
-                }))
-              }
-            />
-
-            <Button onClick={handleApplyFilters} disabled={isApplying}>
-              {isApplying ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Applying...
-                </>
-              ) : (
-                "Apply Filters"
-              )}
-            </Button>
-
-            <Button variant="secondary" onClick={handleReset}>
-              Reset
-            </Button>
-          </div>
-        </div>
+            <SheetFooter className="mt-6 gap-2">
+              <Button variant="outline" className="flex-1" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleApplyFilters}
+                disabled={isApplying}
+              >
+                {isApplying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Applying...
+                  </>
+                ) : (
+                  "Apply Filters"
+                )}
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </>
     );
   }
@@ -315,8 +276,8 @@ export function MasterListFilters({
   return (
     <>
       {/* === TOP BAR FILTERS === */}
-      <div className="mb-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/10 shadow-sm space-y-4">
-        <div className="flex justify-start flex-wrap items-start gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* SEARCH BAR */}
           <div className="w-auto">
             <ButtonGroup>
@@ -332,7 +293,7 @@ export function MasterListFilters({
                     handleSearch();
                   }
                 }}
-                className="min-w-[200px]"
+                className="min-w-[240px] bg-white"
               />
               <Button variant="outline" onClick={handleSearch}>
                 <SearchIcon className="h-4 w-4" />
@@ -340,33 +301,15 @@ export function MasterListFilters({
             </ButtonGroup>
           </div>
 
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCcw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-
           {/* NORMAL DATE RANGE - Staged changes */}
           <DateRangeFilter
-            from={
-              isReferral
-                ? filterMeta?.referralDateFrom
-                : filterMeta?.leadDateFrom
-            }
-            to={
-              isReferral ? filterMeta?.referralDateTo : filterMeta?.leadDateTo
-            }
+            from={filterMeta?.boardDateFrom}
+            to={filterMeta?.boardDateTo}
             onChange={(range) =>
               setFilterMeta((prev: any) => ({
                 ...prev,
-                ...(isReferral
-                  ? {
-                      referralDateFrom: range.from,
-                      referralDateTo: range.to,
-                    }
-                  : {
-                      leadDateFrom: range.from,
-                      leadDateTo: range.to,
-                    }),
+                boardDateFrom: range.from,
+                boardDateTo: range.to,
               }))
             }
           />
@@ -381,12 +324,29 @@ export function MasterListFilters({
               setIsSheetOpen(true);
             }}
           >
-            More Filters
+            Advanced Filters
+          </Button>
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            onClick={handleRefresh}
+            className="text-muted-foreground"
+          >
+            <RefreshCcw className="w-4 h-4 mr-2" />
+            Refresh
           </Button>
 
-          <Button variant="secondary" onClick={handleReset}>
+          <Button
+            variant="ghost"
+            onClick={handleReset}
+            className="text-muted-foreground"
+          >
             Reset
           </Button>
+
+          {actions}
         </div>
       </div>
 

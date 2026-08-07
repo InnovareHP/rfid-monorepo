@@ -10,14 +10,31 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../../guard/permission/permission.guard";
 import { CampaignService } from "./campaign.service";
 import { CreateCampaignDto, UpdateCampaignDto } from "./dto/campaign.dto";
 
 @Controller("marketing/campaigns")
-@UseGuards(AuthGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class CampaignController {
   constructor(private readonly campaignService: CampaignService) {}
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/")
   async getCampaigns(@Session() session: AuthenticatedSession) {
     try {
@@ -29,6 +46,7 @@ export class CampaignController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id")
   async getCampaign(
     @Param("id") id: string,
@@ -44,6 +62,7 @@ export class CampaignController {
     }
   }
 
+  @RequirePermission({ outreach: ["create"] })
   @Post("/")
   async createCampaign(
     @Body() dto: CreateCampaignDto,
@@ -60,6 +79,7 @@ export class CampaignController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Patch("/:id")
   async updateCampaign(
     @Param("id") id: string,
@@ -77,6 +97,7 @@ export class CampaignController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Post("/:id/archive")
   async archiveCampaign(
     @Param("id") id: string,
@@ -92,6 +113,7 @@ export class CampaignController {
     }
   }
 
+  @RequirePermission({ outreach: ["delete"] })
   @Delete("/:id")
   async deleteCampaign(
     @Param("id") id: string,

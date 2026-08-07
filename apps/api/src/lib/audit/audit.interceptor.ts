@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import { Observable, tap } from "rxjs";
 import { auth } from "../auth/auth";
+import { clientIp } from "../http/client-ip";
 import { AuditService } from "./audit.service";
 
 const SKIP_PATHS = [
@@ -45,13 +46,6 @@ function deriveResource(path: string): {
       ? parts[1]
       : null;
   return { type, id };
-}
-
-function clientIp(req: Request): string | null {
-  const xf = req.headers["x-forwarded-for"];
-  if (typeof xf === "string" && xf.length) return xf.split(",")[0].trim();
-  if (Array.isArray(xf) && xf.length) return xf[0] ?? null;
-  return req.socket?.remoteAddress ?? null;
 }
 
 @Injectable()

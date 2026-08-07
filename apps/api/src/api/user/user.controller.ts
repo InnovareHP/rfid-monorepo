@@ -1,4 +1,4 @@
-import { ROLES } from "@dashboard/shared";
+import { OnboardingStreamEvent, ROLES } from "@dashboard/shared";
 import {
   BadRequestException,
   Body,
@@ -7,11 +7,14 @@ import {
   Param,
   Post,
   Query,
+  Req,
+  Res,
   Session,
   UseGuards,
 } from "@nestjs/common";
 import { AdminAction } from "@prisma/client";
 import { AuthGuard, Roles, UserSession } from "@thallesp/nestjs-better-auth";
+import type { Request, Response } from "express";
 import { OnboardingGuard } from "src/guard/onboarding/onboarding.guard";
 import { OnboardingDto } from "./dto/user.schema";
 import { UserService } from "./user.service";
@@ -25,16 +28,36 @@ export class UserController {
   @UseGuards(OnboardingGuard)
   async onboarding(
     @Body() onboardDto: OnboardingDto,
-    @Session() session: UserSession
+    @Session() session: UserSession,
+    @Req() request: Request,
+    @Res() response: Response
   ) {
+    response.setHeader("Content-Type", "text/event-stream");
+    response.setHeader("Cache-Control", "no-cache, no-transform");
+    response.setHeader("Connection", "keep-alive");
+    response.setHeader("X-Accel-Buffering", "no");
+    response.flushHeaders();
+
+    const send = (event: OnboardingStreamEvent) =>
+      response.write(`data: ${JSON.stringify(event)}\n\n`);
+
     try {
-      const user = await this.userService.onboarding(
+      const stream = this.userService.onboarding(
         onboardDto,
-        session.user.id
+        session.user.id,
+        new Headers({ cookie: request.headers.cookie ?? "" })
       );
-      return { user };
+
+      for await (const event of stream) {
+        send(event);
+      }
     } catch (error) {
-      throw new BadRequestException(error);
+      send({
+        type: "error",
+        message: error instanceof Error ? error.message : "Onboarding failed",
+      });
+    } finally {
+      response.end();
     }
   }
 

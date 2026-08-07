@@ -1,215 +1,268 @@
+import { PageHeader } from "@/components/page-header";
+import { getLiaisons } from "@/services/options/options-service";
 import {
   createCounty,
   deleteCounty,
   getCounties,
+  updateCountyLiaisons,
 } from "@/services/referral/referral-service";
 import type { CountyRow } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
-import { Card } from "@dashboard/ui/components/card";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@dashboard/ui/components/form";
-import { Input } from "@dashboard/ui/components/input";
-import { zodResolver } from "@hookform/resolvers/zod";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@dashboard/ui/components/dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { MoreHorizontal, Plus } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
-import { z } from "zod";
+import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
+import { ReusableTable } from "../reusable-table/generic-table";
+import { CountyFormDialog, type CountyFormType } from "./county-form-dialog";
 
-const CountySchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "County name is required"),
-  assigned_to: z.string().optional(),
-});
-
-export type CountyFormType = z.infer<typeof CountySchema>;
+const COUNTIES_KEY = ["counties"];
 
 export default function CountyConfigTablePage() {
   const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCounty, setEditingCounty] = useState<CountyRow | null>(null);
 
-  const { data: counties } = useQuery({
-    queryKey: ["counties"],
+  const { data: counties, isLoading } = useQuery<CountyRow[]>({
+    queryKey: COUNTIES_KEY,
     queryFn: getCounties,
   });
 
+  const { data: liaisons } = useQuery({
+    queryKey: ["liaisons"],
+    queryFn: () => getLiaisons(true),
+  });
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditingCounty(null);
+  };
+
   const createCountyMutation = useMutation({
     mutationFn: createCounty,
+    // Show the row immediately; the refetch below reconciles the real id.
+    onMutate: async (payload: CountyFormType) => {
+      closeDialog();
+      await queryClient.cancelQueries({ queryKey: COUNTIES_KEY });
+      const previous = queryClient.getQueryData<CountyRow[]>(COUNTIES_KEY);
+
+      queryClient.setQueryData<CountyRow[]>(COUNTIES_KEY, (current = []) => [
+        ...current,
+        {
+          id: `optimistic-${Date.now()}`,
+          name: payload.name,
+          liaisons: payload.liaisons,
+        },
+      ]);
+
+      return { previous };
+    },
+    onError: (_error, _payload, context) => {
+      queryClient.setQueryData(COUNTIES_KEY, context?.previous);
+      toast.error("Failed to add county");
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["counties"] });
       queryClient.invalidateQueries({ queryKey: ["dropdown-options"] });
       toast.success("County added successfully!");
-      form.reset({ id: uuidv4(), name: "", assigned_to: "" });
     },
-    onError: () => {
-      toast.error("Failed to add county");
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: COUNTIES_KEY });
+    },
+  });
+
+  const updateLiaisonsMutation = useMutation({
+    mutationFn: ({
+      countyId,
+      liaisons,
+    }: {
+      countyId: string;
+      liaisons: string[];
+    }) => updateCountyLiaisons(countyId, liaisons),
+    onMutate: async ({ countyId, liaisons }) => {
+      closeDialog();
+      await queryClient.cancelQueries({ queryKey: COUNTIES_KEY });
+      const previous = queryClient.getQueryData<CountyRow[]>(COUNTIES_KEY);
+
+      queryClient.setQueryData<CountyRow[]>(COUNTIES_KEY, (current = []) =>
+        current.map((county) =>
+          county.id === countyId ? { ...county, liaisons } : county
+        )
+      );
+
+      return { previous };
+    },
+    onError: (_error, _payload, context) => {
+      queryClient.setQueryData(COUNTIES_KEY, context?.previous);
+      toast.error("Failed to update assignment");
+    },
+    onSuccess: () => toast.success("Assignment updated successfully!"),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: COUNTIES_KEY });
     },
   });
 
   const deleteCountyMutation = useMutation({
     mutationFn: deleteCounty,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["counties"] });
-      toast.success("County deleted successfully!");
+    onMutate: async (countyId: string) => {
+      await queryClient.cancelQueries({ queryKey: COUNTIES_KEY });
+      const previous = queryClient.getQueryData<CountyRow[]>(COUNTIES_KEY);
+
+      queryClient.setQueryData<CountyRow[]>(COUNTIES_KEY, (current = []) =>
+        current.filter((county) => county.id !== countyId)
+      );
+
+      return { previous };
     },
-    onError: () => {
+    onError: (_error, _countyId, context) => {
+      queryClient.setQueryData(COUNTIES_KEY, context?.previous);
       toast.error("Failed to delete county");
     },
+    onSuccess: () => toast.success("County deleted successfully!"),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: COUNTIES_KEY });
+    },
   });
 
-  const form = useForm<CountyFormType>({
-    resolver: zodResolver(CountySchema),
-    defaultValues: { id: uuidv4(), name: "", assigned_to: "" },
-  });
-
-  const onSubmit = (values: CountyFormType) => {
-    createCountyMutation.mutate(values as CountyRow);
+  const handleSubmit = (values: CountyFormType) => {
+    if (editingCounty) {
+      updateLiaisonsMutation.mutate({
+        countyId: editingCounty.id,
+        liaisons: values.liaisons,
+      });
+      return;
+    }
+    createCountyMutation.mutate(values);
   };
 
-  const handleDelete = (id: string) => {
-    deleteCountyMutation.mutate(id);
-  };
+  const assigned = counties?.filter((c) => c.liaisons.length > 0).length ?? 0;
+  const total = counties?.length ?? 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold page-title">
-            County Configuration
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Manage county assignments and responsible personnel
-          </p>
-        </div>
-        <Badge variant="outline" className="text-lg py-2 px-4">
-          {counties?.filter((c: CountyRow) => c.assigned_to)?.length ?? 0}/
-          {counties?.length ?? 0} Assigned
-        </Badge>
+    <div className="page-style">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+        title="County Configuration"
+        description="Manage county assignments and responsible personnel."
+      />
+
+        <Button
+          onClick={() => {
+            setEditingCounty(null);
+            setDialogOpen(true);
+          }}
+          className="bg-brand text-white hover:bg-brand/90"
+        >
+          <Plus className="h-4 w-4" />
+          Add County
+        </Button>
       </div>
 
-      <Card className="p-6 border border-gray-200">
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col md:flex-row gap-4 items-center"
-          >
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormControl>
-                    <Input placeholder="County Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <KpiStatTile
+          label="Total Counties"
+          value={total.toLocaleString()}
+          isLoading={isLoading}
+        />
+        <KpiStatTile
+          label="Assigned"
+          value={assigned.toLocaleString()}
+          isLoading={isLoading}
+        />
+        <KpiStatTile
+          label="Unassigned"
+          value={(total - assigned).toLocaleString()}
+          isLoading={isLoading}
+        />
+      </div>
 
-            <FormField
-              control={form.control}
-              name="assigned_to"
-              render={({ field }) => (
-                <FormItem className="w-full md:w-1/3">
-                  <FormControl>
-                    <Input placeholder="Assigned To" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <Button
-              type="submit"
-              disabled={createCountyMutation.isPending}
-              className="mt-2 md:mt-0"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {createCountyMutation.isPending ? "Saving..." : "Add County"}
-            </Button>
-          </form>
-        </Form>
-      </Card>
-
-      <Card className="overflow-hidden border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  County Name
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Assigned Person
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {counties && counties.length > 0 ? (
-                counties.map((county: CountyRow) => (
-                  <tr
-                    key={county.id}
-                    className={`border-b border-gray-200 ${
-                      !county.assigned_to ? "bg-orange-50" : "bg-white"
-                    } hover:bg-gray-50 transition-colors`}
+      <ReusableTable
+        data={counties ?? []}
+        isLoading={isLoading}
+        emptyMessage="No counties configured yet"
+        tableClassName="table-fixed min-w-[720px]"
+        columns={[
+          {
+            key: "name",
+            header: "County Name",
+            className: "w-[24%]",
+            render: (row: CountyRow) => (
+              <span className="font-medium text-gray-900">{row.name}</span>
+            ),
+          },
+          {
+            key: "liaisons",
+            header: "Assigned Person",
+            className: "w-[34%] text-gray-600",
+            render: (row: CountyRow) =>
+              row.liaisons.length > 0 ? row.liaisons.join(", ") : "-",
+          },
+          {
+            key: "status",
+            header: "Status",
+            className: "w-[24%]",
+            render: (row: CountyRow) => (
+              <Badge
+                className={
+                  row.liaisons.length > 0
+                    ? "min-w-24 justify-center rounded-md border-transparent bg-[#2C86D9] px-4 py-1 text-white"
+                    : "min-w-24 justify-center rounded-md border-transparent bg-[#64D1F4] px-4 py-1 text-white"
+                }
+              >
+                {row.liaisons.length > 0 ? "Assigned" : "Unassigned"}
+              </Badge>
+            ),
+          },
+          {
+            key: "action",
+            header: "Action",
+            className: "w-[18%]",
+            render: (row: CountyRow) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditingCounty(row);
+                      setDialogOpen(true);
+                    }}
                   >
-                    <td className="px-4 py-3">{county.name}</td>
-                    <td className="px-4 py-3">{county.assigned_to || "—"}</td>
-                    <td className="px-4 py-3 text-center">
-                      {county.assigned_to ? (
-                        <Badge
-                          variant="outline"
-                          className="bg-green-50 text-green-700 border-green-200"
-                        >
-                          Assigned
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="bg-orange-50 text-orange-700 border-orange-300"
-                        >
-                          Unassigned
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(county.id)}
-                        className="text-gray-400 hover:text-red-500"
-                        disabled={deleteCountyMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="text-center py-10 text-gray-500 text-sm"
+                    Edit Assignment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    disabled={deleteCountyMutation.isPending}
+                    onClick={() => deleteCountyMutation.mutate(row.id)}
                   >
-                    No counties configured yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                    Delete County
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          },
+        ]}
+      />
+
+      <CountyFormDialog
+        open={dialogOpen}
+        onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}
+        county={editingCounty}
+        liaisons={liaisons ?? []}
+        isSubmitting={
+          createCountyMutation.isPending || updateLiaisonsMutation.isPending
+        }
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 }

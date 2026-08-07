@@ -1,3 +1,4 @@
+import { OnboardingStreamEvent, toSlug } from "@dashboard/shared";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { AdminAction, Prisma } from "@prisma/client";
 import { auth } from "src/lib/auth/auth";
@@ -7,8 +8,44 @@ import { OnboardingDto } from "./dto/user.schema";
 
 @Injectable()
 export class UserService {
-  async onboarding(onboardDto: OnboardingDto, userId: string) {
-    const user = await prisma.user.update({
+  // Streams progress because organization creation also seeds the workspace
+  async *onboarding(
+    onboardDto: OnboardingDto,
+    userId: string,
+    headers: Headers
+  ): AsyncGenerator<OnboardingStreamEvent> {
+    const organizationName = onboardDto.organizationName.trim();
+
+    yield {
+      type: "progress",
+      step: "creating-org",
+      label: "Creating your organization",
+    };
+
+    const organization = await auth.api.createOrganization({
+      body: {
+        name: organizationName,
+        slug: toSlug(organizationName),
+        logo: onboardDto.logo,
+        metadata: {
+          user_id: userId,
+          brandColor: onboardDto.brandColor,
+        },
+        userId,
+        keepCurrentActiveOrganization: false,
+      },
+      headers,
+    });
+
+    if (!organization) throw new Error("Failed to create organization");
+
+    yield {
+      type: "progress",
+      step: "saving-profile",
+      label: "Saving your preferences",
+    };
+
+    await prisma.user.update({
       where: {
         id: userId,
       },
@@ -30,17 +67,10 @@ export class UserService {
           },
         },
       },
-      select: {
-        accounts: {
-          select: {
-            accountId: true,
-            providerId: true,
-          },
-        },
-      },
+      select: { id: true },
     });
 
-    return user;
+    yield { type: "done", organizationId: organization.id };
   }
 
   async getAdminUsers(params: {

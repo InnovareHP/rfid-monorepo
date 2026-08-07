@@ -12,14 +12,29 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import { Queue } from "bullmq";
-import { AdminRoleGuard } from "../../../guard/role/role.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../../guard/permission/permission.guard";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
 import { BlastService } from "./blast.service";
 import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
 @Controller("marketing/blasts")
-@UseGuards(AuthGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class BlastController {
   constructor(
     private readonly blastService: BlastService,
@@ -27,6 +42,7 @@ export class BlastController {
     private readonly blastSendQueue: Queue
   ) {}
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/")
   async getBlasts(@Session() session: AuthenticatedSession) {
     try {
@@ -38,6 +54,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/jobs/:jobId/status")
   async getJobStatus(
     @Param("jobId") jobId: string,
@@ -66,6 +83,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id")
   async getBlast(
     @Param("id") id: string,
@@ -81,6 +99,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id/audience-count")
   async getAudienceCount(
     @Param("id") id: string,
@@ -96,6 +115,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["create"] })
   @Post("/")
   async createBlast(
     @Body() dto: CreateBlastDto,
@@ -112,6 +132,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Patch("/:id")
   async updateBlast(
     @Param("id") id: string,
@@ -130,7 +151,7 @@ export class BlastController {
   }
 
   @Post("/:id/send")
-  @UseGuards(AdminRoleGuard)
+  @RequirePermission({ outreach: ["send"] })
   async sendBlast(
     @Param("id") id: string,
     @Body() dto: SendBlastDto,
@@ -148,6 +169,7 @@ export class BlastController {
     }
   }
 
+  @RequirePermission({ outreach: ["delete"] })
   @Delete("/:id")
   async deleteBlast(
     @Param("id") id: string,

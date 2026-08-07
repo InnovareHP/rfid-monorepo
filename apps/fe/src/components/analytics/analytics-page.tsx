@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { lazy, Suspense, useState } from "react";
 
 import {
@@ -11,8 +12,9 @@ import {
   formatDays,
 } from "@/lib/helper/analytics-chart-data";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { toast } from "sonner";
-import AiSumary from "./ai-sumary";
+import { AiSummaryCard } from "./ai-summary-card";
 import {
   AnalyticsDateFilter,
   type AnalyticsDateRange,
@@ -29,7 +31,7 @@ import { TrendLine } from "./charts/trend-line";
 import { TrendPill } from "./charts/trend-pill";
 import { DenialReasonsTable } from "./denial-reasons-table";
 
-// Mapbox is the heaviest dependency on the page, so it loads on demand.
+// MapLibre is the heaviest dependency on the page, so it loads on demand.
 const CountyHeatMap = lazy(() => import("./county-heat-map"));
 
 export default function ReferralAnalyticsDashboard() {
@@ -90,8 +92,8 @@ export default function ReferralAnalyticsDashboard() {
       queryClient.setQueryData(summaryQueryKey, fresh);
       toast.success("Insights refreshed");
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.message ?? "Failed to refresh insights"),
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, "Failed to refresh insights")),
   });
 
   const hasPeriodFilter = dateRange.start && dateRange.end;
@@ -101,19 +103,33 @@ export default function ReferralAnalyticsDashboard() {
   const admitted = analytics?.conversion?.admitted ?? 0;
   const conversionRate = analytics?.conversion?.conversionRate ?? 0;
 
+  const insightSections = [
+    { title: "Key Insights", items: analyticsSummary?.key_insights },
+    { title: "Bottlenecks", items: analyticsSummary?.bottlenecks },
+    { title: "Opportunities", items: analyticsSummary?.opportunities },
+    {
+      title: "Short-Term Strategy",
+      items: analyticsSummary?.recommended_strategy?.short_term,
+    },
+    {
+      title: "Long-Term Strategy",
+      items: analyticsSummary?.recommended_strategy?.long_term,
+    },
+    {
+      title: "Final Recommendations",
+      text: analyticsSummary?.final_recommendations,
+    },
+  ];
+
   return (
-    <div className="min-h-full bg-white p-8">
+    <div className="page-style">
       <div className="space-y-6">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div>
-            <h1 className="page-title text-4xl font-bold tracking-tight">
-              Referral Analytics Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track key outreach and referral performance metrics.
-            </p>
-          </div>
+          <PageHeader
+            title="Referral Analytics Dashboard"
+            description="Track key outreach and referral performance metrics."
+          />
 
           <AnalyticsDateFilter
             onChange={(range) => {
@@ -122,6 +138,20 @@ export default function ReferralAnalyticsDashboard() {
             }}
           />
         </div>
+
+        {/* AI SUMMARY CARD */}
+        <AiSummaryCard
+          isLoading={isLoadingSummary || regenerateSummaryMutation.isPending}
+          preview={analyticsSummary?.executive_summary}
+          sections={insightSections}
+          fallbackPreview="Referral insights will appear here once enough activity is recorded."
+          error={
+            isErrorSummary
+              ? getApiErrorMessage(summaryError, "Failed to load insights")
+              : null
+          }
+          onRegenerate={() => regenerateSummaryMutation.mutate()}
+        />
 
         {/* KPI TILES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -218,19 +248,6 @@ export default function ReferralAnalyticsDashboard() {
             <DenialReasonsTable reasons={charts.denialReasons} />
           </ChartCard>
         </div>
-        {/* AI SUMMARY CARD */}
-        <AiSumary
-          isLoadingSummary={isLoadingSummary || regenerateSummaryMutation.isPending}
-          summary={analyticsSummary}
-          error={
-            isErrorSummary
-              ? ((summaryError as any)?.response?.data?.message ??
-                "Failed to load insights")
-              : null
-          }
-          onRegenerate={() => regenerateSummaryMutation.mutate()}
-        />
-
         {/* SOURCES + TYPES */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <ChartCard title="Top 10 Referring Facilities">

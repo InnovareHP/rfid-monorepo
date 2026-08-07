@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { encryptionExtension } from "./encryption-extension";
+import { tenantExtension } from "./tenant-extension";
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -7,7 +8,9 @@ declare global {
 
 function buildClient(): PrismaClient {
   const base = new PrismaClient({ log: ["warn", "error"] });
-  return base.$extends(encryptionExtension) as unknown as PrismaClient;
+  return base
+    .$extends(tenantExtension)
+    .$extends(encryptionExtension) as unknown as PrismaClient;
 }
 
 const globalForPrisma = global as typeof globalThis & {

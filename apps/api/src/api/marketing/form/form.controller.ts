@@ -10,14 +10,31 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../../guard/permission/permission.guard";
 import { CreateFormDto, UpdateFormDto } from "./dto/form.dto";
 import { FormService } from "./form.service";
 
 @Controller("marketing/forms")
-@UseGuards(AuthGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class FormController {
   constructor(private readonly formService: FormService) {}
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/")
   async getForms(@Session() session: AuthenticatedSession) {
     try {
@@ -29,6 +46,7 @@ export class FormController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id")
   async getForm(
     @Param("id") id: string,
@@ -44,6 +62,7 @@ export class FormController {
     }
   }
 
+  @RequirePermission({ outreach: ["read"] })
   @Get("/:id/fields")
   async getFormFields(
     @Param("id") id: string,
@@ -59,6 +78,7 @@ export class FormController {
     }
   }
 
+  @RequirePermission({ outreach: ["create"] })
   @Post("/")
   async createForm(
     @Body() dto: CreateFormDto,
@@ -75,6 +95,7 @@ export class FormController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Patch("/:id")
   async updateForm(
     @Param("id") id: string,
@@ -92,6 +113,7 @@ export class FormController {
     }
   }
 
+  @RequirePermission({ outreach: ["update"] })
   @Post("/:id/publish")
   async publishForm(
     @Param("id") id: string,
@@ -107,6 +129,7 @@ export class FormController {
     }
   }
 
+  @RequirePermission({ outreach: ["delete"] })
   @Delete("/:id")
   async deleteForm(
     @Param("id") id: string,

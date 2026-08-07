@@ -3,6 +3,7 @@ import { Logger } from "@nestjs/common";
 import { ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
 import { prisma } from "src/lib/prisma/prisma";
+import { runWithTenant } from "src/lib/prisma/tenant-context";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardGateway } from "./board.gateway";
 import { EmailDispatchService } from "./email-dispatch.service";
@@ -28,7 +29,12 @@ export class BulkEmailProcessor extends WorkerHost {
     super();
   }
 
+  // Jobs run outside a request, so the payload organization opens the tenant store.
   async process(job: Job<BulkEmailJobData>) {
+    return runWithTenant(job.data.organizationId, () => this.handle(job));
+  }
+
+  private async handle(job: Job<BulkEmailJobData>) {
     const {
       recordIds,
       emailSubject,

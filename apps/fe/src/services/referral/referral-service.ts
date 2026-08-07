@@ -1,5 +1,6 @@
 import { axiosClient } from "@/lib/axios-client";
 import type {
+  CountyAssignmentPayload,
   CountyRow,
   ReferralHistoryItem,
   ReferralHistoryResponse,
@@ -9,6 +10,7 @@ export const getReferral = async (filterMeta: any) => {
   const response = await axiosClient.get("/api/boards", {
     params: {
       ...filterMeta,
+      filter: JSON.stringify(filterMeta.filter),
       moduleType: "REFERRAL",
     },
   });
@@ -175,16 +177,29 @@ export const deleteReferralTimeline = async (id: string) => {
   return response.data;
 };
 
-export const getCounties = async () => {
+export const getCounties = async (): Promise<CountyRow[]> => {
   const response = await axiosClient.get("/api/boards/county/configuration");
 
   return response.data;
 };
 
-export const createCounty = async (data: CountyRow) => {
-  const response = await axiosClient.post("/api/boards/county/assignment", {
-    ...data,
-  });
+export const createCounty = async (data: CountyAssignmentPayload) => {
+  const response = await axiosClient.post(
+    "/api/boards/county/assignment",
+    data
+  );
+
+  return response.data;
+};
+
+export const updateCountyLiaisons = async (
+  countyId: string,
+  liaisons: string[]
+) => {
+  const response = await axiosClient.put(
+    `/api/boards/county/assignment/${countyId}`,
+    { liaisons }
+  );
 
   return response.data;
 };

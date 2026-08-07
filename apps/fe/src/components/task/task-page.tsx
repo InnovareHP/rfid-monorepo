@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import {
   useTaskLists,
   useTaskMutations,
@@ -6,7 +7,16 @@ import {
   useTasks,
   useTaskStatuses,
 } from "@/hooks/use-tasks";
-import type { TaskListItemDto } from "@dashboard/shared";
+import { authClient } from "@/lib/auth-client";
+import {
+  buildTaskInsights,
+  buildTaskStats,
+  buildTaskStatusSlices,
+  sortTasks,
+  type TaskSort,
+} from "@/lib/helper/task-insights";
+import type { CreateTaskPayload, TaskListItemDto } from "@dashboard/shared";
+import type { Member } from "better-auth/plugins/organization";
 import { Button } from "@dashboard/ui/components/button";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
@@ -20,21 +30,26 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ClipboardList, ListPlus, Search } from "lucide-react";
+import { ClipboardList, ListPlus, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { StatusBreakdownCard } from "../analytics/charts/status-breakdown-card";
 import {
   LogEmptyState,
-  LogPageHeader,
   LogTableSkeleton,
 } from "../log-shared/log-page-shell";
+import { ListFormDialog } from "./list-form-dialog";
 import { ProjectSelector } from "./project-selector";
 import { TaskFormDialog } from "./task-form-dialog";
-import { TaskListSection } from "./task-list-section";
+import { TaskInsightCard } from "./task-insight-card";
+import { TaskStatsStrip } from "./task-stats-strip";
+import { TaskTable } from "./task-table";
 
 const TaskPage = () => {
   const { team } = useParams({ strict: false }) as { team: string };
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
@@ -42,7 +57,16 @@ const TaskPage = () => {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [newListName, setNewListName] = useState("");
+  const [listDialogOpen, setListDialogOpen] = useState(false);
+  const [sort, setSort] = useState<TaskSort | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data: organizationData } = authClient.useActiveOrganization();
+  const memberData = queryClient.getQueryData<Member>([
+    "member-data",
+    organizationData?.id,
+  ]);
 
   const projectsQuery = useTaskProjects();
   const projects = projectsQuery.data ?? [];
@@ -68,10 +92,20 @@ const TaskPage = () => {
 
   const lists = listsQuery.data ?? [];
   const statuses = statusesQuery.data ?? [];
-  const tasks = tasksQuery.data?.data ?? [];
+  const tasks = useMemo(() => tasksQuery.data?.data ?? [], [tasksQuery.data]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const stats = useMemo(
+    () => buildTaskStats(tasks, memberData?.id),
+    [tasks, memberData?.id]
+  );
+  const insights = useMemo(() => buildTaskInsights(stats), [stats]);
+  const statusSlices = useMemo(
+    () => buildTaskStatusSlices(tasks, statuses),
+    [tasks, statuses]
   );
 
   const tasksByList = useMemo(() => {
@@ -81,11 +115,39 @@ const TaskPage = () => {
       existing.push(task);
       grouped.set(task.listId, existing);
     }
-    for (const group of grouped.values()) {
-      group.sort((a, b) => a.position - b.position);
+    for (const [listId, group] of grouped) {
+      grouped.set(listId, sortTasks(group, sort));
     }
     return grouped;
-  }, [tasks]);
+  }, [tasks, sort]);
+
+  // Pagination runs over the lists in order so a page never splits a list oddly.
+  const orderedTasks = useMemo(
+    () => lists.flatMap((list) => tasksByList.get(list.id) ?? []),
+    [lists, tasksByList]
+  );
+
+  const totalPages = Math.max(Math.ceil(orderedTasks.length / pageSize), 1);
+  const currentPage = Math.min(page, totalPages);
+
+  const pagedTasksByList = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    const grouped = new Map<string, TaskListItemDto[]>();
+    for (const task of orderedTasks.slice(start, start + pageSize)) {
+      const existing = grouped.get(task.listId) ?? [];
+      existing.push(task);
+      grouped.set(task.listId, existing);
+    }
+    return grouped;
+  }, [orderedTasks, currentPage, pageSize]);
+
+  const countsByList = useMemo(
+    () =>
+      new Map(
+        lists.map((list) => [list.id, tasksByList.get(list.id)?.length ?? 0])
+      ),
+    [lists, tasksByList]
+  );
 
   const taskById = useMemo(
     () => new Map(tasks.map((task) => [task.id, task])),
@@ -112,9 +174,7 @@ const TaskPage = () => {
         const oldIndex = listTasks.findIndex(
           (task) => task.id === activeTask.id
         );
-        const newIndex = listTasks.findIndex(
-          (task) => task.id === overTask.id
-        );
+        const newIndex = listTasks.findIndex((task) => task.id === overTask.id);
         if (oldIndex === -1 || newIndex === -1) return;
         const reordered = arrayMove(listTasks, oldIndex, newIndex);
         const movedIndex = reordered.findIndex(
@@ -143,30 +203,60 @@ const TaskPage = () => {
     });
   };
 
-  const handleAddList = () => {
-    if (!newListName.trim() || !activeProjectId) return;
-    createListMutation.mutate({
-      name: newListName.trim(),
-      projectId: activeProjectId,
-    });
-    setNewListName("");
+  const handleAddList = (name: string) => {
+    if (!activeProjectId) return;
+    createListMutation.mutate({ name, projectId: activeProjectId });
+    setListDialogOpen(false);
+  };
+
+  // Subtasks are separate records, so the parent is created first and its id reused.
+  const handleCreateTask = async (
+    payload: CreateTaskPayload,
+    subtaskNames: string[]
+  ) => {
+    setCreateOpen(false);
+    try {
+      const parent = await createTaskMutation.mutateAsync(payload);
+      for (const name of subtaskNames) {
+        await createTaskMutation.mutateAsync({
+          ...payload,
+          name,
+          parentTaskId: parent.id,
+        });
+      }
+    } catch {
+      // The mutation already surfaces the failure as a toast.
+    }
   };
 
   const isLoading =
     projectsQuery.isLoading || listsQuery.isLoading || tasksQuery.isLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <LogPageHeader
-          icon={ClipboardList}
-          title="Tasks"
-          subtitle="Plan, assign, and track work across your team"
-          actionLabel="New Task"
-          onAction={() => setCreateOpen(true)}
-        />
+    <div className="page-style">
+      <div className="space-y-6">
+        <PageHeader
+        title="Tasks"
+        description="Plan, assign, and track work across your team."
+      />
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-wrap">
+        <TaskStatsStrip stats={stats} isLoading={isLoading} />
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <TaskInsightCard
+            insights={insights}
+            isLoading={isLoading}
+            className="lg:col-span-2"
+          />
+          <StatusBreakdownCard
+            slices={statusSlices}
+            title="Tasks Summary"
+            totalLabel="Total tasks"
+            activeSuffix=""
+          />
+        </div>
+
+        <div className="flex flex-col flex-wrap gap-4 sm:flex-row sm:items-center">
           <ProjectSelector
             projects={projects}
             selectedProjectId={activeProjectId}
@@ -182,11 +272,14 @@ const TaskPage = () => {
             creating={createProjectMutation.isPending}
           />
 
-          <div className="relative flex-1 min-w-48 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <div className="relative max-w-sm min-w-48 flex-1">
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
               placeholder="Search tasks..."
               className="pl-9"
             />
@@ -196,11 +289,33 @@ const TaskPage = () => {
             <Switch
               id="show-archived"
               checked={includeArchived}
-              onCheckedChange={setIncludeArchived}
+              onCheckedChange={(checked) => {
+                setIncludeArchived(checked);
+                setPage(1);
+              }}
             />
             <Label htmlFor="show-archived" className="text-sm text-gray-600">
               Show archived
             </Label>
+          </div>
+
+          <div className="flex items-center gap-3 sm:ml-auto">
+            <Button
+              className="bg-brand text-white hover:bg-brand/90"
+              onClick={() => setCreateOpen(true)}
+              disabled={!activeProjectId}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              New Tasks
+            </Button>
+            <Button
+              className="bg-brand text-white hover:bg-brand/90"
+              onClick={() => setListDialogOpen(true)}
+              disabled={!activeProjectId}
+            >
+              <ListPlus className="mr-1 h-4 w-4" />
+              New List
+            </Button>
           </div>
         </div>
 
@@ -217,48 +332,50 @@ const TaskPage = () => {
             }
           />
         ) : (
-          <div className="space-y-4">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCorners}
-              onDragEnd={handleDragEnd}
-            >
-              {lists.map((list) => (
-                <TaskListSection
-                  key={list.id}
-                  list={list}
-                  tasks={tasksByList.get(list.id) ?? []}
-                  onToggleComplete={(task) =>
-                    completeTaskMutation.mutate({
-                      id: task.id,
-                      completed: Boolean(task.completedAt),
-                    })
-                  }
-                  onOpenTask={openTask}
-                />
-              ))}
-            </DndContext>
-
-            <div className="flex items-center gap-2 max-w-sm">
-              <Input
-                value={newListName}
-                onChange={(event) => setNewListName(event.target.value)}
-                placeholder="New list name"
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") handleAddList();
-                }}
-              />
-              <Button
-                variant="outline"
-                onClick={handleAddList}
-                disabled={!newListName.trim() || createListMutation.isPending}
-              >
-                <ListPlus className="h-4 w-4 mr-1" />
-                Add List
-              </Button>
-            </div>
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragEnd={handleDragEnd}
+          >
+            <TaskTable
+              lists={lists}
+              pagedTasksByList={pagedTasksByList}
+              countsByList={countsByList}
+              sort={sort}
+              onSortChange={(next) => {
+                setSort(next);
+                setPage(1);
+              }}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalCount={orderedTasks.length}
+              completedCount={
+                orderedTasks.filter((task) => Boolean(task.completedAt)).length
+              }
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+              onToggleComplete={(task) =>
+                completeTaskMutation.mutate({
+                  id: task.id,
+                  completed: Boolean(task.completedAt),
+                })
+              }
+              onOpenTask={openTask}
+            />
+          </DndContext>
         )}
+
+        <ListFormDialog
+          key={`list-${listDialogOpen}`}
+          open={listDialogOpen}
+          onOpenChange={setListDialogOpen}
+          submitting={createListMutation.isPending}
+          onSubmit={handleAddList}
+        />
 
         {activeProjectId && (
           <TaskFormDialog
@@ -269,10 +386,7 @@ const TaskPage = () => {
             lists={lists.filter((list) => !list.id.startsWith("temp-"))}
             statuses={statuses}
             submitting={createTaskMutation.isPending}
-            onSubmit={(payload) => {
-              createTaskMutation.mutate(payload);
-              setCreateOpen(false);
-            }}
+            onSubmit={handleCreateTask}
           />
         )}
       </div>

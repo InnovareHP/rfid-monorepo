@@ -1,13 +1,37 @@
+import { can } from "@/lib/permissions";
+import {
+  entitlementHasFeature,
+  resolveEntitlement,
+  type DomainPermission,
+  type PlanFeature,
+  type SubscriptionLike,
+} from "@dashboard/shared";
 import { redirect } from "@tanstack/react-router";
 
-export const AuthorizedRole = (context: any, roles: string[]) => {
+// Route guards check the same grant table the API enforces, so a route that
+// renders is a route whose endpoints will answer.
+export const AuthorizedRoute = (context: any, permission: DomainPermission) => {
   const session = context.context.session as unknown as Session & {
     memberRole: string;
     activeOrganizationId: string;
   };
 
-  if (!roles.includes(session?.memberRole)) {
+  if (!can(session?.memberRole, permission)) {
     throw redirect({ to: `/${session.activeOrganizationId}` as any });
+  }
+
+  return true;
+};
+
+// A role denial sends the user home; a plan denial sends them where they can fix
+// it, since billing is the upgrade path rather than a dead end.
+export const EntitledRoute = (context: any, feature: PlanFeature) => {
+  const { subscription } = context.context as {
+    subscription: SubscriptionLike | null;
+  };
+
+  if (!entitlementHasFeature(resolveEntitlement(subscription), feature)) {
+    throw redirect({ to: "/billing" as any });
   }
 
   return true;
@@ -25,4 +49,24 @@ export const formatMinutes = (minutes: number) => {
   const mins = minutes % 60;
   if (hrs === 0) return `${mins}m`;
   return mins ? `${hrs}h ${mins}m` : `${hrs}h`;
+};
+
+export const getApiErrorMessage = (
+  error: unknown,
+  fallback: string
+): string => {
+  const seen = new Set<unknown>();
+
+  const unwrap = (value: unknown): string | null => {
+    if (typeof value === "string") return value.trim() || null;
+    if (Array.isArray(value)) return unwrap(value.filter(Boolean)[0]);
+    if (!value || typeof value !== "object" || seen.has(value)) return null;
+
+    seen.add(value);
+    const record = value as Record<string, unknown>;
+    return unwrap(record.message ?? record.error ?? record.data ?? null);
+  };
+
+  const response = (error as { response?: { data?: unknown } })?.response;
+  return unwrap(response?.data) ?? unwrap(error) ?? fallback;
 };

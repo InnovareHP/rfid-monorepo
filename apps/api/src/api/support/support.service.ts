@@ -1,4 +1,4 @@
-import { ROLES, User } from "@dashboard/shared";
+import { entitlementHasFeature, ROLES, User } from "@dashboard/shared";
 import {
   BadRequestException,
   Injectable,
@@ -11,11 +11,41 @@ import {
   TicketCategory,
   TicketStatus,
 } from "@prisma/client";
+import { getOrganizationEntitlement } from "../../guard/subscription/subscription.guard";
 import { prisma } from "../../lib/prisma/prisma";
 import { CreateTicketDto } from "./dto/support.schema";
 
 @Injectable()
 export class SupportService {
+  // Tickets are platform rows with no organizationId, so the isolation axis is
+  // the user: agents see what is assigned to them, everyone else what they opened.
+  private ticketScope(
+    user: Pick<User & { role: string }, "id" | "role">
+  ): Prisma.SupportTicketWhereInput {
+    if (user.role === ROLES.SUPER_ADMIN) return {};
+    if (user.role === ROLES.SUPPORT) return { assignedTo: user.id };
+    return { createBy: user.id };
+  }
+
+  private async assertTicketReachable(
+    ticketId: string,
+    user: Pick<User & { role: string }, "id" | "role">
+  ) {
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { id: ticketId, ...this.ticketScope(user) },
+      select: { id: true },
+    });
+    if (!ticket) throw new NotFoundException("Ticket not found");
+  }
+
+  private async assertLiveChatOwned(chatId: string, userId: string) {
+    const chat = await prisma.supportLiveChat.findFirst({
+      where: { id: chatId, sender: userId },
+      select: { id: true },
+    });
+    if (!chat) throw new NotFoundException("Live chat not found");
+  }
+
   async getTickets(
     user: User & { role: string },
     take: number,
@@ -25,17 +55,7 @@ export class SupportService {
     category?: TicketCategory
   ) {
     const offset = (page - 1) * take;
-    const where: Prisma.SupportTicketWhereInput = {};
-
-    if (user.role !== ROLES.USER) {
-      where.createBy = undefined;
-    } else {
-      where.createBy = user.id;
-    }
-
-    if (user.role === ROLES.SUPPORT) {
-      where.assignedTo = user.id;
-    }
+    const where: Prisma.SupportTicketWhereInput = this.ticketScope(user);
 
     if (priority) {
       where.priority = priority;
@@ -95,9 +115,9 @@ export class SupportService {
     return { tickets, total };
   }
 
-  async getTicketById(ticketId: string) {
+  async getTicketById(ticketId: string, user: User & { role: string }) {
     const ticket = await prisma.supportTicket.findFirst({
-      where: { ticketNumber: ticketId },
+      where: { ticketNumber: ticketId, ...this.ticketScope(user) },
       include: {
         assignedToUser: {
           select: { id: true, name: true, image: true },
@@ -164,8 +184,29 @@ export class SupportService {
     return leastBusy[Math.floor(Math.random() * leastBusy.length)].id;
   }
 
-  async createTicket(userId: string, data: CreateTicketDto) {
-    const assignedTo = await this.getNextSupportAgent();
+  // A ticket is never refused over billing; a plan without priority support
+  // just cannot jump the queue, so HIGH is clamped rather than rejected.
+  private async allowedPriority(
+    organizationId: string | null,
+    requested: Priority | undefined
+  ): Promise<Priority | undefined> {
+    if (requested !== Priority.HIGH || !organizationId) return requested;
+
+    const entitlement = await getOrganizationEntitlement(organizationId);
+    return entitlementHasFeature(entitlement, "priority_support")
+      ? requested
+      : Priority.MEDIUM;
+  }
+
+  async createTicket(
+    userId: string,
+    organizationId: string | null,
+    data: CreateTicketDto
+  ) {
+    const [assignedTo, priority] = await Promise.all([
+      this.getNextSupportAgent(),
+      this.allowedPriority(organizationId, data.priority),
+    ]);
 
     return prisma.supportTicket.create({
       data: {
@@ -173,7 +214,7 @@ export class SupportService {
         subject: data.subject,
         description: data.description,
         category: data.category,
-        priority: data.priority,
+        priority,
         assignedTo,
         createBy: userId,
         SupportTicketMessage: {
@@ -198,7 +239,7 @@ export class SupportService {
 
   async updateTicket(
     ticketId: string,
-    userId: string,
+    user: User & { role: string },
     data: {
       title?: string;
       subject?: string;
@@ -209,10 +250,7 @@ export class SupportService {
       assignedTo?: string;
     }
   ) {
-    const ticket = await prisma.supportTicket.findFirst({
-      where: { id: ticketId, createBy: userId },
-    });
-    if (!ticket) throw new NotFoundException("Ticket not found");
+    await this.assertTicketReachable(ticketId, user);
 
     return prisma.supportTicket.update({
       where: { id: ticketId },
@@ -221,35 +259,38 @@ export class SupportService {
         SupportHistory: {
           create: {
             message: data.description || "",
-            sender: userId,
+            sender: user.id,
           },
         },
       },
     });
   }
 
-  async deleteTicket(ticketId: string, userId: string) {
-    const ticket = await prisma.supportTicket.findFirst({
-      where: { id: ticketId, createBy: userId },
-    });
-    if (!ticket) throw new NotFoundException("Ticket not found");
+  async deleteTicket(ticketId: string, user: User & { role: string }) {
+    await this.assertTicketReachable(ticketId, user);
 
     return prisma.supportTicket.delete({ where: { id: ticketId } });
   }
 
-  async createTicketMessage(ticketId: string, userId: string, message: string) {
+  async createTicketMessage(
+    ticketId: string,
+    user: User & { role: string },
+    message: string
+  ) {
+    await this.assertTicketReachable(ticketId, user);
+
     return Promise.all([
       prisma.supportTicketMessage.create({
         data: {
           message,
-          sender: userId,
+          sender: user.id,
           supportTicketId: ticketId,
         },
       }),
       prisma.supportHistory.create({
         data: {
           message,
-          sender: userId,
+          sender: user.id,
           supportTicketId: ticketId,
         },
       }),
@@ -258,8 +299,18 @@ export class SupportService {
 
   async createTicketAttachment(
     supportTicketMessageId: string,
+    user: User & { role: string },
     imageUrl: string
   ) {
+    const message = await prisma.supportTicketMessage.findFirst({
+      where: {
+        id: supportTicketMessageId,
+        supportTicket: this.ticketScope(user),
+      },
+      select: { id: true },
+    });
+    if (!message) throw new NotFoundException("Ticket message not found");
+
     return prisma.supportTicketAttachment.create({
       data: {
         imageUrl,
@@ -309,6 +360,8 @@ export class SupportService {
   }
 
   async createLiveChatMessage(chatId: string, userId: string, message: string) {
+    await this.assertLiveChatOwned(chatId, userId);
+
     return prisma.supportLiveChatMessage.create({
       data: {
         message,
@@ -323,6 +376,8 @@ export class SupportService {
     userId: string,
     imageUrl: string
   ) {
+    await this.assertLiveChatOwned(chatId, userId);
+
     return prisma.supportLiveChatAttachment.create({
       data: {
         imageUrl,
@@ -335,12 +390,9 @@ export class SupportService {
   async assignTicket(
     ticketId: string,
     agentId: string,
-    requestingUserId: string
+    user: User & { role: string }
   ) {
-    const ticket = await prisma.supportTicket.findFirst({
-      where: { id: ticketId },
-    });
-    if (!ticket) throw new NotFoundException("Ticket not found");
+    await this.assertTicketReachable(ticketId, user);
 
     return prisma.supportTicket.update({
       where: { id: ticketId },
@@ -350,7 +402,7 @@ export class SupportService {
           create: {
             message: "Ticket reassigned to a different agent",
             changeType: "ASSIGNED",
-            sender: requestingUserId,
+            sender: user.id,
           },
         },
       },
@@ -386,15 +438,9 @@ export class SupportService {
   }
 
   async getTicketHistory(ticketId: string, user: User & { role: string }) {
-    const where: Prisma.SupportTicketWhereInput = { ticketNumber: ticketId };
-
-    if (user.role === ROLES.SUPPORT) {
-      where.assignedTo = user.id;
-    } else {
-      where.createBy = user.id;
-    }
-
-    const ticket = await prisma.supportTicket.findFirst({ where });
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { ticketNumber: ticketId, ...this.ticketScope(user) },
+    });
     if (!ticket) throw new NotFoundException("Ticket not found");
 
     return prisma.supportHistory.findMany({
@@ -407,15 +453,9 @@ export class SupportService {
   }
 
   async closeTicket(ticketId: string, user: AuthenticatedSession["user"]) {
-    const where: Prisma.SupportTicketWhereInput = { id: ticketId };
-
-    if (user.role === ROLES.SUPPORT) {
-      where.assignedTo = user.id;
-    } else {
-      where.createBy = user.id;
-    }
-
-    const ticket = await prisma.supportTicket.findFirst({ where });
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { id: ticketId, ...this.ticketScope(user) },
+    });
     if (!ticket) throw new NotFoundException("Ticket not found");
     if (ticket.status === "CLOSED") {
       throw new BadRequestException("Ticket is already closed");
@@ -441,15 +481,9 @@ export class SupportService {
     user: AuthenticatedSession["user"],
     status: TicketStatus
   ) {
-    const where: Prisma.SupportTicketWhereInput = { id: ticketId };
-
-    if (user.role === ROLES.SUPPORT) {
-      where.assignedTo = user.id;
-    } else {
-      where.createBy = user.id;
-    }
-
-    const ticket = await prisma.supportTicket.findFirst({ where });
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { id: ticketId, ...this.ticketScope(user) },
+    });
     if (!ticket) throw new NotFoundException("Ticket not found");
     // if (ticket.status !== "CLOSED") {
     //   throw new BadRequestException("Only closed tickets can be reopened");

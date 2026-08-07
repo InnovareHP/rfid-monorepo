@@ -6,13 +6,16 @@ model Marketing {
   reasonForVisit String?
   notes          String?
   memberId       String
+  organizationId String
   createdAt      DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime?        @updatedAt @db.Timestamptz(3)
   isDeleted      Boolean          @default(false)
 
-  member Member @relation(fields: [memberId], references: [id])
+  member       Member       @relation(fields: [memberId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
+  @@index([organizationId])
   @@schema("liason_schema")
 }
 
@@ -23,14 +26,18 @@ model Expense {
   notes       String
   memberId    String
 
+  organizationId String
+
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @db.Timestamptz(3)
   isDeleted Boolean   @default(false)
 
-  imageUrl String
-  member   Member @relation(fields: [memberId], references: [id])
+  imageUrl     String
+  member       Member       @relation(fields: [memberId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
+  @@index([organizationId])
   @@schema("liason_schema")
 }
 
@@ -50,12 +57,16 @@ model Mileage {
 
   memberId String
 
+  organizationId String
+
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @db.Timestamptz(3)
 
-  member Member @relation(fields: [memberId], references: [id])
+  member       Member       @relation(fields: [memberId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
+  @@index([organizationId])
   @@schema("liason_schema")
 }
 

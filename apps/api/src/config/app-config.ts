@@ -26,15 +26,25 @@ export const appConfigSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
 
+  // Registrable domain of WEBSITE_URL, or a registrable parent for subdomains.
+  PASSKEY_RP_ID: z.string().min(1).default("localhost"),
+  // Empty or unparseable leaves the pre-passkey migration path open indefinitely.
+  PASSKEY_MIGRATION_DEADLINE: z.string().default(""),
+
   MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
   MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
-  // Cloudinary
-  CLOUDINARY_CLOUD_NAME: z.string().min(1),
-  CLOUDINARY_API_KEY: z.string().min(1),
-  CLOUDINARY_API_SECRET: z.string().min(1),
+  // Live per-seat price IDs. Only read when NODE_ENV=production; dev and
+  // staging fall back to the test IDs inline in lib/stripe/plans.ts.
+  STRIPE_PRICE_ESSENTIALS_SEAT: z.string().min(1).optional(),
+  STRIPE_PRICE_GROWTH_SEAT: z.string().min(1).optional(),
+  STRIPE_PRICE_SCALE_SEAT: z.string().min(1).optional(),
+  // Uploads bucket. Objects under public/ are world readable via bucket policy,
+  // everything under private/ is only reachable through a presigned redirect.
+  S3_UPLOADS_BUCKET: z.string().min(1),
+  S3_PUBLIC_BASE_URL: z.url().optional(),
   JWT_SECRET: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.url(),
@@ -47,9 +57,10 @@ export const appConfigSchema = z.object({
     .transform((v) => v.toLowerCase() !== "false"),
   ELDONFAX_API_KEY: z.string().min(1).optional(),
   ELDONFAX_BASE_URL: z.url().default("https://api.eldonfax.com"),
-  GEOCODIFY_API_KEY: z.string().min(1),
-  GOOGLE_PLACES_API_KEY: z.string().min(1),
   SES_CONFIGURATION_SET: z.string().min(1),
+  // Parent of every managed sending subdomain, e.g. mail.refidly.com. Unset
+  // means the managed option is unavailable, not that it silently degrades.
+  SES_MANAGED_DOMAIN: z.string().min(1).optional(),
   EMAIL_INGEST_DOMAIN: z.string().min(1).optional(),
   SES_INBOUND_BUCKET: z.string().min(1).optional(),
   SES_INBOUND_TOPIC_ARN: z.string().min(1).optional(),

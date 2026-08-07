@@ -17,6 +17,7 @@ model User {
   invitations      Invitation[]
   members          Member[]
   accounts         UserAccount[]
+  passkeys         Passkey[]
   onboarding       UserOnboarding?
   Board            Board[]
   History          History[]
@@ -43,8 +44,12 @@ model User {
   taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
+  notificationsActed        Notification[]              @relation("NotificationActor")
   createdCampaigns          Campaign[]
   createdBlasts             Blast[]
+  createdRecipientGroups    RecipientGroup[]
+  createdSenderIdentities   SenderIdentity[]           @relation("SenderIdentityCreator")
+  senderMailboxes           SenderIdentity[]           @relation("SenderIdentityMailbox")
   createdForms              Form[]
   createdLandingPages       LandingPage[]
 
@@ -111,8 +116,20 @@ model Organization {
   createdAt DateTime @db.Timestamptz(3)
   metadata  String?
 
+  // Billing is org-level: one Stripe customer per organization, never per user.
+  stripeCustomerId String? @unique
+
+  // HIPAA mode is one-way: enabling it is a compliance commitment over data
+  // captured afterwards, so nothing in the app turns it back off.
+  hipaaEnabled  Boolean   @default(false)
+  baaAcceptedAt DateTime? @db.Timestamptz(3)
+  baaVersion    String?
+  retentionDays Int       @default(2555)
+  ipAllowlist   String[]  @default([])
+
   invitations     Invitation[]
   members         Member[]
+  agreements      ContractAgreement[]
   Board           Board[]
   Field           Field[]
   BoardCounty     BoardCounty[]
@@ -128,8 +145,14 @@ model Organization {
   taskTimeEntries TaskTimeEntry[]
   campaigns       Campaign[]
   blasts          Blast[]
+  recipientGroups  RecipientGroup[]
+  senderIdentities SenderIdentity[]
   forms           Form[]
   landingPages    LandingPage[]
+  notifications   Notification[]
+  expenses        Expense[]
+  mileages        Mileage[]
+  marketingVisits Marketing[]
 
   @@schema("auth_schema")
 }
@@ -163,6 +186,7 @@ model Member {
   taskAssignees  TaskAssignee[]
   taskWatchers   TaskWatcher[]
   taskComments   TaskComment[]
+  notifications  Notification[]
 
   @@schema("auth_schema")
 }
@@ -235,5 +259,70 @@ model AdminActivityLog {
   adminUser    User        @relation("AdminActivityLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
   targetUser   User?       @relation("AdminActivityLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
 
+  @@schema("auth_schema")
+}
+
+// Better Auth passkey table plus aaguid, resolved to a device label at read time.
+model Passkey {
+  id           String    @id
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String    @unique
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime? @db.Timestamptz(3)
+  aaguid       String?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@schema("auth_schema")
+}
+
+enum AgreementKind {
+  BAA
+  SUBSCRIPTION
+
+  @@schema("auth_schema")
+}
+
+enum AcceptanceMethod {
+  signature
+  offline
+
+  @@schema("auth_schema")
+}
+
+// One row per signing event, org-level: once the owner signs, the org is
+// covered. The executed PDF is stored inline rather than in object storage so
+// the bytes never leave the org scope behind a shareable URL.
+model ContractAgreement {
+  id               String           @id @default(uuid())
+  organizationId   String
+  kind             AgreementKind    @default(BAA)
+  termsVersion     String
+  acceptanceMethod AcceptanceMethod @default(signature)
+
+  companyLegalName    String
+  companyJurisdiction String
+  companyEntityType   String
+  companyAddress      String
+
+  signerName   String
+  signerTitle  String
+  signerEmail  String
+  signerUserId String?
+
+  document  Bytes?
+  ipAddress String?
+  userAgent String?
+  note      String?
+  signedAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, kind, termsVersion])
   @@schema("auth_schema")
 }

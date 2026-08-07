@@ -52,6 +52,8 @@ const multiSelectVariants = cva("m-1 transition-all duration-300 ease-in-out", {
       destructive:
         "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
       inverted: "inverted",
+      brand:
+        "border-[#BFD8F5] bg-[#EAF3FE] text-[#1D4ED8] hover:bg-[#DCEAFD] font-medium",
     },
     badgeAnimation: {
       bounce: "hover:-translate-y-1 hover:scale-110",
@@ -911,7 +913,7 @@ export const MultiSelect = React.forwardRef<MultiSelectRef, MultiSelectProps>(
                                 }
                               }}
                               aria-label={`Remove ${option.label} from selection`}
-                              className="ml-2 h-4 w-4 cursor-pointer hover:bg-white/20 rounded-sm p-0.5 -m-0.5 focus:outline-none focus:ring-1 focus:ring-white/50"
+                              className="ml-2 h-4 w-4 cursor-pointer hover:bg-black/10 rounded-sm p-0.5 -m-0.5 focus:outline-none focus:ring-1 focus:ring-black/20"
                             >
                               <XCircle
                                 className={cn(

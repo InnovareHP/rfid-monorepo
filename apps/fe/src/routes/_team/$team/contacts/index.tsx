@@ -9,10 +9,10 @@ function RouteComponent() {
   return (
     <CrmListPage
       moduleType="CONTACT"
-      title="Contacts"
+      title="Phonebook"
       description="Manage the people you work with across leads and referrals."
       nameLabel="Contact Name"
-      addLabel="Add Contact"
+      addLabel="Add to Phonebook"
       createPath="/$team/contacts/create"
     />
   );

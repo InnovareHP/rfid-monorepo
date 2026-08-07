@@ -133,7 +133,7 @@ export function ManualArticleForm({
   const handleImageUpload = async (index: number, file: File) => {
     setUploadingStepIndex(index);
     try {
-      const result = await uploadImage(file);
+      const result = await uploadImage(file, "public");
       form.setValue(`steps.${index}.imageUrl`, result.url);
       toast.success("Image uploaded");
     } catch {

@@ -1,24 +1,17 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { Job } from "bullmq";
 import { simpleParser } from "mailparser";
 import { appConfig } from "../../config/app-config";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
+import { s3 } from "../../lib/s3/s3";
 import { EmailIngestService } from "./email-ingest.service";
 
 export interface EmailIngestJobData {
   objectKey: string;
   recipients: string[];
 }
-
-const s3 = new S3Client({
-  region: appConfig.AWS_REGION,
-  credentials: {
-    accessKeyId: appConfig.AWS_ACCESS_KEY_ID,
-    secretAccessKey: appConfig.AWS_SECRET_ACCESS_KEY,
-  },
-});
 
 @Processor(QUEUE_NAMES.EMAIL_INGEST)
 export class EmailIngestProcessor extends WorkerHost {

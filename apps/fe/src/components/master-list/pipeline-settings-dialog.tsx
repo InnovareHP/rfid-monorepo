@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 const STAGE_TYPES: StageType[] = ["OPEN", "WON", "LOST"];
@@ -39,23 +39,47 @@ export function PipelineSettingsDialog({
   setOpen: (open: boolean) => void;
   moduleType?: string;
 }) {
-  const queryClient = useQueryClient();
-  const [stageFieldId, setStageFieldId] = useState<string>("");
-  const [amountFieldId, setAmountFieldId] = useState<string>("");
-  const [stages, setStages] = useState<StageDraft[]>([]);
-
   const { data: config } = useQuery({
     queryKey: ["pipeline-config", moduleType],
     queryFn: () => getPipelineConfig(moduleType),
     enabled: open,
   });
 
-  useEffect(() => {
-    if (!config) return;
-    setStageFieldId(config.stageFieldId ?? "");
-    setAmountFieldId(config.amountFieldId ?? "");
-    setStages(config.stages);
-  }, [config]);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Pipeline settings</DialogTitle>
+        </DialogHeader>
+
+        {config ? (
+          <PipelineSettingsForm
+            key={config.stageFieldId ?? "unset"}
+            config={config}
+            moduleType={moduleType}
+            setOpen={setOpen}
+          />
+        ) : (
+          <p className="text-sm text-gray-500">Loading pipeline settings...</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PipelineSettingsForm({
+  config,
+  moduleType,
+  setOpen,
+}: {
+  config: PipelineConfig;
+  moduleType: string;
+  setOpen: (open: boolean) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [stageFieldId, setStageFieldId] = useState(config.stageFieldId ?? "");
+  const [amountFieldId, setAmountFieldId] = useState(config.amountFieldId ?? "");
+  const [stages, setStages] = useState<StageDraft[]>(config.stages);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -65,7 +89,7 @@ export function PipelineSettingsDialog({
         amountFieldId: amountFieldId || null,
       });
       // Stage rows belong to the saved stage field, so skip them when it changes
-      if (stages.length && stageFieldId === config?.stageFieldId) {
+      if (stages.length && stageFieldId === config.stageFieldId) {
         await updatePipelineStages({
           moduleType,
           stages: stages.map((stage, index) => ({
@@ -105,124 +129,116 @@ export function PipelineSettingsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Pipeline settings</DialogTitle>
-        </DialogHeader>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Stage field</Label>
-            <Select value={stageFieldId} onValueChange={setStageFieldId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a status field" />
-              </SelectTrigger>
-              <SelectContent>
-                {config?.stageCandidates.map((field) => (
-                  <SelectItem key={field.id} value={field.id}>
-                    {field.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Deal value field</Label>
-            <Select value={amountFieldId} onValueChange={setAmountFieldId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a number field" />
-              </SelectTrigger>
-              <SelectContent>
-                {config?.amountCandidates.map((field) => (
-                  <SelectItem key={field.id} value={field.id}>
-                    {field.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Stage field</Label>
+          <Select value={stageFieldId} onValueChange={setStageFieldId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a status field" />
+            </SelectTrigger>
+            <SelectContent>
+              {config.stageCandidates.map((field) => (
+                <SelectItem key={field.id} value={field.id}>
+                  {field.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
-          <Label>Stages</Label>
-          {stages.map((stage, index) => (
-            <div
-              key={stage.id}
-              className="flex items-center gap-2 rounded-md border border-gray-200 p-2"
-            >
-              <span className="flex-1 truncate text-sm">
-                {stage.optionName}
-              </span>
-
-              <Select
-                value={stage.stageType}
-                onValueChange={(value) =>
-                  updateStage(stage.id, { stageType: value as StageType })
-                }
-              >
-                <SelectTrigger className="w-28">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STAGE_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                className="w-20"
-                placeholder="%"
-                disabled={stage.stageType !== "OPEN"}
-                value={stage.probability ?? ""}
-                onChange={(event) =>
-                  updateStage(stage.id, {
-                    probability: event.target.value
-                      ? Number(event.target.value)
-                      : null,
-                  })
-                }
-              />
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => moveStage(index, -1)}
-              >
-                Up
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => moveStage(index, 1)}
-              >
-                Down
-              </Button>
-            </div>
-          ))}
-          {!stages.length && (
-            <p className="text-sm text-gray-500">
-              Pick a stage field to configure its stages.
-            </p>
-          )}
+          <Label>Deal value field</Label>
+          <Select value={amountFieldId} onValueChange={setAmountFieldId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a number field" />
+            </SelectTrigger>
+            <SelectContent>
+              {config.amountCandidates.map((field) => (
+                <SelectItem key={field.id} value={field.id}>
+                  {field.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
 
-        <DialogFooter>
-          <Button
-            onClick={() => saveMutation.mutate()}
-            disabled={!stageFieldId || saveMutation.isPending}
+      <div className="space-y-2">
+        <Label>Stages</Label>
+        {stages.map((stage, index) => (
+          <div
+            key={stage.id}
+            className="flex items-center gap-2 rounded-md border border-gray-200 p-2"
           >
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <span className="flex-1 truncate text-sm">{stage.optionName}</span>
+
+            <Select
+              value={stage.stageType}
+              onValueChange={(value) =>
+                updateStage(stage.id, { stageType: value as StageType })
+              }
+            >
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STAGE_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              className="w-20"
+              placeholder="%"
+              disabled={stage.stageType !== "OPEN"}
+              value={stage.probability ?? ""}
+              onChange={(event) =>
+                updateStage(stage.id, {
+                  probability: event.target.value
+                    ? Number(event.target.value)
+                    : null,
+                })
+              }
+            />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => moveStage(index, -1)}
+            >
+              Up
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => moveStage(index, 1)}
+            >
+              Down
+            </Button>
+          </div>
+        ))}
+        {!stages.length && (
+          <p className="text-sm text-gray-500">
+            Pick a stage field to configure its stages.
+          </p>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button
+          onClick={() => saveMutation.mutate()}
+          disabled={!stageFieldId || saveMutation.isPending}
+        >
+          Save
+        </Button>
+      </DialogFooter>
+    </>
   );
 }

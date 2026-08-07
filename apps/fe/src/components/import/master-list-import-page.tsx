@@ -1,19 +1,33 @@
-import { AlertCircle, CheckCircle2, FileText, Upload, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  FileDown,
+  FileText,
+  Info,
+  Loader2,
+  Upload,
+  X,
+} from "lucide-react";
 import Papa from "papaparse";
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 
-import { importLeads } from "@/services/lead/lead-service";
+import { downloadCSVTemplate } from "@/lib/fe-helpers";
+import {
+  getLeadColumnOptions,
+  importLeads,
+} from "@/services/lead/lead-service";
 import { isValidHeader, normalizeHeader } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
+import { Card, CardContent } from "@dashboard/ui/components/card";
 import { cn } from "@dashboard/ui/lib/utils";
 import { toast } from "sonner";
+
+const IMPORT_STEPS = [
+  { title: "Upload File", caption: "Add your CSV File" },
+  { title: "Review Data", caption: "Preview and Validate" },
+  { title: "Import", caption: "Sync and Complete" },
+];
 
 export default function MasterListImportPage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -36,15 +50,21 @@ export default function MasterListImportPage() {
 
   const normalizedRowsCount = useMemo(() => rows.length, [rows]);
 
-  const removeFile = () => {
+  const currentStep = isUploading || result ? 3 : file ? 2 : 1;
+
+  const clearFile = () => {
     setFile(null);
     setHeaders([]);
     setRows([]);
-    setError(null);
-    setResult(null);
 
     // reset the input so selecting the same file again triggers onChange
     if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const removeFile = () => {
+    clearFile();
+    setError(null);
+    setResult(null);
   };
 
   const parseCSV = (f: File) => {
@@ -105,6 +125,20 @@ export default function MasterListImportPage() {
     parseCSV(selectedFile);
   };
 
+  const handleDownloadTemplate = async () => {
+    const columns: { name: string }[] = await getLeadColumnOptions();
+    const headers = columns
+      .map((column) => column.name)
+      .filter((name) => name !== "History");
+
+    if (!headers.length) {
+      toast.error("No lead fields available for a template.");
+      return;
+    }
+
+    downloadCSVTemplate(headers, "Master_List_Template");
+  };
+
   const handleUpload = async () => {
     if (!file) return;
     if (!rows.length) {
@@ -122,7 +156,7 @@ export default function MasterListImportPage() {
 
       toast.success("Leads imported successfully");
 
-      removeFile();
+      clearFile();
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong while uploading.");
     } finally {
@@ -132,33 +166,63 @@ export default function MasterListImportPage() {
 
   return (
     <div className="container max-w-3xl mx-auto py-12 space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2 text-center sm:text-left">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl page-title">
-          Master List
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Import your data records using CSV files. We&apos;ll detect headers
-          and let the backend match them to your Lead Fields.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
+            Import Master List
+          </h1>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            Import your data records using CSV files. We&apos;ll detect headers
+            and let the backend match them to your Lead Fields. You&apos;ll be
+            able to review and confirm before anything is synced.
+          </p>
+        </div>
+
+        <Button onClick={handleDownloadTemplate}>
+          <FileDown className="h-4 w-4" />
+          Download Template
+        </Button>
       </div>
 
-      <Card className="border-2 shadow-sm">
-        <CardHeader className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-xl">
-              <FileText className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold">Upload Data</CardTitle>
-              <CardDescription className="text-base">
-                Select a CSV file. We’ll preview columns and rows before you
-                sync.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-
+      <Card className="shadow-sm">
         <CardContent className="space-y-6">
+          <div className="flex items-center gap-4">
+            {IMPORT_STEPS.map((step, index) => (
+              <Fragment key={step.title}>
+                {index > 0 && (
+                  <div
+                    className={cn(
+                      "h-px flex-1 transition-colors duration-300",
+                      index < currentStep ? "bg-primary" : "bg-muted-foreground"
+                    )}
+                  />
+                )}
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-full text-base font-semibold text-primary-foreground transition-colors duration-300",
+                      index < currentStep ? "bg-primary" : "bg-muted-foreground"
+                    )}
+                  >
+                    {index + 1 === currentStep && isUploading ? (
+                      <Loader2 className="size-5 animate-spin" />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+                  <div>
+                    <p className="text-lg font-semibold text-foreground">
+                      {step.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {step.caption}
+                    </p>
+                  </div>
+                </div>
+              </Fragment>
+            ))}
+          </div>
+
           {/* Dropzone Area */}
           {!file ? (
             <div className="group relative">
@@ -166,17 +230,17 @@ export default function MasterListImportPage() {
                 htmlFor="file-upload"
                 className={cn(
                   "flex flex-col items-center justify-center w-full h-72",
-                  "border-2 border-dashed rounded-2xl cursor-pointer",
-                  "bg-muted/30 border-muted-foreground/20",
-                  "group-hover:bg-muted/50 group-hover:border-primary/50 transition-all duration-300"
+                  "border border-dashed rounded-xl cursor-pointer",
+                  "bg-card border-border",
+                  "group-hover:bg-muted group-hover:border-primary/50 transition-all duration-300"
                 )}
               >
                 <div className="flex flex-col items-center justify-center p-6 text-center">
-                  <div className="p-4 bg-background rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Upload className="w-10 h-10 text-muted-foreground group-hover:text-primary" />
+                  <div className="mb-4 flex size-20 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-transform duration-300 group-hover:scale-110">
+                    <Download className="size-8 text-brand" />
                   </div>
                   <p className="text-base text-foreground mb-1">
-                    <span className="font-semibold text-primary underline underline-offset-4">
+                    <span className="font-semibold text-brand">
                       Click to browse
                     </span>{" "}
                     or drag and drop your file
@@ -211,7 +275,7 @@ export default function MasterListImportPage() {
                       {(file.size / 1024 / 1024).toFixed(2)} MB •{" "}
                       {isParsing ? "Parsing..." : "Ready"}
                     </p>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-success/15 text-success text-xs font-bold border border-success/30">
                       <CheckCircle2 className="h-3 w-3" />
                       {isParsing ? "Processing" : "Validated"}
                     </div>
@@ -267,7 +331,7 @@ export default function MasterListImportPage() {
               {rows.length > 0 && (
                 <div className="rounded-xl border overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-muted border-b border-border">
                       <tr>
                         {headers.map((h) => (
                           <th
@@ -283,7 +347,7 @@ export default function MasterListImportPage() {
                       {rows.slice(0, maxPreviewRows).map((row, i) => (
                         <tr
                           key={i}
-                          className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                          className="border-t border-border hover:bg-muted transition-colors"
                         >
                           {headers.map((h) => (
                             <td key={h} className="px-3 py-2 whitespace-nowrap">
@@ -305,14 +369,14 @@ export default function MasterListImportPage() {
 
           {/* Upload Result */}
           {result && (
-            <div className="rounded-xl border p-4 bg-emerald-50/60">
+            <div className="rounded-xl border p-4 bg-success/10/60">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-700 mt-0.5 shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-success mt-0.5 shrink-0" />
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-emerald-900">
+                  <p className="text-sm font-semibold text-success">
                     Import complete
                   </p>
-                  <p className="text-sm text-emerald-900/80">
+                  <p className="text-sm text-success/80">
                     Imported <strong>{result.imported ?? 0}</strong> leads.
                     {typeof result.createdOptions === "number" && (
                       <>
@@ -323,7 +387,7 @@ export default function MasterListImportPage() {
                     )}
                   </p>
                   {!!result.unmatchedColumns?.length && (
-                    <p className="text-xs text-emerald-900/80">
+                    <p className="text-xs text-success/80">
                       Unmatched columns:{" "}
                       <strong>{result.unmatchedColumns.join(", ")}</strong>
                     </p>
@@ -339,15 +403,15 @@ export default function MasterListImportPage() {
               onClick={handleUpload}
               disabled={!file || isParsing || isUploading || !rows.length}
               size="lg"
-              className="w-full text-lg font-bold h-14 shadow-xl shadow-primary/10 active:scale-[0.99] transition-all"
+              className="h-12 w-full text-base font-semibold transition-all active:scale-[0.99]"
             >
               <Upload className="mr-2 h-5 w-5" />
-              {isUploading ? "Uploading..." : "Upload and Sync Master List"}
+              {isUploading ? "Uploading..." : "Upload and Sync"}
             </Button>
 
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-100">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-sm text-amber-800 leading-relaxed">
+            <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-table-header p-4">
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+              <p className="text-sm leading-relaxed text-foreground">
                 <strong>Note:</strong> The backend will match your CSV column
                 headers to Lead Fields by name (fuzzy match), then use the field
                 type from the database to validate values and create missing

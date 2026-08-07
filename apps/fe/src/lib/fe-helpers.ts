@@ -54,3 +54,22 @@ export function exportToCSV(
     URL.revokeObjectURL(url);
   }, 100);
 }
+
+// Downloads a header-only CSV used as an import template.
+export function downloadCSVTemplate(headers: string[], filename: string) {
+  const BOM = "﻿";
+  const csv = Papa.unparse([headers]);
+  const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `${filename}.csv`;
+  document.body.appendChild(link);
+  link.click();
+
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 100);
+}

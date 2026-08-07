@@ -8,7 +8,16 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import { AdminRoleGuard } from "../../guard/role/role.guard";
+import {
+  EntitlementGuard,
+  RequireFeature,
+} from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
 import {
   SetPipelineConfigDto,
   UpdatePipelineStagesDto,
@@ -16,10 +25,17 @@ import {
 import { PipelineService } from "./pipeline.service";
 
 @Controller("pipeline")
-@UseGuards(AuthGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class PipelineController {
   constructor(private readonly pipelineService: PipelineService) {}
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("/")
   async getPipeline(
     @Session() session: AuthenticatedSession,
@@ -38,6 +54,7 @@ export class PipelineController {
     }
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("/win-loss")
   async getWinLoss(
     @Session() session: AuthenticatedSession,
@@ -56,6 +73,7 @@ export class PipelineController {
     }
   }
 
+  @RequirePermission({ analytics: ["read"] })
   @Get("/config")
   async getConfig(
     @Session() session: AuthenticatedSession,
@@ -72,7 +90,7 @@ export class PipelineController {
   }
 
   @Patch("/config")
-  @UseGuards(AdminRoleGuard)
+  @RequirePermission({ field: ["configure"] })
   async setConfig(
     @Session() session: AuthenticatedSession,
     @Body() dto: SetPipelineConfigDto
@@ -88,7 +106,7 @@ export class PipelineController {
   }
 
   @Patch("/stages")
-  @UseGuards(AdminRoleGuard)
+  @RequirePermission({ field: ["configure"] })
   async updateStages(
     @Session() session: AuthenticatedSession,
     @Body() dto: UpdatePipelineStagesDto
