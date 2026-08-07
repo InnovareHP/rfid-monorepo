@@ -6,26 +6,26 @@ export const PRIORITY_CONFIG: Record<
 > = {
   URGENT: {
     label: "Urgent",
-    className: "text-red-900",
-    dotClassName: "bg-red-900",
-    pillClassName: "border-red-100 bg-red-50 text-red-900",
+    className: "text-destructive",
+    dotClassName: "bg-destructive",
+    pillClassName: "border-destructive/40 bg-destructive/20 text-destructive",
   },
   HIGH: {
     label: "High",
-    className: "text-red-500",
-    dotClassName: "bg-red-500",
-    pillClassName: "border-red-100 bg-red-50 text-red-700",
+    className: "text-destructive",
+    dotClassName: "bg-destructive/60",
+    pillClassName: "border-destructive/20 bg-destructive/5 text-destructive",
   },
   NORMAL: {
     label: "Normal",
-    className: "text-orange-500",
-    dotClassName: "bg-orange-500",
-    pillClassName: "border-orange-100 bg-orange-50 text-orange-700",
+    className: "text-warning",
+    dotClassName: "bg-warning",
+    pillClassName: "border-warning/30 bg-warning/10 text-warning",
   },
   LOW: {
     label: "Low",
-    className: "text-yellow-500",
-    dotClassName: "bg-yellow-400",
-    pillClassName: "border-yellow-100 bg-yellow-50 text-yellow-700",
+    className: "text-muted-foreground",
+    dotClassName: "bg-muted-foreground/60",
+    pillClassName: "border-border bg-muted text-muted-foreground",
   },
 };
