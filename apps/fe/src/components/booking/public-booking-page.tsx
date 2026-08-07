@@ -70,6 +70,7 @@ export function PublicBookingPage({
     title: string;
     startTime: string;
     hostName: string;
+    meetingUrl: string | null;
   } | null>(null);
 
   const date = toIsoDate(selectedDate);
@@ -104,12 +105,13 @@ export function PublicBookingPage({
             : "VIDEO"),
         boardId,
       }),
-    onSuccess: () => {
+    onSuccess: (booking) => {
       if (!pageQuery.data || !selectedSlot) return;
       setConfirmed({
         title: pageQuery.data.title,
         startTime: selectedSlot,
         hostName: pageQuery.data.hostName,
+        meetingUrl: booking.meetingUrl ?? null,
       });
     },
     onError: (error: Error) => {

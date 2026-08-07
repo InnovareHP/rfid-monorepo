@@ -215,6 +215,7 @@ export class OutlookCalendarService {
       allDay?: boolean;
       location?: string;
       attendees?: string[];
+      createConference?: boolean;
     }
   ) {
     const token = await prisma.outlookCalendarToken.findUnique({
@@ -262,6 +263,13 @@ export class OutlookCalendarService {
       }));
     }
 
+    // No onlineMeetingProvider: Graph picks the one the account actually has,
+    // which is Teams on a work account and Skype on a personal one. Naming
+    // teamsForBusiness outright makes personal accounts reject the event.
+    if (eventData.createConference) {
+      event.isOnlineMeeting = true;
+    }
+
     const response = await fetch(`${GRAPH_API_URL}/me/events`, {
       method: "POST",
       headers: {
@@ -284,6 +292,7 @@ export class OutlookCalendarService {
       start: created.start?.dateTime,
       end: created.end?.dateTime,
       htmlLink: created.webLink,
+      meetingUrl: created.onlineMeeting?.joinUrl ?? null,
       provider: "outlook",
     };
   }

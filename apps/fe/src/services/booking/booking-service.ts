@@ -36,6 +36,8 @@ export interface Booking {
   status: "CONFIRMED" | "CANCELLED";
   calendarProvider: string | null;
   calendarSyncFailed: boolean;
+  // Meet or Teams join link, minted with the calendar event on VIDEO bookings.
+  meetingUrl: string | null;
 }
 
 export interface PaginatedBookings {

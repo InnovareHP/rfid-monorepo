@@ -27,6 +27,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Loader2,
+  Video,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -164,16 +165,30 @@ export function BookingListTable() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={
-                          status !== "Upcoming" || cancelMutation.isPending
-                        }
-                        onClick={() => cancelMutation.mutate(booking.id)}
-                      >
-                        Cancel
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        {booking.meetingUrl && status === "Upcoming" && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a
+                              href={booking.meetingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Video className="h-4 w-4" />
+                              Join
+                            </a>
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={
+                            status !== "Upcoming" || cancelMutation.isPending
+                          }
+                          onClick={() => cancelMutation.mutate(booking.id)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

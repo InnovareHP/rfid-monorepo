@@ -46,7 +46,13 @@ export const createPublicBooking = async (
     locationType?: BookingLocation;
     boardId?: string;
   }
-) => {
+): Promise<{
+  id: string;
+  startTime: string;
+  endTime: string;
+  status: "CONFIRMED" | "CANCELLED";
+  meetingUrl: string | null;
+}> => {
   const response = await axiosClient.post(
     `/api/booking/public/${slug}/bookings`,
     data

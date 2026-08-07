@@ -58,6 +58,8 @@ model Booking {
   calendarProvider   String?
   externalEventId    String?
   calendarSyncFailed Boolean       @default(false)
+  // Meet or Teams join URL minted with the calendar event, for VIDEO only.
+  meetingUrl         String?
 
   bookingPage BookingPage @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
   board       Board?      @relation(fields: [boardId], references: [id], onDelete: SetNull)

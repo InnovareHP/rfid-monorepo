@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { Injectable, Logger } from "@nestjs/common";
 import { google } from "googleapis";
 import { appConfig } from "src/config/app-config";
@@ -194,6 +195,7 @@ export class GoogleCalendarService {
       allDay?: boolean;
       location?: string;
       attendees?: string[];
+      createConference?: boolean;
     }
   ) {
     const token = await prisma.googleCalendarToken.findUnique({
@@ -246,9 +248,21 @@ export class GoogleCalendarService {
       event.attendees = eventData.attendees.map((email) => ({ email }));
     }
 
+    // Google only mints the Meet link when conferenceDataVersion is 1; the
+    // request is otherwise accepted and the conference silently dropped.
+    if (eventData.createConference) {
+      event.conferenceData = {
+        createRequest: {
+          requestId: randomUUID(),
+          conferenceSolutionKey: { type: "hangoutsMeet" },
+        },
+      };
+    }
+
     const response = await calendar.events.insert({
       calendarId: "primary",
       requestBody: event,
+      conferenceDataVersion: eventData.createConference ? 1 : 0,
     });
 
     return {
@@ -257,6 +271,7 @@ export class GoogleCalendarService {
       start: response.data.start?.dateTime || response.data.start?.date,
       end: response.data.end?.dateTime || response.data.end?.date,
       htmlLink: response.data.htmlLink,
+      meetingUrl: response.data.hangoutLink ?? null,
       provider: "google",
     };
   }

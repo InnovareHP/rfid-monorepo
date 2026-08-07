@@ -442,14 +442,15 @@ export class BookingService {
       throw error;
     }
 
-    await this.syncBookingToCalendar(page, booking);
-    await this.sendBookingEmails(page, booking);
+    const meetingUrl = await this.syncBookingToCalendar(page, booking);
+    await this.sendBookingEmails(page, booking, meetingUrl);
 
     return {
       id: booking.id,
       startTime: booking.startTime,
       endTime: booking.endTime,
       status: booking.status,
+      meetingUrl,
     };
   }
 
@@ -502,6 +503,8 @@ export class BookingService {
       }));
   }
 
+  // Returns the join URL when the provider minted one, so the confirmation
+  // emails can carry it.
   private async syncBookingToCalendar(
     page: { userId: string; title: string; locationLabel: string | null },
     booking: {
@@ -510,8 +513,9 @@ export class BookingService {
       endTime: Date;
       inviteeName: string;
       inviteeEmail: string;
+      locationType: BookingLocation;
     }
-  ) {
+  ): Promise<string | null> {
     try {
       const [google, outlook] = await Promise.all([
         this.googleCalendarService.getConnectionStatus(page.userId),
@@ -524,9 +528,12 @@ export class BookingService {
         endTime: booking.endTime.toISOString(),
         location: page.locationLabel ?? undefined,
         attendees: [booking.inviteeEmail],
+        // An in-person meeting has a room, not a join link.
+        createConference: booking.locationType === "VIDEO",
       };
 
-      let created: { id?: string | null } | null = null;
+      let created: { id?: string | null; meetingUrl?: string | null } | null =
+        null;
       let provider: "google" | "outlook" | null = null;
 
       if (google.connected) {
@@ -546,9 +553,15 @@ export class BookingService {
       if (created?.id && provider) {
         await prisma.booking.update({
           where: { id: booking.id },
-          data: { externalEventId: created.id, calendarProvider: provider },
+          data: {
+            externalEventId: created.id,
+            calendarProvider: provider,
+            meetingUrl: created.meetingUrl ?? null,
+          },
         });
       }
+
+      return created?.meetingUrl ?? null;
     } catch (error) {
       this.logger.warn(
         `Calendar sync failed for booking ${booking.id}: ${error.message}`
@@ -557,6 +570,7 @@ export class BookingService {
         where: { id: booking.id },
         data: { calendarSyncFailed: true },
       });
+      return null;
     }
   }
 
@@ -571,7 +585,8 @@ export class BookingService {
       inviteeName: string;
       inviteeEmail: string;
       startTime: Date;
-    }
+    },
+    meetingUrl: string | null
   ) {
     try {
       const host = await prisma.user.findUniqueOrThrow({
@@ -594,6 +609,7 @@ export class BookingService {
           startTime: formattedTime,
           hostName: host.name,
           locationLabel: page.locationLabel,
+          meetingUrl,
         }),
         from: appConfig.APP_EMAIL,
       });
@@ -607,6 +623,7 @@ export class BookingService {
           startTime: formattedTime,
           hostName: host.name,
           locationLabel: page.locationLabel,
+          meetingUrl,
         }),
         from: appConfig.APP_EMAIL,
       });
