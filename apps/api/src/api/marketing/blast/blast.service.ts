@@ -9,6 +9,7 @@ import { Queue } from "bullmq";
 import { prisma } from "../../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
 import { GroupService } from "../group/group.service";
+import { SenderService } from "../sender/sender.service";
 import { CreateBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
 const groupInclude = {
@@ -26,7 +27,8 @@ export class BlastService {
   constructor(
     @InjectQueue(QUEUE_NAMES.BLAST_SEND)
     private readonly blastSendQueue: Queue,
-    private readonly groupService: GroupService
+    private readonly groupService: GroupService,
+    private readonly senderService: SenderService
   ) {}
 
   async getBlasts(organizationId: string) {
@@ -145,6 +147,15 @@ export class BlastService {
 
     if (blast.status !== BlastStatus.DRAFT) {
       throw new BadRequestException("Only draft blasts can be sent");
+    }
+
+    // Checked before the status flips: an unverified sender discovered inside
+    // the job would leave the blast stuck in SENDING with nothing sent.
+    if (blast.campaignId) {
+      await this.senderService.resolveForCampaign(
+        blast.campaignId,
+        organizationId
+      );
     }
 
     const members = await this.resolveMembers(id, organizationId);

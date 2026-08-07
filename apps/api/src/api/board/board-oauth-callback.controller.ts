@@ -22,10 +22,12 @@ export class BoardOAuthCallbackController {
     try {
       const { userId, orgId } = JSON.parse(state);
       await this.gmailService.handleCallback(code, userId);
-      res.redirect(`${appConfig.WEBSITE_URL}/${orgId}/profile?gmail=connected`);
+      res.redirect(
+        `${appConfig.WEBSITE_URL}/${orgId}/integrations?gmail=connected`
+      );
     } catch (error) {
       res.redirect(
-        `${appConfig.WEBSITE_URL}/profile?gmail=error&message=${encodeURIComponent(error.message)}`
+        `${appConfig.WEBSITE_URL}/integrations?gmail=error&message=${encodeURIComponent(error.message)}`
       );
     }
   }
@@ -40,11 +42,11 @@ export class BoardOAuthCallbackController {
       const { userId, orgId } = JSON.parse(state);
       await this.outlookService.handleCallback(code, userId);
       res.redirect(
-        `${appConfig.WEBSITE_URL}/${orgId}/profile?outlook=connected`
+        `${appConfig.WEBSITE_URL}/${orgId}/integrations?outlook=connected`
       );
     } catch (error) {
       res.redirect(
-        `${appConfig.WEBSITE_URL}/profile?outlook=error&message=${encodeURIComponent(error.message)}`
+        `${appConfig.WEBSITE_URL}/integrations?outlook=error&message=${encodeURIComponent(error.message)}`
       );
     }
   }

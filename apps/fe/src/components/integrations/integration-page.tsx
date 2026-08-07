@@ -51,11 +51,14 @@ export default function IntegrationPage() {
   const queryClient = useQueryClient();
   const search = useSearch({ strict: false }) as Record<string, string>;
 
+  // Inbound ingest is optional infrastructure: the card only exists once it is set up.
   const ingestAddressQuery = useQuery({
     queryKey: ["email-ingest-address"],
     queryFn: getEmailIngestAddress,
     retry: false,
   });
+
+  const ingestAddress = ingestAddressQuery.data?.address ?? null;
 
   // ---- Email: Gmail ----
   const gmailStatusQuery = useQuery({
@@ -409,27 +412,28 @@ export default function IntegrationPage() {
               </CardContent>
             </Card>
 
-            <Card className="mt-6 border-2 border-gray-300 shadow-sm">
-              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
-                <div className="flex items-center gap-2">
-                  <Inbox className="h-5 w-5 text-primary" />
-                  <div>
-                    <CardTitle className="text-foreground">Reply Logging</CardTitle>
-                    <CardDescription>
-                      BCC or forward mail to this address to log the thread on its record
-                    </CardDescription>
+            {ingestAddress && (
+              <Card className="mt-6 border-2 border-gray-300 shadow-sm">
+                <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
+                  <div className="flex items-center gap-2">
+                    <Inbox className="h-5 w-5 text-primary" />
+                    <div>
+                      <CardTitle className="text-foreground">
+                        Reply Logging
+                      </CardTitle>
+                      <CardDescription>
+                        BCC or forward mail to this address to log the thread on
+                        its record
+                      </CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
+                </CardHeader>
 
-              <CardContent className="space-y-3 p-6">
-                {ingestAddressQuery.isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                ) : ingestAddressQuery.data ? (
+                <CardContent className="space-y-3 p-6">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Input
                       readOnly
-                      value={ingestAddressQuery.data.address}
+                      value={ingestAddress}
                       className="font-mono text-sm"
                     />
                     <Button
@@ -437,7 +441,7 @@ export default function IntegrationPage() {
                       size="sm"
                       className="border-primary/40 hover:bg-primary/10"
                       onClick={() => {
-                        navigator.clipboard.writeText(ingestAddressQuery.data.address);
+                        navigator.clipboard.writeText(ingestAddress);
                         toast.success("Ingest address copied");
                       }}
                     >
@@ -445,18 +449,15 @@ export default function IntegrationPage() {
                       Copy
                     </Button>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    Reply logging is not configured for this environment.
-                  </p>
-                )}
 
-                <p className="text-sm text-gray-500">
-                  Only mail sent to this address is stored. Replies that match a record
-                  are logged on its timeline, everything else is discarded.
-                </p>
-              </CardContent>
-            </Card>
+                  <p className="text-sm text-gray-500">
+                    Only mail sent to this address is stored. Replies that match
+                    a record are logged on its timeline, everything else is
+                    discarded.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* ---- Calendar Tab ---- */}

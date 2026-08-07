@@ -1,4 +1,4 @@
-import { hasFeature, PlanFeature } from "@dashboard/shared";
+import { entitlementHasFeature, PlanFeature } from "@dashboard/shared";
 import {
   CanActivate,
   ExecutionContext,
@@ -37,7 +37,9 @@ export class EntitlementGuard implements CanActivate {
       throw new ForbiddenException("Subscription could not be verified");
     }
 
-    if (!hasFeature(entitlement.plan, required)) {
+    // Reads the resolved features, never the plan name, so a contract is gated
+    // on what it actually bought.
+    if (!entitlementHasFeature(entitlement, required)) {
       throw new ForbiddenException(
         `Your plan does not include this feature. Upgrade to use it.`
       );

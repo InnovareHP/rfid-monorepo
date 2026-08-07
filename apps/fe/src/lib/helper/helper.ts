@@ -1,8 +1,10 @@
 import { can } from "@/lib/permissions";
 import {
-  hasFeature,
+  entitlementHasFeature,
+  resolveEntitlement,
   type DomainPermission,
   type PlanFeature,
+  type SubscriptionLike,
 } from "@dashboard/shared";
 import { redirect } from "@tanstack/react-router";
 
@@ -25,10 +27,10 @@ export const AuthorizedRoute = (context: any, permission: DomainPermission) => {
 // it, since billing is the upgrade path rather than a dead end.
 export const EntitledRoute = (context: any, feature: PlanFeature) => {
   const { subscription } = context.context as {
-    subscription: { plan: string | null } | null;
+    subscription: SubscriptionLike | null;
   };
 
-  if (!hasFeature(subscription?.plan, feature)) {
+  if (!entitlementHasFeature(resolveEntitlement(subscription), feature)) {
     throw redirect({ to: "/billing" as any });
   }
 

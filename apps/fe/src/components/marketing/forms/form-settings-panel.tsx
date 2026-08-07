@@ -1,3 +1,4 @@
+import { OptionalTag, RequiredLegend, RequiredMark } from "@/components/field-marks";
 import type { FormBuilderValues } from "@/components/marketing/forms/form-builder-schema";
 import {
   FormControl,
@@ -28,12 +29,17 @@ export const FormSettingsPanel = ({
 
   return (
     <div className="space-y-5">
+      <RequiredLegend className="text-xs text-muted-foreground" />
+
       <FormField
         control={form.control}
         name="name"
         render={({ field }) => (
           <FormItem className="space-y-1.5">
-            <FormLabel>Form Name</FormLabel>
+            <FormLabel>
+              Form Name
+              <RequiredMark />
+            </FormLabel>
             <FormControl>
               <Input placeholder="Lead Generation" {...field} />
             </FormControl>
@@ -43,7 +49,12 @@ export const FormSettingsPanel = ({
       />
 
       <div className="space-y-1.5">
-        <Label htmlFor="public-url">URL Slug</Label>
+        <Label htmlFor="public-url" className="flex items-center gap-1.5">
+          Public Link
+          <span className="text-xs font-normal text-muted-foreground">
+            Generated
+          </span>
+        </Label>
         <div className="relative">
           <Input
             id="public-url"
@@ -67,7 +78,10 @@ export const FormSettingsPanel = ({
         name="submitButtonText"
         render={({ field }) => (
           <FormItem className="space-y-1.5">
-            <FormLabel>Submit Button Text</FormLabel>
+            <FormLabel>
+              Submit Button Text
+              <RequiredMark />
+            </FormLabel>
             <FormControl>
               <Input placeholder="Submit" {...field} />
             </FormControl>
@@ -81,9 +95,9 @@ export const FormSettingsPanel = ({
         name="redirectUrl"
         render={({ field }) => (
           <FormItem className="space-y-1.5">
-            <FormLabel>
-              Redirect URL{" "}
-              <span className="text-xs text-muted-foreground">(Optional)</span>
+            <FormLabel className="flex items-center gap-1.5">
+              Redirect URL
+              <OptionalTag />
             </FormLabel>
             <FormControl>
               <Input placeholder="https://" {...field} />

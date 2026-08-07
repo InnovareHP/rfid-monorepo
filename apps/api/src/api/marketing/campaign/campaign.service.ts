@@ -16,7 +16,13 @@ export class CampaignService {
       include: {
         _count: { select: { forms: true, blasts: true, landingPages: true } },
         senderIdentity: {
-          select: { id: true, label: true, kind: true, status: true, fromEmail: true },
+          select: {
+            id: true,
+            label: true,
+            kind: true,
+            status: true,
+            fromEmail: true,
+          },
         },
       },
     });

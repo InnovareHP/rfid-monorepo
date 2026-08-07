@@ -1,3 +1,5 @@
+import { OptionalTag, RequiredLegend, RequiredMark } from "@/components/field-marks";
+import { PublicShell } from "@/components/public-shell";
 import type { BookingLocation } from "@/services/booking/booking-public-service";
 import {
   createPublicBooking,
@@ -16,13 +18,6 @@ import {
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dashboard/ui/components/select";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,11 +31,7 @@ import { z } from "zod";
 import { BookingConfirmation } from "./booking-confirmation";
 import { BookingPageSkeleton, SlotListSkeleton } from "./booking-skeleton";
 import { SlotPicker } from "./slot-picker";
-
-const BRAND_WORDMARK = "/branding/Full/Refidly [Full] - White-no-bg.png";
-
-const SHELL_GRADIENT =
-  "bg-[linear-gradient(58deg,#01184d_0%,#0d3185_25.66%,#2c86d9_53.06%,#64d1f4_74.2%,#f5f5f5_100%)]";
+import { TimezoneSelect } from "./timezone-select";
 
 const inviteeSchema = z.object({
   inviteeName: z.string().min(1, "Name is required"),
@@ -127,42 +118,27 @@ export function PublicBookingPage({
 
   if (confirmed) {
     return (
-      <div
-        className={cn(
-          "flex min-h-screen items-center justify-center p-6",
-          SHELL_GRADIENT
-        )}
-      >
+      <PublicShell>
         <BookingConfirmation {...confirmed} />
-      </div>
+      </PublicShell>
     );
   }
 
   if (pageQuery.isLoading) {
     return (
-      <div
-        className={cn(
-          "flex min-h-screen flex-col items-center justify-center gap-10 p-6",
-          SHELL_GRADIENT
-        )}
-      >
+      <PublicShell>
         <BookingPageSkeleton />
-      </div>
+      </PublicShell>
     );
   }
 
   if (pageQuery.isError || !pageQuery.data) {
     return (
-      <div
-        className={cn(
-          "flex min-h-screen items-center justify-center p-6",
-          SHELL_GRADIENT
-        )}
-      >
-        <p className="rounded-xl bg-white px-6 py-4 text-muted-foreground">
+      <PublicShell>
+        <p className="rounded-[10px] bg-white px-6 py-4 text-muted-foreground shadow-lg">
           This booking page is not available.
         </p>
-      </div>
+      </PublicShell>
     );
   }
 
@@ -171,7 +147,7 @@ export function PublicBookingPage({
   const activeLocation: BookingLocation =
     location ?? (page.locationType === "IN_PERSON" ? "IN_PERSON" : "VIDEO");
 
-  // Timezones are derived, not stored: the page's own zone plus the visitor's.
+  // Suggested zones head the picker: the page's own zone plus the visitor's.
   const visitorZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const zones = Array.from(new Set([page.timezone, visitorZone]));
   const activeZone = timezone ?? page.timezone;
@@ -194,12 +170,7 @@ export function PublicBookingPage({
     });
 
   return (
-    <div
-      className={cn(
-        "flex min-h-screen flex-col items-center gap-6 p-4 sm:justify-center sm:gap-10 sm:p-6",
-        SHELL_GRADIENT
-      )}
-    >
+    <PublicShell>
       <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
         <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-6 sm:p-8 lg:w-[396px]">
           <div className="flex items-center space-x-4">
@@ -259,24 +230,15 @@ export function PublicBookingPage({
             <Label htmlFor="booking-timezone" className="text-[#202020]">
               Your Timezone
             </Label>
-            <Select
+            <TimezoneSelect
+              id="booking-timezone"
               value={activeZone}
-              onValueChange={(value) => {
+              suggested={zones}
+              onChange={(value) => {
                 setTimezone(value);
                 setSelectedSlot(null);
               }}
-            >
-              <SelectTrigger id="booking-timezone" className="w-full bg-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {zones.map((zone) => (
-                  <SelectItem key={zone} value={zone}>
-                    {zone}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
         </aside>
 
@@ -293,12 +255,17 @@ export function PublicBookingPage({
                 )}
                 className="max-w-md space-y-4"
               >
+                <RequiredLegend className="text-sm text-[#807f7f]" />
+
                 <FormField
                   control={form.control}
                   name="inviteeName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>
+                        Name
+                        <RequiredMark />
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -312,7 +279,10 @@ export function PublicBookingPage({
                   name="inviteeEmail"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>
+                        Email
+                        <RequiredMark />
+                      </FormLabel>
                       <FormControl>
                         <Input type="email" {...field} />
                       </FormControl>
@@ -326,7 +296,10 @@ export function PublicBookingPage({
                   name="inviteeNotes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Notes (optional)</FormLabel>
+                      <FormLabel className="flex items-center gap-1.5">
+                        Notes
+                        <OptionalTag />
+                      </FormLabel>
                       <FormControl>
                         <Textarea rows={3} {...field} />
                       </FormControl>
@@ -411,12 +384,6 @@ export function PublicBookingPage({
           )}
         </section>
       </div>
-
-      <img
-        src={BRAND_WORDMARK}
-        alt="Refidly"
-        className="h-12 w-auto object-contain sm:h-[70px]"
-      />
-    </div>
+    </PublicShell>
   );
 }

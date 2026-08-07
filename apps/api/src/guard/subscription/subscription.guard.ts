@@ -1,4 +1,8 @@
-import { isSubscriptionActive } from "@dashboard/shared";
+import {
+  isSubscriptionActive,
+  resolveEntitlement,
+  type ResolvedEntitlement,
+} from "@dashboard/shared";
 import {
   CanActivate,
   ExecutionContext,
@@ -10,7 +14,10 @@ import { prisma } from "../../lib/prisma/prisma";
 import { runUnscoped } from "../../lib/prisma/tenant-context";
 import { redis } from "../../lib/redis/redis";
 
-export type OrganizationEntitlement = {
+// The resolved entitlement is cached, not just the plan name: a contract's
+// limits live on its row, so caching the name alone would hand every custom
+// organization the tier table's answer instead of its own.
+export type OrganizationEntitlement = ResolvedEntitlement & {
   plan: string | null;
   status: string | null;
 };
@@ -35,12 +42,19 @@ export const getOrganizationEntitlement = async (
   const subscription = await runUnscoped(() =>
     prisma.subscription.findFirst({
       where: { referenceId: organizationId },
-      select: { plan: true, status: true },
+      select: {
+        plan: true,
+        status: true,
+        isCustom: true,
+        contractLabel: true,
+        customLimits: true,
+      },
       orderBy: { periodEnd: "desc" },
     })
   );
 
   const entitlement: OrganizationEntitlement = {
+    ...resolveEntitlement(subscription),
     plan: subscription?.plan ?? null,
     status: subscription?.status ?? null,
   };

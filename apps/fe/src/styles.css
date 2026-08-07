@@ -462,7 +462,19 @@ code {
   }
 
   .page-style {
-    @apply min-h-screen space-y-6 bg-gray-50 p-6 sm:p-8;
+    min-height: 100vh;
+    background-color: var(--color-gray-50);
+    padding: 1.5rem;
+  }
+
+  .page-style > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.5rem;
+  }
+
+  @media (min-width: 40rem) {
+    .page-style {
+      padding: 2rem;
+    }
   }
   .primary-active-border::before {
     content: "";
