@@ -54,8 +54,15 @@ export class BookingService {
   // ─── Owner-facing (authenticated) ──────────────────────────────────
 
   async getOrCreateOwnPage(userId: string, organizationId: string) {
-    const page = await this.getOrCreatePage(userId, organizationId);
-    return { ...page, publicUrl: this.buildPublicUrl(page.slug) };
+    const [page, calendarConnected] = await Promise.all([
+      this.getOrCreatePage(userId, organizationId),
+      this.hasCalendarConnection(userId),
+    ]);
+    return {
+      ...page,
+      publicUrl: this.buildPublicUrl(page.slug),
+      calendarConnected,
+    };
   }
 
   async updateOwnPage(
@@ -266,12 +273,18 @@ export class BookingService {
     });
     if (!page) throw new NotFoundException("Booking page not found");
 
-    const organization = await prisma.organization.findFirst({
-      where: { id: page.organizationId },
-      select: { name: true, logo: true },
-    });
+    const [organization, calendarConnected] = await Promise.all([
+      prisma.organization.findFirst({
+        where: { id: page.organizationId },
+        select: { name: true, logo: true },
+      }),
+      this.hasCalendarConnection(page.userId),
+    ]);
 
     return {
+      // Without a connected calendar the host cannot be told about a booking,
+      // so the page renders but takes nothing.
+      acceptingBookings: calendarConnected,
       title: page.title,
       description: page.description,
       durationMinutes: page.durationMinutes,
@@ -286,6 +299,8 @@ export class BookingService {
 
   async getPublicSlots(slug: string, date: string) {
     const page = await this.findActivePageOrThrow(slug);
+
+    if (!(await this.hasCalendarConnection(page.userId))) return [];
 
     const [year, month, day] = date.split("-").map(Number);
     const dayStart = zonedWallClockToUtc(year, month, day, 0, 0, page.timezone);
@@ -331,6 +346,14 @@ export class BookingService {
 
   async createPublicBooking(slug: string, dto: CreateBookingDto) {
     const page = await this.findActivePageOrThrow(slug);
+
+    // Re-checked here and not only in the slot list: this endpoint is reachable
+    // directly, and a booking the host never sees is worse than no booking.
+    if (!(await this.hasCalendarConnection(page.userId))) {
+      throw new BadRequestException(
+        "This booking page is not accepting bookings right now"
+      );
+    }
 
     if (dto.boardId) {
       const board = await prisma.board.findFirst({
@@ -437,6 +460,16 @@ export class BookingService {
     });
     if (!page) throw new NotFoundException("Booking page not found");
     return page;
+  }
+
+  // A booking is only real once it lands on the host's calendar, so every path
+  // that offers or writes one checks this first.
+  private async hasCalendarConnection(userId: string): Promise<boolean> {
+    const [google, outlook] = await Promise.all([
+      this.googleCalendarService.getConnectionStatus(userId),
+      this.outlookCalendarService.getConnectionStatus(userId),
+    ]);
+    return google.connected || outlook.connected;
   }
 
   // Fetches Google + Outlook events in range, drops cancelled events, and

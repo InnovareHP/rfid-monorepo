@@ -3,6 +3,9 @@ import { axiosClient } from "@/lib/axios-client";
 export type BookingLocation = "VIDEO" | "IN_PERSON";
 
 export interface PublicBookingPage {
+  // False when the host has no calendar connected: slots stay empty and the
+  // booking endpoint rejects.
+  acceptingBookings: boolean;
   title: string;
   description: string | null;
   durationMinutes: number;

@@ -14,6 +14,8 @@ export interface BookingPage {
   minNoticeHours: number;
   isActive: boolean;
   publicUrl: string;
+  // No connected calendar means the public page takes no bookings at all.
+  calendarConnected: boolean;
 }
 
 export interface AvailabilityRule {

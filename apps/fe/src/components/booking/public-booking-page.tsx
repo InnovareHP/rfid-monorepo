@@ -147,6 +147,21 @@ export function PublicBookingPage({
   }
 
   const page = pageQuery.data;
+
+  if (!page.acceptingBookings) {
+    return (
+      <PublicShell>
+        <div className="max-w-md rounded-[10px] bg-white px-6 py-5 text-center shadow-lg">
+          <p className="font-semibold text-brand">{page.title}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {page.hostName} is not accepting bookings right now. Please reach
+            out directly to arrange a time.
+          </p>
+        </div>
+      </PublicShell>
+    );
+  }
+
   const canChooseLocation = page.locationType === "BOTH";
   const activeLocation: BookingLocation =
     location ?? (page.locationType === "IN_PERSON" ? "IN_PERSON" : "VIDEO");

@@ -39,7 +39,8 @@ import { Switch } from "@dashboard/ui/components/switch";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Eye, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Link, useParams } from "@tanstack/react-router";
+import { AlertCircle, Copy, Eye, Link as LinkIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -110,6 +111,7 @@ function dayRowsFromRules(
 }
 
 export function BookingSettingsPage() {
+  const { team } = useParams({ strict: false }) as { team: string };
   const queryClient = useQueryClient();
   const [days, setDays] = useState<DayRow[]>(defaultDayRows());
 
@@ -227,11 +229,37 @@ export function BookingSettingsPage() {
         description="Configure your public scheduling link and availability."
       />
 
+      {pageQuery.data && !pageQuery.data.calendarConnected && (
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium text-destructive">
+              Your booking link is not taking bookings
+            </p>
+            <p className="text-muted-foreground">
+              Bookings are written to your calendar, so a connected calendar is
+              required. Until then your page shows no available times.
+            </p>
+            <Link
+              to="/$team/integrations"
+              params={{ team }}
+              className="inline-block font-medium text-destructive underline"
+            >
+              Connect a calendar
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           {
             label: "Link Status",
-            value: pageQuery.data?.isActive ? "Active" : "Inactive",
+            value: !pageQuery.data?.calendarConnected
+              ? "No calendar"
+              : pageQuery.data?.isActive
+                ? "Active"
+                : "Inactive",
           },
           { label: "Upcoming Bookings", value: String(upcomingCount) },
           { label: "Available Hours/Week", value: String(weeklyHours) },
