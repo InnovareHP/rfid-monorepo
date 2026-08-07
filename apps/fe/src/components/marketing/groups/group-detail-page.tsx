@@ -1,8 +1,5 @@
-import { PageHeader } from "@/components/PageHeader";
-import {
-  getGroup,
-  getGroupMembers,
-} from "@/services/marketing/group-service";
+import { PageHeader } from "@/components/page-header";
+import { getGroup, getGroupMembers } from "@/services/marketing/group-service";
 import { Button } from "@dashboard/ui/components/button";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";

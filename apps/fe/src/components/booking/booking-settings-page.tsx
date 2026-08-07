@@ -3,7 +3,7 @@ import {
   RequiredLegend,
   RequiredMark,
 } from "@/components/field-marks";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import {
   getOwnAvailability,
   getOwnBookingPage,
