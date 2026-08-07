@@ -55,7 +55,6 @@ model Blast {
   bodyHtml       String
   status         BlastStatus @default(DRAFT)
   moduleType     ModuleType  @default(LEAD)
-  audienceFilter Json
   scheduledAt    DateTime?   @db.Timestamptz(3)
   sentAt         DateTime?   @db.Timestamptz(3)
 
@@ -69,8 +68,44 @@ model Blast {
   creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
   recipients BlastRecipient[]
+  groups     BlastGroup[]
 
   @@index([organizationId, status])
+  @@schema("marketing_schema")
+}
+
+// A saved, reusable audience. The filter shape matches what the blast used to
+// carry inline, so a blast now names groups instead of describing recipients.
+model RecipientGroup {
+  id          String     @id @default(uuid())
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+  name        String
+  description String?
+  moduleType  ModuleType @default(LEAD)
+  filter      Json
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  blasts BlastGroup[]
+
+  @@index([organizationId, moduleType])
+  @@schema("marketing_schema")
+}
+
+model BlastGroup {
+  blastId String
+  blast   Blast  @relation(fields: [blastId], references: [id], onDelete: Cascade)
+
+  groupId String
+  group   RecipientGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([blastId, groupId])
+  @@index([groupId])
   @@schema("marketing_schema")
 }
 

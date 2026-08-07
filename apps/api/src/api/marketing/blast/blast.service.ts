@@ -4,41 +4,46 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { BlastStatus, ModuleType, Prisma } from "@prisma/client";
+import { BlastStatus, ModuleType } from "@prisma/client";
 import { Queue } from "bullmq";
 import { prisma } from "../../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
-import {
-  applyAudienceFilter,
-  resolveLinkFieldValues,
-} from "./audience-resolver.util";
+import { GroupService } from "../group/group.service";
 import { CreateBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
-type AudienceFilter = {
-  filter: Record<string, string>;
-  search?: string;
-  boardDateFrom?: string;
-  boardDateTo?: string;
-};
+const groupInclude = {
+  groups: {
+    select: {
+      group: {
+        select: { id: true, name: true, moduleType: true },
+      },
+    },
+  },
+} as const;
 
 @Injectable()
 export class BlastService {
   constructor(
     @InjectQueue(QUEUE_NAMES.BLAST_SEND)
-    private readonly blastSendQueue: Queue
+    private readonly blastSendQueue: Queue,
+    private readonly groupService: GroupService
   ) {}
 
   async getBlasts(organizationId: string) {
     return prisma.blast.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { recipients: true } } },
+      include: {
+        _count: { select: { recipients: true } },
+        ...groupInclude,
+      },
     });
   }
 
   async getBlast(id: string, organizationId: string) {
     const blast = await prisma.blast.findFirst({
       where: { id, organizationId },
+      include: groupInclude,
     });
 
     if (!blast) throw new NotFoundException("Blast not found");
@@ -55,18 +60,23 @@ export class BlastService {
       await this.assertCampaignInOrg(dto.campaignId, organizationId);
     }
 
+    const moduleType = dto.moduleType ?? ModuleType.LEAD;
+    const groupIds = dto.groupIds ?? [];
+    await this.assertGroupsUsable(groupIds, organizationId, moduleType);
+
     return prisma.blast.create({
       data: {
         name: dto.name,
         campaignId: dto.campaignId ?? null,
         subject: dto.subject,
         bodyHtml: dto.bodyHtml,
-        moduleType: dto.moduleType ?? ModuleType.LEAD,
-        audienceFilter: dto.audienceFilter as Prisma.InputJsonValue,
+        moduleType,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         organizationId,
         createdBy: userId,
+        groups: { create: groupIds.map((groupId) => ({ groupId })) },
       },
+      include: groupInclude,
     });
   }
 
@@ -81,6 +91,11 @@ export class BlastService {
       await this.assertCampaignInOrg(dto.campaignId, organizationId);
     }
 
+    const moduleType = dto.moduleType ?? blast.moduleType;
+    if (dto.groupIds !== undefined) {
+      await this.assertGroupsUsable(dto.groupIds, organizationId, moduleType);
+    }
+
     return prisma.blast.update({
       where: { id },
       data: {
@@ -89,13 +104,17 @@ export class BlastService {
         ...(dto.subject !== undefined && { subject: dto.subject }),
         ...(dto.bodyHtml !== undefined && { bodyHtml: dto.bodyHtml }),
         ...(dto.moduleType !== undefined && { moduleType: dto.moduleType }),
-        ...(dto.audienceFilter !== undefined && {
-          audienceFilter: dto.audienceFilter as Prisma.InputJsonValue,
-        }),
         ...(dto.scheduledAt !== undefined && {
           scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         }),
+        ...(dto.groupIds !== undefined && {
+          groups: {
+            deleteMany: {},
+            create: dto.groupIds.map((groupId) => ({ groupId })),
+          },
+        }),
       },
+      include: groupInclude,
     });
   }
 
@@ -111,85 +130,13 @@ export class BlastService {
     return { message: "Blast deleted successfully" };
   }
 
-  async resolveAudience(
-    organizationId: string,
-    moduleType: ModuleType,
-    audienceFilter: AudienceFilter
-  ) {
-    const { filter, search, boardDateFrom, boardDateTo } = audienceFilter;
-
-    const where: Prisma.BoardWhereInput = {
-      organizationId,
-      moduleType,
-      isDeleted: false,
-    };
-
-    if (boardDateFrom || boardDateTo) {
-      where.createdAt = {
-        ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
-        ...(boardDateTo && { lte: new Date(boardDateTo) }),
-      };
-    }
-
-    const [boards, fields] = await Promise.all([
-      prisma.board.findMany({
-        where,
-        include: {
-          values: {
-            select: {
-              field: { select: { id: true, fieldName: true, fieldType: true } },
-              value: true,
-            },
-          },
-        },
-      }),
-      prisma.field.findMany({
-        where: { organizationId, moduleType, isDeleted: false },
-      }),
-    ]);
-
-    const resolved = await resolveLinkFieldValues(
-      boards,
-      fields,
-      organizationId
-    );
-
-    return applyAudienceFilter(resolved, fields, { search, filter });
-  }
-
   async getAudienceCount(id: string, organizationId: string) {
-    const blast = await this.getBlast(id, organizationId);
-    const audienceFilter = blast.audienceFilter as unknown as AudienceFilter;
-    const { filter, search, boardDateFrom, boardDateTo } = audienceFilter;
+    const members = await this.resolveMembers(id, organizationId);
 
-    // Field filters and search need the resolved rows; everything else counts in SQL.
-    const needsResolvedRows =
-      Boolean(search) || Object.keys(filter ?? {}).length > 0;
-
-    if (!needsResolvedRows) {
-      const where: Prisma.BoardWhereInput = {
-        organizationId,
-        moduleType: blast.moduleType,
-        isDeleted: false,
-      };
-
-      if (boardDateFrom || boardDateTo) {
-        where.createdAt = {
-          ...(boardDateFrom && { gte: new Date(boardDateFrom) }),
-          ...(boardDateTo && { lte: new Date(boardDateTo) }),
-        };
-      }
-
-      return { count: await prisma.board.count({ where }) };
-    }
-
-    const boards = await this.resolveAudience(
-      organizationId,
-      blast.moduleType,
-      audienceFilter
-    );
-
-    return { count: boards.length };
+    return {
+      count: members.filter((m) => m.email).length,
+      total: members.length,
+    };
   }
 
   async enqueueSend(
@@ -204,40 +151,14 @@ export class BlastService {
       throw new BadRequestException("Only draft blasts can be sent");
     }
 
-    const boards = await this.resolveAudience(
-      organizationId,
-      blast.moduleType,
-      blast.audienceFilter as unknown as AudienceFilter
+    const members = await this.resolveMembers(id, organizationId);
+    const recipients = members.filter((m): m is typeof m & { email: string } =>
+      Boolean(m.email)
     );
-
-    const emailField = await prisma.field.findFirst({
-      where: {
-        organizationId,
-        moduleType: blast.moduleType,
-        fieldType: "EMAIL",
-        isDeleted: false,
-      },
-      select: { id: true },
-    });
-
-    if (!emailField) {
-      throw new BadRequestException(
-        "No EMAIL field found for this organization"
-      );
-    }
-
-    const recipients = boards
-      .map((board) => {
-        const emailValue = board.values.find(
-          (v) => v.field.id === emailField.id
-        )?.value;
-        return emailValue ? { recordId: board.id, email: emailValue } : null;
-      })
-      .filter((r): r is { recordId: string; email: string } => r !== null);
 
     if (recipients.length === 0) {
       throw new BadRequestException(
-        "No recipients with a valid email address were resolved for this audience"
+        "No recipients with a valid email address were resolved for these groups"
       );
     }
 
@@ -264,6 +185,43 @@ export class BlastService {
     });
 
     return { jobId: job.id };
+  }
+
+  private async resolveMembers(id: string, organizationId: string) {
+    const blast = await this.getBlast(id, organizationId);
+    const groupIds = blast.groups.map((link) => link.group.id);
+
+    if (groupIds.length === 0) {
+      throw new BadRequestException("This blast has no recipient groups");
+    }
+
+    return this.groupService.resolveForGroups(organizationId, groupIds);
+  }
+
+  private async assertGroupsUsable(
+    groupIds: string[],
+    organizationId: string,
+    moduleType: ModuleType
+  ) {
+    if (groupIds.length === 0) return;
+
+    const groups = await prisma.recipientGroup.findMany({
+      where: { id: { in: groupIds }, organizationId },
+      select: { id: true, moduleType: true },
+    });
+
+    if (groups.length !== new Set(groupIds).size) {
+      throw new BadRequestException(
+        "One or more groups were not found in this organization"
+      );
+    }
+
+    // Mixing modules would mail records the blast's field mapping cannot read.
+    if (groups.some((group) => group.moduleType !== moduleType)) {
+      throw new BadRequestException(
+        `Every group must target ${moduleType} records`
+      );
+    }
   }
 
   private async assertCampaignInOrg(

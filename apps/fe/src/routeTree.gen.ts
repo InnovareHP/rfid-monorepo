@@ -56,6 +56,7 @@ import { Route as TeamTeamReportMileageIndexRouteImport } from './routes/_team/$
 import { Route as TeamTeamReportMarketingIndexRouteImport } from './routes/_team/$team/report/marketing/index'
 import { Route as TeamTeamReportExpenseIndexRouteImport } from './routes/_team/$team/report/expense/index'
 import { Route as TeamTeamMarketingLandingPagesIndexRouteImport } from './routes/_team/$team/marketing/landing-pages/index'
+import { Route as TeamTeamMarketingGroupsIndexRouteImport } from './routes/_team/$team/marketing/groups/index'
 import { Route as TeamTeamMarketingFormsIndexRouteImport } from './routes/_team/$team/marketing/forms/index'
 import { Route as TeamTeamMarketingCampaignsIndexRouteImport } from './routes/_team/$team/marketing/campaigns/index'
 import { Route as TeamTeamMarketingBlastsIndexRouteImport } from './routes/_team/$team/marketing/blasts/index'
@@ -65,6 +66,7 @@ import { Route as TeamTeamLogExpenseIndexRouteImport } from './routes/_team/$tea
 import { Route as TeamTeamImportReferralListIndexRouteImport } from './routes/_team/$team/import/referral-list/index'
 import { Route as TeamTeamImportMasterListIndexRouteImport } from './routes/_team/$team/import/master-list/index'
 import { Route as TeamTeamMarketingLandingPagesPageIdRouteImport } from './routes/_team/$team/marketing/landing-pages/$pageId'
+import { Route as TeamTeamMarketingGroupsGroupIdRouteImport } from './routes/_team/$team/marketing/groups/$groupId'
 import { Route as TeamTeamMarketingFormsFormIdRouteImport } from './routes/_team/$team/marketing/forms/$formId'
 import { Route as TeamTeamMarketingBlastsBlastIdRouteImport } from './routes/_team/$team/marketing/blasts/$blastId'
 import { Route as TeamTeamReferralListOptionOptionIndexRouteImport } from './routes/_team/$team/referral-list/option/$option/index'
@@ -314,6 +316,12 @@ const TeamTeamMarketingLandingPagesIndexRoute =
     path: '/$team/marketing/landing-pages/',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamMarketingGroupsIndexRoute =
+  TeamTeamMarketingGroupsIndexRouteImport.update({
+    id: '/$team/marketing/groups/',
+    path: '/$team/marketing/groups/',
+    getParentRoute: () => TeamRoute,
+  } as any)
 const TeamTeamMarketingFormsIndexRoute =
   TeamTeamMarketingFormsIndexRouteImport.update({
     id: '/$team/marketing/forms/',
@@ -364,6 +372,12 @@ const TeamTeamMarketingLandingPagesPageIdRoute =
   TeamTeamMarketingLandingPagesPageIdRouteImport.update({
     id: '/$team/marketing/landing-pages/$pageId',
     path: '/$team/marketing/landing-pages/$pageId',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamMarketingGroupsGroupIdRoute =
+  TeamTeamMarketingGroupsGroupIdRouteImport.update({
+    id: '/$team/marketing/groups/$groupId',
+    path: '/$team/marketing/groups/$groupId',
     getParentRoute: () => TeamRoute,
   } as any)
 const TeamTeamMarketingFormsFormIdRoute =
@@ -441,6 +455,7 @@ export interface FileRoutesByFullPath {
   '/$team/tasks/': typeof TeamTeamTasksIndexRoute
   '/$team/marketing/blasts/$blastId': typeof TeamTeamMarketingBlastsBlastIdRoute
   '/$team/marketing/forms/$formId': typeof TeamTeamMarketingFormsFormIdRoute
+  '/$team/marketing/groups/$groupId': typeof TeamTeamMarketingGroupsGroupIdRoute
   '/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
@@ -450,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/$team/marketing/blasts/': typeof TeamTeamMarketingBlastsIndexRoute
   '/$team/marketing/campaigns/': typeof TeamTeamMarketingCampaignsIndexRoute
   '/$team/marketing/forms/': typeof TeamTeamMarketingFormsIndexRoute
+  '/$team/marketing/groups/': typeof TeamTeamMarketingGroupsIndexRoute
   '/$team/marketing/landing-pages/': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
@@ -502,6 +518,7 @@ export interface FileRoutesByTo {
   '/$team/tasks': typeof TeamTeamTasksIndexRoute
   '/$team/marketing/blasts/$blastId': typeof TeamTeamMarketingBlastsBlastIdRoute
   '/$team/marketing/forms/$formId': typeof TeamTeamMarketingFormsFormIdRoute
+  '/$team/marketing/groups/$groupId': typeof TeamTeamMarketingGroupsGroupIdRoute
   '/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/$team/import/master-list': typeof TeamTeamImportMasterListIndexRoute
   '/$team/import/referral-list': typeof TeamTeamImportReferralListIndexRoute
@@ -511,6 +528,7 @@ export interface FileRoutesByTo {
   '/$team/marketing/blasts': typeof TeamTeamMarketingBlastsIndexRoute
   '/$team/marketing/campaigns': typeof TeamTeamMarketingCampaignsIndexRoute
   '/$team/marketing/forms': typeof TeamTeamMarketingFormsIndexRoute
+  '/$team/marketing/groups': typeof TeamTeamMarketingGroupsIndexRoute
   '/$team/marketing/landing-pages': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/$team/report/expense': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing': typeof TeamTeamReportMarketingIndexRoute
@@ -566,6 +584,7 @@ export interface FileRoutesById {
   '/_team/$team/tasks/': typeof TeamTeamTasksIndexRoute
   '/_team/$team/marketing/blasts/$blastId': typeof TeamTeamMarketingBlastsBlastIdRoute
   '/_team/$team/marketing/forms/$formId': typeof TeamTeamMarketingFormsFormIdRoute
+  '/_team/$team/marketing/groups/$groupId': typeof TeamTeamMarketingGroupsGroupIdRoute
   '/_team/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/_team/$team/import/master-list/': typeof TeamTeamImportMasterListIndexRoute
   '/_team/$team/import/referral-list/': typeof TeamTeamImportReferralListIndexRoute
@@ -575,6 +594,7 @@ export interface FileRoutesById {
   '/_team/$team/marketing/blasts/': typeof TeamTeamMarketingBlastsIndexRoute
   '/_team/$team/marketing/campaigns/': typeof TeamTeamMarketingCampaignsIndexRoute
   '/_team/$team/marketing/forms/': typeof TeamTeamMarketingFormsIndexRoute
+  '/_team/$team/marketing/groups/': typeof TeamTeamMarketingGroupsIndexRoute
   '/_team/$team/marketing/landing-pages/': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/_team/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/_team/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
@@ -629,6 +649,7 @@ export interface FileRouteTypes {
     | '/$team/tasks/'
     | '/$team/marketing/blasts/$blastId'
     | '/$team/marketing/forms/$formId'
+    | '/$team/marketing/groups/$groupId'
     | '/$team/marketing/landing-pages/$pageId'
     | '/$team/import/master-list/'
     | '/$team/import/referral-list/'
@@ -638,6 +659,7 @@ export interface FileRouteTypes {
     | '/$team/marketing/blasts/'
     | '/$team/marketing/campaigns/'
     | '/$team/marketing/forms/'
+    | '/$team/marketing/groups/'
     | '/$team/marketing/landing-pages/'
     | '/$team/report/expense/'
     | '/$team/report/marketing/'
@@ -690,6 +712,7 @@ export interface FileRouteTypes {
     | '/$team/tasks'
     | '/$team/marketing/blasts/$blastId'
     | '/$team/marketing/forms/$formId'
+    | '/$team/marketing/groups/$groupId'
     | '/$team/marketing/landing-pages/$pageId'
     | '/$team/import/master-list'
     | '/$team/import/referral-list'
@@ -699,6 +722,7 @@ export interface FileRouteTypes {
     | '/$team/marketing/blasts'
     | '/$team/marketing/campaigns'
     | '/$team/marketing/forms'
+    | '/$team/marketing/groups'
     | '/$team/marketing/landing-pages'
     | '/$team/report/expense'
     | '/$team/report/marketing'
@@ -753,6 +777,7 @@ export interface FileRouteTypes {
     | '/_team/$team/tasks/'
     | '/_team/$team/marketing/blasts/$blastId'
     | '/_team/$team/marketing/forms/$formId'
+    | '/_team/$team/marketing/groups/$groupId'
     | '/_team/$team/marketing/landing-pages/$pageId'
     | '/_team/$team/import/master-list/'
     | '/_team/$team/import/referral-list/'
@@ -762,6 +787,7 @@ export interface FileRouteTypes {
     | '/_team/$team/marketing/blasts/'
     | '/_team/$team/marketing/campaigns/'
     | '/_team/$team/marketing/forms/'
+    | '/_team/$team/marketing/groups/'
     | '/_team/$team/marketing/landing-pages/'
     | '/_team/$team/report/expense/'
     | '/_team/$team/report/marketing/'
@@ -1114,6 +1140,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamMarketingLandingPagesIndexRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/marketing/groups/': {
+      id: '/_team/$team/marketing/groups/'
+      path: '/$team/marketing/groups'
+      fullPath: '/$team/marketing/groups/'
+      preLoaderRoute: typeof TeamTeamMarketingGroupsIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/marketing/forms/': {
       id: '/_team/$team/marketing/forms/'
       path: '/$team/marketing/forms'
@@ -1175,6 +1208,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/marketing/landing-pages/$pageId'
       fullPath: '/$team/marketing/landing-pages/$pageId'
       preLoaderRoute: typeof TeamTeamMarketingLandingPagesPageIdRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/marketing/groups/$groupId': {
+      id: '/_team/$team/marketing/groups/$groupId'
+      path: '/$team/marketing/groups/$groupId'
+      fullPath: '/$team/marketing/groups/$groupId'
+      preLoaderRoute: typeof TeamTeamMarketingGroupsGroupIdRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/marketing/forms/$formId': {
@@ -1279,6 +1319,7 @@ interface TeamRouteChildren {
   TeamTeamTasksIndexRoute: typeof TeamTeamTasksIndexRoute
   TeamTeamMarketingBlastsBlastIdRoute: typeof TeamTeamMarketingBlastsBlastIdRoute
   TeamTeamMarketingFormsFormIdRoute: typeof TeamTeamMarketingFormsFormIdRoute
+  TeamTeamMarketingGroupsGroupIdRoute: typeof TeamTeamMarketingGroupsGroupIdRoute
   TeamTeamMarketingLandingPagesPageIdRoute: typeof TeamTeamMarketingLandingPagesPageIdRoute
   TeamTeamImportMasterListIndexRoute: typeof TeamTeamImportMasterListIndexRoute
   TeamTeamImportReferralListIndexRoute: typeof TeamTeamImportReferralListIndexRoute
@@ -1288,6 +1329,7 @@ interface TeamRouteChildren {
   TeamTeamMarketingBlastsIndexRoute: typeof TeamTeamMarketingBlastsIndexRoute
   TeamTeamMarketingCampaignsIndexRoute: typeof TeamTeamMarketingCampaignsIndexRoute
   TeamTeamMarketingFormsIndexRoute: typeof TeamTeamMarketingFormsIndexRoute
+  TeamTeamMarketingGroupsIndexRoute: typeof TeamTeamMarketingGroupsIndexRoute
   TeamTeamMarketingLandingPagesIndexRoute: typeof TeamTeamMarketingLandingPagesIndexRoute
   TeamTeamReportExpenseIndexRoute: typeof TeamTeamReportExpenseIndexRoute
   TeamTeamReportMarketingIndexRoute: typeof TeamTeamReportMarketingIndexRoute
@@ -1324,6 +1366,7 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamTasksIndexRoute: TeamTeamTasksIndexRoute,
   TeamTeamMarketingBlastsBlastIdRoute: TeamTeamMarketingBlastsBlastIdRoute,
   TeamTeamMarketingFormsFormIdRoute: TeamTeamMarketingFormsFormIdRoute,
+  TeamTeamMarketingGroupsGroupIdRoute: TeamTeamMarketingGroupsGroupIdRoute,
   TeamTeamMarketingLandingPagesPageIdRoute:
     TeamTeamMarketingLandingPagesPageIdRoute,
   TeamTeamImportMasterListIndexRoute: TeamTeamImportMasterListIndexRoute,
@@ -1334,6 +1377,7 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamMarketingBlastsIndexRoute: TeamTeamMarketingBlastsIndexRoute,
   TeamTeamMarketingCampaignsIndexRoute: TeamTeamMarketingCampaignsIndexRoute,
   TeamTeamMarketingFormsIndexRoute: TeamTeamMarketingFormsIndexRoute,
+  TeamTeamMarketingGroupsIndexRoute: TeamTeamMarketingGroupsIndexRoute,
   TeamTeamMarketingLandingPagesIndexRoute:
     TeamTeamMarketingLandingPagesIndexRoute,
   TeamTeamReportExpenseIndexRoute: TeamTeamReportExpenseIndexRoute,

@@ -28,7 +28,13 @@ import { BlastService } from "./blast.service";
 import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
 @Controller("marketing/blasts")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class BlastController {
   constructor(
     private readonly blastService: BlastService,

@@ -135,6 +135,11 @@ export function AppSidebar({
               icon: MailPlus,
             },
             {
+              title: "Groups",
+              url: `/${activeOrganizationId}/marketing/groups`,
+              icon: Users,
+            },
+            {
               title: "Landing Pages",
               url: `/${activeOrganizationId}/marketing/landing-pages`,
               icon: LayoutTemplate,

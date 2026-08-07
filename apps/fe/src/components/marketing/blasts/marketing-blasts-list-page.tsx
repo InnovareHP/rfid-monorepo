@@ -24,6 +24,7 @@ import { Loader2, Mail, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "../../analytics/charts/kpi-stat-tile";
+import { MarketingSubNav } from "../marketing-sub-nav";
 import { BLAST_STATUS_LABELS, BlastListTable } from "./blast-list-table";
 import { BlastSendDialog } from "./blast-send-dialog";
 
@@ -66,7 +67,6 @@ export const MarketingBlastsListPage = () => {
         name: name.trim(),
         subject: subject.trim(),
         bodyHtml: bodyHtml.trim(),
-        audienceFilter: { filter: {} },
       }),
     onSuccess: (created: MarketingBlast) => {
       toast.success("Blast created");
@@ -115,9 +115,9 @@ export const MarketingBlastsListPage = () => {
     <div className="page-style">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
-        title="Blasts"
-        description="Email a filtered audience of leads or referrals."
-      />
+          title="Blasts"
+          description="Email one or more recipient groups."
+        />
 
         <Button
           onClick={() => setCreateOpen(true)}
@@ -127,6 +127,8 @@ export const MarketingBlastsListPage = () => {
           New Blast
         </Button>
       </div>
+
+      <MarketingSubNav active="blasts" />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <KpiStatTile

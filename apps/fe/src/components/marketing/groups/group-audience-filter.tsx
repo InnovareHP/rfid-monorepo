@@ -1,15 +1,13 @@
 import { FilterComponent } from "@/components/master-list/filter-component";
-import {
-  getBoardFieldsByModule,
-  type AudienceFilter,
-} from "@/services/marketing/blast-service";
+import { getBoardFieldsByModule } from "@/services/marketing/blast-service";
+import type { AudienceFilter } from "@/services/marketing/group-service";
 import { DatePicker } from "@dashboard/ui/components/date-picker";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 
-type BlastAudienceFilterProps = {
+type GroupAudienceFilterProps = {
   moduleType: string;
   audienceFilter: AudienceFilter;
   onChange: (audienceFilter: AudienceFilter) => void;
@@ -24,11 +22,11 @@ function GroupHeading({ title }: { title: string }) {
   );
 }
 
-export const BlastAudienceFilter = ({
+export const GroupAudienceFilter = ({
   moduleType,
   audienceFilter,
   onChange,
-}: BlastAudienceFilterProps) => {
+}: GroupAudienceFilterProps) => {
   const { data: fields = [] } = useQuery({
     queryKey: ["board-fields-by-module", moduleType],
     queryFn: () => getBoardFieldsByModule(moduleType),
@@ -56,11 +54,11 @@ export const BlastAudienceFilter = ({
         <GroupHeading title="Search and Date Range" />
 
         <div className="space-y-2">
-          <Label htmlFor="blast-audience-search">Search</Label>
+          <Label htmlFor="group-audience-search">Search</Label>
           <div className="relative">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
             <Input
-              id="blast-audience-search"
+              id="group-audience-search"
               placeholder="Search by name or value..."
               className="pl-9"
               value={audienceFilter.search ?? ""}

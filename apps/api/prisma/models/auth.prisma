@@ -47,6 +47,7 @@ model User {
   notificationsActed        Notification[]              @relation("NotificationActor")
   createdCampaigns          Campaign[]
   createdBlasts             Blast[]
+  createdRecipientGroups    RecipientGroup[]
   createdForms              Form[]
   createdLandingPages       LandingPage[]
 
@@ -142,6 +143,7 @@ model Organization {
   taskTimeEntries TaskTimeEntry[]
   campaigns       Campaign[]
   blasts          Blast[]
+  recipientGroups RecipientGroup[]
   forms           Form[]
   landingPages    LandingPage[]
   notifications   Notification[]
