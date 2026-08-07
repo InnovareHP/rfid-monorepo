@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -34,13 +33,7 @@ export class SenderController {
   @RequirePermission({ outreach: ["read"] })
   @Get("/")
   async getSenders(@Session() session: AuthenticatedSession) {
-    try {
-      return await this.senderService.getSenders(
-        session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return this.senderService.getSenders(session.session.activeOrganizationId);
   }
 
   @RequirePermission({ outreach: ["read"] })
@@ -49,14 +42,10 @@ export class SenderController {
     @Param("id") id: string,
     @Session() session: AuthenticatedSession
   ) {
-    try {
-      return await this.senderService.getSender(
-        id,
-        session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return this.senderService.getSender(
+      id,
+      session.session.activeOrganizationId
+    );
   }
 
   @RequirePermission({ outreach: ["create"] })
@@ -65,15 +54,11 @@ export class SenderController {
     @Body() dto: CreateSenderDto,
     @Session() session: AuthenticatedSession
   ) {
-    try {
-      return await this.senderService.createSender(
-        dto,
-        session.session.activeOrganizationId,
-        session.user.id
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return this.senderService.createSender(
+      dto,
+      session.session.activeOrganizationId,
+      session.user.id
+    );
   }
 
   @RequirePermission({ outreach: ["update"] })
@@ -82,14 +67,10 @@ export class SenderController {
     @Param("id") id: string,
     @Session() session: AuthenticatedSession
   ) {
-    try {
-      return await this.senderService.refreshVerification(
-        id,
-        session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return this.senderService.refreshVerification(
+      id,
+      session.session.activeOrganizationId
+    );
   }
 
   @RequirePermission({ outreach: ["update"] })
@@ -99,15 +80,11 @@ export class SenderController {
     @Body() dto: UpdateSenderDto,
     @Session() session: AuthenticatedSession
   ) {
-    try {
-      return await this.senderService.updateSender(
-        id,
-        dto,
-        session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return this.senderService.updateSender(
+      id,
+      dto,
+      session.session.activeOrganizationId
+    );
   }
 
   @RequirePermission({ outreach: ["delete"] })
@@ -116,13 +93,9 @@ export class SenderController {
     @Param("id") id: string,
     @Session() session: AuthenticatedSession
   ) {
-    try {
-      return await this.senderService.deleteSender(
-        id,
-        session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return this.senderService.deleteSender(
+      id,
+      session.session.activeOrganizationId
+    );
   }
 }

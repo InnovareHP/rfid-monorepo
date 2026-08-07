@@ -20,10 +20,19 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import { getGmailStatus, getOutlookStatus } from "@/services/lead/lead-service";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AtSign, Building2, Globe, Loader2, MailCheck } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import {
+  AtSign,
+  Building2,
+  Globe,
+  Loader2,
+  MailCheck,
+  Plug,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -97,6 +106,22 @@ export function SenderSetupDialog({
   onCreated,
 }: SenderSetupDialogProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { team } = useParams({ strict: false }) as { team: string };
+
+  // A personal sender needs a connected mailbox, so the dialog checks before
+  // offering it rather than letting the API reject the submit.
+  const { data: mailbox } = useQuery({
+    queryKey: ["mailbox-connection"],
+    queryFn: async () => {
+      const [gmail, outlook] = await Promise.all([
+        getGmailStatus(),
+        getOutlookStatus(),
+      ]);
+      return { email: gmail.email ?? outlook.email };
+    },
+    enabled: open,
+  });
 
   // Set once the identity exists: the dialog switches to showing its DNS
   // records rather than closing, because setup is not finished at create time.
@@ -374,12 +399,36 @@ export function SenderSetupDialog({
                 />
               )}
 
-              {kind === "PERSONAL" && (
-                <p className="text-sm text-muted-foreground">
-                  Sends from the mailbox connected to your account, so replies
-                  thread straight back into it.
-                </p>
-              )}
+              {kind === "PERSONAL" &&
+                (mailbox?.email ? (
+                  <p className="text-sm text-muted-foreground">
+                    Sends from{" "}
+                    <span className="font-medium text-gray-900">
+                      {mailbox.email}
+                    </span>
+                    , so replies thread straight back into it.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-[#F4F9FF] p-4">
+                    <p className="text-sm text-gray-700">
+                      No mailbox is connected to your account yet.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        close();
+                        navigate({
+                          to: "/$team/integrations",
+                          params: { team },
+                        });
+                      }}
+                    >
+                      <Plug className="size-4" />
+                      Connect a mailbox
+                    </Button>
+                  </div>
+                ))}
             </Form>
           )}
         </div>
@@ -391,7 +440,10 @@ export function SenderSetupDialog({
           {!created && (
             <Button
               className="bg-brand text-white hover:bg-brand/90"
-              disabled={createMutation.isPending}
+              disabled={
+                createMutation.isPending ||
+                (kind === "PERSONAL" && !mailbox?.email)
+              }
               onClick={form.handleSubmit((values) =>
                 createMutation.mutate(values)
               )}
