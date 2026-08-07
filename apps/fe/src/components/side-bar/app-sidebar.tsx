@@ -25,6 +25,7 @@ import {
   HistoryIcon,
   LayoutTemplate,
   Megaphone,
+  MailCheck,
   MailPlus,
   MapPin,
   Route,
@@ -138,6 +139,11 @@ export function AppSidebar({
               title: "Groups",
               url: `/${activeOrganizationId}/marketing/groups`,
               icon: Users,
+            },
+            {
+              title: "Senders",
+              url: `/${activeOrganizationId}/marketing/senders`,
+              icon: MailCheck,
             },
             {
               title: "Landing Pages",
