@@ -68,21 +68,21 @@ function StepSection({
   const [open, setOpen] = useState(true);
 
   return (
-    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-4 border-b border-gray-200 bg-table-header px-6 py-4 text-left"
+        className="flex w-full items-center gap-4 border-b border-border bg-table-header px-6 py-4 text-left"
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#2C86D9] text-sm font-semibold text-white">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
           {step}
         </span>
-        <span className="flex-1 text-lg font-semibold text-gray-900">
+        <span className="flex-1 text-lg font-semibold text-foreground">
           {title}
         </span>
         <ChevronDown
           className={cn(
-            "size-5 text-gray-500 transition-transform",
+            "size-5 text-muted-foreground transition-transform",
             !open && "-rotate-90"
           )}
         />
@@ -96,8 +96,8 @@ function StepSection({
 function ReviewRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-6 px-4 py-2.5 text-sm">
-      <span className="text-gray-600">{label}</span>
-      <span className="truncate text-right font-medium text-gray-900">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="truncate text-right font-medium text-foreground">
         {value}
       </span>
     </div>
@@ -181,7 +181,7 @@ export const BlastEditorPage = () => {
   });
 
   if (isLoading || !blast) {
-    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
+    return <div className="p-8 text-sm text-muted-foreground">Loading...</div>;
   }
 
   const campaignId = form.watch("campaignId");
@@ -235,10 +235,7 @@ export const BlastEditorPage = () => {
               </Button>
             )}
             {isDraft && canSend && (
-              <Button
-                className="bg-brand text-white hover:bg-brand/90"
-                onClick={() => setSendDialogBlast(blast)}
-              >
+              <Button onClick={() => setSendDialogBlast(blast)}>
                 <Send className="size-4" />
                 Send Blast
               </Button>
@@ -261,7 +258,7 @@ export const BlastEditorPage = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Name <span className="text-red-500">*</span>
+                  Name <span className="text-destructive">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -281,7 +278,7 @@ export const BlastEditorPage = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Subject <span className="text-red-500">*</span>
+                  Subject <span className="text-destructive">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -301,7 +298,7 @@ export const BlastEditorPage = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Body <span className="text-red-500">*</span>
+                  Body <span className="text-destructive">*</span>
                 </FormLabel>
                 <FormControl>
                   <Textarea rows={8} disabled={!isDraft} {...field} />
@@ -390,9 +387,9 @@ export const BlastEditorPage = () => {
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-900">Message</h4>
-            <div className="border-b border-gray-200" />
-            <div className="divide-y divide-gray-200 rounded-lg bg-gray-50">
+            <h4 className="text-sm font-semibold text-foreground">Message</h4>
+            <div className="border-b border-border" />
+            <div className="divide-y divide-border rounded-lg bg-muted">
               <ReviewRow label="Name" value={form.watch("name")} />
               <ReviewRow label="Subject" value={form.watch("subject")} />
               <ReviewRow label="Body" value={form.watch("bodyHtml")} />
@@ -402,13 +399,13 @@ export const BlastEditorPage = () => {
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-900">
+            <h4 className="text-sm font-semibold text-foreground">
               Audience Filters Applied
             </h4>
-            <div className="border-b border-gray-200" />
-            <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-[#F4F9FF] p-4">
+            <div className="border-b border-border" />
+            <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-table-header p-4">
               <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-foreground">
                 {hasAudienceFilters
                   ? `${appliedFilterCount} field filter${appliedFilterCount === 1 ? "" : "s"} applied${audienceFilter.search ? ", plus a search term" : ""}. Recipients are limited to matching ${moduleType.toLowerCase()} records.`
                   : `No audience filters are applied - sending now will email everyone in the ${moduleType.toLowerCase()} module. Go back to Step 2 to narrow the audience if that is not intended.`}

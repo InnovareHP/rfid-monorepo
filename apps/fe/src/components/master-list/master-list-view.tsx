@@ -142,13 +142,10 @@ export function MasterListView({
       setOpen?.(next);
 
       if (hasNotification) {
-        isReferral
-          ? seenReferrals(leadId).then(() => {
-              hasSeenRef.current = true;
-            })
-          : seenLeads(leadId).then(() => {
-              hasSeenRef.current = true;
-            });
+        const markSeen = isReferral ? seenReferrals : seenLeads;
+        markSeen(leadId).then(() => {
+          hasSeenRef.current = true;
+        });
         hasSeenRef.current = true;
       }
       if (next) setActiveTab(initialTab);
