@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { authClient } from "@/lib/auth-client";
 import {
   createBlast,

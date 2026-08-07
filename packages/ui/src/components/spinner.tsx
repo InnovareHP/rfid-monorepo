@@ -16,7 +16,7 @@ function Spinner({
       role="status"
       aria-label="Loading"
       className={cn(
-        "animate-spin text-blue-600",
+        "animate-spin text-primary",
         sizeClasses[size],
         className
       )}

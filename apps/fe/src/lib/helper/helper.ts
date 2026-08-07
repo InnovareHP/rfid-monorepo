@@ -50,3 +50,23 @@ export const formatMinutes = (minutes: number) => {
   if (hrs === 0) return `${mins}m`;
   return mins ? `${hrs}h ${mins}m` : `${hrs}h`;
 };
+
+export const getApiErrorMessage = (
+  error: unknown,
+  fallback: string
+): string => {
+  const seen = new Set<unknown>();
+
+  const unwrap = (value: unknown): string | null => {
+    if (typeof value === "string") return value.trim() || null;
+    if (Array.isArray(value)) return unwrap(value.filter(Boolean)[0]);
+    if (!value || typeof value !== "object" || seen.has(value)) return null;
+
+    seen.add(value);
+    const record = value as Record<string, unknown>;
+    return unwrap(record.message ?? record.error ?? record.data ?? null);
+  };
+
+  const response = (error as { response?: { data?: unknown } })?.response;
+  return unwrap(response?.data) ?? unwrap(error) ?? fallback;
+};

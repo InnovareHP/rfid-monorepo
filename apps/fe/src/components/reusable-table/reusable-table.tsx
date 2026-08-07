@@ -111,7 +111,7 @@ const ReusableTable = <T extends { id: string }>({
       {hasSelected && (
         <div className="flex items-center gap-3 m-4 p-4 bg-primary/10 border-2 border-primary/50 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm">
               {selectedIds.length}
             </div>
             <span className="text-sm font-semibold text-foreground">
@@ -133,7 +133,7 @@ const ReusableTable = <T extends { id: string }>({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 bg-white hover:bg-primary/10 border-primary/50"
+                  className="h-9 bg-card hover:bg-primary/10 border-primary/50"
                   aria-label="More Options"
                 >
                   <MoreHorizontalIcon className="h-4 w-4 mr-1" />
@@ -159,7 +159,7 @@ const ReusableTable = <T extends { id: string }>({
           </div>
         </div>
       )}
-      <Card className="border border-gray-200 shadow-sm py-0 gap-0 overflow-hidden">
+      <Card className="border border-border shadow-sm py-0 gap-0 overflow-hidden">
         <CardContent className="relative p-0">
           <ScrollArea className="relative w-full max-h-[calc(100vh-260px)]">
             <Table
@@ -170,7 +170,7 @@ const ReusableTable = <T extends { id: string }>({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
                     key={headerGroup.id}
-                    className="border-b border-gray-200 bg-table-header hover:bg-table-header"
+                    className="border-b border-border bg-table-header hover:bg-table-header"
                   >
                     {headerGroup.headers.map((header, headerIndex) => {
                       const stickyLeft = headerIndex < 2;
@@ -181,7 +181,7 @@ const ReusableTable = <T extends { id: string }>({
                       return (
                       <TableHead
                         className={cn(
-                          "text-left text-sm font-semibold text-gray-900 px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
+                          "text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
                           stickyLeft ? "z-30" : "z-20"
                         )}
                         key={header.id}
@@ -210,7 +210,7 @@ const ReusableTable = <T extends { id: string }>({
                               "absolute -right-1 top-0 h-full w-2 cursor-col-resize select-none touch-none z-50",
                               header.column.getIsResizing()
                                 ? "bg-primary"
-                                : "opacity-0 group-hover/header:opacity-100 bg-gray-400"
+                                : "opacity-0 group-hover/header:opacity-100 bg-muted-foreground"
                             )}
                             style={{ touchAction: "none" }}
                           />
@@ -227,7 +227,7 @@ const ReusableTable = <T extends { id: string }>({
                   Array.from({ length: 8 }).map((_, rowIdx) => (
                     <TableRow
                       key={`skeleton-${rowIdx}`}
-                      className="border-b border-gray-100 bg-white"
+                      className="border-b border-border bg-card"
                     >
                       {table.getAllLeafColumns().map((col) => (
                         <TableCell
@@ -244,16 +244,16 @@ const ReusableTable = <T extends { id: string }>({
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="text-center py-16 bg-red-50"
+                      className="text-center py-16 bg-destructive/5"
                     >
                       <div className="flex flex-col items-center gap-3">
-                        <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                          <AlertCircle className="h-8 w-8 text-red-600" />
+                        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                          <AlertCircle className="h-8 w-8 text-destructive" />
                         </div>
-                        <p className="font-semibold text-red-900">
+                        <p className="font-semibold text-destructive">
                           {errorMessage}
                         </p>
-                        <p className="text-sm text-red-700">
+                        <p className="text-sm text-muted-foreground">
                           Please refresh the page or contact support if the
                           problem persists.
                         </p>
@@ -265,15 +265,15 @@ const ReusableTable = <T extends { id: string }>({
                     const cells = row.getVisibleCells();
                     const col0Width = cells[0]?.column.getSize() ?? 0;
                     const isSelected = row.getIsSelected();
-                    const rowBg = isSelected ? "bg-primary/10" : "bg-white";
+                    const rowBg = isSelected ? "bg-primary/10" : "bg-card";
                     return (
                     <TableRow
                       className={cn(
-                        "border-b border-gray-100 transition-colors duration-150 group w-full",
+                        "border-b border-border transition-colors duration-150 group w-full",
                         rowBg,
                         isSelected
                           ? "border-primary/30 hover:bg-primary/10"
-                          : "hover:bg-gray-50"
+                          : "hover:bg-muted/50"
                       )}
                       key={row.id}
                       data-selected={isSelected}
@@ -304,9 +304,9 @@ const ReusableTable = <T extends { id: string }>({
                           }}
                           className={cn(
                             "px-4 py-3 text-sm overflow-hidden text-ellipsis",
-                            cellIndex === 0 && "font-medium text-gray-900",
+                            cellIndex === 0 && "font-medium text-foreground",
                             stickyLeft && rowBg,
-                            stickyLeft && !isSelected && "group-hover:bg-gray-50"
+                            stickyLeft && !isSelected && "group-hover:bg-muted/50"
                           )}
                         >
                           {flexRender(
@@ -323,7 +323,7 @@ const ReusableTable = <T extends { id: string }>({
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="text-center py-20 bg-gray-50 border-t border-gray-200"
+                      className="text-center py-20 bg-muted/50 border-t border-border"
                     >
                       <div className="flex flex-col items-center gap-4">
                         <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center border-2 border-primary/30">
@@ -342,10 +342,10 @@ const ReusableTable = <T extends { id: string }>({
                           </svg>
                         </div>
                         <div className="space-y-2">
-                          <p className="font-semibold text-gray-900 text-lg">
+                          <p className="font-semibold text-foreground text-lg">
                             {emptyMessage}
                           </p>
-                          <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                             Add your first entry to get started and see your
                             data here.
                           </p>

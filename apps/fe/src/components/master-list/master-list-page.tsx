@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { deleteLead, getLeads } from "@/services/lead/lead-service";
 import { type LeadRow, type OptionsResponse } from "@dashboard/shared";
 import type { Member } from "better-auth/plugins/organization";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -214,7 +215,7 @@ export default function MasterListPage() {
 
     let total = 0;
     let columns: any[] = [];
-    let users: OptionsResponse[] =
+    const users: OptionsResponse[] =
       queryClient.getQueryData(["assigned-to-users"]) ?? [];
 
     do {
@@ -298,7 +299,7 @@ export default function MasterListPage() {
     }));
   };
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="page-style">
       <div className="space-y-6">
         {/* Header Section */}
         <AnalyzeLeadDialog
@@ -327,70 +328,62 @@ export default function MasterListPage() {
           }
           initialTab="history"
         />
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight page-title">
-              Master Marketing List
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Visualize, filter, and export your marketing leads database.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+        <PageHeader
+          title="Master Marketing List"
+          description="Visualize, filter, and export your marketing leads database."
+        >
+          <Button
+            variant="outline"
+            onClick={() => setView(view === "table" ? "kanban" : "table")}
+            className="flex items-center gap-2"
+          >
+            {view === "table" ? (
+              <KanbanSquare className="h-4 w-4" />
+            ) : (
+              <TableProperties className="h-4 w-4" />
+            )}
+            {view === "table" ? "Pipeline" : "Table"}
+          </Button>
+          {view === "kanban" && canConfigurePipeline && (
             <Button
               variant="outline"
-              onClick={() => setView(view === "table" ? "kanban" : "table")}
-              className="flex items-center gap-2 border-gray-300 bg-white"
+              onClick={() => setOpenPipelineSettings(true)}
+              className="flex items-center gap-2"
             >
-              {view === "table" ? (
-                <KanbanSquare className="h-4 w-4" />
-              ) : (
-                <TableProperties className="h-4 w-4" />
-              )}
-              {view === "table" ? "Pipeline" : "Table"}
+              <Settings className="h-4 w-4" />
+              Pipeline Settings
             </Button>
-            {view === "kanban" && canConfigurePipeline && (
-              <Button
-                variant="outline"
-                onClick={() => setOpenPipelineSettings(true)}
-                className="flex items-center gap-2 border-gray-300 bg-white"
-              >
-                <Settings className="h-4 w-4" />
-                Pipeline Settings
-              </Button>
-            )}
+          )}
 
-            <ColumnFilter tableColumns={tableColumns as any} />
+          <ColumnFilter tableColumns={tableColumns as any} />
 
-            <Button
-              onClick={handleExportCSV}
-              disabled={!entitlement.has("export")}
-              title={
-                entitlement.has("export")
-                  ? undefined
-                  : "Upgrade your plan to export data"
-              }
-              className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-            <Button
-              onClick={() => setOpenSmartScan(true)}
-              disabled={!entitlement.has("ai")}
-              title={
-                entitlement.has("ai")
-                  ? undefined
-                  : "Upgrade your plan to use Smart Scan"
-              }
-              className="flex items-center gap-2 bg-brand text-white hover:bg-brand/90"
-            >
-              <ScanLine className="h-4 w-4" />
-              Smart Scan
-            </Button>
-          </div>
-        </div>
+          <Button
+            onClick={handleExportCSV}
+            disabled={!entitlement.has("export")}
+            title={
+              entitlement.has("export")
+                ? undefined
+                : "Upgrade your plan to export data"
+            }
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button
+            onClick={() => setOpenSmartScan(true)}
+            disabled={!entitlement.has("ai")}
+            title={
+              entitlement.has("ai")
+                ? undefined
+                : "Upgrade your plan to use Smart Scan"
+            }
+            className="flex items-center gap-2"
+          >
+            <ScanLine className="h-4 w-4" />
+            Smart Scan
+          </Button>
+        </PageHeader>
 
         {view === "table" && <BoardStatsStrip />}
 

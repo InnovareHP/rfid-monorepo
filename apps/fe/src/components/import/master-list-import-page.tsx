@@ -178,10 +178,7 @@ export default function MasterListImportPage() {
           </p>
         </div>
 
-        <Button
-          onClick={handleDownloadTemplate}
-          className="bg-brand text-white hover:bg-brand/90"
-        >
+        <Button onClick={handleDownloadTemplate}>
           <FileDown className="h-4 w-4" />
           Download Template
         </Button>
@@ -196,15 +193,15 @@ export default function MasterListImportPage() {
                   <div
                     className={cn(
                       "h-px flex-1 transition-colors duration-300",
-                      index < currentStep ? "bg-primary" : "bg-gray-300"
+                      index < currentStep ? "bg-primary" : "bg-muted-foreground"
                     )}
                   />
                 )}
                 <div className="flex items-center gap-3">
                   <span
                     className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-full text-base font-semibold text-white transition-colors duration-300",
-                      index < currentStep ? "bg-primary" : "bg-gray-400"
+                      "flex size-10 shrink-0 items-center justify-center rounded-full text-base font-semibold text-primary-foreground transition-colors duration-300",
+                      index < currentStep ? "bg-primary" : "bg-muted-foreground"
                     )}
                   >
                     {index + 1 === currentStep && isUploading ? (
@@ -214,7 +211,7 @@ export default function MasterListImportPage() {
                     )}
                   </span>
                   <div>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-foreground">
                       {step.title}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -234,12 +231,12 @@ export default function MasterListImportPage() {
                 className={cn(
                   "flex flex-col items-center justify-center w-full h-72",
                   "border border-dashed rounded-xl cursor-pointer",
-                  "bg-white border-gray-300",
-                  "group-hover:bg-gray-50 group-hover:border-primary/50 transition-all duration-300"
+                  "bg-card border-border",
+                  "group-hover:bg-muted group-hover:border-primary/50 transition-all duration-300"
                 )}
               >
                 <div className="flex flex-col items-center justify-center p-6 text-center">
-                  <div className="mb-4 flex size-20 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+                  <div className="mb-4 flex size-20 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-transform duration-300 group-hover:scale-110">
                     <Download className="size-8 text-brand" />
                   </div>
                   <p className="text-base text-foreground mb-1">
@@ -278,7 +275,7 @@ export default function MasterListImportPage() {
                       {(file.size / 1024 / 1024).toFixed(2)} MB •{" "}
                       {isParsing ? "Parsing..." : "Ready"}
                     </p>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-success/15 text-success text-xs font-bold border border-success/30">
                       <CheckCircle2 className="h-3 w-3" />
                       {isParsing ? "Processing" : "Validated"}
                     </div>
@@ -334,7 +331,7 @@ export default function MasterListImportPage() {
               {rows.length > 0 && (
                 <div className="rounded-xl border overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-muted border-b border-border">
                       <tr>
                         {headers.map((h) => (
                           <th
@@ -350,7 +347,7 @@ export default function MasterListImportPage() {
                       {rows.slice(0, maxPreviewRows).map((row, i) => (
                         <tr
                           key={i}
-                          className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                          className="border-t border-border hover:bg-muted transition-colors"
                         >
                           {headers.map((h) => (
                             <td key={h} className="px-3 py-2 whitespace-nowrap">
@@ -372,14 +369,14 @@ export default function MasterListImportPage() {
 
           {/* Upload Result */}
           {result && (
-            <div className="rounded-xl border p-4 bg-emerald-50/60">
+            <div className="rounded-xl border p-4 bg-success/10/60">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-700 mt-0.5 shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-success mt-0.5 shrink-0" />
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-emerald-900">
+                  <p className="text-sm font-semibold text-success">
                     Import complete
                   </p>
-                  <p className="text-sm text-emerald-900/80">
+                  <p className="text-sm text-success/80">
                     Imported <strong>{result.imported ?? 0}</strong> leads.
                     {typeof result.createdOptions === "number" && (
                       <>
@@ -390,7 +387,7 @@ export default function MasterListImportPage() {
                     )}
                   </p>
                   {!!result.unmatchedColumns?.length && (
-                    <p className="text-xs text-emerald-900/80">
+                    <p className="text-xs text-success/80">
                       Unmatched columns:{" "}
                       <strong>{result.unmatchedColumns.join(", ")}</strong>
                     </p>
@@ -406,15 +403,15 @@ export default function MasterListImportPage() {
               onClick={handleUpload}
               disabled={!file || isParsing || isUploading || !rows.length}
               size="lg"
-              className="h-12 w-full bg-brand text-base font-semibold text-white transition-all hover:bg-brand/90 active:scale-[0.99]"
+              className="h-12 w-full text-base font-semibold transition-all active:scale-[0.99]"
             >
               <Upload className="mr-2 h-5 w-5" />
               {isUploading ? "Uploading..." : "Upload and Sync"}
             </Button>
 
-            <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-[#F4F9FF] p-4">
+            <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-table-header p-4">
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
-              <p className="text-sm leading-relaxed text-gray-700">
+              <p className="text-sm leading-relaxed text-foreground">
                 <strong>Note:</strong> The backend will match your CSV column
                 headers to Lead Fields by name (fuzzy match), then use the field
                 type from the database to validate values and create missing

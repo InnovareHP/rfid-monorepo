@@ -1,4 +1,8 @@
-import { OptionalTag, RequiredLegend, RequiredMark } from "@/components/field-marks";
+import {
+  OptionalTag,
+  RequiredLegend,
+  RequiredMark,
+} from "@/components/field-marks";
 import { PageHeader } from "@/components/PageHeader";
 import {
   getOwnAvailability,

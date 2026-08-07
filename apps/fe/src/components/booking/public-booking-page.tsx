@@ -1,4 +1,8 @@
-import { OptionalTag, RequiredLegend, RequiredMark } from "@/components/field-marks";
+import {
+  OptionalTag,
+  RequiredLegend,
+  RequiredMark,
+} from "@/components/field-marks";
 import { PublicShell } from "@/components/public-shell";
 import type { BookingLocation } from "@/services/booking/booking-public-service";
 import {
@@ -182,27 +186,27 @@ export function PublicBookingPage({
               />
             )}
             {page.organizationName && (
-              <p className="text-lg font-semibold text-[#0d3185]">
+              <p className="text-lg font-semibold text-brand">
                 {page.organizationName}
               </p>
             )}
           </div>
-          <h1 className="text-3xl font-semibold leading-tight text-[#0d3185] sm:text-[40px] sm:leading-[50px]">
+          <h1 className="text-3xl font-semibold leading-tight text-brand sm:text-[40px] sm:leading-[50px]">
             {page.title}
           </h1>
 
-          <p className="flex items-center gap-2 text-base font-semibold text-[#807f7f]">
+          <p className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
             <Clock className="h-5 w-5" />
             {page.durationMinutes} minutes
           </p>
 
           {page.description && (
-            <p className="text-base leading-[25px] text-[#202020]">
+            <p className="text-base leading-[25px] text-foreground">
               {page.description}
             </p>
           )}
 
-          <div className="mt-2 flex rounded-[10px] bg-white p-2.5">
+          <div className="mt-2 flex rounded-[10px] bg-card p-2.5">
             {(["VIDEO", "IN_PERSON"] as const).map((mode) => (
               <button
                 key={mode}
@@ -212,8 +216,8 @@ export function PublicBookingPage({
                 className={cn(
                   "h-8 flex-1 rounded-md text-sm font-bold transition-colors",
                   activeLocation === mode
-                    ? "bg-[#005cb1] text-white"
-                    : "font-semibold text-[#7584a8]",
+                    ? "bg-primary text-primary-foreground"
+                    : "font-semibold text-muted-foreground",
                   !canChooseLocation && "cursor-default"
                 )}
               >
@@ -222,12 +226,12 @@ export function PublicBookingPage({
             ))}
           </div>
 
-          <p className="text-sm leading-[25px] text-[#807f7f]">
+          <p className="text-sm leading-[25px] text-muted-foreground">
             {locationHint}
           </p>
 
           <div className="mt-2 space-y-2">
-            <Label htmlFor="booking-timezone" className="text-[#202020]">
+            <Label htmlFor="booking-timezone" className="text-foreground">
               Your Timezone
             </Label>
             <TimezoneSelect
@@ -243,7 +247,7 @@ export function PublicBookingPage({
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-          <h2 className="mb-4 text-xl font-semibold text-[#0d3185] sm:text-2xl">
+          <h2 className="mb-4 text-xl font-semibold text-brand sm:text-2xl">
             {collectingDetails ? "Your Details" : "Select Date and Time"}
           </h2>
 
@@ -316,11 +320,7 @@ export function PublicBookingPage({
                   >
                     Back
                   </Button>
-                  <Button
-                    type="submit"
-                    className="bg-[#0d3185] hover:bg-[#0d3185]/90"
-                    disabled={bookMutation.isPending}
-                  >
+                  <Button type="submit" disabled={bookMutation.isPending}>
                     {bookMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
@@ -359,11 +359,11 @@ export function PublicBookingPage({
               </div>
 
               <div className="mt-4 flex flex-col items-stretch gap-3 border-t pt-5 sm:flex-row sm:items-center sm:gap-4">
-                <p className="flex-1 text-sm font-medium text-[#202020]">
+                <p className="flex-1 text-sm font-medium text-foreground">
                   {selectedSlot ? (
                     <>
                       Your meeting will be booked for{" "}
-                      <span className="font-semibold text-[#005cb1]">
+                      <span className="font-semibold text-primary">
                         {selectedLabel}.
                       </span>
                     </>
@@ -373,7 +373,6 @@ export function PublicBookingPage({
                 </p>
                 <Button
                   type="button"
-                  className="bg-[#0d3185] hover:bg-[#0d3185]/90"
                   disabled={!selectedSlot}
                   onClick={() => setCollectingDetails(true)}
                 >

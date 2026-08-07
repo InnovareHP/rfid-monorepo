@@ -7,6 +7,7 @@ import {
 import type { MileageLogRow } from "@dashboard/shared";
 import { formatCapitalize } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
 import {
@@ -36,14 +37,13 @@ import {
 } from "@dashboard/ui/components/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, Gauge, Loader2, Route } from "lucide-react";
+import { DollarSign, Gauge, Loader2, Plus, Route } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
 import {
   LogEmptyState,
-  LogPageHeader,
   LogRowDelete,
   LogStatCard,
   LogTableSkeleton,
@@ -159,14 +159,16 @@ const MileageLogPage = () => {
 
   return (
     <div className="page-style">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <LogPageHeader
-          icon={Route}
+      <div className="space-y-6">
+        <PageHeader
           title="Mileage Log"
-          subtitle="Track trips, miles driven, and reimbursements"
-          actionLabel="Log Trip"
-          onAction={() => setOpen(true)}
-        />
+          description="Track trips, miles driven, and reimbursements"
+        >
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Log Trip
+          </Button>
+        </PageHeader>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <LogStatCard
@@ -302,7 +304,7 @@ const MileageLogPage = () => {
                   )}
                 />
 
-                <div className="grid gap-4 sm:grid-cols-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="grid gap-4 sm:grid-cols-3 rounded-lg border border-border bg-muted/50 p-4">
                   <div className="space-y-2">
                     <Label>Total Miles</Label>
                     <Input type="number" value={totalMiles} disabled />
@@ -335,7 +337,7 @@ const MileageLogPage = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="overflow-hidden border border-gray-200">
+        <Card className="overflow-hidden border border-border">
           <div className="overflow-x-auto p-4">
             {isLoading ? (
               <LogTableSkeleton />
@@ -347,7 +349,7 @@ const MileageLogPage = () => {
                     key: "destination",
                     header: "Destination",
                     render: (row) => (
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-foreground">
                         {row.destination}
                       </span>
                     ),
@@ -357,7 +359,7 @@ const MileageLogPage = () => {
                     header: "Counties Marketed",
                     render: (row) => (
                       <span
-                        className="block max-w-48 truncate text-gray-600"
+                        className="block max-w-48 truncate text-muted-foreground"
                         title={row.countiesMarketed ?? ""}
                       >
                         {row.countiesMarketed}
@@ -386,7 +388,7 @@ const MileageLogPage = () => {
                     key: "ratePerMile",
                     header: "Rate / Mile",
                     render: (row) => (
-                      <span className="tabular-nums text-gray-600">
+                      <span className="tabular-nums text-muted-foreground">
                         {formatCurrency(row.ratePerMile)}
                       </span>
                     ),
@@ -395,7 +397,7 @@ const MileageLogPage = () => {
                     key: "reimbursementAmount",
                     header: "Reimbursement",
                     render: (row) => (
-                      <span className="font-semibold text-gray-900 tabular-nums">
+                      <span className="font-semibold text-foreground tabular-nums">
                         {formatCurrency(row.reimbursementAmount)}
                       </span>
                     ),

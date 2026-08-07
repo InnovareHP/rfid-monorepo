@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { lazy, Suspense, useState } from "react";
 
 import {
@@ -12,6 +12,7 @@ import {
   formatDays,
 } from "@/lib/helper/analytics-chart-data";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { toast } from "sonner";
 import { AiSummaryCard } from "./ai-summary-card";
 import {
@@ -91,8 +92,8 @@ export default function ReferralAnalyticsDashboard() {
       queryClient.setQueryData(summaryQueryKey, fresh);
       toast.success("Insights refreshed");
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.message ?? "Failed to refresh insights"),
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, "Failed to refresh insights")),
   });
 
   const hasPeriodFilter = dateRange.start && dateRange.end;
@@ -121,14 +122,14 @@ export default function ReferralAnalyticsDashboard() {
   ];
 
   return (
-    <div className="min-h-full bg-white p-8">
+    <div className="page-style">
       <div className="space-y-6">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <PageHeader
-        title="Referral Analytics Dashboard"
-        description="Track key outreach and referral performance metrics."
-      />
+            title="Referral Analytics Dashboard"
+            description="Track key outreach and referral performance metrics."
+          />
 
           <AnalyticsDateFilter
             onChange={(range) => {
@@ -146,8 +147,7 @@ export default function ReferralAnalyticsDashboard() {
           fallbackPreview="Referral insights will appear here once enough activity is recorded."
           error={
             isErrorSummary
-              ? ((summaryError as any)?.response?.data?.message ??
-                "Failed to load insights")
+              ? getApiErrorMessage(summaryError, "Failed to load insights")
               : null
           }
           onRegenerate={() => regenerateSummaryMutation.mutate()}
