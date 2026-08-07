@@ -1,3 +1,8 @@
+import {
+  OptionalTag,
+  RequiredLegend,
+  RequiredMark,
+} from "@/components/field-marks";
 import { PageHeader } from "@/components/page-header";
 import {
   getOwnAvailability,
@@ -40,6 +45,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { BookingListTable } from "./booking-list-table";
+import { TimezoneSelect } from "./timezone-select";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -198,6 +204,8 @@ export function BookingSettingsPage() {
     availabilityMutation.mutate(rules);
   };
 
+  const visitorZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   const handleCopyLink = () => {
     if (!pageQuery.data) return;
     navigator.clipboard.writeText(pageQuery.data.publicUrl);
@@ -276,6 +284,7 @@ export function BookingSettingsPage() {
             <CardDescription>
               What invitees see on your booking page.
             </CardDescription>
+            <RequiredLegend className="text-xs text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -296,7 +305,10 @@ export function BookingSettingsPage() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Title</FormLabel>
+                      <FormLabel>
+                        Title
+                        <RequiredMark />
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -310,7 +322,10 @@ export function BookingSettingsPage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel className="flex items-center gap-1.5">
+                        Description
+                        <OptionalTag />
+                      </FormLabel>
                       <FormControl>
                         <Textarea rows={3} {...field} />
                       </FormControl>
@@ -324,7 +339,10 @@ export function BookingSettingsPage() {
                   name="locationType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meeting Type</FormLabel>
+                      <FormLabel>
+                        Meeting Type
+                        <RequiredMark />
+                      </FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
@@ -352,7 +370,10 @@ export function BookingSettingsPage() {
                   name="locationLabel"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location</FormLabel>
+                      <FormLabel className="flex items-center gap-1.5">
+                        Location
+                        <OptionalTag />
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -367,7 +388,10 @@ export function BookingSettingsPage() {
                     name="durationMinutes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Duration (minutes)</FormLabel>
+                        <FormLabel>
+                          Duration (minutes)
+                          <RequiredMark />
+                        </FormLabel>
                         <FormControl>
                           <Input type="number" min={5} max={480} {...field} />
                         </FormControl>
@@ -381,9 +405,16 @@ export function BookingSettingsPage() {
                     name="timezone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Timezone</FormLabel>
+                        <FormLabel>
+                          Timezone
+                          <RequiredMark />
+                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="America/New_York" {...field} />
+                          <TimezoneSelect
+                            value={field.value}
+                            suggested={[field.value, visitorZone]}
+                            onChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -396,7 +427,10 @@ export function BookingSettingsPage() {
                     name="bufferBeforeMinutes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Buffer before</FormLabel>
+                        <FormLabel>
+                          Buffer before
+                          <RequiredMark />
+                        </FormLabel>
                         <FormControl>
                           <Input type="number" min={0} max={120} {...field} />
                         </FormControl>
@@ -410,7 +444,10 @@ export function BookingSettingsPage() {
                     name="bufferAfterMinutes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Buffer after</FormLabel>
+                        <FormLabel>
+                          Buffer after
+                          <RequiredMark />
+                        </FormLabel>
                         <FormControl>
                           <Input type="number" min={0} max={120} {...field} />
                         </FormControl>
@@ -424,7 +461,10 @@ export function BookingSettingsPage() {
                     name="minNoticeHours"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Minimum notice (hours)</FormLabel>
+                        <FormLabel>
+                          Minimum notice (hours)
+                          <RequiredMark />
+                        </FormLabel>
                         <FormControl>
                           <Input type="number" min={0} max={168} {...field} />
                         </FormControl>
@@ -434,7 +474,11 @@ export function BookingSettingsPage() {
                   />
                 </div>
 
-                <Button type="submit" disabled={updatePageMutation.isPending}>
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto"
+                  disabled={updatePageMutation.isPending}
+                >
                   {updatePageMutation.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
@@ -455,8 +499,11 @@ export function BookingSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {days.map((row, dayOfWeek) => (
-              <div key={dayOfWeek} className="flex items-center gap-4">
-                <div className="flex items-center gap-2 w-24 shrink-0">
+              <div
+                key={dayOfWeek}
+                className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2"
+              >
+                <div className="flex w-24 shrink-0 items-center gap-2">
                   <Switch
                     checked={row.enabled}
                     onCheckedChange={(checked) =>
@@ -473,7 +520,7 @@ export function BookingSettingsPage() {
                 </div>
                 <Input
                   type="time"
-                  className="w-32 h-13"
+                  className="w-32"
                   disabled={!row.enabled}
                   value={row.startTime}
                   onChange={(e) =>
@@ -504,6 +551,7 @@ export function BookingSettingsPage() {
             ))}
 
             <Button
+              className="w-full sm:w-auto"
               onClick={handleSaveAvailability}
               disabled={availabilityMutation.isPending}
             >

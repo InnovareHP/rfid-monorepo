@@ -66,7 +66,8 @@
       "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/settings/**)",
       "Bash(echo \"exit=$?\")",
       "Bash(npx eslint *)",
-      "Bash(python -)"
+      "Bash(python -)",
+      "Bash(git mv *)"
     ]
   }
 }

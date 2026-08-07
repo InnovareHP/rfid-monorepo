@@ -24,7 +24,13 @@ import { CampaignService } from "./campaign.service";
 import { CreateCampaignDto, UpdateCampaignDto } from "./dto/campaign.dto";
 
 @Controller("marketing/campaigns")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class CampaignController {
   constructor(private readonly campaignService: CampaignService) {}
 

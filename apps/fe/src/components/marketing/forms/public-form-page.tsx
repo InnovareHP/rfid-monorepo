@@ -1,12 +1,20 @@
+import { PublicShell } from "@/components/public-shell";
 import {
   getPublicForm,
   submitPublicForm,
 } from "@/services/marketing/form-service";
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { FormRenderer } from "./form-renderer";
+
+const FormCard = ({ children }: { children: React.ReactNode }) => (
+  <div className="w-full max-w-2xl rounded-[10px] bg-white px-6 py-10 shadow-lg sm:px-10 sm:py-12">
+    {children}
+  </div>
+);
 
 export const PublicFormPage = () => {
   const { slug } = useParams({ strict: false }) as { slug: string };
@@ -38,25 +46,47 @@ export const PublicFormPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
-        Loading...
-      </div>
+      <PublicShell>
+        <FormCard>
+          <div className="space-y-6">
+            <Skeleton className="mx-auto h-7 w-56" />
+            <div className="space-y-4">
+              {[0, 1, 2, 3].map((row) => (
+                <div key={row} className="space-y-2">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-9 w-full" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="mx-auto h-9 w-32" />
+          </div>
+        </FormCard>
+      </PublicShell>
     );
   }
 
   if (isError || !form) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        This form is not available.
-      </div>
+      <PublicShell>
+        <FormCard>
+          <p className="text-center text-sm text-muted-foreground">
+            This form is not available.
+          </p>
+        </FormCard>
+      </PublicShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl rounded-xl bg-white px-7 py-12 shadow-sm">
-        <FormRenderer form={form} onSubmit={onSubmit} submitted={submitted} />
-      </div>
-    </div>
+    <PublicShell>
+      <FormCard>
+        <FormRenderer
+          form={form}
+          slug={slug}
+          onSubmit={onSubmit}
+          submitted={submitted}
+        />
+      </FormCard>
+    </PublicShell>
   );
 };

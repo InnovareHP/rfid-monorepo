@@ -36,7 +36,13 @@ import {
 import { LiaisonService } from "./liaison.service";
 
 @Controller("liaison")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class LiaisonController {
   constructor(
     private readonly liaisonService: LiaisonService,

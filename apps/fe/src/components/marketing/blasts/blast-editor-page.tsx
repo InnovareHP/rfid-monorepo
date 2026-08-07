@@ -374,16 +374,16 @@ export const BlastEditorPage = () => {
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground">
-              Audience Filters Applied
+            <h4 className="text-sm font-semibold text-gray-900">
+              Groups Selected
             </h4>
             <div className="border-b border-border" />
             <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-table-header p-4">
               <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-              <p className="text-sm text-foreground">
-                {hasAudienceFilters
-                  ? `${appliedFilterCount} field filter${appliedFilterCount === 1 ? "" : "s"} applied${audienceFilter.search ? ", plus a search term" : ""}. Recipients are limited to matching ${moduleType.toLowerCase()} records.`
-                  : `No audience filters are applied - sending now will email everyone in the ${moduleType.toLowerCase()} module. Go back to Step 2 to narrow the audience if that is not intended.`}
+              <p className="text-sm text-gray-700">
+                {selectedGroupNames.length
+                  ? `Sending to ${selectedGroupNames.join(", ")}. Records in more than one group are emailed once.`
+                  : "No groups are selected. Pick at least one in Step 2, then save the draft."}
               </p>
             </div>
           </div>

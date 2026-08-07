@@ -24,7 +24,13 @@ import { CreateFormDto, UpdateFormDto } from "./dto/form.dto";
 import { FormService } from "./form.service";
 
 @Controller("marketing/forms")
-@UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard, HipaaGuard)
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
 export class FormController {
   constructor(private readonly formService: FormService) {}
 

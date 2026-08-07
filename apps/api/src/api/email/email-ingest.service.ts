@@ -25,10 +25,9 @@ export class EmailIngestService {
 
   constructor(private readonly auditService: AuditService) {}
 
-  async getIngestAddress(organizationId: string): Promise<string> {
-    if (!appConfig.EMAIL_INGEST_DOMAIN) {
-      throw new Error("EMAIL_INGEST_DOMAIN is not configured");
-    }
+  // Null when inbound ingest is not set up: outbound sending does not need it.
+  async getIngestAddress(organizationId: string): Promise<string | null> {
+    if (!appConfig.EMAIL_INGEST_DOMAIN) return null;
 
     const existing = await prisma.emailIngestAddress.findUnique({
       where: { organizationId },

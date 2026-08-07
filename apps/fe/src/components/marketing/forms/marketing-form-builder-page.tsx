@@ -110,12 +110,17 @@ export const MarketingFormBuilderPage = () => {
     id: marketingForm.id,
     name,
     submitButtonText: submitButtonText || "Submit",
-    fieldMappings: fieldMappings.map((mapping) => ({
-      ...mapping,
-      fieldType:
-        boardFields.find((boardField) => boardField.id === mapping.fieldId)
-          ?.fieldType ?? "TEXT",
-    })),
+    fieldMappings: fieldMappings.map((mapping) => {
+      const boardField = boardFields.find(
+        (field) => field.id === mapping.fieldId
+      );
+
+      return {
+        ...mapping,
+        fieldType: boardField?.fieldType ?? "TEXT",
+        options: boardField?.options ?? [],
+      };
+    }),
   };
 
   return (
@@ -175,6 +180,7 @@ export const MarketingFormBuilderPage = () => {
               ) : (
                 <FormRenderer
                   form={previewForm}
+                  slug={marketingForm.slug}
                   onSubmit={() => undefined}
                   submitted={false}
                   preview

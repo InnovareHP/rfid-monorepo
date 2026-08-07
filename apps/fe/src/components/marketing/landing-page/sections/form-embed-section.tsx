@@ -52,6 +52,7 @@ export const FormEmbedSection = ({
       )}
       <FormRenderer
         form={embeddedForm}
+        slug={embeddedForm.slug}
         onSubmit={onSubmit}
         submitted={submitted}
       />
