@@ -42,7 +42,6 @@ import { BLAST_STATUS_LABELS, BLAST_STATUS_TONES } from "./blast-list-table";
 import { BlastSendDialog } from "./blast-send-dialog";
 import { BlastSendProgress } from "./blast-send-progress";
 
-const MODULE_TYPES = ["LEAD", "REFERRAL", "CONTACT", "COMPANY"] as const;
 const NO_CAMPAIGN = "none";
 
 const blastFormSchema = z.object({
@@ -50,7 +49,6 @@ const blastFormSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   bodyHtml: z.string().min(1, "Body is required"),
   campaignId: z.string().optional(),
-  moduleType: z.string().min(1),
   groupIds: z.array(z.string()).min(1, "Pick at least one group"),
 });
 
@@ -154,7 +152,6 @@ export const BlastEditorPage = () => {
           subject: blast.subject,
           bodyHtml: blast.bodyHtml,
           campaignId: blast.campaignId ?? NO_CAMPAIGN,
-          moduleType: blast.moduleType,
           groupIds: blast.groups.map((link) => link.group.id),
         }
       : undefined,
@@ -185,7 +182,6 @@ export const BlastEditorPage = () => {
   }
 
   const campaignId = form.watch("campaignId");
-  const moduleType = form.watch("moduleType") || blast.moduleType;
   const campaignName =
     campaigns.find((campaign) => campaign.id === campaignId)?.name ?? "None";
   const selectedGroupIds = form.watch("groupIds") ?? [];
@@ -309,66 +305,35 @@ export const BlastEditorPage = () => {
             )}
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="campaignId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Campaign</FormLabel>
-                  <Select
-                    disabled={!isDraft}
-                    value={field.value || NO_CAMPAIGN}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="None" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NO_CAMPAIGN}>None</SelectItem>
-                      {campaigns.map((campaign) => (
-                        <SelectItem key={campaign.id} value={campaign.id}>
-                          {campaign.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="moduleType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Module</FormLabel>
-                  <Select
-                    disabled={!isDraft}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {MODULE_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="campaignId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign</FormLabel>
+                <Select
+                  disabled={!isDraft}
+                  value={field.value || NO_CAMPAIGN}
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_CAMPAIGN}>None</SelectItem>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        {campaign.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </StepSection>
 
         <StepSection step={2} title="Recipient Groups">
@@ -378,7 +343,6 @@ export const BlastEditorPage = () => {
             render={({ field }) => (
               <FormItem>
                 <BlastGroupPicker
-                  moduleType={moduleType}
                   value={field.value ?? []}
                   disabled={!isDraft}
                   onChange={field.onChange}
@@ -405,7 +369,6 @@ export const BlastEditorPage = () => {
               <ReviewRow label="Subject" value={form.watch("subject")} />
               <ReviewRow label="Body" value={form.watch("bodyHtml")} />
               <ReviewRow label="Campaign" value={campaignName} />
-              <ReviewRow label="Module" value={moduleType} />
               <ReviewRow
                 label="Groups"
                 value={selectedGroupNames.join(", ") || "None"}

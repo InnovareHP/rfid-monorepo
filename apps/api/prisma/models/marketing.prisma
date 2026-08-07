@@ -111,7 +111,6 @@ model Blast {
   subject        String
   bodyHtml       String
   status         BlastStatus @default(DRAFT)
-  moduleType     ModuleType  @default(LEAD)
   scheduledAt    DateTime?   @db.Timestamptz(3)
   sentAt         DateTime?   @db.Timestamptz(3)
 

@@ -6,14 +6,12 @@ import { Link, useParams } from "@tanstack/react-router";
 import { ExternalLink, Users } from "lucide-react";
 
 type BlastGroupPickerProps = {
-  moduleType: string;
   value: string[];
   disabled?: boolean;
   onChange: (groupIds: string[]) => void;
 };
 
 export function BlastGroupPicker({
-  moduleType,
   value,
   disabled,
   onChange,
@@ -24,9 +22,6 @@ export function BlastGroupPicker({
     queryKey: ["marketing-groups"],
     queryFn: getGroups,
   });
-
-  // A group targets one module, so only the matching ones can be picked here.
-  const selectable = groups.filter((group) => group.moduleType === moduleType);
 
   const toggle = (groupId: string) => {
     onChange(
@@ -40,10 +35,10 @@ export function BlastGroupPicker({
     return <p className="text-sm text-muted-foreground">Loading groups...</p>;
   }
 
-  if (selectable.length === 0) {
+  if (groups.length === 0) {
     return (
       <div className="rounded-lg border border-blue-200 bg-[#F4F9FF] p-4 text-sm text-gray-700">
-        No groups target {moduleType.toLowerCase()} records yet.{" "}
+        No recipient groups yet.{" "}
         <Link
           to="/$team/marketing/groups"
           params={{ team }}
@@ -58,7 +53,7 @@ export function BlastGroupPicker({
 
   return (
     <div className="space-y-2">
-      {selectable.map((group) => {
+      {groups.map((group) => {
         const checked = value.includes(group.id);
 
         return (
@@ -84,11 +79,10 @@ export function BlastGroupPicker({
                 <span className="block text-sm font-medium text-gray-900">
                   {group.name}
                 </span>
-                {group.description && (
-                  <span className="block text-xs text-muted-foreground">
-                    {group.description}
-                  </span>
-                )}
+                <span className="block text-xs text-muted-foreground">
+                  {group.moduleType.toLowerCase()} records
+                  {group.description ? ` — ${group.description}` : ""}
+                </span>
               </span>
             </label>
             <Link

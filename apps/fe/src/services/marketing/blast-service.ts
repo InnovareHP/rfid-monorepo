@@ -8,7 +8,6 @@ export type MarketingBlast = {
   subject: string;
   bodyHtml: string;
   status: "DRAFT" | "SCHEDULED" | "SENDING" | "SENT" | "FAILED";
-  moduleType: string;
   groups: { group: { id: string; name: string; moduleType: string } }[];
   scheduledAt: string | null;
   sentAt: string | null;
@@ -57,7 +56,6 @@ export const createBlast = async (data: {
   campaignId?: string;
   subject: string;
   bodyHtml: string;
-  moduleType?: string;
   groupIds?: string[];
   scheduledAt?: string;
 }): Promise<MarketingBlast> => {
@@ -72,7 +70,6 @@ export const updateBlast = async (
     campaignId: string | null;
     subject: string;
     bodyHtml: string;
-    moduleType: string;
     groupIds: string[];
     scheduledAt: string;
   }>

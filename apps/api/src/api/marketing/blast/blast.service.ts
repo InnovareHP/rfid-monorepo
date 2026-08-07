@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { BlastStatus, ModuleType } from "@prisma/client";
+import { BlastStatus } from "@prisma/client";
 import { Queue } from "bullmq";
 import { prisma } from "../../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
@@ -60,9 +60,8 @@ export class BlastService {
       await this.assertCampaignInOrg(dto.campaignId, organizationId);
     }
 
-    const moduleType = dto.moduleType ?? ModuleType.LEAD;
     const groupIds = dto.groupIds ?? [];
-    await this.assertGroupsUsable(groupIds, organizationId, moduleType);
+    await this.assertGroupsInOrg(groupIds, organizationId);
 
     return prisma.blast.create({
       data: {
@@ -70,7 +69,6 @@ export class BlastService {
         campaignId: dto.campaignId ?? null,
         subject: dto.subject,
         bodyHtml: dto.bodyHtml,
-        moduleType,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         organizationId,
         createdBy: userId,
@@ -91,9 +89,8 @@ export class BlastService {
       await this.assertCampaignInOrg(dto.campaignId, organizationId);
     }
 
-    const moduleType = dto.moduleType ?? blast.moduleType;
     if (dto.groupIds !== undefined) {
-      await this.assertGroupsUsable(dto.groupIds, organizationId, moduleType);
+      await this.assertGroupsInOrg(dto.groupIds, organizationId);
     }
 
     return prisma.blast.update({
@@ -103,7 +100,6 @@ export class BlastService {
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
         ...(dto.subject !== undefined && { subject: dto.subject }),
         ...(dto.bodyHtml !== undefined && { bodyHtml: dto.bodyHtml }),
-        ...(dto.moduleType !== undefined && { moduleType: dto.moduleType }),
         ...(dto.scheduledAt !== undefined && {
           scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         }),
@@ -198,28 +194,16 @@ export class BlastService {
     return this.groupService.resolveForGroups(organizationId, groupIds);
   }
 
-  private async assertGroupsUsable(
-    groupIds: string[],
-    organizationId: string,
-    moduleType: ModuleType
-  ) {
+  private async assertGroupsInOrg(groupIds: string[], organizationId: string) {
     if (groupIds.length === 0) return;
 
-    const groups = await prisma.recipientGroup.findMany({
+    const found = await prisma.recipientGroup.count({
       where: { id: { in: groupIds }, organizationId },
-      select: { id: true, moduleType: true },
     });
 
-    if (groups.length !== new Set(groupIds).size) {
+    if (found !== new Set(groupIds).size) {
       throw new BadRequestException(
         "One or more groups were not found in this organization"
-      );
-    }
-
-    // Mixing modules would mail records the blast's field mapping cannot read.
-    if (groups.some((group) => group.moduleType !== moduleType)) {
-      throw new BadRequestException(
-        `Every group must target ${moduleType} records`
       );
     }
   }

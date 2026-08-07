@@ -1,4 +1,3 @@
-import { ModuleType } from "@prisma/client";
 import { z } from "zod";
 
 export const CreateBlastSchema = z.object({
@@ -6,8 +5,8 @@ export const CreateBlastSchema = z.object({
   campaignId: z.string().nullable().optional(),
   subject: z.string().min(1),
   bodyHtml: z.string().min(1),
-  moduleType: z.enum(ModuleType).default(ModuleType.LEAD),
-  // A draft may have none yet; send is what requires at least one.
+  // A draft may have none yet; send is what requires at least one. Groups may
+  // target different modules; the send unions them and dedupes on record.
   groupIds: z.array(z.string()).default([]),
   scheduledAt: z.string().optional(),
 });
