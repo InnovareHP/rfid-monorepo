@@ -73,7 +73,7 @@ export function AppSidebar({
               icon: FileText,
             },
             {
-              title: "Master List Analytics",
+              title: "Master Marketing List Analytics",
               url: `/${activeOrganizationId}/master-list-analytics`,
               icon: Users,
             },
@@ -84,17 +84,17 @@ export function AppSidebar({
           icon: Contact,
           items: [
             {
-              title: "Master List",
+              title: "Master Marketing List",
               url: `/${activeOrganizationId}/master-list`,
               icon: FileText,
             },
             {
-              title: "Referral",
+              title: "Referral Logs",
               url: `/${activeOrganizationId}/referral-list`,
               icon: Users,
             },
             {
-              title: "Contacts",
+              title: "Phonebook",
               url: `/${activeOrganizationId}/contacts`,
               icon: Contact,
             },
@@ -224,7 +224,7 @@ export function AppSidebar({
                 icon: Folder,
                 items: [
                   {
-                    title: "Master List",
+                    title: "Master Marketing List",
                     url: `/${activeOrganizationId}/import/master-list`,
                     icon: Upload,
                   },

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { KpiStatTile } from "@/components/analytics/charts/kpi-stat-tile";
 import {
   LANDING_PAGE_STATUS_LABELS,

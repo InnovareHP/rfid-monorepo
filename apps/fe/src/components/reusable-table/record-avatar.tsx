@@ -1,15 +1,14 @@
 import { cn } from "@dashboard/ui/lib/utils";
 
 const AVATAR_COLORS = [
-  "bg-rose-500",
-  "bg-orange-500",
-  "bg-amber-500",
-  "bg-emerald-500",
-  "bg-teal-500",
-  "bg-sky-500",
-  "bg-indigo-500",
-  "bg-violet-500",
-  "bg-fuchsia-500",
+  "bg-avatar-1",
+  "bg-avatar-2",
+  "bg-avatar-3",
+  "bg-avatar-4",
+  "bg-avatar-5",
+  "bg-avatar-6",
+  "bg-avatar-7",
+  "bg-avatar-8",
 ];
 
 const getInitials = (name: string) => {
@@ -40,8 +39,8 @@ export function RecordAvatar({
 }) {
   const label = (name ?? "").trim();
   const classes = cn(
-    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white select-none shadow-sm",
-    label ? getColor(label) : "bg-gray-300",
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-avatar-foreground select-none shadow-sm",
+    label ? getColor(label) : "bg-muted-foreground",
     onClick &&
       "cursor-pointer transition-transform hover:ring-2 hover:ring-primary/40 hover:-translate-y-0.5",
     className

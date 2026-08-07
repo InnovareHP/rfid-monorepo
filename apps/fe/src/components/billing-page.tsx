@@ -6,6 +6,7 @@ import {
 } from "@/services/billing/billing-service";
 import { formatCapitalize, ROLES, type Subscription } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
@@ -116,17 +117,13 @@ export function BillingPage({
 
   return (
     <div
-      className={cn("w-full max-w-7xl mx-auto p-6 space-y-8", className)}
+      className={cn("w-full p-6 space-y-8", className)}
       {...props}
     >
-      <div className="text-center space-y-2 mb-12">
-        <h1 className="text-4xl font-bold tracking-tight page-title">
-          Billing & Subscription
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Manage your subscription, payment methods, and view billing history
-        </p>
-      </div>
+      <PageHeader
+        title="Billing & Subscription"
+        description="Manage your subscription, payment methods, and view billing history"
+      />
 
       <Card>
         <CardHeader>
@@ -185,14 +182,14 @@ export function BillingPage({
                 </span>
               </p>
               <p className="text-xs text-muted-foreground">
-                Seats follow your team size. Adding or removing a member
-                adjusts this on your next invoice.
+                Seats follow your team size. Adding or removing a member adjusts
+                this on your next invoice.
               </p>
             </div>
           )}
 
           {planCard?.cancelAtPeriodEnd && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
               This subscription is set to cancel at the end of the current
               period.
             </div>
@@ -201,7 +198,7 @@ export function BillingPage({
           {planCard?.pendingInvoice?.hostedInvoiceUrl && (
             <a
               href={planCard.pendingInvoice.hostedInvoiceUrl}
-              className="block rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 hover:bg-amber-100"
+              className="block rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning hover:bg-warning/15"
             >
               An invoice is awaiting payment. Open it to complete payment.
             </a>

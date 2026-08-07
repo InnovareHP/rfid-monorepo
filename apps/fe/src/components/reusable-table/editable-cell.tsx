@@ -73,7 +73,7 @@ const validateEmail = (email: string): boolean => {
 };
 
 const validatePhone = (phone: string): boolean => {
-  const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+  const phoneRegex = /^[\d\s\-+()]+$/;
   return phone.length >= 10 && phoneRegex.test(phone);
 };
 
@@ -854,7 +854,7 @@ export function EditableCell({
         return [
           ...new Set(
             val
-              .replace(/[\[\]\\"]/g, "")
+              .replace(/[[\]\\"]/g, "")
               .split(",")
               .map((v) => v.trim())
               .filter(Boolean)

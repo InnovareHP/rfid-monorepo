@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/page-header";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { getMarketLogs } from "@/services/market/market-service";
 import type { MarketLogRow } from "@dashboard/shared";

@@ -159,7 +159,7 @@ export function PublicBookingPage({
           SHELL_GRADIENT
         )}
       >
-        <p className="rounded-xl bg-white px-6 py-4 text-muted-foreground">
+        <p className="rounded-xl bg-card px-6 py-4 text-muted-foreground">
           This booking page is not available.
         </p>
       </div>
@@ -200,8 +200,8 @@ export function PublicBookingPage({
         SHELL_GRADIENT
       )}
     >
-      <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
-        <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-6 sm:p-8 lg:w-[396px]">
+      <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-card shadow-lg max-lg:flex-col">
+        <aside className="flex w-full shrink-0 flex-col gap-4 bg-table-header p-6 sm:p-8 lg:w-[396px]">
           <div className="flex items-center space-x-4">
             {page.organizationLogo && (
               <img
@@ -211,27 +211,27 @@ export function PublicBookingPage({
               />
             )}
             {page.organizationName && (
-              <p className="text-lg font-semibold text-[#0d3185]">
+              <p className="text-lg font-semibold text-brand">
                 {page.organizationName}
               </p>
             )}
           </div>
-          <h1 className="text-3xl font-semibold leading-tight text-[#0d3185] sm:text-[40px] sm:leading-[50px]">
+          <h1 className="text-3xl font-semibold leading-tight text-brand sm:text-[40px] sm:leading-[50px]">
             {page.title}
           </h1>
 
-          <p className="flex items-center gap-2 text-base font-semibold text-[#807f7f]">
+          <p className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
             <Clock className="h-5 w-5" />
             {page.durationMinutes} minutes
           </p>
 
           {page.description && (
-            <p className="text-base leading-[25px] text-[#202020]">
+            <p className="text-base leading-[25px] text-foreground">
               {page.description}
             </p>
           )}
 
-          <div className="mt-2 flex rounded-[10px] bg-white p-2.5">
+          <div className="mt-2 flex rounded-[10px] bg-card p-2.5">
             {(["VIDEO", "IN_PERSON"] as const).map((mode) => (
               <button
                 key={mode}
@@ -241,8 +241,8 @@ export function PublicBookingPage({
                 className={cn(
                   "h-8 flex-1 rounded-md text-sm font-bold transition-colors",
                   activeLocation === mode
-                    ? "bg-[#005cb1] text-white"
-                    : "font-semibold text-[#7584a8]",
+                    ? "bg-primary text-primary-foreground"
+                    : "font-semibold text-muted-foreground",
                   !canChooseLocation && "cursor-default"
                 )}
               >
@@ -251,12 +251,12 @@ export function PublicBookingPage({
             ))}
           </div>
 
-          <p className="text-sm leading-[25px] text-[#807f7f]">
+          <p className="text-sm leading-[25px] text-muted-foreground">
             {locationHint}
           </p>
 
           <div className="mt-2 space-y-2">
-            <Label htmlFor="booking-timezone" className="text-[#202020]">
+            <Label htmlFor="booking-timezone" className="text-foreground">
               Your Timezone
             </Label>
             <Select
@@ -266,7 +266,7 @@ export function PublicBookingPage({
                 setSelectedSlot(null);
               }}
             >
-              <SelectTrigger id="booking-timezone" className="w-full bg-white">
+              <SelectTrigger id="booking-timezone" className="w-full bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -281,7 +281,7 @@ export function PublicBookingPage({
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-          <h2 className="mb-4 text-xl font-semibold text-[#0d3185] sm:text-2xl">
+          <h2 className="mb-4 text-xl font-semibold text-brand sm:text-2xl">
             {collectingDetails ? "Your Details" : "Select Date and Time"}
           </h2>
 
@@ -343,11 +343,7 @@ export function PublicBookingPage({
                   >
                     Back
                   </Button>
-                  <Button
-                    type="submit"
-                    className="bg-[#0d3185] hover:bg-[#0d3185]/90"
-                    disabled={bookMutation.isPending}
-                  >
+                  <Button type="submit" disabled={bookMutation.isPending}>
                     {bookMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
@@ -386,11 +382,11 @@ export function PublicBookingPage({
               </div>
 
               <div className="mt-4 flex flex-col items-stretch gap-3 border-t pt-5 sm:flex-row sm:items-center sm:gap-4">
-                <p className="flex-1 text-sm font-medium text-[#202020]">
+                <p className="flex-1 text-sm font-medium text-foreground">
                   {selectedSlot ? (
                     <>
                       Your meeting will be booked for{" "}
-                      <span className="font-semibold text-[#005cb1]">
+                      <span className="font-semibold text-primary">
                         {selectedLabel}.
                       </span>
                     </>
@@ -400,7 +396,6 @@ export function PublicBookingPage({
                 </p>
                 <Button
                   type="button"
-                  className="bg-[#0d3185] hover:bg-[#0d3185]/90"
                   disabled={!selectedSlot}
                   onClick={() => setCollectingDetails(true)}
                 >

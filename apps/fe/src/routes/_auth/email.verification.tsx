@@ -1,13 +1,44 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/ui/components/card";
+import { Button } from "@dashboard/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@dashboard/ui/components/card";
+import { Spinner } from "@dashboard/ui/components/spinner";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/email/verification")({
   component: RouteComponent,
+  errorComponent: VerificationError,
 });
+
+function VerificationError() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+      <Card className="w-full max-w-md shadow-xl border border-border">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-foreground">
+            Something went wrong
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center py-6 space-y-4">
+          <XCircle className="h-12 w-12 text-destructive" />
+          <p className="text-muted-foreground text-center text-sm">
+            We could not load this page. Try the link again from your email.
+          </p>
+          <Button asChild className="w-full">
+            <Link to="/login">Go to Login</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function RouteComponent() {
   const { token } = useSearch({ from: "/_auth/email/verification" }) as {
@@ -39,7 +70,7 @@ function RouteComponent() {
 
         toast.success("Email verified successfully.");
         setStatus("success");
-      } catch (err) {
+      } catch {
         setStatus("error");
       }
     };
@@ -48,10 +79,10 @@ function RouteComponent() {
   }, [token]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
-      <Card className="w-full max-w-md shadow-xl border border-gray-200">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+      <Card className="w-full max-w-md shadow-xl border border-border">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">
+          <CardTitle className="text-2xl font-bold text-foreground">
             Email Verification
           </CardTitle>
         </CardHeader>
@@ -59,8 +90,8 @@ function RouteComponent() {
         <CardContent className="flex flex-col items-center py-6 space-y-4">
           {status === "loading" && (
             <>
-              <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-              <p className="text-gray-600 text-sm">
+              <Spinner className="h-10 w-10" />
+              <p className="text-muted-foreground text-sm">
                 Verifying your email, please wait...
               </p>
             </>
@@ -68,33 +99,27 @@ function RouteComponent() {
 
           {status === "success" && (
             <>
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
-              <p className="text-gray-700 text-center text-sm">
+              <CheckCircle2 className="h-12 w-12 text-success" />
+              <p className="text-muted-foreground text-center text-sm">
                 Your email has been verified successfully.
               </p>
 
-              <Link
-                to="/login"
-                className="w-full px-4 py-2 text-center rounded-md bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Go to Login
-              </Link>
+              <Button asChild className="w-full">
+                <Link to="/login">Go to Login</Link>
+              </Button>
             </>
           )}
 
           {status === "error" && (
             <>
-              <XCircle className="h-12 w-12 text-red-500" />
-              <p className="text-gray-700 text-center text-sm">
+              <XCircle className="h-12 w-12 text-destructive" />
+              <p className="text-muted-foreground text-center text-sm">
                 Invalid or expired verification link.
               </p>
 
-              <Link
-                to="/login"
-                className="w-full px-4 py-2 text-center rounded-md bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Go to Login
-              </Link>
+              <Button asChild className="w-full">
+                <Link to="/login">Go to Login</Link>
+              </Button>
             </>
           )}
         </CardContent>

@@ -5,40 +5,6 @@ import { Plus, Trash2, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { ConfirmationDialog } from "../confirmation-dialog";
 
-type LogPageHeaderProps = {
-  icon: LucideIcon;
-  title: string;
-  subtitle: string;
-  actionLabel: string;
-  onAction: () => void;
-};
-
-export const LogPageHeader = ({
-  icon: Icon,
-  title,
-  subtitle,
-  actionLabel,
-  onAction,
-}: LogPageHeaderProps) => (
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div className="flex items-center gap-3">
-      <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shrink-0">
-        <Icon className="h-6 w-6 text-white" />
-      </div>
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-          {title}
-        </h1>
-        <p className="text-sm text-gray-600 mt-0.5">{subtitle}</p>
-      </div>
-    </div>
-    <Button onClick={onAction} className="bg-primary hover:bg-primary/90">
-      <Plus className="h-4 w-4 mr-2" />
-      {actionLabel}
-    </Button>
-  </div>
-);
-
 type LogStatCardProps = {
   icon: LucideIcon;
   label: string;
@@ -52,18 +18,18 @@ export const LogStatCard = ({
   value,
   hint,
 }: LogStatCardProps) => (
-  <Card className="p-4 flex flex-row items-center gap-4 border-gray-200">
+  <Card className="p-4 flex flex-row items-center gap-4 border-border">
     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
       <Icon className="h-5 w-5 text-primary" />
     </div>
     <div className="min-w-0">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
         {label}
       </p>
-      <p className="text-xl font-bold text-gray-900 tabular-nums truncate">
+      <p className="text-xl font-bold text-foreground tabular-nums truncate">
         {value}
       </p>
-      {hint && <p className="text-xs text-gray-400">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   </Card>
 );
@@ -88,8 +54,10 @@ export const LogEmptyState = ({
       <Icon className="h-8 w-8 text-primary" />
     </div>
     <div>
-      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      <p className="text-sm text-gray-500 mt-1 max-w-sm">{description}</p>
+      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+      <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+        {description}
+      </p>
     </div>
     <Button
       onClick={onAction}
@@ -132,7 +100,7 @@ export const LogRowDelete = ({
         disabled={disabled}
         onClick={() => setConfirmOpen(true)}
         aria-label={`Delete ${entityLabel}`}
-        className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
+        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
       >
         <Trash2 className="h-4 w-4" />
       </Button>
