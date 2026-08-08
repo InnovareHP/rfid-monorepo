@@ -43,10 +43,7 @@ export class SenderService {
       return this.createPersonal(dto, organizationId, userId);
     }
 
-    const domain =
-      dto.kind === "MANAGED_DOMAIN"
-        ? `${dto.subdomain}.${this.managedDomain()}`
-        : dto.domain;
+    const domain = dto.domain;
 
     if (!domain) {
       throw new BadRequestException("A sending domain is required");
@@ -203,14 +200,5 @@ export class SenderService {
     }
 
     return sender;
-  }
-
-  private managedDomain() {
-    if (!appConfig.SES_MANAGED_DOMAIN) {
-      throw new BadRequestException(
-        "Managed sending domains are not configured on this deployment"
-      );
-    }
-    return appConfig.SES_MANAGED_DOMAIN;
   }
 }

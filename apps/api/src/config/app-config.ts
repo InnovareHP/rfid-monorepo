@@ -58,9 +58,6 @@ export const appConfigSchema = z.object({
   ELDONFAX_API_KEY: z.string().min(1).optional(),
   ELDONFAX_BASE_URL: z.url().default("https://api.eldonfax.com"),
   SES_CONFIGURATION_SET: z.string().min(1),
-  // Parent of every managed sending subdomain, e.g. mail.refidly.com. Unset
-  // means the managed option is unavailable, not that it silently degrades.
-  SES_MANAGED_DOMAIN: z.string().min(1).optional(),
   EMAIL_INGEST_DOMAIN: z.string().min(1).optional(),
   SES_INBOUND_BUCKET: z.string().min(1).optional(),
   SES_INBOUND_TOPIC_ARN: z.string().min(1).optional(),

@@ -21,7 +21,7 @@ export interface DispatchInput {
 // A campaign's chosen identity. A verified domain sends through SES as that
 // domain; a personal one pins the mailbox chain to whoever connected it.
 export interface DispatchSender {
-  kind: "PERSONAL" | "MANAGED_DOMAIN" | "CUSTOM_DOMAIN";
+  kind: "PERSONAL" | "CUSTOM_DOMAIN";
   fromEmail: string;
   fromName: string | null;
   replyTo: string | null;

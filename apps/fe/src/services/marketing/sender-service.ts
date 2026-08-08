@@ -1,6 +1,6 @@
 import { axiosClient } from "@/lib/axios-client";
 
-export type SenderKind = "PERSONAL" | "MANAGED_DOMAIN" | "CUSTOM_DOMAIN";
+export type SenderKind = "PERSONAL" | "CUSTOM_DOMAIN";
 
 export type DnsRecord = {
   type: "CNAME";
@@ -29,14 +29,6 @@ export type SenderIdentity = {
 
 export type CreateSenderInput =
   | { kind: "PERSONAL"; label: string; fromName?: string }
-  | {
-      kind: "MANAGED_DOMAIN";
-      label: string;
-      fromName?: string;
-      subdomain: string;
-      mailbox?: string;
-      replyTo?: string;
-    }
   | {
       kind: "CUSTOM_DOMAIN";
       label: string;

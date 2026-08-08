@@ -21,7 +21,6 @@ enum BlastStatus {
 // connected mailbox; both domain kinds send through SES as the org's own domain.
 enum SenderKind {
   PERSONAL
-  MANAGED_DOMAIN
   CUSTOM_DOMAIN
 
   @@schema("marketing_schema")

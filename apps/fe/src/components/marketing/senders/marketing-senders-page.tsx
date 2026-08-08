@@ -8,7 +8,7 @@ import {
 import { Button } from "@dashboard/ui/components/button";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AtSign, Building2, Globe, Plus, Trash2 } from "lucide-react";
+import { AtSign, Globe, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { StatusPill, type StatusTone } from "../../reusable-table/status-pill";
@@ -31,7 +31,6 @@ const STATUS_LABELS: Record<SenderIdentity["status"], string> = {
 
 const KIND_ICONS = {
   PERSONAL: AtSign,
-  MANAGED_DOMAIN: Building2,
   CUSTOM_DOMAIN: Globe,
 } as const;
 
