@@ -5,7 +5,16 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { BookingLocation, LocationType, Prisma } from "@prisma/client";
+import {
+  BookingLocation,
+  CalendarProvider,
+  LocationType,
+  Prisma,
+} from "@prisma/client";
+import {
+  NOTIFICATION_ENTITY,
+  NOTIFICATION_TYPE,
+} from "@dashboard/shared";
 import { randomBytes } from "crypto";
 import type { z } from "zod";
 import { appConfig } from "../../config/app-config";
@@ -15,6 +24,7 @@ import { BookingCanceledEmail } from "../../react-email/booking-canceled-email";
 import { BookingConfirmationEmail } from "../../react-email/booking-confirmation-email";
 import { GoogleCalendarService } from "../calendar/google-calendar.service";
 import { OutlookCalendarService } from "../calendar/outlook-calendar.service";
+import { NotificationService } from "../notification/notification.service";
 import { UpdateBookingPageSchema } from "./dto/booking.dto";
 import { CreateBookingDto } from "./dto/booking.schema";
 import {
@@ -48,20 +58,24 @@ export class BookingService {
 
   constructor(
     private readonly googleCalendarService: GoogleCalendarService,
-    private readonly outlookCalendarService: OutlookCalendarService
+    private readonly outlookCalendarService: OutlookCalendarService,
+    private readonly notificationService: NotificationService
   ) {}
 
   // ─── Owner-facing (authenticated) ──────────────────────────────────
 
   async getOrCreateOwnPage(userId: string, organizationId: string) {
-    const [page, calendarConnected] = await Promise.all([
+    const [page, google, outlook] = await Promise.all([
       this.getOrCreatePage(userId, organizationId),
-      this.hasCalendarConnection(userId),
+      this.googleCalendarService.getConnectionStatus(userId),
+      this.outlookCalendarService.getConnectionStatus(userId),
     ]);
     return {
       ...page,
       publicUrl: this.buildPublicUrl(page.slug),
-      calendarConnected,
+      // Per provider rather than one flag: the settings page only offers the
+      // Meet-or-Teams choice when both are connected.
+      calendars: { google: google.connected, outlook: outlook.connected },
     };
   }
 
@@ -178,6 +192,22 @@ export class BookingService {
     });
 
     await this.sendCancellationEmails(userId, organizationId, cancelled);
+
+    // Passing the canceller as actor means the host is not told about their
+    // own cancellation, and an invitee-initiated one would notify them.
+    const page = await prisma.bookingPage.findFirst({
+      where: { userId, organizationId },
+      select: { userId: true, organizationId: true, timezone: true },
+    });
+    if (page) {
+      await this.notifyHost(page, {
+        type: NOTIFICATION_TYPE.BOOKING_CANCELLED,
+        title: "Booking cancelled",
+        body: `${cancelled.inviteeName} cancelled ${this.formatFor(page.timezone, cancelled.startTime)}.`,
+        bookingId: cancelled.id,
+        actorUserId: userId,
+      });
+    }
 
     return cancelled;
   }
@@ -444,6 +474,12 @@ export class BookingService {
 
     const meetingUrl = await this.syncBookingToCalendar(page, booking);
     await this.sendBookingEmails(page, booking, meetingUrl);
+    await this.notifyHost(page, {
+      type: NOTIFICATION_TYPE.BOOKING_CREATED,
+      title: "New booking scheduled",
+      body: `${booking.inviteeName} booked a ${page.durationMinutes} min meeting for ${this.formatFor(page.timezone, booking.startTime)}.`,
+      bookingId: booking.id,
+    });
 
     return {
       id: booking.id,
@@ -461,6 +497,45 @@ export class BookingService {
     });
     if (!page) throw new NotFoundException("Booking page not found");
     return page;
+  }
+
+  private formatFor(timezone: string, at: Date) {
+    return at.toLocaleString("en-US", {
+      timeZone: timezone,
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  }
+
+  // The host reads notifications as a member, so their member row is the
+  // recipient. An invitee has no account and is never the actor.
+  private async notifyHost(
+    page: { userId: string; organizationId: string },
+    event: {
+      type: string;
+      title: string;
+      body: string;
+      bookingId: string;
+      actorUserId?: string;
+    }
+  ) {
+    const member = await prisma.member.findFirst({
+      where: { userId: page.userId, organizationId: page.organizationId },
+      select: { id: true },
+    });
+    if (!member) return;
+
+    await this.notificationService.notify({
+      organizationId: page.organizationId,
+      recipientMemberIds: [member.id],
+      type: event.type,
+      title: event.title,
+      body: event.body,
+      link: `/${page.organizationId}/settings/booking`,
+      entityType: NOTIFICATION_ENTITY.BOOKING,
+      entityId: event.bookingId,
+      actorUserId: event.actorUserId ?? null,
+    });
   }
 
   // A booking is only real once it lands on the host's calendar, so every path
@@ -506,7 +581,12 @@ export class BookingService {
   // Returns the join URL when the provider minted one, so the confirmation
   // emails can carry it.
   private async syncBookingToCalendar(
-    page: { userId: string; title: string; locationLabel: string | null },
+    page: {
+      userId: string;
+      title: string;
+      locationLabel: string | null;
+      preferredProvider: CalendarProvider | null;
+    },
     booking: {
       id: string;
       startTime: Date;
@@ -536,18 +616,25 @@ export class BookingService {
         null;
       let provider: "google" | "outlook" | null = null;
 
-      if (google.connected) {
-        created = await this.googleCalendarService.createEvent(
-          page.userId,
-          eventData
-        );
-        provider = "google";
-      } else if (outlook.connected) {
+      // The host's preference decides when both are connected, because that
+      // choice is also Meet vs Teams for the invitee.
+      const useOutlook =
+        page.preferredProvider === "OUTLOOK"
+          ? outlook.connected
+          : !google.connected && outlook.connected;
+
+      if (useOutlook) {
         created = await this.outlookCalendarService.createEvent(
           page.userId,
           eventData
         );
         provider = "outlook";
+      } else if (google.connected) {
+        created = await this.googleCalendarService.createEvent(
+          page.userId,
+          eventData
+        );
+        provider = "google";
       }
 
       if (created?.id && provider) {

@@ -10,6 +10,9 @@ model BookingPage {
   // BOTH lets the invitee choose; the other two fix the mode for every booking.
   locationType         LocationType @default(VIDEO)
   locationLabel        String?
+  // Which calendar to write to when both are connected; null means whichever
+  // one is, and it decides Meet vs Teams for the meeting link.
+  preferredProvider    CalendarProvider?
   durationMinutes      Int      @default(30)
   timezone             String
   bufferBeforeMinutes  Int      @default(0)
@@ -78,6 +81,13 @@ model Booking {
 enum BookingStatus {
   CONFIRMED
   CANCELLED
+
+  @@schema("booking_schema")
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
 
   @@schema("booking_schema")
 }

@@ -15,7 +15,9 @@ export interface BookingPage {
   isActive: boolean;
   publicUrl: string;
   // No connected calendar means the public page takes no bookings at all.
-  calendarConnected: boolean;
+  calendars: { google: boolean; outlook: boolean };
+  // Decides Meet vs Teams when the host connected both calendars.
+  preferredProvider: "GOOGLE" | "OUTLOOK" | null;
 }
 
 export interface AvailabilityRule {
@@ -62,6 +64,7 @@ export const updateOwnBookingPage = async (
     bufferBeforeMinutes: number;
     bufferAfterMinutes: number;
     minNoticeHours: number;
+    preferredProvider: "GOOGLE" | "OUTLOOK" | null;
     isActive: boolean;
   }>
 ): Promise<BookingPage> => {

@@ -30,6 +30,7 @@ import { Route as TeamTeamSettingsRouteImport } from './routes/_team/$team/setti
 import { Route as TeamTeamReferralAnalyticsRouteImport } from './routes/_team/$team/referral-analytics'
 import { Route as TeamTeamProfileRouteImport } from './routes/_team/$team/profile'
 import { Route as TeamTeamPlansRouteImport } from './routes/_team/$team/plans'
+import { Route as TeamTeamNotificationsRouteImport } from './routes/_team/$team/notifications'
 import { Route as TeamTeamMasterListAnalyticsRouteImport } from './routes/_team/$team/master-list-analytics'
 import { Route as TeamTeamIntegrationsRouteImport } from './routes/_team/$team/integrations'
 import { Route as TeamTeamHelpRouteImport } from './routes/_team/$team/help'
@@ -176,6 +177,11 @@ const TeamTeamProfileRoute = TeamTeamProfileRouteImport.update({
 const TeamTeamPlansRoute = TeamTeamPlansRouteImport.update({
   id: '/$team/plans',
   path: '/$team/plans',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamNotificationsRoute = TeamTeamNotificationsRouteImport.update({
+  id: '/$team/notifications',
+  path: '/$team/notifications',
   getParentRoute: () => TeamRoute,
 } as any)
 const TeamTeamMasterListAnalyticsRoute =
@@ -437,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/$team/help': typeof TeamTeamHelpRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
+  '/$team/notifications': typeof TeamTeamNotificationsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
   '/$team/profile': typeof TeamTeamProfileRoute
   '/$team/referral-analytics': typeof TeamTeamReferralAnalyticsRoute
@@ -501,6 +508,7 @@ export interface FileRoutesByTo {
   '/$team/help': typeof TeamTeamHelpRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
+  '/$team/notifications': typeof TeamTeamNotificationsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
   '/$team/profile': typeof TeamTeamProfileRoute
   '/$team/referral-analytics': typeof TeamTeamReferralAnalyticsRoute
@@ -568,6 +576,7 @@ export interface FileRoutesById {
   '/_team/$team/help': typeof TeamTeamHelpRoute
   '/_team/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/_team/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
+  '/_team/$team/notifications': typeof TeamTeamNotificationsRoute
   '/_team/$team/plans': typeof TeamTeamPlansRoute
   '/_team/$team/profile': typeof TeamTeamProfileRoute
   '/_team/$team/referral-analytics': typeof TeamTeamReferralAnalyticsRoute
@@ -634,6 +643,7 @@ export interface FileRouteTypes {
     | '/$team/help'
     | '/$team/integrations'
     | '/$team/master-list-analytics'
+    | '/$team/notifications'
     | '/$team/plans'
     | '/$team/profile'
     | '/$team/referral-analytics'
@@ -698,6 +708,7 @@ export interface FileRouteTypes {
     | '/$team/help'
     | '/$team/integrations'
     | '/$team/master-list-analytics'
+    | '/$team/notifications'
     | '/$team/plans'
     | '/$team/profile'
     | '/$team/referral-analytics'
@@ -764,6 +775,7 @@ export interface FileRouteTypes {
     | '/_team/$team/help'
     | '/_team/$team/integrations'
     | '/_team/$team/master-list-analytics'
+    | '/_team/$team/notifications'
     | '/_team/$team/plans'
     | '/_team/$team/profile'
     | '/_team/$team/referral-analytics'
@@ -969,6 +981,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/plans'
       fullPath: '/$team/plans'
       preLoaderRoute: typeof TeamTeamPlansRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/notifications': {
+      id: '/_team/$team/notifications'
+      path: '/$team/notifications'
+      fullPath: '/$team/notifications'
+      preLoaderRoute: typeof TeamTeamNotificationsRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/master-list-analytics': {
@@ -1318,6 +1337,7 @@ interface TeamRouteChildren {
   TeamTeamHelpRoute: typeof TeamTeamHelpRoute
   TeamTeamIntegrationsRoute: typeof TeamTeamIntegrationsRoute
   TeamTeamMasterListAnalyticsRoute: typeof TeamTeamMasterListAnalyticsRoute
+  TeamTeamNotificationsRoute: typeof TeamTeamNotificationsRoute
   TeamTeamPlansRoute: typeof TeamTeamPlansRoute
   TeamTeamProfileRoute: typeof TeamTeamProfileRoute
   TeamTeamReferralAnalyticsRoute: typeof TeamTeamReferralAnalyticsRoute
@@ -1366,6 +1386,7 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamHelpRoute: TeamTeamHelpRoute,
   TeamTeamIntegrationsRoute: TeamTeamIntegrationsRoute,
   TeamTeamMasterListAnalyticsRoute: TeamTeamMasterListAnalyticsRoute,
+  TeamTeamNotificationsRoute: TeamTeamNotificationsRoute,
   TeamTeamPlansRoute: TeamTeamPlansRoute,
   TeamTeamProfileRoute: TeamTeamProfileRoute,
   TeamTeamReferralAnalyticsRoute: TeamTeamReferralAnalyticsRoute,

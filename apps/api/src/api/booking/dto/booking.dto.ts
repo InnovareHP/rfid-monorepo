@@ -11,6 +11,8 @@ export const UpdateBookingPageSchema = z.object({
   bufferAfterMinutes: z.number().int().min(0).max(120).optional(),
   minNoticeHours: z.number().int().min(0).max(168).optional(),
   isActive: z.boolean().optional(),
+  // Null clears the preference back to whichever calendar is connected.
+  preferredProvider: z.enum(["GOOGLE", "OUTLOOK"]).nullable().optional(),
 });
 
 export const AvailabilityRuleSchema = z.object({
