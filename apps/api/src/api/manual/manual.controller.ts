@@ -29,14 +29,25 @@ export class ManualController {
   async getPublishedArticles(
     @Query("categoryId") categoryId?: string,
     @Query("limit") limit?: number,
-    @Query("page") page?: number
+    @Query("page") page?: number,
+    @Query("search") search?: string
   ) {
     try {
       return await this.manualService.getPublishedArticles(
         categoryId,
         limit,
-        page
+        page,
+        search
       );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/featured")
+  async getFeaturedArticles(@Query("limit") limit?: number) {
+    try {
+      return await this.manualService.getFeaturedArticles(limit);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -55,6 +66,24 @@ export class ManualController {
   async getCategories() {
     try {
       return await this.manualService.getCategories();
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/categories/published")
+  async getPublishedCategories() {
+    try {
+      return await this.manualService.getPublishedCategories();
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("/categories/slug/:slug")
+  async getCategoryBySlug(@Param("slug") slug: string) {
+    try {
+      return await this.manualService.getPublishedCategoryBySlug(slug);
     } catch (error) {
       throw new BadRequestException(error.message);
     }

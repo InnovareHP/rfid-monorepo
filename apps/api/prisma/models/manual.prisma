@@ -25,6 +25,8 @@ model ManualArticle {
   slug      String   @unique
   summary   String // short description shown in search results / cards
   published Boolean  @default(false)
+  featured  Boolean  @default(false) // surfaced in the help center "Popular Articles" list
+  readMinutes Int    @default(3) // estimated reading time shown on article rows
   order     Int      @default(0)
 
   categoryId String

@@ -26,6 +26,8 @@ export interface ManualArticle {
   slug: string;
   summary: string;
   published: boolean;
+  featured: boolean;
+  readMinutes: number;
   order: number;
   categoryId: string;
   createdAt: string;
@@ -105,6 +107,8 @@ export const createArticle = async (data: {
   summary: string;
   categoryId: string;
   published?: boolean;
+  featured?: boolean;
+  readMinutes?: number;
   order?: number;
   steps: {
     title?: string;
@@ -125,6 +129,8 @@ export const updateArticle = async (
     summary?: string;
     categoryId?: string;
     published?: boolean;
+    featured?: boolean;
+    readMinutes?: number;
     order?: number;
     steps?: {
       title?: string;

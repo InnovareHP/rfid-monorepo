@@ -67,7 +67,12 @@
       "Bash(echo \"exit=$?\")",
       "Bash(npx eslint *)",
       "Bash(python -)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "mcp__figma__download_assets",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/tasks/**)",
+      "Bash(rm 'routes/_team/$team/help.tsx' components/help/help-page.tsx)",
+      "Bash(mkdir -p 'routes/_team/$team/help/$categorySlug')",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/routes/_team/**)"
     ]
   }
 }

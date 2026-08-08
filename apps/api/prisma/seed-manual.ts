@@ -123,6 +123,56 @@ async function main() {
         order: 10,
       },
     }),
+    prisma.manualCategory.create({
+      data: {
+        name: "Tasks & Projects",
+        slug: "tasks-and-projects",
+        description:
+          "Plan work in projects and lists, assign owners, and track tasks to done.",
+        icon: "ClipboardPen",
+        order: 11,
+      },
+    }),
+    prisma.manualCategory.create({
+      data: {
+        name: "Marketing",
+        slug: "marketing",
+        description:
+          "Send email blasts, build recipient groups, and verify a sending identity.",
+        icon: "Funnel",
+        order: 12,
+      },
+    }),
+    prisma.manualCategory.create({
+      data: {
+        name: "Contacts & Companies",
+        slug: "contacts-and-companies",
+        description:
+          "Keep the people and organizations you work with linked to your records.",
+        icon: "Contact",
+        order: 13,
+      },
+    }),
+    prisma.manualCategory.create({
+      data: {
+        name: "Booking",
+        slug: "booking",
+        description:
+          "Publish a booking page, set your availability, and meet over Meet or Teams.",
+        icon: "CalendarClock",
+        order: 14,
+      },
+    }),
+    prisma.manualCategory.create({
+      data: {
+        name: "Notifications",
+        slug: "notifications",
+        description:
+          "Stay on top of task, referral, marketing, and booking activity.",
+        icon: "Bell",
+        order: 15,
+      },
+    }),
   ]);
 
   const [
@@ -137,6 +187,11 @@ async function main() {
     accountSecurity,
     billingSubscription,
     supportPortal,
+    tasksProjects,
+    marketing,
+    contactsCompanies,
+    booking,
+    notifications,
   ] = categories;
 
   // ── Articles ────────────────────────────────────────────────
@@ -170,6 +225,8 @@ async function main() {
         "Create your organization, upload a team logo, and configure initial settings after signing up.",
       categoryId: gettingStarted.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 0,
       createdBy: userId,
       steps: {
@@ -211,6 +268,8 @@ async function main() {
         "Send invitations to teammates and assign the right roles so everyone can start working.",
       categoryId: gettingStarted.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -256,6 +315,8 @@ async function main() {
         "Add new leads to your Master List and edit any field inline without leaving the table.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 0,
       createdBy: userId,
       steps: {
@@ -297,6 +358,8 @@ async function main() {
         "Use search, filters, and column visibility to find exactly the leads you need.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -338,6 +401,8 @@ async function main() {
         "Bulk import leads by uploading a CSV file. The system auto-maps columns to your lead fields.",
       categoryId: masterList.id,
       published: true,
+      featured: true,
+      readMinutes: 3,
       order: 2,
       createdBy: userId,
       steps: {
@@ -379,6 +444,8 @@ async function main() {
         "Download your Master List data as a CSV file for offline use or external reporting.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 3,
       createdBy: userId,
       steps: {
@@ -408,6 +475,8 @@ async function main() {
         "Review all changes made to leads and restore previous values if needed (Owner and Admission Manager only).",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 4,
       createdBy: userId,
       steps: {
@@ -443,6 +512,8 @@ async function main() {
         "View aggregated marketing analytics, filter by date and liaison, and export as PDF.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 5,
       createdBy: userId,
       steps: {
@@ -482,6 +553,8 @@ async function main() {
         "Add one or multiple referrals at once using the multi-referral creation form.",
       categoryId: referralList.id,
       published: true,
+      featured: true,
+      readMinutes: 3,
       order: 0,
       createdBy: userId,
       steps: {
@@ -523,6 +596,8 @@ async function main() {
         "Edit referrals inline, filter by date and fields, delete records, and export to CSV.",
       categoryId: referralList.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -564,6 +639,8 @@ async function main() {
         "View referral metrics, filter by date and liaison, and export analytics as PDF.",
       categoryId: referralList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 2,
       createdBy: userId,
       steps: {
@@ -603,6 +680,8 @@ async function main() {
         "Link your Gmail or Outlook email account to power activity workflows and follow-ups.",
       categoryId: integrations.id,
       published: true,
+      featured: true,
+      readMinutes: 4,
       order: 0,
       createdBy: userId,
       steps: {
@@ -650,6 +729,8 @@ async function main() {
         "Link your calendar provider to view and create events directly from the dashboard.",
       categoryId: integrations.id,
       published: true,
+      featured: true,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -695,6 +776,8 @@ async function main() {
         "View your team roster, change roles, remove members, and manage pending invitations.",
       categoryId: teamRoles.id,
       published: true,
+      featured: true,
+      readMinutes: 4,
       order: 0,
       createdBy: userId,
       steps: {
@@ -742,6 +825,8 @@ async function main() {
         "Learn what each role can and cannot do across the dashboard features.",
       categoryId: teamRoles.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 1,
       createdBy: userId,
       steps: {
@@ -781,6 +866,8 @@ async function main() {
         "Track miles traveled for work with automatic reimbursement calculation at federal or state rates.",
       categoryId: logsReports.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 0,
       createdBy: userId,
       steps: {
@@ -822,6 +909,8 @@ async function main() {
         "Record facility visits, touchpoints, and contacts for marketing tracking and reporting.",
       categoryId: logsReports.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 1,
       createdBy: userId,
       steps: {
@@ -857,6 +946,8 @@ async function main() {
         "Record business expenses with amounts, descriptions, and receipt images.",
       categoryId: logsReports.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 2,
       createdBy: userId,
       steps: {
@@ -898,6 +989,8 @@ async function main() {
         "Access Mileage, Marketing, and Expense reports to see aggregated data and export as PDF (Owner and Admission Manager only).",
       categoryId: logsReports.id,
       published: true,
+      featured: true,
+      readMinutes: 4,
       order: 3,
       createdBy: userId,
       steps: {
@@ -949,6 +1042,8 @@ async function main() {
         "View events from connected calendars, switch between views, and create new events.",
       categoryId: calendar.id,
       published: true,
+      featured: false,
+      readMinutes: 4,
       order: 0,
       createdBy: userId,
       steps: {
@@ -1000,6 +1095,8 @@ async function main() {
         "Add counties to your organization and assign liaison personnel to manage each one.",
       categoryId: countyConfig.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 0,
       createdBy: userId,
       steps: {
@@ -1045,6 +1142,8 @@ async function main() {
         "Understand the sidebar layout, primary bar icons, and how to find every feature.",
       categoryId: gettingStarted.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 2,
       createdBy: userId,
       steps: {
@@ -1086,6 +1185,8 @@ async function main() {
         "If you belong to multiple organizations, switch between them without logging out.",
       categoryId: gettingStarted.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 3,
       createdBy: userId,
       steps: {
@@ -1125,6 +1226,8 @@ async function main() {
         "Select and remove one or multiple leads from your Master List.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 6,
       createdBy: userId,
       steps: {
@@ -1160,6 +1263,8 @@ async function main() {
         "Run AI-powered analysis on your leads to get insights and recommendations.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 7,
       createdBy: userId,
       steps: {
@@ -1195,6 +1300,8 @@ async function main() {
         "Get notified when leads are updated and mark notifications as seen.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 8,
       createdBy: userId,
       steps: {
@@ -1234,6 +1341,8 @@ async function main() {
         "Customize your organization's branding by uploading a logo that appears across the dashboard.",
       categoryId: teamRoles.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 2,
       createdBy: userId,
       steps: {
@@ -1267,32 +1376,34 @@ async function main() {
 
   await prisma.manualArticle.create({
     data: {
-      title: "Checking Integration Status on the Help Page",
+      title: "Checking Integration Status",
       slug: "checking-integration-status",
       summary:
-        "Quickly see if your Gmail and Outlook accounts are connected from the Help Center.",
+        "See which email, calendar, and fax integrations are connected, and reconnect the ones that dropped.",
       categoryId: integrations.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 2,
       createdBy: userId,
       steps: {
         create: [
           {
-            title: "Open the Help Center",
+            title: "Open the Integrations page",
             content:
-              "Click the Help icon in the primary sidebar. The Help Center page loads with an Integration Health card on the right side.",
+              'Click the Apps icon in the primary sidebar, or open "Integrations" from the sidebar. Each provider is listed as a card with its current connection state.',
             order: 0,
           },
           {
-            title: "Check connection status",
+            title: "Read the connection state",
             content:
-              'The Integration Health card shows Gmail and Outlook with badges indicating "Connected" or "Disconnected". This gives you a quick health check without navigating to the Integrations page.',
+              "A connected provider shows the linked account address and a Disconnect action. A provider that was never connected, or whose token expired, shows a Connect action instead.",
             order: 1,
           },
           {
-            title: "Fix disconnected integrations",
+            title: "Reconnect a dropped integration",
             content:
-              "If a provider shows as Disconnected, navigate to the Integrations page (Apps icon in the primary sidebar) and reconnect. Common issues include expired tokens — disconnecting and reconnecting usually resolves this.",
+              "Expired tokens are the most common cause of a provider falling back to Connect. Disconnect first, then connect again and complete the provider consent screen. Calendar events and email sync resume on the next refresh.",
             order: 2,
           },
         ],
@@ -1312,6 +1423,8 @@ async function main() {
         "Remove incorrect mileage, marketing, or expense log entries from your records.",
       categoryId: logsReports.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 4,
       createdBy: userId,
       steps: {
@@ -1351,6 +1464,8 @@ async function main() {
         "Create, view, and manage events from Google Calendar or Outlook directly in the dashboard.",
       categoryId: calendar.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -1396,6 +1511,8 @@ async function main() {
         "Assign team members to specific counties so everyone knows their coverage area.",
       categoryId: countyConfig.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -1441,6 +1558,8 @@ async function main() {
         "Create your dashboard account with email and password, then verify your email to get started.",
       categoryId: accountSecurity.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 0,
       createdBy: userId,
       steps: {
@@ -1482,6 +1601,8 @@ async function main() {
         "Sign in with email/password or Google, and use OTP verification for added security.",
       categoryId: accountSecurity.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -1523,6 +1644,8 @@ async function main() {
         "Recover access to your account by resetting your password via email.",
       categoryId: accountSecurity.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 2,
       createdBy: userId,
       steps: {
@@ -1558,6 +1681,8 @@ async function main() {
         "Update your name, profile picture, and personal details from the Profile page.",
       categoryId: accountSecurity.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 3,
       createdBy: userId,
       steps: {
@@ -1593,6 +1718,8 @@ async function main() {
         "Join an organization when you receive an email invitation from a team member.",
       categoryId: accountSecurity.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 4,
       createdBy: userId,
       steps: {
@@ -1632,6 +1759,8 @@ async function main() {
         "Browse subscription plans and compare features before choosing the right one for your team.",
       categoryId: billingSubscription.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 0,
       createdBy: userId,
       steps: {
@@ -1667,6 +1796,8 @@ async function main() {
         "View your current plan, update payment methods, and manage billing through the Stripe portal.",
       categoryId: billingSubscription.id,
       published: true,
+      featured: true,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -1712,6 +1843,8 @@ async function main() {
         "Create, edit, and organize the options available in dropdown and status fields for leads.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 9,
       createdBy: userId,
       steps: {
@@ -1753,6 +1886,8 @@ async function main() {
         "See the full activity history for an individual lead, including all field changes and updates.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 10,
       createdBy: userId,
       steps: {
@@ -1794,6 +1929,8 @@ async function main() {
         "Select multiple leads and send them an email directly from the Master List.",
       categoryId: masterList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 11,
       createdBy: userId,
       steps: {
@@ -1833,6 +1970,8 @@ async function main() {
         "Bulk import referrals from a CSV file with automatic field mapping and validation.",
       categoryId: referralList.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 3,
       createdBy: userId,
       steps: {
@@ -1874,6 +2013,8 @@ async function main() {
         "Customize the dropdown and status options available in referral list columns.",
       categoryId: referralList.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 4,
       createdBy: userId,
       steps: {
@@ -1913,6 +2054,8 @@ async function main() {
         "Understand the initial setup wizard that walks you through configuring your account after registration.",
       categoryId: gettingStarted.id,
       published: true,
+      featured: false,
+      readMinutes: 4,
       order: 4,
       createdBy: userId,
       steps: {
@@ -1957,41 +2100,43 @@ async function main() {
       title: "Using the Help Center",
       slug: "using-the-help-center",
       summary:
-        "Find answers quickly by browsing categories, searching articles, and accessing support resources.",
+        "Search the knowledge base, browse categories, and reach support from the help center.",
       categoryId: gettingStarted.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 5,
       createdBy: userId,
       steps: {
         create: [
           {
-            title: "Open the Help Center",
+            title: "Open the help center",
             content:
-              'Click "Help" in the sidebar navigation. The Help Center page shows a search bar, category filters, and a list of published knowledge base articles.',
+              'Click "Help" at the bottom of the primary sidebar. The landing page opens with a search field, a row of popular topic buttons, and a card for every category.',
             order: 0,
           },
           {
-            title: "Search for articles",
+            title: "Search across every guide",
             content:
-              "Type keywords into the search bar to filter articles by title, summary, or category name. Results update instantly as you type.",
+              "Type at least two characters into the search field. The category grid is replaced by matching articles, searched across article titles and summaries on the server, so results are not limited to the page you are on.",
             order: 1,
           },
           {
-            title: "Filter by category",
+            title: "Browse by category",
             content:
-              "Click on a category badge (e.g., Getting Started, Master List, Integrations) to show only articles in that category. Click the category again or select All to remove the filter.",
+              'Each card under "Browse by Category" opens that category. The category page lists its published articles with a short summary and an estimated read time, and paginates once there are more articles than fit on a page.',
             order: 2,
           },
           {
             title: "Read an article",
             content:
-              "Click on any article card to open its full content. The article shows numbered steps with explanations and optional screenshots. Use the Back button to return to the article list.",
+              "Opening an article shows its numbered steps with explanations and screenshots. The back arrow returns to the category you came from, and every article has its own URL you can share with a teammate.",
             order: 3,
           },
           {
-            title: "Quick Actions and support",
+            title: "Contact support",
             content:
-              'The Help Center also includes Quick Action cards for common tasks and an "Integration Health" section showing whether your Gmail, Outlook, and Calendar integrations are connected. Use the "Submit a Request" section to contact support directly.',
+              'If nothing answers your question, use the "Contact Support" button at the bottom of the landing page. It opens the support portal request form, where you can describe the issue and attach screenshots.',
             order: 4,
           },
         ],
@@ -2011,6 +2156,8 @@ async function main() {
         "Get instant answers and guidance from the AI-powered chat widget on the support portal.",
       categoryId: supportPortal.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 0,
       createdBy: userId,
       steps: {
@@ -2052,6 +2199,8 @@ async function main() {
         "Create a support request with details and attachments when you need help from the team.",
       categoryId: supportPortal.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 1,
       createdBy: userId,
       steps: {
@@ -2093,6 +2242,8 @@ async function main() {
         "View the status of all your submitted tickets, filter by status, and follow up on open issues.",
       categoryId: supportPortal.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 2,
       createdBy: userId,
       steps: {
@@ -2134,6 +2285,8 @@ async function main() {
         "Explore the self-service knowledge base on the support portal for articles, guides, and resources.",
       categoryId: supportPortal.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 3,
       createdBy: userId,
       steps: {
@@ -2173,6 +2326,8 @@ async function main() {
         "Remove a connected email or calendar integration when you no longer need it.",
       categoryId: integrations.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 4,
       createdBy: userId,
       steps: {
@@ -2218,6 +2373,8 @@ async function main() {
         "Remove a member from your organization when they no longer need access.",
       categoryId: teamRoles.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 3,
       createdBy: userId,
       steps: {
@@ -2263,6 +2420,8 @@ async function main() {
         "Use date range pickers and member filters to generate focused reports for mileage, marketing, and expenses.",
       categoryId: logsReports.id,
       published: true,
+      featured: false,
+      readMinutes: 3,
       order: 5,
       createdBy: userId,
       steps: {
@@ -2304,6 +2463,8 @@ async function main() {
         "Generate a downloadable PDF of any report with your current filters applied.",
       categoryId: logsReports.id,
       published: true,
+      featured: false,
+      readMinutes: 2,
       order: 6,
       createdBy: userId,
       steps: {
@@ -2331,11 +2492,609 @@ async function main() {
     },
   });
 
+  // -------------------------------------------------------------
+  // TASKS & PROJECTS
+  // -------------------------------------------------------------
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Organizing Work into Projects and Lists",
+      slug: "organizing-work-into-projects-and-lists",
+      summary:
+        "Group related work into projects, split each project into lists, and give every task a status.",
+      categoryId: tasksProjects.id,
+      published: true,
+      featured: false,
+      readMinutes: 3,
+      order: 0,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open Tasks",
+            content:
+              'Click "Tasks" under Productivity in the sidebar. The page shows your projects on the left and the tasks in the selected project on the right.',
+            order: 0,
+          },
+          {
+            title: "Create a project",
+            content:
+              "Create a project for a body of work - an onboarding push, a referral campaign, a facility rollout. A project keeps its tasks, lists, and statuses separate from the rest of the workspace.",
+            order: 1,
+          },
+          {
+            title: "Add lists inside the project",
+            content:
+              'Lists split a project into stages or workstreams, for example "General" and "Onboarding". Every task belongs to one list, and you pick the list when you create the task.',
+            order: 2,
+          },
+          {
+            title: "Use statuses to track progress",
+            content:
+              "Each task carries a status. Moving a task through its statuses is what drives the progress shown on the project, so keep statuses current rather than tracking state in the description.",
+            order: 3,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "How to Assign Tasks",
+      slug: "how-to-assign-tasks",
+      summary:
+        "Create a task, give it an owner and a due date, and let the assignee know through notifications.",
+      categoryId: tasksProjects.id,
+      published: true,
+      featured: true,
+      readMinutes: 3,
+      order: 1,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Create the task",
+            content:
+              'Open Tasks and start a new task. Enter a task name in "Enter Task Name" and a short description of the outcome you expect, not the steps to get there.',
+            order: 0,
+          },
+          {
+            title: "Choose the list and status",
+            content:
+              "Select the list the task belongs to and its starting status. A task without a list is hard to find later, because the board groups everything by list.",
+            order: 1,
+          },
+          {
+            title: "Add assignees",
+            content:
+              'Use the assignee field to pick one or more team members. "Add another assignee..." lets you add a second owner when work is genuinely shared - otherwise keep a single owner so it is clear who is accountable.',
+            order: 2,
+          },
+          {
+            title: "Set a due date and tags",
+            content:
+              "Give the task a due date so it surfaces before it is late, and add tags for anything you will want to filter on later, such as a county or a facility.",
+            order: 3,
+          },
+          {
+            title: "Confirm the assignee was notified",
+            content:
+              "Saving the task notifies the assignees. They will see it under the Tasks tab of the Notifications page and on the bell in the header.",
+            order: 4,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Subtasks, Checklists, Comments, and Blockers",
+      slug: "subtasks-checklists-comments-and-blockers",
+      summary:
+        "Break a task down, capture the discussion in one place, and record what is blocking it.",
+      categoryId: tasksProjects.id,
+      published: true,
+      featured: false,
+      readMinutes: 3,
+      order: 2,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Break the task into subtasks",
+            content:
+              'Open the task and add subtasks for work that needs its own owner or status. Use "Add subtask" for real units of work - for a simple to-do list, use the checklist instead.',
+            order: 0,
+          },
+          {
+            title: "Track small steps with a checklist",
+            content:
+              '"Add checklist item" keeps lightweight steps inside the task without creating more tasks. Checked items count toward the visible progress on the task.',
+            order: 1,
+          },
+          {
+            title: "Record a blocker",
+            content:
+              'Use "Add blocked-by task..." to point at the task that has to finish first. The dependency is visible from both tasks, so nobody has to remember why work stalled.',
+            order: 2,
+          },
+          {
+            title: "Keep the discussion on the task",
+            content:
+              'Use "Write a comment..." for updates and decisions. Comments stay attached to the task, so the history is still there when the task is handed to someone else.',
+            order: 3,
+          },
+        ],
+      },
+    },
+  });
+
+  // -------------------------------------------------------------
+  // MARKETING
+  // -------------------------------------------------------------
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Building a Recipient Group",
+      slug: "building-a-recipient-group",
+      summary:
+        "Collect the records you want to email into a reusable group instead of picking them each time.",
+      categoryId: marketing.id,
+      published: true,
+      featured: false,
+      readMinutes: 3,
+      order: 0,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open Groups",
+            content:
+              'Go to Marketing and open the "Groups" tab. Existing groups are listed with the module they draw from and how many recipients they hold.',
+            order: 0,
+          },
+          {
+            title: "Name the group and pick a module",
+            content:
+              'Give the group a name that describes the audience, such as "Referring physicians", add an optional description, and choose the module it pulls from - Master List or Referral List records.',
+            order: 1,
+          },
+          {
+            title: "Add recipients",
+            content:
+              "Search by name or value to find records, then add them to the group. Only records that carry an email address can receive a blast, so a record with an empty email column will not be included.",
+            order: 2,
+          },
+          {
+            title: "Reuse the group",
+            content:
+              "Groups are selected when you create a blast. Updating a group's membership changes who future blasts reach; blasts already sent are unaffected.",
+            order: 3,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Sending an Email Blast",
+      slug: "sending-an-email-blast",
+      summary:
+        "Compose a blast, choose the audience and sender, and review it before it goes out.",
+      categoryId: marketing.id,
+      published: true,
+      featured: false,
+      readMinutes: 4,
+      order: 1,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Create a blast",
+            content:
+              'Go to Marketing, open the "Blasts" tab, and create a new blast. The first field is an internal name - recipients never see it, so use something you will recognize in the list later.',
+            order: 0,
+          },
+          {
+            title: "Write the subject and body",
+            content:
+              "Enter the email subject your recipients will see, then compose the body. Keep the subject specific: it is the only thing most recipients read before deciding to open.",
+            order: 1,
+          },
+          {
+            title: "Pick the audience",
+            content:
+              "Choose the recipient group the blast goes to. If the group is missing someone, fix the group first - the blast reads its membership when it sends.",
+            order: 2,
+          },
+          {
+            title: "Attach it to a campaign (optional)",
+            content:
+              'Select a campaign to roll this blast up with related sends, or leave it as "None". Campaigns only group reporting; they do not change who receives the email.',
+            order: 3,
+          },
+          {
+            title: "Choose the sender and send",
+            content:
+              "Send from a verified sender identity so the mail is authenticated. If no identity is verified yet, set one up first - see the sender identity guide in this category.",
+            order: 4,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Verifying a Sender Identity",
+      slug: "verifying-a-sender-identity",
+      summary:
+        "Set up the from name, mailbox, and domain your marketing email is sent from.",
+      categoryId: marketing.id,
+      published: true,
+      featured: false,
+      readMinutes: 4,
+      order: 2,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open sender identities",
+            content:
+              "Go to Marketing and open the senders page. It lists every identity your organization can send from, along with its verification state.",
+            order: 0,
+          },
+          {
+            title: "Describe the identity",
+            content:
+              'Name the identity for internal use, for example "Admissions outreach", then set the From Name recipients will see, such as your organization name.',
+            order: 1,
+          },
+          {
+            title: "Set the mailbox and domain",
+            content:
+              'Enter the mailbox - the part before the @, such as "hello" - and the domain you send from. The domain must be one your organization controls; you cannot send from a domain you do not own.',
+            order: 2,
+          },
+          {
+            title: "Point replies somewhere real",
+            content:
+              '"Replies Go To" is the address that receives answers. Use a monitored mailbox - replies to an unwatched address are lost, and they are often the most valuable response you get.',
+            order: 3,
+          },
+          {
+            title: "Finish verification",
+            content:
+              "Add the DNS records the page asks for on your domain, then let verification run. Until the identity verifies, blasts cannot use it.",
+            order: 4,
+          },
+        ],
+      },
+    },
+  });
+
+  // -------------------------------------------------------------
+  // CONTACTS & COMPANIES
+  // -------------------------------------------------------------
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Adding Contacts and Companies",
+      slug: "adding-contacts-and-companies",
+      summary:
+        "Track the people and organizations behind your leads and referrals in their own modules.",
+      categoryId: contactsCompanies.id,
+      published: true,
+      featured: false,
+      readMinutes: 2,
+      order: 0,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open Contacts or Companies",
+            content:
+              "Contacts and Companies each have their own list in the sidebar. They use the same dynamic columns as the Master List, so the fields you see are the ones configured for your organization.",
+            order: 0,
+          },
+          {
+            title: "Create a record",
+            content:
+              "Use the create page to add a contact or a company. Fill in the columns your team relies on - at minimum a name, and an email or phone if you plan to reach out.",
+            order: 1,
+          },
+          {
+            title: "Edit inline",
+            content:
+              "Back in the list, cells edit in place exactly like the Master List. Changes save as soon as you leave the cell and are recorded in history.",
+            order: 2,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Linking Records and Avoiding Duplicates",
+      slug: "linking-records-and-avoiding-duplicates",
+      summary:
+        "Connect a contact to the records it belongs with, and catch duplicates on the way in.",
+      categoryId: contactsCompanies.id,
+      published: true,
+      featured: false,
+      readMinutes: 2,
+      order: 1,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Check for an existing record first",
+            content:
+              "When you enter an email or phone number on a new contact or company, the form checks for records that already use it and shows you the matches before you save.",
+            order: 0,
+          },
+          {
+            title: "Decide: open or continue",
+            content:
+              "If a match is the same person or organization, open it and update it instead of creating a second copy. Duplicates split history and make reporting understate your real volume.",
+            order: 1,
+          },
+          {
+            title: "Link related records",
+            content:
+              "Open a record to see the records related to it. Linking a contact to a company, or to the lead or referral it came from, means the next person to open it sees the full picture.",
+            order: 2,
+          },
+        ],
+      },
+    },
+  });
+
+  // -------------------------------------------------------------
+  // BOOKING
+  // -------------------------------------------------------------
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Setting Up Your Booking Page",
+      slug: "setting-up-your-booking-page",
+      summary:
+        "Publish a page people can use to book time with you, with your own hours and meeting link.",
+      categoryId: booking.id,
+      published: true,
+      featured: true,
+      readMinutes: 5,
+      order: 0,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open booking settings",
+            content:
+              'Go to Settings and open "Booking". The page has a Meeting Details card and a Weekly Availability card.',
+            order: 0,
+          },
+          {
+            title: "Describe the meeting",
+            content:
+              "Set the Title people see when they open your booking page, and a short description telling them what the meeting is for and what to bring.",
+            order: 1,
+          },
+          {
+            title: "Choose the meeting type and link",
+            content:
+              "Pick the meeting type, then the meeting link. Choosing Google Meet or Microsoft Teams mints a fresh link per booking, so every meeting gets its own room rather than everyone sharing one.",
+            order: 2,
+          },
+          {
+            title: "Set the duration",
+            content:
+              "Duration is in minutes, between 5 and 480. It decides how the day is divided into slots, so a 30 minute duration offers twice as many slots as an hour.",
+            order: 3,
+          },
+          {
+            title: "Set weekly availability",
+            content:
+              "In Weekly Availability, turn on the days you take meetings and set the hours for each. Only those windows are offered, so leave real gaps for travel and admin rather than opening the whole day.",
+            order: 4,
+          },
+          {
+            title: "Share the link",
+            content:
+              "Save, then share your booking link. Anyone with the link can pick a free slot; confirmed bookings land on your Calendar and raise a booking notification.",
+            order: 5,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Managing Bookings After They Come In",
+      slug: "managing-bookings-after-they-come-in",
+      summary:
+        "See confirmed meetings, find the joining link, and handle cancellations.",
+      categoryId: booking.id,
+      published: true,
+      featured: false,
+      readMinutes: 2,
+      order: 1,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Find the booking",
+            content:
+              "Confirmed bookings appear on the Calendar alongside your synced Google and Outlook events, and in the booking list with the details the visitor submitted.",
+            order: 0,
+          },
+          {
+            title: "Join the meeting",
+            content:
+              "Open the booking to get its joining link. Because the link is minted per booking, use the one on the booking rather than an older link from a previous meeting.",
+            order: 1,
+          },
+          {
+            title: "Handle a cancellation",
+            content:
+              "Cancelling releases the slot so it can be booked again, and notifies the other side. If you need the time back but not the contact, cancel rather than deleting the record.",
+            order: 2,
+          },
+        ],
+      },
+    },
+  });
+
+  // -------------------------------------------------------------
+  // NOTIFICATIONS
+  // -------------------------------------------------------------
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Reading Your Notifications",
+      slug: "reading-your-notifications",
+      summary:
+        "Everything happening across the workspace in one place, filtered by where it came from.",
+      categoryId: notifications.id,
+      published: true,
+      featured: false,
+      readMinutes: 2,
+      order: 0,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open Notifications",
+            content:
+              "Open the Notifications page from the bell in the header. It lists activity across the workspace, newest first, with unread items marked.",
+            order: 0,
+          },
+          {
+            title: "Filter by category",
+            content:
+              "The tabs across the top are All, Tasks, Referrals, Marketing, and Booking. Use them when you are catching up on one area rather than reading everything.",
+            order: 1,
+          },
+          {
+            title: "Jump to the source",
+            content:
+              "Opening a notification takes you to the task, referral, blast, or booking it refers to and marks it read, so the list reflects what you have actually dealt with.",
+            order: 2,
+          },
+        ],
+      },
+    },
+  });
+
+  // -------------------------------------------------------------
+  // ADDITIONAL ACCOUNT & SECURITY
+  // -------------------------------------------------------------
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Signing In with a Passkey",
+      slug: "signing-in-with-a-passkey",
+      summary:
+        "Register a device as a passkey, sign in without a password, and keep your recovery code safe.",
+      categoryId: accountSecurity.id,
+      published: true,
+      featured: false,
+      readMinutes: 4,
+      order: 5,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Register your device",
+            content:
+              "From your profile, register a passkey. Your device asks for the unlock you already use - fingerprint, face, or device PIN - and stores the key itself. The dashboard never sees it.",
+            order: 0,
+          },
+          {
+            title: "Save your recovery code",
+            content:
+              "Copy the recovery code you are shown and store it somewhere you can reach without this device. It is what gets you back in if the device is lost, and it is not shown again.",
+            order: 1,
+          },
+          {
+            title: "Sign in",
+            content:
+              "On the sign-in page, enter your email and confirm with your device. There is no password to type, phish, or reuse.",
+            order: 2,
+          },
+          {
+            title: "Register a second device",
+            content:
+              "Add a passkey on a second device - a phone as well as a laptop. One registered device is a single point of failure.",
+            order: 3,
+          },
+          {
+            title: "If you lose every device",
+            content:
+              "Use your recovery code, or ask an owner or support to reset your passkeys. After a reset you register a new device from scratch, so nobody inherits your old key.",
+            order: 4,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "HIPAA Mode and the Business Associate Agreement",
+      slug: "hipaa-mode-and-the-business-associate-agreement",
+      summary:
+        "What turning on HIPAA mode enforces for your organization, and how the BAA is signed.",
+      categoryId: accountSecurity.id,
+      published: true,
+      featured: false,
+      readMinutes: 3,
+      order: 6,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open Compliance settings",
+            content:
+              'Go to Settings and open "Compliance". The page shows the HIPAA mode switch and the Business Associate Agreement card with its current state.',
+            order: 0,
+          },
+          {
+            title: "Understand what HIPAA mode enforces",
+            content:
+              "HIPAA mode requires a signed Business Associate Agreement and a second factor for the organization. Turn it on before you put protected health information into the workspace, not after.",
+            order: 1,
+          },
+          {
+            title: "Review and sign the BAA",
+            content:
+              "Open the agreement, read the terms, and accept them to sign. Signing binds the organization - have the person who can commit your organization do it, not whoever happens to be logged in.",
+            order: 2,
+          },
+          {
+            title: "Keep a copy",
+            content:
+              "Download the executed agreement and file it with your other compliance records. You will want it to hand during an audit rather than having to log in to find it.",
+            order: 3,
+          },
+        ],
+      },
+    },
+  });
+
   // Count results
   const articleCount = await prisma.manualArticle.count();
   const stepCount = await prisma.manualStep.count();
+  const featuredCount = await prisma.manualArticle.count({
+    where: { featured: true },
+  });
   console.log(
-    `✅ Seeded ${categories.length} categories, ${articleCount} articles, ${stepCount} steps`
+    `✅ Seeded ${categories.length} categories, ${articleCount} articles, ${stepCount} steps, ${featuredCount} popular`
   );
 }
 

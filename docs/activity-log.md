@@ -406,3 +406,31 @@ Applied frame `530:1556` to the forms list, matching the landing pages rework.
 - Search placeholder reads "Search forms...." — the frame says "Search campaigns....", which is a copy-paste leftover from the campaigns screen.
 
 Verified: `pnpm build:fe` and `pnpm build:api` both pass. No runtime pass.
+
+## Help center — Figma Dashboard - Help (2026-08-09)
+
+Applied frames `647:8223` (help landing) and `652:8835` (category detail) onto the existing manual/knowledge-base system rather than a new module.
+
+- Schema: `ManualArticle` gained `featured` (drives "Popular Articles") and `readMinutes` (the "3 min read" line). Hand-written migration in `prisma/migrations/add_manual_article_help_center_fields/`. `seed-manual.ts` now features the first published article of each category.
+- API: `GET /manual/featured`, `GET /manual/categories/published` (published-article counts), `GET /manual/categories/slug/:slug`, plus a `search` param on `GET /manual/published`. Create/update article DTOs carry `featured` and `readMinutes`.
+- FE routes: `help.tsx` split into `help/index.tsx`, `help/$categorySlug/index.tsx`, `help/$categorySlug/$articleSlug.tsx`. The sidebar href `/{org}/help` is unchanged.
+- FE components in `components/help/`: hero (Figma-exported mascot + background under `public/branding/`), category cards, popular articles, contact-support CTA, category table with `TablePagination`, article rows. `help-page.tsx` deleted; `manual-article-detail.tsx` kept, its raw gray palette swapped for tokens.
+- Superadmin (`fe-support` /support/manual): article form gained Read time and Popular; the list shows read time, a Popular badge, and a star toggle. Category dialog gained Order, which drives card order on the help landing.
+- Contact Support links to `VITE_SUPPORT_URL/en/request`.
+
+Design mapping notes: the design's hero and CTA panels are fixed brand artwork, so they use `brand`/`brand-surface`/`brand-ink`; everything on normal surfaces uses `primary`/`foreground`/`muted-foreground` so dark mode holds. Popular topics are the first four categories by order. The category footer replaces the design's "0 of 100 row(s) selected" with an article count since these rows are not selectable.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `pnpm --filter fe-support build` all pass; eslint clean on the touched files. Migration not applied and no browser pass.
+
+### Help center seed refresh (2026-08-09)
+
+`prisma/seed-manual.ts` brought up to the current system: 16 categories, 66 articles.
+
+- Every existing article gained `readMinutes` (derived from its step count) and `featured`.
+- Nine articles are featured, matching the design's Popular Articles list: Importing Leads from CSV, Creating Referrals, Setting Up Your Booking Page, How to Assign Tasks, Managing Team Members, Viewing Reports, Connecting Google Calendar and Outlook Calendar, Managing Your Subscription, Connecting Gmail and Outlook Email.
+- New categories with articles for modules that postdate the original seed: Tasks & Projects (3), Marketing (3), Contacts & Companies (2), Booking (2), Notifications (1), plus passkey sign-in and HIPAA mode/BAA under Account & Security.
+- "Using the Help Center" rewritten for the new hero/category/article layout. "Checking Integration Status on the Help Page" retargeted to the Integrations page, since integration health no longer lives on the help page.
+
+Run with `pnpm --filter api prisma:seed-manual` after the migration is applied. It wipes and re-creates all manual rows and needs at least one super_admin or support user for `createdBy`.
+
+Verified: seed file typechecks, no duplicate slugs, no per-category `order` collisions. Seed not executed.

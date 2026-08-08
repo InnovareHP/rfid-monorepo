@@ -23,6 +23,8 @@ export const CreateArticleSchema = z.object({
   summary: z.string().min(1),
   categoryId: z.string().uuid(),
   published: z.boolean().optional(),
+  featured: z.boolean().optional(),
+  readMinutes: z.number().int().min(1).optional(),
   order: z.number().int().optional(),
   steps: z.array(ManualStepSchema).min(1),
 });
@@ -33,6 +35,8 @@ export const UpdateArticleSchema = z.object({
   summary: z.string().min(1).optional(),
   categoryId: z.string().uuid().optional(),
   published: z.boolean().optional(),
+  featured: z.boolean().optional(),
+  readMinutes: z.number().int().min(1).optional(),
   order: z.number().int().optional(),
   steps: z.array(ManualStepSchema).min(1).optional(),
 });

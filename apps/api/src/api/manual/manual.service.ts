@@ -16,6 +16,23 @@ export class ManualService {
     });
   }
 
+  async getPublishedCategories() {
+    const categories = await prisma.manualCategory.findMany({
+      orderBy: { order: "asc" },
+      include: { articles: { where: { published: true }, select: { id: true } } },
+    });
+    return categories.map(({ articles, ...category }) => ({
+      ...category,
+      _count: { articles: articles.length },
+    }));
+  }
+
+  async getPublishedCategoryBySlug(slug: string) {
+    const category = await prisma.manualCategory.findUnique({ where: { slug } });
+    if (!category) throw new NotFoundException("Category not found");
+    return category;
+  }
+
   async getCategoryById(id: string) {
     const category = await prisma.manualCategory.findUnique({
       where: { id },
@@ -89,12 +106,25 @@ export class ManualService {
   async getPublishedArticles(
     categoryId?: string,
     limit?: number,
-    page?: number
+    page?: number,
+    search?: string
   ) {
     const offset = (Number(page) - 1) * Number(limit);
+    const where = {
+      published: true,
+      ...(categoryId ? { categoryId } : {}),
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" as const } },
+              { summary: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
     const [articles, total] = await Promise.all([
       prisma.manualArticle.findMany({
-        where: { published: true, ...(categoryId ? { categoryId } : {}) },
+        where,
         skip: Number(offset),
         take: Number(limit),
         orderBy: { order: "asc" },
@@ -106,11 +136,20 @@ export class ManualService {
           createdByUser: { select: { id: true, name: true, image: true } },
         },
       }),
-      prisma.manualArticle.count({
-        where: { published: true, ...(categoryId ? { categoryId } : {}) },
-      }),
+      prisma.manualArticle.count({ where }),
     ]);
     return { articles, total };
+  }
+
+  async getFeaturedArticles(limit?: number) {
+    return prisma.manualArticle.findMany({
+      where: { published: true, featured: true },
+      take: Number(limit) || 9,
+      orderBy: { order: "asc" },
+      include: {
+        category: { select: { id: true, name: true, slug: true, icon: true } },
+      },
+    });
   }
 
   async getPublishedArticleBySlug(slug: string) {
@@ -147,6 +186,8 @@ export class ManualService {
         summary: data.summary,
         categoryId: data.categoryId,
         published: data.published,
+        featured: data.featured,
+        readMinutes: data.readMinutes,
         order: data.order,
         createdBy: userId,
         steps: {
@@ -193,6 +234,8 @@ export class ManualService {
           summary: articleData.summary,
           categoryId: articleData.categoryId,
           published: articleData.published,
+          featured: articleData.featured,
+          readMinutes: articleData.readMinutes,
           order: articleData.order,
         },
         include: {

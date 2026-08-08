@@ -44,6 +44,14 @@ code {
   --brand: #0d3185;
   --brand-foreground: #ffffff;
   --table-header: #f4f9ff;
+  /* Fixed brand artwork panel and its body ink. Deliberately absent from
+     .dark: the error illustrations bake this panel into the PNG. */
+  --brand-surface: #f4f9ff;
+  --brand-ink: #202020;
+  /* Lighter brand blue used for selected segmented controls. Both themes fill
+     it solid, so its foreground is fixed white rather than a themed token. */
+  --brand-accent: #005cb1;
+  --brand-accent-foreground: #ffffff;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -108,6 +116,7 @@ code {
 
 .dark {
   --table-header: oklch(0.26 0.035 262);
+  --brand-accent: #2c6da8;
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -155,6 +164,10 @@ code {
     sans-serif;
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
   --color-table-header: var(--table-header);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
