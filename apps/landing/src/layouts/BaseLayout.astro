@@ -8,6 +8,7 @@ interface Props {
 
 const { title, description } = Astro.props;
 const ogImage = new URL("/logo.png", Astro.site ?? Astro.url);
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
 ---
 
 <!doctype html>
@@ -18,8 +19,9 @@ const ogImage = new URL("/logo.png", Astro.site ?? Astro.url);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="canonical" href={Astro.site?.toString() ?? Astro.url.origin} />
+    <link rel="canonical" href={canonical} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />

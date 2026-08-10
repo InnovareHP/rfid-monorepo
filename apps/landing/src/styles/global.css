@@ -104,6 +104,14 @@
   @apply text-muted-foreground mt-4 max-w-2xl text-lg;
 }
 
+@utility legal-body {
+  @apply text-muted-foreground mt-4 text-[15px] leading-relaxed;
+}
+
+@utility legal-link {
+  @apply text-brand-strong font-semibold underline underline-offset-4;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(24px);

@@ -1,17 +1,19 @@
 ---
 import { buttonVariants } from "@dashboard/ui/components/button";
-import { APP_URL, SUPPORT_EMAIL } from "../config";
+import { APP_URL, LEGAL_LINKS, SUPPORT_EMAIL } from "../config";
 
 const YEAR = new Date().getFullYear();
 
 const PRODUCT_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How it works" },
+  { href: "/#features", label: "Features" },
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/security", label: "Security & HIPAA" },
   { href: APP_URL, label: "Sign in" },
 ];
 
 const COMPANY_LINKS = [
-  { href: "#why", label: "Why Refidly" },
+  { href: "/about", label: "About us" },
+  { href: "/#why", label: "Why Refidly" },
   { href: `mailto:${SUPPORT_EMAIL}`, label: "Contact support" },
   { href: `mailto:${SUPPORT_EMAIL}`, label: "Request a demo" },
 ];
@@ -99,10 +101,28 @@ const COMPANY_LINKS = [
     </div>
   </div>
 
-  <div
-    class="mx-auto flex w-full max-w-6xl flex-wrap justify-between gap-2 border-t border-border px-6 py-5 text-[13px] text-muted-foreground"
-  >
-    <span>© {YEAR} Refidly. All rights reserved.</span>
-    <span>Built for the teams who bring the referrals in.</span>
+  <div class="mx-auto w-full max-w-6xl border-t border-border px-6 py-5">
+    <nav
+      class="flex flex-wrap justify-center gap-x-5 gap-y-2.5 text-[13px]"
+      aria-label="Legal links"
+    >
+      {
+        LEGAL_LINKS.map((link) => (
+          <a
+            href={link.href}
+            class="text-muted-foreground transition-colors hover:text-brand-strong"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div
+      class="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-center text-[13px] text-muted-foreground"
+    >
+      <span>© {YEAR} Refidly. All rights reserved.</span>
+      <span>Built for the teams who bring the referrals in.</span>
+    </div>
   </div>
 </footer>
