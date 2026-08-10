@@ -28,6 +28,8 @@ export class OutlookCalendarService {
       throw new Error("Microsoft OAuth is not configured");
     }
 
+    // No prompt=consent: offline_access already yields a refresh token, and
+    // forcing user consent breaks tenants where only an admin may grant it.
     const params = new URLSearchParams({
       client_id: this.clientId,
       response_type: "code",
@@ -35,7 +37,6 @@ export class OutlookCalendarService {
       response_mode: "query",
       scope: SCOPES.join(" "),
       state,
-      prompt: "consent",
     });
 
     return `${MICROSOFT_AUTH_URL}/authorize?${params.toString()}`;
@@ -295,6 +296,34 @@ export class OutlookCalendarService {
       meetingUrl: created.onlineMeeting?.joinUrl ?? null,
       provider: "outlook",
     };
+  }
+
+  async getMeetingUrl(userId: string, eventId: string): Promise<string | null> {
+    const token = await prisma.outlookCalendarToken.findUnique({
+      where: { userId },
+    });
+
+    if (!token) return null;
+
+    let accessToken = token.accessToken;
+    if (new Date() >= token.tokenExpiry) {
+      accessToken = await this.refreshAccessToken(userId, token.refreshToken);
+    }
+
+    const response = await fetch(
+      `${GRAPH_API_URL}/me/events/${eventId}?$select=onlineMeeting`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!response.ok) {
+      this.logger.warn(
+        `Failed to read Teams link for event ${eventId}: ${response.status}`
+      );
+      return null;
+    }
+
+    const event = await response.json();
+    return event.onlineMeeting?.joinUrl ?? null;
   }
 
   async deleteEvent(userId: string, eventId: string): Promise<void> {

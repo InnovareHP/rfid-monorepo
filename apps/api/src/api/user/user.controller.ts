@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -15,7 +16,7 @@ import {
 import { AuthGuard, Roles, UserSession } from "@thallesp/nestjs-better-auth";
 import type { Request, Response } from "express";
 import { OnboardingGuard } from "src/guard/onboarding/onboarding.guard";
-import { OnboardingDto } from "./dto/user.schema";
+import { AdminEntitlementDto, OnboardingDto } from "./dto/user.schema";
 import { UserService } from "./user.service";
 
 // Bounds the export path, which asks for the whole filtered log in one page.
@@ -117,18 +118,30 @@ export class UserController {
     }
   }
 
+  @Get("admin/metrics")
+  @Roles([ROLES.SUPER_ADMIN])
+  async getAdminMetrics() {
+    try {
+      return await this.userService.getAdminMetrics();
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
+  }
+
   @Get("admin/organizations")
   @Roles([ROLES.SUPER_ADMIN])
   async getAdminOrganizations(
     @Query("page") page: number = 1,
     @Query("take") take: number = 10,
-    @Query("search") search?: string
+    @Query("search") search?: string,
+    @Query("hipaaOnly") hipaaOnly?: string
   ) {
     try {
       return await this.userService.getAdminOrganizations({
         page: Number(page),
         take: Number(take),
         search,
+        hipaaOnly: hipaaOnly === "true",
       });
     } catch (error) {
       throw new BadRequestException(error);
@@ -143,5 +156,37 @@ export class UserController {
     } catch (error) {
       throw new BadRequestException(error);
     }
+  }
+
+  @Patch("admin/organizations/:orgId/entitlement")
+  @Roles([ROLES.SUPER_ADMIN])
+  async setAdminOrganizationEntitlement(
+    @Param("orgId") orgId: string,
+    @Body() body: AdminEntitlementDto,
+    @Session() session: UserSession
+  ) {
+    return await this.userService.setAdminOrganizationEntitlement(
+      session.user.id,
+      session.user.name,
+      orgId,
+      body
+    );
+  }
+
+  @Get("admin/organizations/:orgId/baa")
+  @Roles([ROLES.SUPER_ADMIN])
+  async getAdminOrganizationBaa(
+    @Param("orgId") orgId: string,
+    @Res() response: Response
+  ) {
+    const { document, termsVersion } =
+      await this.userService.getAdminOrganizationBaa(orgId);
+
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader(
+      "Content-Disposition",
+      `attachment; filename="baa-${orgId}-${termsVersion}.pdf"`
+    );
+    response.send(document);
   }
 }

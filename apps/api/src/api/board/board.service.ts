@@ -1229,6 +1229,7 @@ export class BoardService {
         if (field.fieldType === BoardFieldType.LOCATION) {
           return this.updateLocationValue(
             recordId,
+            field.id,
             value,
             organizationId,
             moduleType
@@ -1307,11 +1308,12 @@ export class BoardService {
 
   private async updateLocationValue(
     recordId: string,
+    fieldId: string,
     value: string,
     organizationId: string,
     moduleType: string
   ) {
-    const geocodeResult = await this.geocodeLocation(value, recordId);
+    const geocodeResult = await this.geocodeLocation(value, recordId, fieldId);
 
     const locationData = await prisma.$transaction(async (tx) => {
       return this.saveLocationFields(
@@ -2668,11 +2670,15 @@ export class BoardService {
    * Geocode a location string via Amazon Location Service.
    * Runs OUTSIDE the transaction to avoid timeout from external HTTP calls.
    */
-  private async geocodeLocation(location_name: string, recordId: string) {
+  private async geocodeLocation(
+    location_name: string,
+    recordId: string,
+    fieldId: string
+  ) {
     if (location_name === "") return { cleared: true } as const;
 
-    const existing = await prisma.fieldValue.findFirst({
-      where: { recordId: recordId },
+    const existing = await prisma.fieldValue.findUnique({
+      where: { recordId_fieldId: { recordId: recordId, fieldId: fieldId } },
       select: { value: true },
     });
 
@@ -2743,11 +2749,18 @@ export class BoardService {
         },
         data: { value: null },
       });
-      return { address: null, isCached: true };
+      return {
+        Address: null,
+        City: null,
+        State: null,
+        "Zip Code": null,
+        County: null,
+        Country: null,
+      };
     }
 
     if ("cached" in geocodeResult) {
-      return { address: location_name, isCached: true };
+      return { Address: location_name };
     }
 
     const locationData = {

@@ -37,13 +37,17 @@ import {
   Users,
 } from "lucide-react";
 import { RoleBadge } from "../../Reusable/StatusBadges";
+import { OrganizationComplianceCard } from "./OrganizationComplianceCard";
+import { OrganizationEntitlementCard } from "./OrganizationEntitlementCard";
 
-const SUBSCRIPTION_COLORS: Record<string, string> = {
-  active: "bg-green-50 text-green-700 border-green-200",
-  trialing: "bg-blue-50 text-blue-700 border-blue-200",
-  past_due: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  canceled: "bg-red-50 text-red-700 border-red-200",
-  incomplete: "bg-gray-50 text-gray-700 border-gray-200",
+type BadgeVariant = React.ComponentProps<typeof Badge>["variant"];
+
+const SUBSCRIPTION_VARIANTS: Record<string, BadgeVariant> = {
+  active: "success",
+  trialing: "info",
+  past_due: "warning",
+  canceled: "destructive",
+  incomplete: "secondary",
 };
 
 function OrgInfoCard({ org }: { org: AdminOrganizationDetail }) {
@@ -51,7 +55,7 @@ function OrgInfoCard({ org }: { org: AdminOrganizationDetail }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Building2 className="h-5 w-5 text-blue-600" />
+          <Building2 className="text-muted-foreground h-5 w-5" />
           Organization Info
         </CardTitle>
       </CardHeader>
@@ -109,7 +113,7 @@ function SubscriptionCard({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="h-5 w-5 text-blue-600" />
+            <CreditCard className="text-muted-foreground h-5 w-5" />
             Subscription
           </CardTitle>
         </CardHeader>
@@ -125,12 +129,7 @@ function SubscriptionCard({
     {
       label: "Status",
       value: subscription.status ? (
-        <Badge
-          variant="outline"
-          className={
-            SUBSCRIPTION_COLORS[subscription.status] ?? ""
-          }
-        >
+        <Badge variant={SUBSCRIPTION_VARIANTS[subscription.status] ?? "outline"}>
           {subscription.status}
         </Badge>
       ) : (
@@ -178,7 +177,7 @@ function SubscriptionCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <CreditCard className="h-5 w-5 text-blue-600" />
+          <CreditCard className="text-muted-foreground h-5 w-5" />
           Subscription
         </CardTitle>
       </CardHeader>
@@ -211,24 +210,24 @@ function MembersCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Users className="h-5 w-5 text-blue-600" />
+          <Users className="text-muted-foreground h-5 w-5" />
           Members ({members.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="border-b-2 border-gray-200 bg-blue-50/50 hover:bg-blue-50/50">
-              <TableHead className="font-semibold text-blue-900">
+            <TableRow className="border-border bg-muted/50 hover:bg-muted/50 border-b-2">
+              <TableHead className="text-foreground font-semibold">
                 User
               </TableHead>
-              <TableHead className="font-semibold text-blue-900">
+              <TableHead className="text-foreground font-semibold">
                 Role
               </TableHead>
-              <TableHead className="font-semibold text-blue-900">
+              <TableHead className="text-foreground font-semibold">
                 Joined
               </TableHead>
-              <TableHead className="font-semibold text-blue-900">
+              <TableHead className="text-foreground font-semibold">
                 Status
               </TableHead>
             </TableRow>
@@ -237,7 +236,7 @@ function MembersCard({
             {members.map((m) => (
               <TableRow
                 key={m.memberId}
-                className="cursor-pointer hover:bg-blue-50/50"
+                className="hover:bg-muted/50 cursor-pointer"
                 onClick={() =>
                   navigate({ to: `/admin/users/${m.user.id}` })
                 }
@@ -274,12 +273,7 @@ function MembersCard({
                       Banned
                     </Badge>
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="bg-green-50 text-green-700 border-green-200"
-                    >
-                      Active
-                    </Badge>
+                    <Badge variant="success">Active</Badge>
                   )}
                 </TableCell>
               </TableRow>
@@ -348,6 +342,8 @@ export function OrganizationDetailPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <OrgInfoCard org={org} />
           <SubscriptionCard subscription={org.subscription} />
+          <OrganizationEntitlementCard org={org} />
+          <OrganizationComplianceCard org={org} />
         </div>
 
         <MembersCard members={org.members} navigate={navigate} />

@@ -19,6 +19,24 @@ export const getPasskeys = async () => {
   return response.data as PasskeyDevice[];
 };
 
+export type PasskeyPrompt = {
+  shouldPrompt: boolean;
+  passkeyCount: number;
+};
+
+export const getPasskeyPrompt = async () => {
+  const response = await axiosClient.get("/api/passkeys/prompt");
+
+  return response.data as PasskeyPrompt;
+};
+
+// Declining is remembered, so the offer is made once and never nags again.
+export const waivePasskeyPrompt = async () => {
+  const response = await axiosClient.post("/api/passkeys/prompt/waive");
+
+  return response.data as { waived: boolean };
+};
+
 export const createEnrollmentCode = async () => {
   const response = await axiosClient.post("/api/passkeys/enrollment-code");
 
@@ -46,6 +64,17 @@ export const sendSignupOtp = async (email: string) => {
   });
 
   return response.data as { sent: boolean };
+};
+
+// Ends a verified signup in a password. The context comes from the verify step,
+// so the email and name are settled server-side and cannot be swapped here.
+export const completeSignup = async (context: string, password: string) => {
+  const response = await axiosClient.post("/api/registration/otp/complete", {
+    context,
+    password,
+  });
+
+  return response.data as { created: boolean; email: string };
 };
 
 export const verifySignupOtp = async (

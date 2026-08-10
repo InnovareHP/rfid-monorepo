@@ -1,5 +1,6 @@
 import { createZodDto } from "nestjs-zod";
 import {
+  CompleteSignupSchema,
   InvitationContextSchema,
   SendMigrationOtpSchema,
   SendSignupOtpSchema,
@@ -8,6 +9,7 @@ import {
 } from "./registration.dto";
 
 export class SendSignupOtpDto extends createZodDto(SendSignupOtpSchema) {}
+export class CompleteSignupDto extends createZodDto(CompleteSignupSchema) {}
 export class VerifySignupOtpDto extends createZodDto(VerifySignupOtpSchema) {}
 export class InvitationContextDto extends createZodDto(
   InvitationContextSchema

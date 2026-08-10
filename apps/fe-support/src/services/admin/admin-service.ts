@@ -87,6 +87,56 @@ export type AdminOrganization = {
   memberCount: number;
   subscriptionStatus: string | null;
   subscriptionPlan: string | null;
+  entitlementLabel: string;
+  hipaaEnabled: boolean;
+  baaAcceptedAt: string | null;
+};
+
+export type AdminOrganizationCompliance = {
+  hipaaEnabled: boolean;
+  baaAcceptedAt: string | null;
+  baaVersion: string | null;
+  retentionDays: number;
+  planSupportsHipaa: boolean;
+  agreement: {
+    termsVersion: string;
+    signedAt: string;
+    signerName: string;
+    signerTitle: string;
+    signerEmail: string;
+    companyLegalName: string;
+    acceptanceMethod: string;
+    ipAddress: string | null;
+    hasDocument: boolean;
+  } | null;
+};
+
+export type AdminOrganizationEntitlement = {
+  label: string;
+  seats: number;
+  features: string[];
+  isCustom: boolean;
+};
+
+export type AdminMetrics = {
+  users: {
+    total: number;
+    banned: number;
+    superAdmins: number;
+    onboarded: number;
+    newLast30Days: number;
+  };
+  organizations: {
+    total: number;
+    hipaaEnabled: number;
+    baaSigned: number;
+    newLast30Days: number;
+  };
+  subscriptions: {
+    byStatus: { status: string; count: number }[];
+    customContracts: number;
+    trialsExpiringIn7Days: number;
+  };
 };
 
 export type AdminOrganizationMember = {
@@ -122,6 +172,9 @@ export type AdminOrganizationDetail = {
   logo: string | null;
   createdAt: string;
   metadata: string | null;
+  stripeCustomerId: string | null;
+  compliance: AdminOrganizationCompliance;
+  entitlement: AdminOrganizationEntitlement;
   members: AdminOrganizationMember[];
   subscription: AdminOrganizationSubscription | null;
 };
@@ -130,6 +183,7 @@ export type ListOrganizationsParams = {
   page?: number;
   take?: number;
   search?: string;
+  hipaaOnly?: boolean;
 };
 
 export type ListOrganizationsResponse = {
@@ -260,4 +314,42 @@ export async function getOrganization(
     `/api/user/admin/organizations/${orgId}`
   );
   return data;
+}
+
+export type EntitlementContract = {
+  label: string;
+  seats: number;
+  features: string[];
+};
+
+// Null clears the contract and hands the org back to its plan tier.
+export async function setOrganizationEntitlement(
+  orgId: string,
+  contract: EntitlementContract | null
+): Promise<AdminOrganizationEntitlement> {
+  const { data } = await axiosClient.patch(
+    `/api/user/admin/organizations/${orgId}/entitlement`,
+    { contract }
+  );
+  return data;
+}
+
+export async function getMetrics(): Promise<AdminMetrics> {
+  const { data } = await axiosClient.get("/api/user/admin/metrics");
+  return data;
+}
+
+// Streams the executed BAA straight to a download; the bytes never enter state.
+export async function downloadOrganizationBaa(orgId: string, orgName: string) {
+  const { data } = await axiosClient.get(
+    `/api/user/admin/organizations/${orgId}/baa`,
+    { responseType: "blob" }
+  );
+
+  const url = URL.createObjectURL(data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `baa-${orgName}.pdf`;
+  link.click();
+  URL.revokeObjectURL(url);
 }

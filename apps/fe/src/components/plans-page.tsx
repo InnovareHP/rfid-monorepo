@@ -1,3 +1,4 @@
+import { BillingTopBar } from "@/components/billing/billing-top-bar";
 import { authClient } from "@/lib/auth-client";
 import { getPlanCard } from "@/services/billing/billing-service";
 import { Badge } from "@dashboard/ui/components/badge";
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@dashboard/ui/components/card";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRouteContext } from "@tanstack/react-router";
-import { CheckCircle2, LogOut, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 type Plan = {
@@ -125,28 +126,16 @@ export function PlansPage({
 
   return (
     <div className={cn("w-full min-h-screen", className)} {...props}>
-      {propContext === "/billing" && (
-        <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">Billing & Plans</h2>
-            </div>
-            <Button variant="ghost" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </nav>
-      )}
+      {propContext === "/billing" && <BillingTopBar onLogout={handleLogout} />}
 
       <div className="w-full max-w-7xl mx-auto p-6 space-y-8">
-        <div className="text-center space-y-2 mb-12">
-          <h1 className="text-4xl font-bold tracking-tight page-title">
-            Choose Your Plan
+        <div className="mb-12 space-y-2 text-center">
+          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
+            Choose your plan
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select the perfect plan for your team. All plans include our core
-            features with flexible options to scale.
+          <p className="text-muted-foreground mx-auto max-w-2xl text-base">
+            Every plan carries lead and referral management. Pick the seat count
+            and the extras your team needs.
           </p>
         </div>
 
@@ -157,23 +146,27 @@ export function PlansPage({
             return (
               <Card
                 key={plan.id}
-                className={cn(plan.isPopular && "border-primary shadow-lg")}
+                className={cn(
+                  plan.isPopular && "border-primary ring-primary/20 shadow-lg ring-1"
+                )}
               >
                 <CardHeader className="pb-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-bold">{plan.name}</h3>
+                      <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
 
                       {plan.isPopular && (
-                        <Badge className="bg-primary text-primary-foreground flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
+                        <Badge>
+                          <Sparkles className="h-3 w-3" />
                           Popular
                         </Badge>
                       )}
                     </div>
 
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">${plan.price}</span>
+                      <span className="font-display text-4xl font-bold text-brand">
+                        ${plan.price}
+                      </span>
                       <span className="text-muted-foreground">
                         per seat/{plan.interval}
                       </span>
@@ -187,8 +180,8 @@ export function PlansPage({
 
                 <CardContent className="flex-1 flex flex-col space-y-6">
                   <ul className="space-y-3 flex-1">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-3 text-sm">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-3 text-sm">
                         <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                         <span className="text-muted-foreground">{feature}</span>
                       </li>

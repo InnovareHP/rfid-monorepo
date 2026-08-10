@@ -41,7 +41,10 @@ import {
   beforeUpdateOrganization,
   beforeUpdateTeam,
   customSessionHandler,
+  onPasswordReset,
   sendInvitationEmail,
+  sendResetPassword,
+  sendVerificationEmail,
   stripeAuthorizeReference,
   subscriptionAuthorizeReference,
 } from "./auth-helper";
@@ -127,7 +130,6 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      blockSessionGrantingEmailPaths(ctx);
       requireImpersonationReason(ctx);
     }),
     after: auditAdminActions,
@@ -207,22 +209,29 @@ export const auth = betterAuth({
     },
   },
   // socialProviders,
-  // Passkey signup marks the address verified at creation, and an emailed
-  // verification link that auto-signs-in is a mailbox-to-session path.
-  // emailVerification: {
-  //   sendOnSignUp: true,
-  //   autoSignInAfterVerification: true,
-  //   expiresIn: 1000 * 60 * 10, // 10 minutes
-  //   sendVerificationEmail,
-  // },
-  // emailAndPassword: {
-  //   enabled: true,
-  //   requireEmailVerification: true,
-  //   expiresIn: 1000 * 60 * 10, // 10 minutes
-  //   sendResetPassword,
-  //   onPasswordReset,
-  //   sendMagicLink,
-  // },
+  // Passkey signup marks the address verified at creation, so this mostly serves
+  // accounts that predate it. autoSignInAfterVerification stays off deliberately:
+  // a link that turns a mailbox into a session is weaker than what it guards.
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    expiresIn: 60 * 10,
+    sendVerificationEmail,
+  },
+  // Password sign-in runs alongside passkeys. Sign-up stays closed here because
+  // accounts are still created by the OTP plus passkey flow; a reset is how an
+  // existing user sets a first password.
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: true,
+    requireEmailVerification: true,
+    minPasswordLength: 12,
+    autoSignIn: true,
+    resetPasswordTokenExpiresIn: 60 * 10,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword,
+    onPasswordReset,
+  },
   plugins: [
     passkey({
       rpID: appConfig.PASSKEY_RP_ID,

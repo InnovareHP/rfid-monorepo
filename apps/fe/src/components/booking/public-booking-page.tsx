@@ -263,7 +263,7 @@ export function PublicBookingPage({
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+        <section className="flex flex-1 flex-col p-4 sm:p-6">
           <h2 className="mb-4 text-xl font-semibold text-brand sm:text-2xl">
             {collectingDetails ? "Your Details" : "Select Date and Time"}
           </h2>
@@ -274,7 +274,7 @@ export function PublicBookingPage({
                 onSubmit={form.handleSubmit((values) =>
                   bookMutation.mutate(values)
                 )}
-                className="max-w-md space-y-4"
+                className=" space-y-4"
               >
                 <RequiredLegend className="text-sm text-[#807f7f]" />
 

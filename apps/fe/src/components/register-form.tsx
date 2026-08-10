@@ -2,6 +2,7 @@ import { AuthPanel } from "@/components/auth-panel";
 import { authClient } from "@/lib/auth-client";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import {
+  completeSignup,
   sendSignupOtp,
   verifySignupOtp,
 } from "@/services/passkeys/passkeys-service";
@@ -22,8 +23,9 @@ import {
   InputOTPSlot,
 } from "@dashboard/ui/components/input-otp";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { Fingerprint, Mail, User } from "lucide-react";
+import { Mail, User } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,14 +40,28 @@ const codeSchema = z.object({
   code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
+// The floor matches emailAndPassword.minPasswordLength on the API.
+const passwordSchema = z
+  .object({
+    password: z.string().min(12, "Use at least 12 characters."),
+    confirmPassword: z.string(),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
+  });
+
 export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useRouter();
+  const queryClient = useQueryClient();
   const [details, setDetails] = useState<z.infer<typeof detailsSchema> | null>(
     null
   );
+  // Present only once the emailed code has been checked by the API.
+  const [signupContext, setSignupContext] = useState<string | null>(null);
 
   const detailsForm = useForm<z.infer<typeof detailsSchema>>({
     resolver: zodResolver(detailsSchema),
@@ -55,6 +71,11 @@ export function RegisterForm({
   const codeForm = useForm<z.infer<typeof codeSchema>>({
     resolver: zodResolver(codeSchema),
     defaultValues: { code: "" },
+  });
+
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { password: "", confirmPassword: "" },
   });
 
   const handleSendCode = async (values: z.infer<typeof detailsSchema>) => {
@@ -69,9 +90,9 @@ export function RegisterForm({
     }
   };
 
-  // The code buys an enrollment grant, never a session — the passkey ceremony
-  // is what creates the account.
-  const handleVerifyAndEnroll = async (values: z.infer<typeof codeSchema>) => {
+  // Verification stands on its own so the password is only asked for once the
+  // address is proven. The claim it returns is what authorises the next step.
+  const handleVerifyCode = async (values: z.infer<typeof codeSchema>) => {
     if (!details) return;
 
     try {
@@ -80,28 +101,48 @@ export function RegisterForm({
         details.name,
         values.code
       );
-
-      const { error } = await authClient.passkey.addPasskey({
-        context: grant.context,
-      });
-      if (error) {
-        toast.error(error.message ?? "Could not register your passkey.");
-        return;
-      }
-
-      const { error: signInError } = await authClient.signIn.passkey();
-      if (signInError) {
-        toast.success("Account created. Sign in with your new passkey.");
-        await navigate.navigate({ to: "/login", replace: true });
-        return;
-      }
-
-      await navigate.navigate({ to: "/onboarding", replace: true });
+      setSignupContext(grant.context);
+      toast.success("Email verified. Choose a password.");
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
           : "That code is invalid or has expired."
+      );
+    }
+  };
+
+  const handleCreateAccount = async (values: z.infer<typeof passwordSchema>) => {
+    if (!details || !signupContext) return;
+
+    try {
+      await completeSignup(signupContext, values.password);
+
+      const { error: signInError } = await authClient.signIn.email({
+        email: details.email,
+        password: values.password,
+      });
+      if (signInError) {
+        toast.success("Account created. Sign in to continue.");
+        await navigate.navigate({ to: "/login", replace: true });
+        return;
+      }
+
+      // The root route reads the session out of the query cache, which still
+      // holds the signed-out value. Without seeding it and re-running the
+      // loaders, onboarding sees no user and bounces to the login page.
+      const { data: freshSession } = await authClient.getSession();
+      queryClient.setQueryData(["session"], freshSession);
+      await navigate.invalidate();
+
+      await navigate.navigate({ to: "/onboarding", replace: true });
+    } catch (error) {
+      // The claim is spent either way, so a failure here restarts the signup.
+      setSignupContext(null);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not create your account. Start again."
       );
     }
   };
@@ -114,9 +155,11 @@ export function RegisterForm({
             Create account
           </h2>
           <p className="text-sm xl:text-base text-muted-foreground">
-            {details
-              ? "Enter the code we emailed, then register your passkey."
-              : "Sign up to get started with your free account."}
+            {!details
+              ? "Sign up to get started with your free account."
+              : signupContext
+                ? "Email verified. Choose a password to finish."
+                : "Enter the code we emailed to verify your address."}
           </p>
         </div>
 
@@ -188,8 +231,8 @@ export function RegisterForm({
               </Button>
 
               <p className="text-center text-xs text-muted-foreground">
-                No password is created. Your account is protected by a passkey
-                bound to this device.
+                We email a code to confirm the address, then you choose a
+                password.
               </p>
 
               <div className="text-center text-sm text-muted-foreground pt-1">
@@ -203,11 +246,11 @@ export function RegisterForm({
               </div>
             </form>
           </Form>
-        ) : (
+        ) : !signupContext ? (
           <Form key="code" {...codeForm}>
             <form
               className="space-y-4"
-              onSubmit={codeForm.handleSubmit(handleVerifyAndEnroll)}
+              onSubmit={codeForm.handleSubmit(handleVerifyCode)}
             >
               <FormField
                 control={codeForm.control}
@@ -246,19 +289,15 @@ export function RegisterForm({
                 {codeForm.formState.isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <Spinner size="sm" className="text-current" />
-                    <span>Creating account...</span>
+                    <span>Verifying...</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <Fingerprint className="w-4 h-4 xl:w-5 xl:h-5" />
-                    <span>Create passkey</span>
-                  </div>
+                  "Verify email"
                 )}
               </Button>
 
               <p className="text-center text-xs text-muted-foreground">
-                Your passkey stays on this device and is unlocked with your
-                fingerprint, face, or device PIN.
+                We sent a 6-digit code to {details.email}.
               </p>
 
               <div className="text-center text-sm text-muted-foreground pt-1">
@@ -270,6 +309,73 @@ export function RegisterForm({
                   Use a different email.
                 </button>
               </div>
+            </form>
+          </Form>
+        ) : (
+          <Form key="password" {...passwordForm}>
+            <form
+              className="space-y-4"
+              onSubmit={passwordForm.handleSubmit(handleCreateAccount)}
+            >
+              <FormField
+                control={passwordForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-brand">
+                      Password
+                    </FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        autoComplete="new-password"
+                        className="h-10 xl:h-12"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={passwordForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-brand">
+                      Confirm password
+                    </FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        autoComplete="new-password"
+                        className="h-10 xl:h-12"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button
+                disabled={passwordForm.formState.isSubmitting}
+                type="submit"
+                className="w-full h-10 xl:h-12 text-sm xl:text-base font-semibold rounded-lg transition-colors shadow-sm"
+              >
+                {passwordForm.formState.isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner size="sm" className="text-current" />
+                    <span>Creating account...</span>
+                  </div>
+                ) : (
+                  "Create account"
+                )}
+              </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                At least 12 characters. You can add a passkey later so sign-in
+                needs no password at all.
+              </p>
             </form>
           </Form>
         )}

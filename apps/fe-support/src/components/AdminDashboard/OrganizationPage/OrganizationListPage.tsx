@@ -10,18 +10,28 @@ import {
 } from "@dashboard/ui/components/avatar";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Input } from "@dashboard/ui/components/input";
+import { Label } from "@dashboard/ui/components/label";
+import { Switch } from "@dashboard/ui/components/switch";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Building2, Calendar, Search, Users } from "lucide-react";
+import {
+  Building2,
+  Calendar,
+  Search,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
 
-const SUBSCRIPTION_COLORS: Record<string, string> = {
-  active: "bg-green-50 text-green-700 border-green-200",
-  trialing: "bg-blue-50 text-blue-700 border-blue-200",
-  past_due: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  canceled: "bg-red-50 text-red-700 border-red-200",
-  incomplete: "bg-gray-50 text-gray-700 border-gray-200",
+type BadgeVariant = React.ComponentProps<typeof Badge>["variant"];
+
+const SUBSCRIPTION_VARIANTS: Record<string, BadgeVariant> = {
+  active: "success",
+  trialing: "info",
+  past_due: "warning",
+  canceled: "destructive",
+  incomplete: "secondary",
 };
 
 export function OrganizationListPage() {
@@ -31,6 +41,7 @@ export function OrganizationListPage() {
     page: 1,
     take: 10,
     search: "",
+    hipaaOnly: false,
   });
 
   const { data, isLoading } = useQuery({
@@ -40,6 +51,7 @@ export function OrganizationListPage() {
         page: filterMeta.page,
         take: filterMeta.take,
         ...(filterMeta.search ? { search: filterMeta.search } : {}),
+        ...(filterMeta.hipaaOnly ? { hipaaOnly: true } : {}),
       }),
   });
 
@@ -80,8 +92,7 @@ export function OrganizationListPage() {
       render: (row: AdminOrganization) =>
         row.subscriptionStatus ? (
           <Badge
-            variant="outline"
-            className={SUBSCRIPTION_COLORS[row.subscriptionStatus] ?? ""}
+            variant={SUBSCRIPTION_VARIANTS[row.subscriptionStatus] ?? "outline"}
           >
             {row.subscriptionStatus}
           </Badge>
@@ -112,8 +123,8 @@ export function OrganizationListPage() {
     <div className="flex flex-1 flex-col">
       <div className="w-full flex-1 space-y-6 px-4 py-6 sm:px-6">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-blue-600" />
+          <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-lg">
+            <Building2 className="text-muted-foreground h-5 w-5" />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -141,6 +152,22 @@ export function OrganizationListPage() {
               }
               className="pl-9"
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="hipaa-only"
+              checked={filterMeta.hipaaOnly}
+              onCheckedChange={(checked) =>
+                setFilterMeta({ ...filterMeta, hipaaOnly: checked, page: 1 })
+              }
+            />
+            <Label
+              htmlFor="hipaa-only"
+              className="flex items-center gap-1.5 text-sm"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              HIPAA mode only
+            </Label>
           </div>
         </div>
 

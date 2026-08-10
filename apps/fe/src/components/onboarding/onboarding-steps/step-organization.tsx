@@ -13,21 +13,10 @@ import {
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { Spinner } from "@dashboard/ui/components/spinner";
-import { Camera, Check } from "lucide-react";
+import { Camera } from "lucide-react";
 import { useRef } from "react";
 import type { Control } from "react-hook-form";
 import { type FormValues } from "../onboarding";
-
-const PRESET_COLORS = [
-  { name: "Refidly navy", hex: "#0d3185" },
-  { name: "Sky", hex: "#2c86d9" },
-  { name: "Teal", hex: "#14b8a6" },
-  { name: "Green", hex: "#22c55e" },
-  { name: "Purple", hex: "#a855f7" },
-  { name: "Orange", hex: "#f97316" },
-  { name: "Red", hex: "#ef4444" },
-  { name: "Pink", hex: "#ec4899" },
-];
 
 type StepOrganizationProps = {
   control: Control<FormValues>;
@@ -116,55 +105,6 @@ const StepOrganization = ({
                 {...field}
               />
             </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={control}
-        name="brandColor"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-sm font-semibold text-brand">
-              Brand colour
-            </FormLabel>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_COLORS.map((preset) => (
-                <button
-                  key={preset.hex}
-                  type="button"
-                  onClick={() => field.onChange(preset.hex)}
-                  aria-label={preset.name}
-                  title={preset.name}
-                  className="w-9 h-9 rounded-full flex items-center justify-center ring-offset-2 ring-offset-background transition-all data-[selected=true]:ring-2 data-[selected=true]:ring-ring"
-                  data-selected={field.value === preset.hex}
-                  style={{ backgroundColor: preset.hex }}
-                >
-                  {field.value === preset.hex && (
-                    <Check className="w-4 h-4 text-brand-foreground" />
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-3 pt-1">
-              <input
-                type="color"
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
-                aria-label="Custom brand colour"
-                className="w-9 h-9 rounded-lg border-2 border-border cursor-pointer"
-              />
-              <FormControl>
-                <Input {...field} className="w-28 font-mono text-sm" maxLength={7} />
-              </FormControl>
-              <div
-                className="h-9 px-3 rounded-md text-brand-foreground text-xs font-medium flex items-center"
-                style={{ backgroundColor: field.value }}
-              >
-                Preview
-              </div>
-            </div>
             <FormMessage />
           </FormItem>
         )}

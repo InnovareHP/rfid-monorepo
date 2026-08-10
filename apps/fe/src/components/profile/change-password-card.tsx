@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { PasswordInput } from "@/components/password-input";
 import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import {
@@ -10,7 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@dashboard/ui/components/form";
-import { Input } from "@dashboard/ui/components/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -84,7 +84,7 @@ export function ChangePasswordCard() {
                   Current Password <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <PasswordInput {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -101,7 +101,7 @@ export function ChangePasswordCard() {
                     New Password <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <PasswordInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -117,7 +117,7 @@ export function ChangePasswordCard() {
                     Confirm Password <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <PasswordInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
