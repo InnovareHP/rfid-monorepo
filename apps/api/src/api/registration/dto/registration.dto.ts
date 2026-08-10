@@ -10,6 +10,15 @@ export const VerifySignupOtpSchema = z.object({
   code: z.string().trim().length(6),
 });
 
+// Carries the claim from the verify step, not the code or the email: both were
+// settled there. The length floor mirrors emailAndPassword.minPasswordLength in
+// the auth config, since a shorter password would insert and then be refused at
+// sign-in.
+export const CompleteSignupSchema = z.object({
+  context: z.string().trim().min(1),
+  password: z.string().min(12).max(128),
+});
+
 export const InvitationContextSchema = z.object({
   invitationId: z.string().trim().min(1),
 });

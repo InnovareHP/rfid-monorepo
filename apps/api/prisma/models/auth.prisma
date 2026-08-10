@@ -1,11 +1,11 @@
 model User {
-  id               String          @id
+  id               String          @id @default(dbgenerated("gen_random_uuid()"))
   name             String
   email            String          @unique
   emailVerified    Boolean
   image            String?
-  createdAt        DateTime        @db.Timestamptz(3)
-  updatedAt        DateTime        @db.Timestamptz(3)
+  createdAt        DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime        @default(now()) @db.Timestamptz(3)
   banExpires       DateTime?       @db.Timestamptz(3)
   isActive         Boolean         @default(false)
   stripeCustomerId String?
@@ -14,6 +14,9 @@ model User {
   role             String          @default("user")
   banReason        String?
   banned           Boolean         @default(false)
+  // Set when the user declines the post-login passkey offer, so it is offered
+  // once rather than on every sign-in. Passkeys stay optional either way.
+  passkeyPromptWaivedAt DateTime? @db.Timestamptz(3)
   invitations      Invitation[]
   members          Member[]
   accounts         UserAccount[]
@@ -66,7 +69,7 @@ model TwoFactor {
 }
 
 model UserAccount {
-  id                   String    @id
+  id                   String    @id @default(dbgenerated("gen_random_uuid()"))
   accountId            String
   providerId           String
   userId               String
@@ -76,8 +79,8 @@ model UserAccount {
   accessTokenExpiresAt DateTime? @db.Timestamptz(3)
   scope                String?
   password             String?
-  createdAt            DateTime  @db.Timestamptz(3)
-  updatedAt            DateTime  @db.Timestamptz(3)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime  @default(now()) @db.Timestamptz(3)
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@schema("auth_schema")
@@ -214,6 +217,7 @@ enum AdminAction {
   SET_PASSWORD
   REVOKE_SESSIONS
   UPDATE_USER
+  SET_ENTITLEMENT
 
   @@schema("auth_schema")
 }

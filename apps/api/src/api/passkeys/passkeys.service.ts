@@ -27,6 +27,34 @@ export type AuditActor = {
 export class PasskeysService {
   constructor(private readonly auditService: AuditService) {}
 
+  // Drives the one-time offer after sign-in. Passwords are the primary
+  // credential, so a user who already has a passkey or has declined once is
+  // never asked again.
+  async getPasskeyPrompt(userId: string) {
+    const [passkeyCount, user] = await Promise.all([
+      prisma.passkey.count({ where: { userId } }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { passkeyPromptWaivedAt: true },
+      }),
+    ]);
+
+    return {
+      shouldPrompt: passkeyCount === 0 && !user?.passkeyPromptWaivedAt,
+      passkeyCount,
+    };
+  }
+
+  async waivePasskeyPrompt(userId: string) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passkeyPromptWaivedAt: new Date() },
+      select: { id: true },
+    });
+
+    return { waived: true };
+  }
+
   async listOwnPasskeys(userId: string) {
     const passkeys = await prisma.passkey.findMany({
       where: { userId },
