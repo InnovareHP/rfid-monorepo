@@ -180,7 +180,7 @@ export default function CountyHeatMap({
               "circle-radius": [
                 "interpolate",
                 ["linear"],
-                ["get", "normalized"],
+                ["coalesce", ["get", "normalized"], 0],
                 0,
                 8,
                 1,
@@ -190,7 +190,7 @@ export default function CountyHeatMap({
               "circle-color": [
                 "interpolate",
                 ["linear"],
-                ["get", "normalized"],
+                ["coalesce", ["get", "normalized"], 0],
                 0,
                 "#64d1f4",
                 0.33,

@@ -88,7 +88,7 @@ export function DashboardSidebar() {
           >
             <img
               src={logoSrc}
-              alt="Innovare HP Referral Intelligence Dashboard"
+              alt="Refidly"
               className={logoClassName}
               loading="eager"
               decoding="async"
