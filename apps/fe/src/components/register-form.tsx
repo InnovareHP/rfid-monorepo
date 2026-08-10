@@ -1,5 +1,6 @@
 import { AuthPanel } from "@/components/auth-panel";
 import { authClient } from "@/lib/auth-client";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import {
   sendSignupOtp,
   verifySignupOtp,
@@ -277,14 +278,18 @@ export function RegisterForm({
       <div className="mt-6 text-center text-xs text-muted-foreground">
         By creating an account, you agree to our{" "}
         <a
-          href="#"
+          href={TERMS_URL}
+          target="_blank"
+          rel="noreferrer"
           className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
         >
           Terms of Service
         </a>{" "}
         and{" "}
         <a
-          href="#"
+          href={PRIVACY_URL}
+          target="_blank"
+          rel="noreferrer"
           className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
         >
           Privacy Policy

@@ -6,10 +6,24 @@ import LegalLayout from "../layouts/LegalLayout.astro";
 
 const SECTIONS = [
   {
-    heading: "Why we built Refidly",
+    heading: "Why Refidly",
     body: [
       "Healthcare referral teams run on relationships, and for years those relationships have lived in spreadsheets, inbox threads, and a notebook in a liaison's car. When a marketer leaves, the territory knowledge leaves with them. When leadership asks why census dipped, nobody can point to the referral source that went quiet six weeks ago.",
       "Refidly exists to make that operation visible. One shared record of every facility, every referral, and every field visit, current for the whole team at the same moment, with the history to show what changed and who changed it.",
+    ],
+  },
+  {
+    heading: "Our mission",
+    body: [
+      "Give every referral team a single, current picture of its market, so decisions about where to spend the next visit are based on evidence instead of memory.",
+      "That means the record has to be shared, the history has to be intact, and the analysis has to arrive in plain language for the people doing the work, not only for the person building the quarterly deck.",
+    ],
+  },
+  {
+    heading: "Our vision",
+    body: [
+      "Referral development becomes a measured discipline. A liaison knows which facility has gone quiet before census reflects it, a manager sees which territories are under-covered, and an organization can trace every admission back to the relationship that produced it.",
+      "We are building toward the system of record for that work, one where the intelligence compounds with every visit logged rather than leaving with the person who logged it.",
     ],
   },
   {
@@ -19,29 +33,14 @@ const SECTIONS = [
       "These teams cover counties rather than accounts, and they are measured on admissions rather than deal stages. Generic sales CRMs make them translate their work into a vocabulary that does not fit. Refidly does not.",
     ],
   },
-  {
-    heading: "How we think about the product",
-    items: [
-      "Your fields, not our template. Facility and referral records are defined per organization, so payor, county, assessor, bed count, and anything else your team tracks are first-class columns rather than notes.",
-      "Insight over data entry. AI summarizes analytics in plain English, flags referral sources that have gone quiet, and turns a photographed business card into a lead record so your liaisons spend their time in the field.",
-      "Live in an afternoon. No implementation consultants and no migration project. Import a CSV, invite the team, and start logging referrals the same day.",
-      "Healthcare-appropriate handling. Role-based access, short-lived sessions, encryption of protected health information at rest, and a full audit trail on every record.",
-    ],
-  },
-  {
-    heading: "How we make money",
-    body: [
-      "Refidly is a subscription product with a free trial and no credit card required to start. We charge organizations for seats and features. We do not sell, rent, or broker customer data, referral records, or facility lists, and we never use protected health information to train AI models.",
-    ],
-  },
 ];
 ---
 
 <LegalLayout
-  title="About Refidly — Referral Intelligence for Healthcare Teams"
-  description="Refidly builds referral intelligence software for healthcare marketing, liaison, and admission teams. Learn who we build for and how we think about the product."
+  title="About Refidly — Software for Healthcare Referral Teams"
+  description="Why Refidly exists, our mission and vision, and the healthcare marketing, liaison, and admission teams we build for."
   heading="About Refidly"
-  lead="Referral intelligence for the healthcare marketing and liaison teams who bring the referrals in."
+  lead="Refidly is for the healthcare marketing and liaison teams who bring the referrals in."
 >
   {SECTIONS.map((section) => <LegalSection {...section} />)}
 
