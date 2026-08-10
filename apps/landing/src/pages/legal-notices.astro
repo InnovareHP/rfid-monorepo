@@ -1,0 +1,85 @@
+---
+import LegalSection from "../components/LegalSection.astro";
+import {
+  EFFECTIVE_DATE,
+  LEGAL_ADDRESS,
+  LEGAL_ENTITY,
+  SUPPORT_EMAIL,
+} from "../config";
+import LegalLayout from "../layouts/LegalLayout.astro";
+
+const SECTIONS = [
+  {
+    heading: "Operator",
+    body: [
+      `refidly.com and the Refidly application at portal.refidly.com are operated by ${LEGAL_ENTITY}, ${LEGAL_ADDRESS}. General and legal correspondence can be sent to that address or to the email below.`,
+    ],
+  },
+  {
+    heading: "Trademarks",
+    body: [
+      "Refidly, the Refidly logo, and the tarsier mark are trademarks of the operator. You may not use them to imply endorsement, partnership, or affiliation without written permission.",
+      "Facility names, health system names, payor names, and any other third-party marks that appear in product screenshots or example data are the property of their respective owners. Their appearance is illustrative and does not imply any relationship with Refidly.",
+    ],
+  },
+  {
+    heading: "Example data",
+    body: [
+      "Facilities, referral records, statistics, and quotations shown on this site are illustrative composites created for demonstration. They are not real patients, not real referral records, and not identifiable individuals. Product metrics shown in marketing material describe representative outcomes, not a guaranteed result for any customer.",
+    ],
+  },
+  {
+    heading: "No professional advice",
+    body: [
+      "Content on this site is general information about the product. It is not legal, clinical, compliance, tax, or billing advice, and it does not create a professional relationship. Refidly is business software; it does not make clinical determinations and does not substitute for professional judgment. Consult your own counsel or compliance officer about how HIPAA, the Anti-Kickback Statute, the Stark Law, CAN-SPAM, or state law applies to your referral operation.",
+    ],
+  },
+  {
+    heading: "Third-party software",
+    body: [
+      "Refidly is built on open-source software and uses third-party services. Those components remain the property of their authors and are used under their respective licenses. A current list of components and license texts is available on request.",
+    ],
+  },
+  {
+    heading: "Copyright and reporting infringement",
+    body: [
+      `The design, text, graphics, and software of this site and the application are protected by copyright and owned by ${LEGAL_ENTITY} or its licensors. You may not copy, adapt, or redistribute them except as the Customer Agreement permits.`,
+      "If you believe material on our site or hosted by a customer inside the application infringes your copyright, send a notice identifying the work, the material and its location, your contact details, a statement of good-faith belief that the use is unauthorized, a statement that the notice is accurate, and your signature. We respond to valid notices and terminate repeat infringers.",
+    ],
+  },
+  {
+    heading: "Links to other sites",
+    body: [
+      "Links to third-party sites are provided for convenience. We do not control them and are not responsible for their content, security, or privacy practices.",
+    ],
+  },
+  {
+    heading: "Legal process and law enforcement",
+    body: [
+      "Subpoenas, court orders, and other legal demands should be served at the address above. Where we may lawfully do so, we notify the affected organization before responding, so it can seek protection for its own records.",
+    ],
+  },
+];
+---
+
+<LegalLayout
+  title="Legal Notices — Refidly"
+  description="Operator details, trademark and copyright notices, example data disclosures, and how to serve legal process on Refidly."
+  heading="Legal Notices"
+  lead="Who operates Refidly, what the marks and example data on this site mean, and where to send legal correspondence."
+  updated={EFFECTIVE_DATE}
+>
+  {SECTIONS.map((section) => <LegalSection {...section} />)}
+
+  <LegalSection heading="Contact">
+    <p class="legal-body">
+      Legal correspondence goes to <a
+        href={`mailto:${SUPPORT_EMAIL}`}
+        class="legal-link">{SUPPORT_EMAIL}</a
+      >. The <a href="/customer-agreement" class="legal-link"
+        >Customer Agreement</a
+      > and <a href="/privacy-policy" class="legal-link">Privacy Policy</a> govern
+      use of the service.
+    </p>
+  </LegalSection>
+</LegalLayout>

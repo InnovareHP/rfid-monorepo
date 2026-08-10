@@ -1,0 +1,36 @@
+---
+interface Props {
+  heading: string;
+  body?: string[];
+  items?: string[];
+}
+
+const { heading, body = [], items = [] } = Astro.props;
+---
+
+<section class="border-t border-border pt-8">
+  <h2 class="text-xl font-bold sm:text-2xl">{heading}</h2>
+  {
+    body.map((paragraph) => (
+      <p class="legal-body">
+        {paragraph}
+      </p>
+    ))
+  }
+  {
+    items.length > 0 && (
+      <ul class="mt-4 flex flex-col gap-2.5">
+        {items.map((item) => (
+          <li class="flex gap-3 text-[15px] leading-relaxed text-muted-foreground">
+            <span
+              class="mt-2.5 size-1.5 shrink-0 rounded-full bg-primary"
+              aria-hidden="true"
+            />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  <slot />
+</section>

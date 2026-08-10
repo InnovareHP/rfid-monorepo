@@ -1,0 +1,85 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import LegalSection from "../components/LegalSection.astro";
+import { EFFECTIVE_DATE, SUPPORT_EMAIL } from "../config";
+import LegalLayout from "../layouts/LegalLayout.astro";
+
+const SECTIONS = [
+  {
+    heading: "What this page is for",
+    body: [
+      "Refidly is used by healthcare marketing and liaison teams to reach the facilities and referral sources they work with. Outreach is sent through each customer's own Google or Microsoft mailbox, under that organization's name, so a message you received will appear to come from the provider rather than from us.",
+      "If a Refidly customer has contacted you in a way you believe is unsolicited, misleading, or improper, we want to know. We investigate every report and act on the ones that hold up.",
+    ],
+  },
+  {
+    heading: "Stop the messages first",
+    body: [
+      "The fastest way to stop unwanted outreach is to reply to the sender and ask to be removed. The sender is the healthcare organization named in the message, and they control their own contact list. If you have replied and the messages continue, report it here.",
+    ],
+  },
+  {
+    heading: "What to report",
+    items: [
+      "Marketing email you did not request and cannot get removed from after asking.",
+      "A message that misrepresents who sent it, or that impersonates Refidly, a health system, or a payor.",
+      "Contact details or facility information about you that you believe should not be in a customer's records.",
+      "Any message that suggests payment or other value in exchange for patient referrals.",
+      "Attempted phishing or fraud using the Refidly name, our logo, or a look-alike domain.",
+    ],
+  },
+  {
+    heading: "What to include",
+    body: [
+      "Send us the full message including headers if you can retrieve them, the sending address, the date received, and a short description of the problem. Headers are what let us identify the account behind a message, so a screenshot alone will slow the investigation down.",
+    ],
+  },
+  {
+    heading: "What happens next",
+    items: [
+      "We acknowledge reports within two business days.",
+      "We identify the workspace behind the message and contact its owner, who is responsible for the content and consent of their outreach.",
+      "Confirmed violations of our acceptable use terms lead to removal of your contact from that workspace's lists, restriction of outreach features, or suspension of the account for repeated or serious abuse.",
+      "We tell you the outcome, without disclosing another organization's confidential information.",
+    ],
+  },
+  {
+    heading: "Records held about you by a customer",
+    body: [
+      "If your information appears in a customer's workspace, that healthcare organization controls those records and Refidly processes them on its behalf. Access, correction, and deletion requests should go to them directly, and we will support them in responding. If you cannot identify or reach the organization, write to us and we will help route the request.",
+    ],
+  },
+  {
+    heading: "Security issues",
+    body: [
+      "This page is for abuse. Suspected vulnerabilities in the Refidly platform go through the disclosure process on the Security page instead, so they reach the right team without being published first.",
+    ],
+  },
+];
+---
+
+<LegalLayout
+  title="Report Abuse — Refidly"
+  description="Report unsolicited outreach, impersonation, or misuse of the Refidly platform. How to reach us, what to include, and what happens after a report."
+  heading="Report Abuse"
+  lead="Received outreach through Refidly that should not have reached you? Tell us and we will investigate."
+  updated={EFFECTIVE_DATE}
+>
+  <LegalSection heading="Send a report">
+    <p class="legal-body">
+      Email <a
+        href={`mailto:${SUPPORT_EMAIL}?subject=Abuse%20report`}
+        class="legal-link">{SUPPORT_EMAIL}</a
+      > with "Abuse report" in the subject line. Requests about your own information
+      reach us at the same address.
+    </p>
+    <a
+      href={`mailto:${SUPPORT_EMAIL}?subject=Abuse%20report`}
+      class={buttonVariants({ className: "mt-6" })}
+    >
+      Email the abuse team
+    </a>
+  </LegalSection>
+
+  {SECTIONS.map((section) => <LegalSection {...section} />)}
+</LegalLayout>
