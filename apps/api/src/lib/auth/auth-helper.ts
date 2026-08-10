@@ -5,6 +5,7 @@ import { appConfig } from "../../config/app-config";
 import { InvitationEmail } from "../../react-email/invitation-email";
 import { InvitationResponseEmail } from "../../react-email/invitation-response-email";
 import { MemberWelcomeEmail } from "../../react-email/member-welcome-email";
+import { PasswordChangedEmail } from "../../react-email/password-changed-email";
 import { ResetPasswordEmail } from "../../react-email/reset-password-email";
 import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
@@ -192,15 +193,23 @@ export const sendResetPassword = async ({
   });
 };
 
+// Fires after the reset lands, so this is the notice that tells a user their
+// password changed when it was not them who changed it.
 export const onPasswordReset = async ({
   user,
 }: {
-  user: { email: string };
+  user: { email: string; name?: string };
 }) => {
+  const html = await renderEmailHtml(
+    PasswordChangedEmail({
+      resetUrl: `${appConfig.WEBSITE_URL}/reset-password`,
+      name: user.name,
+    })
+  );
   await emailQueue.add("send", {
     to: user.email,
-    subject: "Reset your password",
-    html: "password reset",
+    subject: `Your ${appConfig.APP_NAME} password was changed`,
+    html,
     from: `${appConfig.APP_EMAIL}`,
   });
 };

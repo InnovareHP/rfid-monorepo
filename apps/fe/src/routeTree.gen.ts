@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PasskeySetupRouteImport } from './routes/passkey-setup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as TeamRouteImport } from './routes/_team'
@@ -77,6 +78,11 @@ import { Route as TeamTeamReferralListOptionOptionIndexRouteImport } from './rou
 import { Route as TeamTeamMasterListLeadsLeadTimelineRouteImport } from './routes/_team/$team/master-list/leads/$lead/timeline'
 import { Route as TeamTeamMasterListLeadsOptionOptionIndexRouteImport } from './routes/_team/$team/master-list/leads/option/$option/index'
 
+const PasskeySetupRoute = PasskeySetupRouteImport.update({
+  id: '/passkey-setup',
+  path: '/passkey-setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -442,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
   '/onboarding': typeof OnboardingRoute
+  '/passkey-setup': typeof PasskeySetupRoute
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
@@ -509,6 +516,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
   '/onboarding': typeof OnboardingRoute
+  '/passkey-setup': typeof PasskeySetupRoute
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
@@ -579,6 +587,7 @@ export interface FileRoutesById {
   '/_team': typeof TeamRouteWithChildren
   '/billing': typeof BillingRoute
   '/onboarding': typeof OnboardingRoute
+  '/passkey-setup': typeof PasskeySetupRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/otp': typeof AuthOtpRoute
   '/_auth/register': typeof AuthRegisterRoute
@@ -648,6 +657,7 @@ export interface FileRouteTypes {
     | '/'
     | '/billing'
     | '/onboarding'
+    | '/passkey-setup'
     | '/login'
     | '/otp'
     | '/register'
@@ -715,6 +725,7 @@ export interface FileRouteTypes {
     | '/'
     | '/billing'
     | '/onboarding'
+    | '/passkey-setup'
     | '/login'
     | '/otp'
     | '/register'
@@ -784,6 +795,7 @@ export interface FileRouteTypes {
     | '/_team'
     | '/billing'
     | '/onboarding'
+    | '/passkey-setup'
     | '/_auth/login'
     | '/_auth/otp'
     | '/_auth/register'
@@ -854,6 +866,7 @@ export interface RootRouteChildren {
   TeamRoute: typeof TeamRouteWithChildren
   BillingRoute: typeof BillingRoute
   OnboardingRoute: typeof OnboardingRoute
+  PasskeySetupRoute: typeof PasskeySetupRoute
   BookSlugRoute: typeof BookSlugRoute
   FSlugRoute: typeof FSlugRoute
   InvitationActionRoute: typeof InvitationActionRoute
@@ -862,6 +875,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/passkey-setup': {
+      id: '/passkey-setup'
+      path: '/passkey-setup'
+      fullPath: '/passkey-setup'
+      preLoaderRoute: typeof PasskeySetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -1487,6 +1507,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeamRoute: TeamRouteWithChildren,
   BillingRoute: BillingRoute,
   OnboardingRoute: OnboardingRoute,
+  PasskeySetupRoute: PasskeySetupRoute,
   BookSlugRoute: BookSlugRoute,
   FSlugRoute: FSlugRoute,
   InvitationActionRoute: InvitationActionRoute,

@@ -14,6 +14,9 @@ model User {
   role             String          @default("user")
   banReason        String?
   banned           Boolean         @default(false)
+  // Set when the user declines the post-login passkey offer, so it is offered
+  // once rather than on every sign-in. Passkeys stay optional either way.
+  passkeyPromptWaivedAt DateTime? @db.Timestamptz(3)
   invitations      Invitation[]
   members          Member[]
   accounts         UserAccount[]
@@ -214,6 +217,7 @@ enum AdminAction {
   SET_PASSWORD
   REVOKE_SESSIONS
   UPDATE_USER
+  SET_ENTITLEMENT
 
   @@schema("auth_schema")
 }

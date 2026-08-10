@@ -19,6 +19,24 @@ export const getPasskeys = async () => {
   return response.data as PasskeyDevice[];
 };
 
+export type PasskeyPrompt = {
+  shouldPrompt: boolean;
+  passkeyCount: number;
+};
+
+export const getPasskeyPrompt = async () => {
+  const response = await axiosClient.get("/api/passkeys/prompt");
+
+  return response.data as PasskeyPrompt;
+};
+
+// Declining is remembered, so the offer is made once and never nags again.
+export const waivePasskeyPrompt = async () => {
+  const response = await axiosClient.post("/api/passkeys/prompt/waive");
+
+  return response.data as { waived: boolean };
+};
+
 export const createEnrollmentCode = async () => {
   const response = await axiosClient.post("/api/passkeys/enrollment-code");
 

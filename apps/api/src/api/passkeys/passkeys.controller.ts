@@ -25,6 +25,16 @@ export class PasskeysController {
     return this.passkeysService.listOwnPasskeys(session.user.id);
   }
 
+  @Get("prompt")
+  async prompt(@Session() session: UserSession) {
+    return this.passkeysService.getPasskeyPrompt(session.user.id);
+  }
+
+  @Post("prompt/waive")
+  async waivePrompt(@Session() session: UserSession) {
+    return this.passkeysService.waivePasskeyPrompt(session.user.id);
+  }
+
   @Post("enrollment-code")
   async createEnrollmentCode(@Session() session: UserSession) {
     return this.passkeysService.createEnrollmentCode(

@@ -35,6 +35,7 @@ import {
   Building2,
   ChevronsUpDown,
   ClipboardList,
+  ListChecks,
   LogOut,
   Shield,
   Star,
@@ -43,6 +44,8 @@ import {
   Users,
 } from "lucide-react";
 import * as React from "react";
+
+const QUEUE_BOARD_URL = "/api/queues";
 
 const LOGO_RFID = "/images/rfid.png";
 const LOGO_TARSIER = "/images/tarsier.png";
@@ -224,6 +227,18 @@ export function AdminSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          {/* Served by the API rather than the router, so it is a plain anchor
+              instead of a nav item. Gated to super_admin and support upstream. */}
+          {(role === ROLES.SUPER_ADMIN || role === ROLES.SUPPORT) && (
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Job Queues" asChild>
+                <a href={QUEUE_BOARD_URL} target="_blank" rel="noreferrer">
+                  <ListChecks className="size-4" />
+                  <span>Job Queues</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { PasswordInput } from "@/components/password-input";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Form,
@@ -142,8 +143,7 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
                     Confirm your password
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       autoFocus
                       className="border-primary/40 focus:ring-2 focus:ring-primary"
                       {...field}
