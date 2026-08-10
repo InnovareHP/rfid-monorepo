@@ -3,6 +3,7 @@ import { DashboardChoice } from "@/components/dashboard-choice";
 import { DeviceSetupModal } from "@/components/passkeys/device-setup-modal";
 import { PasswordInput } from "@/components/password-input";
 import { authClient } from "@/lib/auth-client";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -259,14 +260,18 @@ export function LoginForm({
         <div className="mt-6 text-center text-xs text-muted-foreground">
           By continuing, you agree to our{" "}
           <a
-            href="#"
+            href={TERMS_URL}
+            target="_blank"
+            rel="noreferrer"
             className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
           >
             Terms of Service
           </a>{" "}
           and{" "}
           <a
-            href="#"
+            href={PRIVACY_URL}
+            target="_blank"
+            rel="noreferrer"
             className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
           >
             Privacy Policy
