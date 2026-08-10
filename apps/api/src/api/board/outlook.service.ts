@@ -2,8 +2,10 @@ import { Injectable, Logger } from "@nestjs/common";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
 
+// /organizations, not /common: common admits personal Microsoft accounts, and a
+// consumer mailbox is outside any BAA. Work and school accounts only.
 const MICROSOFT_AUTH_URL =
-  "https://login.microsoftonline.com/common/oauth2/v2.0";
+  "https://login.microsoftonline.com/organizations/oauth2/v2.0";
 const GRAPH_API_URL = "https://graph.microsoft.com/v1.0";
 const SCOPES = ["Mail.Send", "User.Read", "offline_access"];
 

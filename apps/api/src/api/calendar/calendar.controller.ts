@@ -15,6 +15,7 @@ import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { GoogleCalendarService } from "./google-calendar.service";
 import { OutlookCalendarService } from "./outlook-calendar.service";
+import { assertNoOtherCalendar } from "./single-calendar";
 
 @Controller("calendar")
 @UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard, HipaaGuard)
@@ -27,6 +28,12 @@ export class CalendarController {
   @Get("/google/auth-url")
   async getGoogleAuthUrl(@Session() session: AuthenticatedSession) {
     try {
+      await assertNoOtherCalendar(
+        "google",
+        session.user.id,
+        this.googleCalendarService,
+        this.outlookCalendarService
+      );
       const state = JSON.stringify({
         userId: session.user.id,
         orgId: session.session.activeOrganizationId,
@@ -62,6 +69,12 @@ export class CalendarController {
   @Get("/outlook/auth-url")
   async getOutlookAuthUrl(@Session() session: AuthenticatedSession) {
     try {
+      await assertNoOtherCalendar(
+        "outlook",
+        session.user.id,
+        this.googleCalendarService,
+        this.outlookCalendarService
+      );
       const state = JSON.stringify({
         userId: session.user.id,
         orgId: session.session.activeOrganizationId,

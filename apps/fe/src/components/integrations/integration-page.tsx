@@ -1,3 +1,4 @@
+import axios from "axios";
 import { IntegrationCard } from "@/components/integrations/integration-card";
 import { ProviderLogo } from "@/components/integrations/provider-logo";
 import { PageHeader } from "@/components/page-header";
@@ -37,6 +38,13 @@ import { useSearch } from "@tanstack/react-router";
 import { Calendar, Copy, Inbox, Mail, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+// The single-calendar rule is enforced server-side, so its message has to reach
+// the toast rather than being swallowed by a generic failure string.
+const errorMessage = (error: unknown, fallback: string) =>
+  (axios.isAxiosError<{ message?: string }>(error)
+    ? error.response?.data?.message
+    : null) ?? fallback;
 
 const TAB_TRIGGER =
   "rounded-md px-4 py-1.5 text-sm font-bold text-muted-foreground data-[state=active]:bg-brand-accent data-[state=active]:text-brand-accent-foreground data-[state=active]:shadow-xs";
@@ -120,8 +128,10 @@ export default function IntegrationPage() {
     onSuccess: (data) => {
       window.location.href = data.url;
     },
-    onError: () => {
-      toast.error("Failed to start Google Calendar connection");
+    onError: (error) => {
+      toast.error(
+        errorMessage(error, "Failed to start Google Calendar connection")
+      );
     },
   });
 
@@ -142,8 +152,10 @@ export default function IntegrationPage() {
     onSuccess: (data) => {
       window.location.href = data.url;
     },
-    onError: () => {
-      toast.error("Failed to start Outlook Calendar connection");
+    onError: (error) => {
+      toast.error(
+        errorMessage(error, "Failed to start Outlook Calendar connection")
+      );
     },
   });
 
@@ -232,6 +244,15 @@ export default function IntegrationPage() {
   }, [queryClient, search?.outlook_calendar, search?.message]);
 
   const faxKeyReady = faxApiKey.trim().length >= 10;
+
+  // Bookings write to one calendar, so the other provider stays unavailable
+  // until this one is disconnected.
+  const googleCalendarConnected = Boolean(
+    calendarStatusQuery.data?.google.connected
+  );
+  const outlookCalendarConnected = Boolean(
+    calendarStatusQuery.data?.outlook.connected
+  );
 
   return (
     <div className="page-style w-full">
@@ -344,13 +365,18 @@ export default function IntegrationPage() {
                     fallback={<Calendar className="size-8 text-primary" />}
                   />
                 }
-                connected={Boolean(calendarStatusQuery.data?.google.connected)}
+                connected={googleCalendarConnected}
                 connectedDetail={`Synced with ${calendarStatusQuery.data?.google.email ?? ""}`}
                 onConnect={() => connectGoogleCalendarMutation.mutate()}
                 onDisconnect={() => disconnectGoogleCalendarMutation.mutate()}
                 isConnecting={connectGoogleCalendarMutation.isPending}
                 isDisconnecting={disconnectGoogleCalendarMutation.isPending}
-                disabled={calendarStatusQuery.isLoading}
+                disabled={calendarStatusQuery.isLoading || outlookCalendarConnected}
+                disabledHint={
+                  outlookCalendarConnected
+                    ? "Disconnect Outlook Calendar first — only one calendar can be connected."
+                    : undefined
+                }
               />
 
               <IntegrationCard
@@ -365,13 +391,18 @@ export default function IntegrationPage() {
                     fallback={<Calendar className="size-8 text-primary" />}
                   />
                 }
-                connected={Boolean(calendarStatusQuery.data?.outlook.connected)}
+                connected={outlookCalendarConnected}
                 connectedDetail={`Synced with ${calendarStatusQuery.data?.outlook.email ?? ""}`}
                 onConnect={() => connectOutlookCalendarMutation.mutate()}
                 onDisconnect={() => disconnectOutlookCalendarMutation.mutate()}
                 isConnecting={connectOutlookCalendarMutation.isPending}
                 isDisconnecting={disconnectOutlookCalendarMutation.isPending}
-                disabled={calendarStatusQuery.isLoading}
+                disabled={calendarStatusQuery.isLoading || googleCalendarConnected}
+                disabledHint={
+                  googleCalendarConnected
+                    ? "Disconnect Google Calendar first — only one calendar can be connected."
+                    : undefined
+                }
               />
             </div>
           </TabsContent>

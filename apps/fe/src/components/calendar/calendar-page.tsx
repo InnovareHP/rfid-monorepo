@@ -115,7 +115,8 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="page-style flex flex-col">
+    // h-full keeps the shell height definite so FullCalendar's height="100%" resolves.
+    <div className="page-style flex h-full flex-col">
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-primary/15">
         <div className="flex items-center justify-between">

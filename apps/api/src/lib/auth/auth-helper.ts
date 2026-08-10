@@ -1,4 +1,9 @@
-import { formatCapitalize, resolveEntitlement } from "@dashboard/shared";
+import {
+  formatCapitalize,
+  isConsumerEmailDomain,
+  resolveEntitlement,
+  WORK_EMAIL_REQUIRED_MESSAGE,
+} from "@dashboard/shared";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
@@ -305,6 +310,26 @@ export const afterDeleteOrganization = async ({}: {
 
 // ─── Member lifecycle hooks ────────────────────────────────────────
 
+// HIPAA mode is the signal, not the plan name: it is only reachable with the
+// hipaa entitlement and an executed BAA, and it is the point from which PHI
+// protections are promised. An organization that has not turned it on keeps
+// whatever addresses it likes.
+const assertWorkEmailIfHipaa = async (
+  organizationId: string,
+  email: string | null | undefined
+) => {
+  if (!email || !isConsumerEmailDomain(email)) return;
+
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { hipaaEnabled: true },
+  });
+
+  if (organization?.hipaaEnabled) {
+    throw new Error(WORK_EMAIL_REQUIRED_MESSAGE);
+  }
+};
+
 export const beforeAddMember = async ({
   member,
   organization,
@@ -312,7 +337,7 @@ export const beforeAddMember = async ({
   member: any;
   organization: { id: string };
 }) => {
-  const [memberCount, subscription] = await Promise.all([
+  const [memberCount, subscription, user] = await Promise.all([
     prisma.member.count({
       where: { organizationId: organization.id },
     }),
@@ -325,7 +350,13 @@ export const beforeAddMember = async ({
         customLimits: true,
       },
     }),
+    prisma.user.findUnique({
+      where: { id: member.userId },
+      select: { email: true },
+    }),
   ]);
+
+  await assertWorkEmailIfHipaa(organization.id, user?.email);
 
   // Seats bill per member, so subscription.seats tracks the current head count
   // and can never be the ceiling. The resolved entitlement is — a negotiated
@@ -480,6 +511,8 @@ export const beforeCreateInvitation = async ({
       },
     }),
   ]);
+
+  await assertWorkEmailIfHipaa(organization.id, invitation.email);
 
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount + pendingInvitations >= maxSeats) {

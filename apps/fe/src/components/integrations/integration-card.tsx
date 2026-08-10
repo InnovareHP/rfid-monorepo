@@ -16,6 +16,7 @@ type IntegrationCardProps = {
   isConnecting?: boolean;
   isDisconnecting?: boolean;
   disabled?: boolean;
+  disabledHint?: string;
   children?: ReactNode;
 };
 
@@ -32,6 +33,7 @@ export const IntegrationCard = ({
   isConnecting = false,
   isDisconnecting = false,
   disabled = false,
+  disabledHint,
   children,
 }: IntegrationCardProps) => (
   <Card className="flex flex-col gap-0 rounded-xl p-8 shadow-sm">
@@ -55,6 +57,10 @@ export const IntegrationCard = ({
     <p className="mt-1 text-sm text-muted-foreground">
       {connected && connectedDetail ? connectedDetail : description}
     </p>
+
+    {!connected && disabled && disabledHint && (
+      <p className="mt-2 text-sm text-warning">{disabledHint}</p>
+    )}
 
     {children}
 

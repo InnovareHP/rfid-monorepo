@@ -4,6 +4,7 @@ import type { Response } from "express";
 import { appConfig } from "src/config/app-config";
 import { GoogleCalendarService } from "./google-calendar.service";
 import { OutlookCalendarService } from "./outlook-calendar.service";
+import { assertNoOtherCalendar } from "./single-calendar";
 
 @Controller("calendar")
 @AllowAnonymous()
@@ -21,6 +22,12 @@ export class CalendarOAuthCallbackController {
   ) {
     try {
       const { userId, orgId } = JSON.parse(state);
+      await assertNoOtherCalendar(
+        "google",
+        userId,
+        this.googleCalendarService,
+        this.outlookCalendarService
+      );
       await this.googleCalendarService.handleCallback(code, userId);
       res.redirect(
         `${appConfig.WEBSITE_URL}/${orgId}/integrations?google_calendar=connected`
@@ -40,6 +47,12 @@ export class CalendarOAuthCallbackController {
   ) {
     try {
       const { userId, orgId } = JSON.parse(state);
+      await assertNoOtherCalendar(
+        "outlook",
+        userId,
+        this.googleCalendarService,
+        this.outlookCalendarService
+      );
       await this.outlookCalendarService.handleCallback(code, userId);
       res.redirect(
         `${appConfig.WEBSITE_URL}/${orgId}/integrations?outlook_calendar=connected`

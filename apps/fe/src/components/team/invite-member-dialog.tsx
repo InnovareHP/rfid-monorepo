@@ -1,4 +1,8 @@
-import { ROLE_LABELS, ROLES } from "@dashboard/shared";
+import {
+  isConsumerEmailDomain,
+  ROLE_LABELS,
+  ROLES,
+} from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -35,12 +39,21 @@ const formSchema = z.object({
   message: z.string(),
 });
 
+// In HIPAA mode the API refuses a consumer mailbox outright. Saying so here means
+// the owner reads it against the field rather than as a failed send.
+const hipaaFormSchema = formSchema.refine(
+  (values) => !isConsumerEmailDomain(values.email),
+  { path: ["email"], message: "Use a work email address, not a personal one." }
+);
+
 export type InviteFormValues = z.infer<typeof formSchema>;
 
 type InviteMemberDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationName?: string;
+  // Set when the organization runs in HIPAA mode.
+  workEmailOnly?: boolean;
   onInvite: (values: InviteFormValues, reset: () => void) => Promise<void>;
 };
 
@@ -48,10 +61,11 @@ export function InviteMemberDialog({
   open,
   onOpenChange,
   organizationName,
+  workEmailOnly = false,
   onInvite,
 }: InviteMemberDialogProps) {
   const form = useForm<InviteFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(workEmailOnly ? hipaaFormSchema : formSchema),
     defaultValues: {
       email: "",
       role: ROLES.LIAISON,

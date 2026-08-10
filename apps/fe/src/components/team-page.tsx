@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
 import { authClient } from "@/lib/auth-client";
+import { getComplianceStatus } from "@/services/compliance/compliance-service";
 import { isOrgAdmin } from "@dashboard/shared";
 import { Input } from "@dashboard/ui/components/input";
 import {
@@ -44,6 +45,15 @@ const tabTriggerClass =
 
 const TeamPage = () => {
   const { data: organizationData } = authClient.useActiveOrganization();
+
+  // HIPAA mode limits membership to work email, and the invite form says so
+  // before the API refuses the send. Every role may read this.
+  const { data: compliance } = useQuery({
+    queryKey: ["compliance-status", organizationData?.id],
+    enabled: !!organizationData?.id,
+    queryFn: getComplianceStatus,
+    staleTime: 5 * 60 * 1000,
+  });
   const queryClient = useQueryClient();
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
@@ -120,7 +130,11 @@ const TeamPage = () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
       toast.success("Invitation sent successfully");
     } catch (error) {
-      toast.error("Failed to send invitation");
+      // The API refuses consumer mailboxes in HIPAA mode and states why, so the
+      // reason has to reach the owner rather than a generic failure.
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send invitation"
+      );
     }
   };
 
@@ -134,7 +148,9 @@ const TeamPage = () => {
       });
       toast.success("Invitation sent successfully");
     } catch (error) {
-      toast.error("Failed to send invitation");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send invitation"
+      );
     }
   };
 
@@ -209,6 +225,7 @@ const TeamPage = () => {
             <InviteMemberDialog
               open={isInviteDialogOpen}
               onOpenChange={setIsInviteDialogOpen}
+              workEmailOnly={compliance?.hipaaEnabled ?? false}
               organizationName={organizationData?.name}
               onInvite={handleInvite}
             />

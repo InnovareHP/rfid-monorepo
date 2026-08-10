@@ -5,6 +5,7 @@
 
 export * from "./lib/baa";
 export * from "./lib/constant";
+export * from "./lib/email-domain";
 export * from "./lib/entitlement";
 export * from "./lib/helper";
 export * from "./lib/notification";
