@@ -28,6 +28,8 @@ export class OutlookCalendarService {
       throw new Error("Microsoft OAuth is not configured");
     }
 
+    // No prompt=consent: offline_access already yields a refresh token, and
+    // forcing user consent breaks tenants where only an admin may grant it.
     const params = new URLSearchParams({
       client_id: this.clientId,
       response_type: "code",
@@ -35,7 +37,6 @@ export class OutlookCalendarService {
       response_mode: "query",
       scope: SCOPES.join(" "),
       state,
-      prompt: "consent",
     });
 
     return `${MICROSOFT_AUTH_URL}/authorize?${params.toString()}`;

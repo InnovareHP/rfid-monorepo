@@ -65,12 +65,11 @@ export function useBoardSync() {
       );
     };
 
+    // Geocoding derives several columns at once, so the payload is a field-name map
     const handleUpdateLocation = ({ recordId, data, moduleType }: any) => {
       patchRows(moduleType, (rows) =>
         rows.map((r: any) =>
-          r.id === recordId
-            ? { ...r, [data.key]: data.value, has_notification: true }
-            : r
+          r.id === recordId ? { ...r, ...data, has_notification: true } : r
         )
       );
     };

@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { appConfig } from "../../config/app-config";
+import { auth } from "../../lib/auth/auth";
 import {
+  consumeEnrollmentClaim,
   createRecoveryClaim,
   createSignupClaim,
 } from "../../lib/auth/passkey-registration";
@@ -56,12 +58,67 @@ export class RegistrationService {
     // Accepted trade for a usable signup flow: this confirms the address is taken.
     if (existing) {
       throw new BadRequestException(
-        "An account already exists for this email. Sign in with your passkey, or ask your owner to reset your access."
+        "An account already exists for this email. Sign in instead, or reset your password."
       );
     }
 
     await this.sendCode("signup", email);
     return { sent: true };
+  }
+
+  // Second half of a verified signup: the code was already checked and traded
+  // for a claim, so the password step carries that claim rather than the code.
+  // The email comes off the claim, never off the request, so a caller cannot
+  // verify one address and then register another.
+  async completeSignup(context: string, password: string) {
+    const claim = await consumeEnrollmentClaim(context);
+
+    if (!claim || claim.kind !== "signup") {
+      throw new BadRequestException(
+        "This signup session has expired. Start again."
+      );
+    }
+
+    const { email, name } = claim;
+
+    const existing = await prisma.user.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        "An account already exists for this email. Sign in instead."
+      );
+    }
+
+    // Better Auth's configured hasher, so sign-in verifies the same way and a
+    // custom hash option would be honoured here too.
+    const { password: passwordCtx } = await auth.$context;
+    const hashed = await passwordCtx.hash(password);
+
+    // Ids and timestamps come from the column defaults.
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email,
+          name,
+          // The code already proved the address, so no second email round trip.
+          emailVerified: true,
+        },
+        select: { id: true },
+      });
+
+      await tx.userAccount.create({
+        data: {
+          accountId: user.id,
+          providerId: "credential",
+          userId: user.id,
+          password: hashed,
+        },
+      });
+    });
+
+    return { created: true, email };
   }
 
   async verifySignupOtp(email: string, name: string, code: string) {
@@ -76,7 +133,7 @@ export class RegistrationService {
     });
     if (existing) {
       throw new BadRequestException(
-        "An account already exists for this email. Sign in with your passkey."
+        "An account already exists for this email. Sign in instead."
       );
     }
 

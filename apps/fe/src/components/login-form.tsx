@@ -80,6 +80,10 @@ export function LoginForm({
     const { data: freshSession } = await authClient.getSession();
     queryClient.setQueryData(["session"], freshSession);
 
+    // The root loader already ran with the signed-out session, so its context
+    // has to be rebuilt before any guarded route reads user off it.
+    await navigate.invalidate();
+
     const role = freshSession?.user?.role as string;
     const navData: PendingNav = {
       activeOrganizationId: freshSession?.session?.activeOrganizationId,
@@ -240,17 +244,6 @@ export function LoginForm({
             Your passkey stays on this device and is unlocked with your
             fingerprint, face, or device PIN.
           </p>
-
-          <div className="text-center text-sm text-muted-foreground pt-1">
-            New device?{" "}
-            <button
-              type="button"
-              onClick={() => setSetupOpen(true)}
-              className="font-semibold text-primary hover:text-primary/80 transition-colors"
-            >
-              Set it up here.
-            </button>
-          </div>
 
           <div className="text-center text-sm text-muted-foreground">
             Don't have an account?{" "}

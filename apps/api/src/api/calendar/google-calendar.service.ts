@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { Injectable, Logger } from "@nestjs/common";
-import { google } from "googleapis";
+import { calendar_v3, google } from "googleapis";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
 
@@ -265,15 +265,63 @@ export class GoogleCalendarService {
       conferenceDataVersion: eventData.createConference ? 1 : 0,
     });
 
+    const meetingUrl = eventData.createConference
+      ? await this.resolveMeetingUrl(calendar, response.data)
+      : null;
+
     return {
       id: response.data.id,
       title: response.data.summary,
       start: response.data.start?.dateTime || response.data.start?.date,
       end: response.data.end?.dateTime || response.data.end?.date,
       htmlLink: response.data.htmlLink,
-      meetingUrl: response.data.hangoutLink ?? null,
+      meetingUrl,
       provider: "google",
     };
+  }
+
+  private readMeetingUrl(event: calendar_v3.Schema$Event): string | null {
+    return (
+      event.hangoutLink ??
+      event.conferenceData?.entryPoints?.find(
+        (entry) => entry.entryPointType === "video"
+      )?.uri ??
+      null
+    );
+  }
+
+  // Google mints the conference asynchronously, so a pending insert carries no
+  // join link yet and the event has to be re-read.
+  private async resolveMeetingUrl(
+    calendar: calendar_v3.Calendar,
+    created: calendar_v3.Schema$Event
+  ): Promise<string | null> {
+    const immediate = this.readMeetingUrl(created);
+    if (immediate) return immediate;
+
+    if (
+      !created.id ||
+      created.conferenceData?.createRequest?.status?.statusCode !== "pending"
+    ) {
+      return null;
+    }
+
+    for (const delayMs of [1000, 2000]) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      try {
+        const { data } = await calendar.events.get({
+          calendarId: "primary",
+          eventId: created.id,
+        });
+        const url = this.readMeetingUrl(data);
+        if (url) return url;
+      } catch (error) {
+        this.logger.warn(`Failed to re-read event for Meet link: ${error}`);
+        return null;
+      }
+    }
+
+    return null;
   }
 
   async deleteEvent(userId: string, eventId: string): Promise<void> {

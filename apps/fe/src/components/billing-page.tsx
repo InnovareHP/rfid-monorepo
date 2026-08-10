@@ -1,3 +1,4 @@
+import { BillingTopBar } from "@/components/billing/billing-top-bar";
 import { TransactionsCard } from "@/components/billing/transactions-card";
 import { authClient } from "@/lib/auth-client";
 import { can } from "@/lib/permissions";
@@ -20,7 +21,7 @@ import { cn } from "@dashboard/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
-import { Calendar, LogOut, Users } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { PlansPage } from "./plans-page";
@@ -123,15 +124,17 @@ export function BillingPage({
     return <PlansPage context={propContext} handleLogout={handleLogout} />;
   }
 
+  const standalone = propContext === "/billing";
+
   return (
-    <div
-      className={cn("w-full p-6 space-y-8", className)}
-      {...props}
-    >
-      <PageHeader
-        title="Billing & Subscription"
-        description="Manage your subscription, payment methods, and view billing history"
-      />
+    <div className={cn("w-full", standalone && "min-h-screen")}>
+      {standalone && <BillingTopBar onLogout={handleLogout} />}
+
+      <div className={cn("w-full space-y-8 p-6", className)} {...props}>
+        <PageHeader
+          title="Billing & Subscription"
+          description="Manage your subscription, payment methods, and view billing history"
+        />
 
       <Card>
         <CardHeader>
@@ -243,19 +246,13 @@ export function BillingPage({
                   Cancel Subscription
                 </Button>
               ))}
-
-            {propContext === "/billing" && (
-              <Button variant="ghost" className="flex-1" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Only reachable with manage_billing, which is what both history routes require. */}
-      {canManageBilling && <TransactionsCard />}
+        {/* Only reachable with manage_billing, which is what both history routes require. */}
+        {canManageBilling && <TransactionsCard />}
+      </div>
     </div>
   );
 }

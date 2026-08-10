@@ -66,6 +66,17 @@ export const sendSignupOtp = async (email: string) => {
   return response.data as { sent: boolean };
 };
 
+// Ends a verified signup in a password. The context comes from the verify step,
+// so the email and name are settled server-side and cannot be swapped here.
+export const completeSignup = async (context: string, password: string) => {
+  const response = await axiosClient.post("/api/registration/otp/complete", {
+    context,
+    password,
+  });
+
+  return response.data as { created: boolean; email: string };
+};
+
 export const verifySignupOtp = async (
   email: string,
   name: string,
