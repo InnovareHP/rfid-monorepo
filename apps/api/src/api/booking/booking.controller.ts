@@ -12,10 +12,7 @@ import {
   UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import {
-  EntitlementGuard,
-  RequireFeature,
-} from "../../guard/entitlement/entitlement.guard";
+import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { ZodValidationPipe } from "nestjs-zod";

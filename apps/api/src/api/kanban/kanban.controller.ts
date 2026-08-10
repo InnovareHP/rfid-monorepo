@@ -8,23 +8,17 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import {
-  EntitlementGuard,
-  RequireFeature,
-} from "../../guard/entitlement/entitlement.guard";
+import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import {
   PermissionGuard,
   RequirePermission,
 } from "../../guard/permission/permission.guard";
-import {
-  SetPipelineConfigDto,
-  UpdatePipelineStagesDto,
-} from "./dto/pipeline.schema";
-import { PipelineService } from "./pipeline.service";
+import { UpdateKanbanStagesDto } from "./dto/kanban.schema";
+import { KanbanService } from "./kanban.service";
 
-@Controller("pipeline")
+@Controller("kanban")
 @UseGuards(
   AuthGuard,
   SubscriptionGuard,
@@ -32,19 +26,19 @@ import { PipelineService } from "./pipeline.service";
   EntitlementGuard,
   HipaaGuard
 )
-export class PipelineController {
-  constructor(private readonly pipelineService: PipelineService) {}
+export class KanbanController {
+  constructor(private readonly kanbanService: KanbanService) {}
 
   @RequirePermission({ analytics: ["read"] })
   @Get("/")
-  async getPipeline(
+  async getKanban(
     @Session() session: AuthenticatedSession,
     @Query("moduleType") moduleType?: string,
     @Query("from") from?: string,
     @Query("to") to?: string
   ) {
     try {
-      return await this.pipelineService.getPipeline(
+      return await this.kanbanService.getKanban(
         session.session.activeOrganizationId,
         moduleType || "LEAD",
         { from, to }
@@ -63,7 +57,7 @@ export class PipelineController {
     @Query("to") to?: string
   ) {
     try {
-      return await this.pipelineService.getWinLoss(
+      return await this.kanbanService.getWinLoss(
         session.session.activeOrganizationId,
         moduleType || "LEAD",
         { from, to }
@@ -80,25 +74,9 @@ export class PipelineController {
     @Query("moduleType") moduleType?: string
   ) {
     try {
-      return await this.pipelineService.getConfig(
+      return await this.kanbanService.getConfig(
         session.session.activeOrganizationId,
         moduleType || "LEAD"
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @Patch("/config")
-  @RequirePermission({ field: ["configure"] })
-  async setConfig(
-    @Session() session: AuthenticatedSession,
-    @Body() dto: SetPipelineConfigDto
-  ) {
-    try {
-      return await this.pipelineService.setConfig(
-        session.session.activeOrganizationId,
-        dto
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -109,10 +87,10 @@ export class PipelineController {
   @RequirePermission({ field: ["configure"] })
   async updateStages(
     @Session() session: AuthenticatedSession,
-    @Body() dto: UpdatePipelineStagesDto
+    @Body() dto: UpdateKanbanStagesDto
   ) {
     try {
-      return await this.pipelineService.updateStages(
+      return await this.kanbanService.updateStages(
         session.session.activeOrganizationId,
         dto
       );

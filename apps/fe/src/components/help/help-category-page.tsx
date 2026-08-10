@@ -1,7 +1,9 @@
+import { ListRowsSkeleton } from "@/components/skeletons/page-skeletons";
 import { TablePagination } from "@/components/reusable-table/table-pagination";
 import {
   getCategoryBySlug,
   getPublishedArticles,
+  MANUAL_STALE_TIME,
 } from "@/services/manual/manual-service";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
@@ -27,6 +29,8 @@ export function HelpCategoryPage({
   const categoryQuery = useQuery({
     queryKey: ["manual-category", categorySlug],
     queryFn: () => getCategoryBySlug(categorySlug),
+    staleTime: MANUAL_STALE_TIME,
+    gcTime: MANUAL_STALE_TIME,
   });
 
   const category = categoryQuery.data;
@@ -83,9 +87,7 @@ export function HelpCategoryPage({
           </div>
 
           {articlesQuery.isLoading ? (
-            <p className="p-6 text-sm text-muted-foreground">
-              Loading articles...
-            </p>
+            <ListRowsSkeleton />
           ) : !articlesQuery.data?.articles.length ? (
             <p className="p-6 text-sm text-muted-foreground">
               {searchTerm

@@ -8,10 +8,6 @@ model Field {
   moduleType ModuleType     @default(LEAD)
   isDeleted  Boolean        @default(false)
 
-  // Marks which STATUS field drives the pipeline and which NUMBER field holds deal value
-  isPipelineStage  Boolean @default(false)
-  isPipelineAmount Boolean @default(false)
-
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 

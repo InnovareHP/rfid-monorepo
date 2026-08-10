@@ -1,4 +1,8 @@
-import { getPublishedArticleBySlug } from "@/services/manual/manual-service";
+import { DetailPageSkeleton } from "@/components/skeletons/page-skeletons";
+import {
+  getPublishedArticleBySlug,
+  MANUAL_STALE_TIME,
+} from "@/services/manual/manual-service";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { ManualArticleDetail } from "./manual-article-detail";
@@ -17,12 +21,14 @@ export function HelpArticlePage({
   const articleQuery = useQuery({
     queryKey: ["manual-article", articleSlug],
     queryFn: () => getPublishedArticleBySlug(articleSlug),
+    staleTime: MANUAL_STALE_TIME,
+    gcTime: MANUAL_STALE_TIME,
   });
 
   return (
     <div className="page-style">
       {articleQuery.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading article...</p>
+        <DetailPageSkeleton blocks={6} />
       ) : !articleQuery.data ? (
         <p className="text-sm text-muted-foreground">Article not found.</p>
       ) : (

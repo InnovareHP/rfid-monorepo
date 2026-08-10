@@ -1,5 +1,8 @@
 import { axiosClient } from "../../lib/axios-client";
 
+// Published help content changes rarely, so it survives navigation for an hour.
+export const MANUAL_STALE_TIME = 1000 * 60 * 60;
+
 export interface ManualCategory {
   id: string;
   name: string;

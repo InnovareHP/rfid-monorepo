@@ -1,11 +1,13 @@
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { getMarketLogs } from "@/services/market/market-service";
 import type { MarketLogRow } from "@dashboard/shared";
 import { formatDateTime } from "@dashboard/shared";
-import { Button } from "@dashboard/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
@@ -86,7 +88,7 @@ export default function MarketingReportPage() {
     conversionRate: 0,
   };
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No marketing logs available to export.");
       return;
@@ -98,7 +100,16 @@ export default function MarketingReportPage() {
     let allData: MarketingReportRow[] = [];
 
     do {
-      const res = await getMarketLogs({ ...filterMeta, limit, page: exportPage });
+      const res = await getMarketLogs({
+        ...filterMeta,
+        filter: {
+          ...filterMeta.filter,
+          ...(range.from && { marketingDateFrom: range.from }),
+          ...(range.to && { marketingDateTo: range.to }),
+        },
+        limit,
+        page: exportPage,
+      });
       total = res.total ?? 0;
       allData = [...allData, ...res.data];
       exportPage += 1;
@@ -143,13 +154,10 @@ export default function MarketingReportPage() {
         description="Track outreach activities and referral generation efforts."
       />
 
-          <Button
-            onClick={handleExportCSV}
+          <ExportCsvButton
+            onExport={handleExportCSV}
             className="bg-brand text-white hover:bg-brand/90"
-          >
-            <FileDown className="mr-1 h-4 w-4" />
-            Export CSV
-          </Button>
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

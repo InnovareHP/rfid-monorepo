@@ -5,13 +5,18 @@ import {
   getModuleRecords,
   type CrmModuleType,
 } from "@/services/board/board-module-service";
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { filterByCreatedAt } from "@/lib/helper/helper";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouteContext, useSearch } from "@tanstack/react-router";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { Download, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ColumnFilter from "../master-list/column-filter";
@@ -162,13 +167,20 @@ export default function CrmListPage({
     },
   });
 
-  const handleExportCSV = () => {
+  const handleExportCSV = (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No records available to export.");
       return;
     }
+
+    const scoped = filterByCreatedAt(rows, range);
+    if (scoped.length === 0) {
+      toast.error("No records in that date range.");
+      return;
+    }
+
     const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(rows, data?.columns ?? [], `${title}_${timestamp}`, [], true);
+    exportToCSV(scoped, data?.columns ?? [], `${title}_${timestamp}`, [], true);
     toast.success("CSV download started.");
   };
 
@@ -198,14 +210,11 @@ export default function CrmListPage({
     <div className="page-style">
       <div className="space-y-6">
         <PageHeader title={title} description={description}>
-          <Button
+          <ExportCsvButton
             variant="outline"
-            onClick={handleExportCSV}
+            onExport={handleExportCSV}
             className="flex items-center gap-2 hover:text-primary transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
+          />
           <ColumnFilter tableColumns={tableColumns as any} />
           <Link to={createPath} params={{ team: activeOrganizationId }}>
             <Button className="flex items-center gap-2 shadow-sm">

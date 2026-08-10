@@ -1,3 +1,4 @@
+import { CalendarSkeleton } from "@/components/booking/booking-skeleton";
 import {
   getCalendarConnectionStatus,
   getCalendarEvents,
@@ -5,6 +6,7 @@ import {
   type CalendarEvent,
 } from "@/services/calendar/calendar-service";
 import { Button } from "@dashboard/ui/components/button";
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import type { DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -97,8 +99,17 @@ export function CalendarPage() {
 
   if (statusLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <div className="page-style flex flex-col">
+        <div className="sticky top-0 z-20 border-b border-primary/15 px-4 py-4 sm:px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-xl" />
+              <Skeleton className="h-8 w-40" />
+            </div>
+            <Skeleton className="h-9 w-32" />
+          </div>
+        </div>
+        <CalendarSkeleton />
       </div>
     );
   }
@@ -106,7 +117,7 @@ export function CalendarPage() {
   return (
     <div className="page-style flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-primary/15 bg-white/80 backdrop-blur-sm px-4 sm:px-6 py-4">
+      <div className="sticky top-0 z-20 border-b border-primary/15">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary shadow-md">

@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth-client";
+import { StepFormPageSkeleton } from "@/components/skeletons/builder-page-skeleton";
 import {
   getBlast,
   getBlastAudienceCount,
@@ -29,7 +29,7 @@ import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
 import { ArrowLeft, ChevronDown, Info, Loader2, Send } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -111,10 +111,14 @@ export const BlastEditorPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: organizationData } = authClient.useActiveOrganization();
+  // The org id already rides in the route context, so this avoids a per-mount
+  // auth fetch and the undefined first render that flickered role-gated UI.
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
-    organizationData?.id,
+    activeOrganizationId,
   ]);
   const canSend = can(memberData?.role, { outreach: ["send"] });
 
@@ -178,7 +182,7 @@ export const BlastEditorPage = () => {
   });
 
   if (isLoading || !blast) {
-    return <div className="p-8 text-sm text-muted-foreground">Loading...</div>;
+    return <StepFormPageSkeleton />;
   }
 
   const campaignId = form.watch("campaignId");

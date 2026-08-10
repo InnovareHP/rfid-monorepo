@@ -1,3 +1,4 @@
+import { getGmailStatus, getOutlookStatus } from "@/services/lead/lead-service";
 import {
   createSender,
   verifySender,
@@ -20,18 +21,11 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { getGmailStatus, getOutlookStatus } from "@/services/lead/lead-service";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import {
-  AtSign,
-  Globe,
-  Loader2,
-  MailCheck,
-  Plug,
-} from "lucide-react";
+import { AtSign, Globe, Loader2, MailCheck, Plug } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -215,7 +209,7 @@ export function SenderSetupDialog({
                 name="kind"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {KIND_OPTIONS.map((option) => {
                         const Icon = option.icon;
                         const selected = field.value === option.kind;
@@ -326,10 +320,7 @@ export function SenderSetupDialog({
                     <FormItem>
                       <FormLabel>Replies Go To</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="you@acme-health.com"
-                          {...field}
-                        />
+                        <Input placeholder="you@acme-health.com" {...field} />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
                         A sending domain has no inbox. Leave blank to use your

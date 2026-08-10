@@ -1,6 +1,9 @@
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import { authClient } from "@/lib/auth-client";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { can } from "@/lib/permissions";
@@ -16,21 +19,20 @@ import {
   type Header,
 } from "@tanstack/react-table";
 import {
-  Download,
   KanbanSquare,
   ScanLine,
   Settings,
   TableProperties,
 } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { useSearch } from "@tanstack/react-router";
+import { useRouteContext, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { AnalyzeLeadDialog } from "./analyze-cell";
 import ColumnFilter from "./column-filter";
-import KanbanView from "./kanban-view";
+import KanbanView from "@/components/kanban/kanban-view";
 import { MasterListFilters } from "./master-list-filter";
-import { PipelineSettingsDialog } from "./pipeline-settings-dialog";
+import { KanbanSettingsDialog } from "@/components/kanban/kanban-settings-dialog";
 import { BoardStatsStrip } from "./board-stats-strip";
 import { MasterListView } from "./master-list-view";
 import { SmartScanDialog } from "./smart-scan-dialog";
@@ -42,18 +44,22 @@ export default function MasterListPage() {
   const [openMasterListView, setOpenMasterListView] = useState(false);
   const [openSmartScan, setOpenSmartScan] = useState(false);
   const [view, setView] = useState<"table" | "kanban">("table");
-  const [openPipelineSettings, setOpenPipelineSettings] = useState(false);
+  const [openKanbanSettings, setOpenKanbanSettings] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: organizationData } = authClient.useActiveOrganization();
+  // The org id already rides in the route context, so this avoids a per-mount
+  // auth fetch and the undefined first render that flickered role-gated UI.
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
-    organizationData?.id,
+    activeOrganizationId,
   ]);
-  const canConfigurePipeline = can(memberData?.role, {
+  const canConfigureKanban = can(memberData?.role, {
     field: ["configure"],
   });
-  const entitlement = useEntitlement(organizationData?.id ?? "");
+  const entitlement = useEntitlement(activeOrganizationId);
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
@@ -203,7 +209,7 @@ export default function MasterListPage() {
     deleteLeadMutation.mutate(columnIds);
   };
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No leads available to export.");
       return;
@@ -221,6 +227,8 @@ export default function MasterListPage() {
     do {
       const res = await getLeads({
         ...filterMeta,
+        boardDateFrom: range.from,
+        boardDateTo: range.to,
         limit,
         offset,
       });
@@ -310,9 +318,9 @@ export default function MasterListPage() {
 
         <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
 
-        <PipelineSettingsDialog
-          open={openPipelineSettings}
-          setOpen={setOpenPipelineSettings}
+        <KanbanSettingsDialog
+          open={openKanbanSettings}
+          setOpen={setOpenKanbanSettings}
         />
 
         <MasterListView
@@ -342,34 +350,25 @@ export default function MasterListPage() {
             ) : (
               <TableProperties className="h-4 w-4" />
             )}
-            {view === "table" ? "Pipeline" : "Table"}
+            {view === "table" ? "Kanban" : "Table"}
           </Button>
-          {view === "kanban" && canConfigurePipeline && (
+          {view === "kanban" && canConfigureKanban && (
             <Button
               variant="outline"
-              onClick={() => setOpenPipelineSettings(true)}
+              onClick={() => setOpenKanbanSettings(true)}
               className="flex items-center gap-2"
             >
               <Settings className="h-4 w-4" />
-              Pipeline Settings
+              Kanban Settings
             </Button>
           )}
 
           <ColumnFilter tableColumns={tableColumns as any} />
 
-          <Button
-            onClick={handleExportCSV}
-            disabled={!entitlement.has("export")}
-            title={
-              entitlement.has("export")
-                ? undefined
-                : "Upgrade your plan to export data"
-            }
+          <ExportCsvButton
+            onExport={handleExportCSV}
             className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
+          />
           <Button
             onClick={() => setOpenSmartScan(true)}
             disabled={!entitlement.has("ai")}

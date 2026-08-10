@@ -7,7 +7,6 @@ import {
   useTasks,
   useTaskStatuses,
 } from "@/hooks/use-tasks";
-import { authClient } from "@/lib/auth-client";
 import {
   buildTaskInsights,
   buildTaskStats,
@@ -31,7 +30,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
 import { ClipboardList, ListPlus, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBreakdownCard } from "../analytics/charts/status-breakdown-card";
@@ -62,10 +61,14 @@ const TaskPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const { data: organizationData } = authClient.useActiveOrganization();
+  // The org id already rides in the route context, so this avoids a per-mount
+  // auth fetch and the undefined first render that flickered role-gated UI.
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
-    organizationData?.id,
+    activeOrganizationId,
   ]);
 
   const projectsQuery = useTaskProjects();

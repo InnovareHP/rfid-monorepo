@@ -1,5 +1,4 @@
 import { PageHeader } from "@/components/page-header";
-import { authClient } from "@/lib/auth-client";
 import {
   createBlast,
   deleteBlast,
@@ -18,7 +17,7 @@ import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
 import { Loader2, Mail, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -33,10 +32,14 @@ export const MarketingBlastsListPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: organizationData } = authClient.useActiveOrganization();
+  // The org id already rides in the route context, so this avoids a per-mount
+  // auth fetch and the undefined first render that flickered role-gated UI.
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
-    organizationData?.id,
+    activeOrganizationId,
   ]);
   const canSend = can(memberData?.role, { outreach: ["send"] });
 

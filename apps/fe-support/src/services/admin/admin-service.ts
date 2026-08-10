@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth-client";
+import { authClient, type AdminRole } from "@/lib/auth-client";
 import { axiosClient } from "@/lib/axios-client";
 
 // ─── User Types ─────────────────────────────────────────────────────
@@ -48,6 +48,7 @@ export type ActivityLogEntry = {
   action: string;
   details: string | null;
   targetOrgId: string | null;
+  ipAddress: string | null;
   admin: {
     id: string;
     name: string;
@@ -69,6 +70,7 @@ export type ActivityLogParams = {
   page?: number;
   take?: number;
   actionFilter?: string;
+  adminId?: string;
   startDate?: string;
   endDate?: string;
 };
@@ -151,57 +153,54 @@ export async function getUser(userId: string): Promise<AdminUser> {
   return data;
 }
 
-// ─── Admin Actions (routed through backend for audit logging) ───────
+// ─── Admin Actions ──────────────────────────────────────────────────
+// Every call below is audited by the after hook in the API's Better Auth
+// config, so there is nothing for the client to log.
 
 export async function banUser(
   userId: string,
   banReason?: string,
   banExpiresIn?: number
 ) {
-  const { data } = await axiosClient.post("/api/user/admin/ban", {
+  const { data, error } = await authClient.admin.banUser({
     userId,
     banReason,
     banExpiresIn,
   });
+  if (error) throw error;
   return data;
 }
 
 export async function unbanUser(userId: string) {
-  const { data } = await axiosClient.post("/api/user/admin/unban", {
-    userId,
-  });
+  const { data, error } = await authClient.admin.unbanUser({ userId });
+  if (error) throw error;
   return data;
 }
 
-export async function setUserRole(userId: string, role: string) {
-  const { data } = await axiosClient.post("/api/user/admin/set-role", {
-    userId,
-    role,
-  });
+export async function setUserRole(userId: string, role: AdminRole) {
+  const { data, error } = await authClient.admin.setRole({ userId, role });
+  if (error) throw error;
   return data;
 }
 
 export async function removeUser(userId: string) {
-  const { data } = await axiosClient.post("/api/user/admin/remove", {
-    userId,
-  });
+  const { data, error } = await authClient.admin.removeUser({ userId });
+  if (error) throw error;
   return data;
 }
 
 export async function verifyEmail(userId: string) {
-  const { data } = await authClient.admin.updateUser({
+  const { data, error } = await authClient.admin.updateUser({
     userId,
     data: {
       emailVerified: true,
     },
   });
+  if (error) throw error;
   return data;
 }
 
-export async function setUserPassword(
-  userId: string,
-  newPassword: string
-) {
+export async function setUserPassword(userId: string, newPassword: string) {
   const { data, error } = await authClient.admin.setUserPassword({
     userId,
     newPassword,
@@ -211,18 +210,21 @@ export async function setUserPassword(
   return data;
 }
 
-export async function revokeSession(sessionId: string) {
+export async function revokeUserSessions(userId: string) {
   const { data, error } = await authClient.admin.revokeUserSessions({
-    userId: sessionId,
+    userId,
   });
   if (error) throw error;
   return data;
 }
 
-export async function impersonateUser(userId: string) {
-  const { data, error } = await authClient.admin.impersonateUser({
-    userId,
-  });
+// The reason travels as a header because the admin plugin strips body keys it
+// does not declare, and the API rejects the call without it.
+export async function impersonateUser(userId: string, reason: string) {
+  const { data, error } = await authClient.admin.impersonateUser(
+    { userId },
+    { headers: { "x-impersonation-reason": reason } }
+  );
   if (error) throw error;
   return data;
 }

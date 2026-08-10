@@ -12,12 +12,14 @@ import {
   Session,
   UseGuards,
 } from "@nestjs/common";
-import { AdminAction } from "@prisma/client";
 import { AuthGuard, Roles, UserSession } from "@thallesp/nestjs-better-auth";
 import type { Request, Response } from "express";
 import { OnboardingGuard } from "src/guard/onboarding/onboarding.guard";
 import { OnboardingDto } from "./dto/user.schema";
 import { UserService } from "./user.service";
+
+// Bounds the export path, which asks for the whole filtered log in one page.
+const ACTIVITY_LOG_MAX_TAKE = 5000;
 
 @Controller("user")
 @UseGuards(AuthGuard)
@@ -97,102 +99,18 @@ export class UserController {
     @Query("page") page: number = 1,
     @Query("take") take: number = 20,
     @Query("actionFilter") actionFilter?: string,
+    @Query("adminId") adminId?: string,
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string
   ) {
     try {
       return await this.userService.getActivityLog({
         page: Number(page),
-        take: Number(take),
+        take: Math.min(Number(take), ACTIVITY_LOG_MAX_TAKE),
         actionFilter,
+        adminId,
         startDate,
         endDate,
-      });
-    } catch (error) {
-      throw new BadRequestException(error);
-    }
-  }
-
-  @Post("admin/ban")
-  @Roles([ROLES.SUPER_ADMIN])
-  async banUser(
-    @Body() body: { userId: string; banReason?: string; banExpiresIn?: number },
-    @Session() session: UserSession
-  ) {
-    try {
-      return await this.userService.adminBanUser(
-        session.user.id,
-        body.userId,
-        body.banReason,
-        body.banExpiresIn
-      );
-    } catch (error) {
-      throw new BadRequestException(error);
-    }
-  }
-
-  @Post("admin/unban")
-  @Roles([ROLES.SUPER_ADMIN])
-  async unbanUser(
-    @Body() body: { userId: string },
-    @Session() session: UserSession
-  ) {
-    try {
-      return await this.userService.adminUnbanUser(
-        session.user.id,
-        body.userId
-      );
-    } catch (error) {
-      throw new BadRequestException(error);
-    }
-  }
-
-  @Post("admin/set-role")
-  @Roles([ROLES.SUPER_ADMIN])
-  async setRole(
-    @Body() body: { userId: string; role: string },
-    @Session() session: UserSession
-  ) {
-    try {
-      return await this.userService.adminSetRole(
-        session.user.id,
-        body.userId,
-        body.role
-      );
-    } catch (error) {
-      throw new BadRequestException(error);
-    }
-  }
-
-  @Post("admin/remove")
-  @Roles([ROLES.SUPER_ADMIN])
-  async removeUser(
-    @Body() body: { userId: string },
-    @Session() session: UserSession
-  ) {
-    try {
-      return await this.userService.adminRemoveUser(
-        session.user.id,
-        body.userId
-      );
-    } catch (error) {
-      throw new BadRequestException(error);
-    }
-  }
-
-  @Post("admin/log-action")
-  @Roles([ROLES.SUPER_ADMIN])
-  async logAction(
-    @Body()
-    body: { action: string; targetUserId?: string; targetOrgId?: string },
-    @Session() session: UserSession
-  ) {
-    try {
-      return await this.userService.logAdminAction({
-        adminId: session.user.id,
-        action: body.action as AdminAction,
-        targetUserId: body.targetUserId,
-        targetOrgId: body.targetOrgId,
       });
     } catch (error) {
       throw new BadRequestException(error);

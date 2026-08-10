@@ -1,6 +1,9 @@
-import { formatCurrency } from "@/lib/helper/helper";
-import { getLeads, updateLead } from "@/services/lead/lead-service";
-import { getPipeline } from "@/services/pipeline/pipeline-service";
+import { KanbanSummaryTile } from "@/components/kanban/kanban-summary-tile";
+import { updateLead } from "@/services/lead/lead-service";
+import {
+  getKanban,
+  getKanbanCards,
+} from "@/services/kanban/kanban-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
 import {
@@ -13,6 +16,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 const CARDS_PER_STAGE = 25;
+
+// Moving a card changes the module's board list too, so invalidate the right one.
+const LIST_QUERY_KEYS: Record<string, string> = {
+  LEAD: "leads",
+  REFERRAL: "referrals",
+  CONTACT: "contacts",
+  COMPANY: "companies",
+};
 
 type KanbanCard = { id: string; recordName: string } & Record<string, unknown>;
 
@@ -31,44 +42,51 @@ export default function KanbanView({
   const [dragging, setDragging] = useState<DragState | null>(null);
 
   const {
-    data: pipeline,
+    data: kanban,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["pipeline", moduleType],
-    queryFn: () => getPipeline(moduleType),
+    queryKey: ["kanban", moduleType],
+    queryFn: () => getKanban(moduleType),
   });
 
-  const stages = pipeline?.stages ?? [];
-  const stageFieldId = pipeline?.stageField.id;
-  const amountFieldName = pipeline?.amountField?.name;
+  const stages = kanban?.stages ?? [];
+  const stageFieldId = kanban?.stageField.id;
 
   const cardQueries = useQueries({
     queries: stages.map((stage) => ({
-      queryKey: ["pipeline-cards", moduleType, stage.id],
+      queryKey: ["kanban-cards", moduleType, stage.id],
       queryFn: () =>
-        getLeads({
-          filter: { [stageFieldId as string]: stage.name },
-          limit: CARDS_PER_STAGE,
-          page: 1,
-        }) as Promise<CardPage>,
+        getKanbanCards(
+          moduleType,
+          stageFieldId as string,
+          stage.name,
+          CARDS_PER_STAGE
+        ) as Promise<CardPage>,
       enabled: Boolean(stageFieldId),
     })),
   });
 
   const moveMutation = useMutation({
-    mutationFn: ({ card, toStageName }: { card: KanbanCard; fromStageId: string; toStageId: string; toStageName: string }) =>
-      updateLead(card.id, stageFieldId as string, toStageName, moduleType),
+    mutationFn: ({
+      card,
+      toStageName,
+    }: {
+      card: KanbanCard;
+      fromStageId: string;
+      toStageId: string;
+      toStageName: string;
+    }) => updateLead(card.id, stageFieldId as string, toStageName, moduleType),
     onMutate: async ({ card, fromStageId, toStageId }) => {
       await queryClient.cancelQueries({
-        queryKey: ["pipeline-cards", moduleType],
+        queryKey: ["kanban-cards", moduleType],
       });
       const previous = queryClient.getQueriesData({
-        queryKey: ["pipeline-cards", moduleType],
+        queryKey: ["kanban-cards", moduleType],
       });
 
       queryClient.setQueryData<CardPage>(
-        ["pipeline-cards", moduleType, fromStageId],
+        ["kanban-cards", moduleType, fromStageId],
         (old) =>
           old && {
             ...old,
@@ -76,7 +94,7 @@ export default function KanbanView({
           }
       );
       queryClient.setQueryData<CardPage>(
-        ["pipeline-cards", moduleType, toStageId],
+        ["kanban-cards", moduleType, toStageId],
         (old) => old && { ...old, data: [card, ...old.data] }
       );
 
@@ -89,12 +107,14 @@ export default function KanbanView({
       toast.error("Failed to move record");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pipeline", moduleType] });
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["kanban", moduleType] });
+      queryClient.invalidateQueries({
+        queryKey: [LIST_QUERY_KEYS[moduleType] ?? "leads"],
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: ["pipeline-cards", moduleType],
+        queryKey: ["kanban-cards", moduleType],
       });
     },
   });
@@ -114,27 +134,28 @@ export default function KanbanView({
     return <Skeleton className="h-96 w-full" />;
   }
 
-  if (error || !pipeline) {
+  if (error || !kanban) {
     return (
-      <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center">
-        <p className="font-medium text-gray-900">Pipeline not configured</p>
-        <p className="mt-1 text-sm text-gray-500">
-          Pick a status field as the pipeline stage and a number field as deal
-          value in pipeline settings.
+      <div className="rounded-md border border-dashed border-border bg-card p-8 text-center">
+        <p className="font-medium text-foreground">Kanban not available</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          This module has no status field to group by. Add one to the board, then
+          set each option's outcome in Kanban settings.
         </p>
       </div>
     );
   }
 
-  const { totals, unstaged } = pipeline;
+  const { totals, unstaged } = kanban;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <SummaryTile label="Open value" value={formatCurrency(totals.open.value)} hint={`${totals.open.count} deals`} />
-        <SummaryTile label="Weighted forecast" value={formatCurrency(totals.weightedForecast)} hint="Open x probability + won" />
-        <SummaryTile label="Won" value={formatCurrency(totals.won.value)} hint={`${totals.won.count} deals`} />
-        <SummaryTile label="Win rate" value={`${totals.winRate}%`} hint={`${totals.lost.count} lost`} />
+      <div className="sm:max-w-xs">
+        <KanbanSummaryTile
+          label="Open"
+          value={String(totals.open.count)}
+          hint="records in progress"
+        />
       </div>
 
       <div className="flex gap-4 overflow-x-auto pb-4">
@@ -148,21 +169,21 @@ export default function KanbanView({
               key={stage.id}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => handleDrop(stage.id, stage.name)}
-              className="flex w-72 shrink-0 flex-col rounded-md border border-gray-200 bg-gray-50"
+              className="flex w-72 shrink-0 flex-col rounded-md border border-border bg-muted"
             >
-              <div className="flex items-start justify-between gap-2 border-b border-gray-200 p-3">
+              <div className="flex items-start justify-between gap-2 border-b border-border p-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <span
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: stage.color ?? "#94a3b8" }}
                     />
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-foreground">
                       {stage.name}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {total} - {formatCurrency(stage.value)}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {total} {total === 1 ? "record" : "records"}
                   </p>
                 </div>
                 <Badge variant="outline" className="shrink-0">
@@ -185,28 +206,16 @@ export default function KanbanView({
                     onDragStart={() => setDragging({ card, stageId: stage.id })}
                     onDragEnd={() => setDragging(null)}
                     onClick={() => onCardOpen(card.id)}
-                    className="rounded-md border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:border-gray-300"
+                    className="rounded-md border border-border bg-card p-3 text-left shadow-sm transition hover:border-ring"
                   >
-                    <p className="truncate text-sm font-medium text-gray-900">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {card.recordName}
                     </p>
-                    {amountFieldName && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        {formatCurrency(
-                          Number(
-                            String(card[amountFieldName] ?? "0").replace(
-                              /[^0-9.-]/g,
-                              ""
-                            )
-                          ) || 0
-                        )}
-                      </p>
-                    )}
                   </button>
                 ))}
 
                 {total > cards.length && (
-                  <p className="p-2 text-xs text-gray-500">
+                  <p className="p-2 text-xs text-muted-foreground">
                     {total - cards.length} more in this stage
                   </p>
                 )}
@@ -216,32 +225,14 @@ export default function KanbanView({
         })}
 
         {unstaged.count > 0 && (
-          <div className="flex w-72 shrink-0 flex-col rounded-md border border-dashed border-gray-300 bg-white p-3">
-            <span className="font-medium text-gray-900">No stage</span>
-            <p className="mt-1 text-xs text-gray-500">
-              {unstaged.count} records - {formatCurrency(unstaged.value)}
+          <div className="flex w-72 shrink-0 flex-col rounded-md border border-dashed border-border bg-card p-3">
+            <span className="font-medium text-foreground">No stage</span>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {unstaged.count} {unstaged.count === 1 ? "record" : "records"}
             </p>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function SummaryTile({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="rounded-md border border-gray-200 bg-white p-4">
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-gray-900">{value}</p>
-      <p className="mt-1 text-xs text-gray-500">{hint}</p>
     </div>
   );
 }

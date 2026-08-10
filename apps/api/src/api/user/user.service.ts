@@ -216,38 +216,20 @@ export class UserService {
 
   // ─── Audit Log ───────────────────────────────────────────────────────
 
-  async logAdminAction(params: {
-    adminId: string;
-    action: AdminAction;
-    targetUserId?: string;
-    targetOrgId?: string;
-    details?: string;
-    ipAddress?: string;
-  }) {
-    return prisma.adminActivityLog.create({
-      data: {
-        adminId: params.adminId,
-        action: params.action,
-        targetUserId: params.targetUserId,
-        targetOrgId: params.targetOrgId,
-        details: params.details,
-        ipAddress: params.ipAddress,
-      },
-    });
-  }
-
   async getActivityLog(params: {
     page: number;
     take: number;
     actionFilter?: string;
+    adminId?: string;
     startDate?: string;
     endDate?: string;
   }) {
-    const { page, take, actionFilter, startDate, endDate } = params;
+    const { page, take, actionFilter, adminId, startDate, endDate } = params;
     const skip = (page - 1) * take;
 
     const where: Prisma.AdminActivityLogWhereInput = {
       ...(actionFilter ? { action: actionFilter as AdminAction } : {}),
+      ...(adminId ? { adminId } : {}),
       ...(startDate || endDate
         ? {
             createdAt: {
@@ -264,17 +246,26 @@ export class UserService {
         skip,
         take,
         orderBy: { createdAt: "desc" },
-        include: {
-          adminUser: {
-            select: { id: true, name: true, image: true },
-          },
-          targetUser: {
-            select: { id: true, name: true, image: true },
-          },
-        },
       }),
       prisma.adminActivityLog.count({ where }),
     ]);
+
+    // The log holds no user foreign keys, so avatars are looked up for whoever
+    // still has an account. Names always come from the row.
+    const userIds = [
+      ...new Set(
+        logs.flatMap((l) => [l.adminId, l.targetUserId].filter(Boolean))
+      ),
+    ] as string[];
+
+    const images = new Map(
+      (
+        await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, image: true },
+        })
+      ).map((u) => [u.id, u.image])
+    );
 
     return {
       logs: logs.map((l) => ({
@@ -283,75 +274,22 @@ export class UserService {
         action: l.action,
         details: l.details,
         targetOrgId: l.targetOrgId,
+        ipAddress: l.ipAddress,
         admin: {
-          id: l.adminUser.id,
-          name: l.adminUser.name,
-          image: l.adminUser.image,
+          id: l.adminId,
+          name: l.adminName,
+          image: images.get(l.adminId) ?? null,
         },
-        targetUser: l.targetUser
+        targetUser: l.targetUserId
           ? {
-              id: l.targetUser.id,
-              name: l.targetUser.name,
-              image: l.targetUser.image,
+              id: l.targetUserId,
+              name: l.targetName ?? "Deleted account",
+              image: images.get(l.targetUserId) ?? null,
             }
           : null,
       })),
       total,
     };
-  }
-
-  // ─── Admin Action Wrappers ──────────────────────────────────────────
-
-  async adminBanUser(
-    adminId: string,
-    userId: string,
-    banReason?: string,
-    banExpiresIn?: number
-  ) {
-    const result = await auth.api.banUser({
-      body: { userId, banReason, banExpiresIn },
-    });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.BAN_USER,
-      targetUserId: userId,
-      details: banReason ? `Reason: ${banReason}` : undefined,
-    });
-    return result;
-  }
-
-  async adminUnbanUser(adminId: string, userId: string) {
-    const result = await auth.api.unbanUser({ body: { userId } });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.UNBAN_USER,
-      targetUserId: userId,
-    });
-    return result;
-  }
-
-  async adminSetRole(adminId: string, userId: string, role: string) {
-    const result = await auth.api.setRole({
-      body: { userId, role: [role as "super_admin" | "support"] as const },
-      headers: {}, // provide required headers, or supply appropriate headers if necessary
-    });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.SET_ROLE,
-      targetUserId: userId,
-      details: `New role: ${role}`,
-    });
-    return result;
-  }
-
-  async adminRemoveUser(adminId: string, userId: string) {
-    const result = await auth.api.removeUser({ body: { userId } });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.REMOVE_USER,
-      targetUserId: userId,
-    });
-    return result;
   }
 
   // ─── Organization Admin ─────────────────────────────────────────────

@@ -106,7 +106,6 @@ export function NavUser({ user, activeOrganizationId }: NavUserProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
-            <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <Link to={`/${activeOrganizationId}/profile` as any}>

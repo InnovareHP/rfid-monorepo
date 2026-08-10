@@ -1,4 +1,4 @@
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError } from "better-auth/api";
 
 // Every one of these proves only that the caller can read an inbox, and every
 // one of them ends in a session. Passkeys exist to close exactly that path, so
@@ -17,12 +17,10 @@ const BLOCKED_PATHS = new Set([
   "/verify-email",
 ]);
 
-export const blockSessionGrantingEmailPaths = createAuthMiddleware(
-  async (ctx) => {
-    if (BLOCKED_PATHS.has(ctx.path)) {
-      throw new APIError("NOT_FOUND", {
-        message: "This sign-in method is disabled. Use your passkey.",
-      });
-    }
+export const blockSessionGrantingEmailPaths = (ctx: { path: string }) => {
+  if (BLOCKED_PATHS.has(ctx.path)) {
+    throw new APIError("NOT_FOUND", {
+      message: "This sign-in method is disabled. Use your passkey.",
+    });
   }
-);
+};

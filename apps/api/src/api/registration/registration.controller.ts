@@ -40,8 +40,11 @@ export class RegistrationController {
     }
   }
 
+  // The service already caps sends per mailbox; this caps one caller cycling
+  // addresses, which is the spend and the enumeration budget.
   @Post("otp/send")
-  async sendSignupOtp(@Body() dto: SendSignupOtpDto) {
+  async sendSignupOtp(@Body() dto: SendSignupOtpDto, @Req() request: Request) {
+    await this.limitPerIp(request, "otp-send");
     return this.registrationService.sendSignupOtp(dto.email);
   }
 
@@ -68,7 +71,11 @@ export class RegistrationController {
   }
 
   @Post("migrate/send")
-  async sendMigrationOtp(@Body() dto: SendMigrationOtpDto) {
+  async sendMigrationOtp(
+    @Body() dto: SendMigrationOtpDto,
+    @Req() request: Request
+  ) {
+    await this.limitPerIp(request, "migrate-send");
     return this.registrationService.sendMigrationOtp(dto.email);
   }
 

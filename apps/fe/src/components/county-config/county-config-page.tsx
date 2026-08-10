@@ -33,11 +33,13 @@ export default function CountyConfigTablePage() {
   const { data: counties, isLoading } = useQuery<CountyRow[]>({
     queryKey: COUNTIES_KEY,
     queryFn: getCounties,
+    staleTime: 1000 * 60 * 30,
   });
 
   const { data: liaisons } = useQuery({
     queryKey: ["liaisons"],
     queryFn: () => getLiaisons(true),
+    staleTime: 1000 * 60 * 30,
   });
 
   const closeDialog = () => {

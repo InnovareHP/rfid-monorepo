@@ -72,7 +72,12 @@
       "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/tasks/**)",
       "Bash(rm 'routes/_team/$team/help.tsx' components/help/help-page.tsx)",
       "Bash(mkdir -p 'routes/_team/$team/help/$categorySlug')",
-      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/routes/_team/**)"
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/routes/_team/**)",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/marketing/blasts/**)",
+      "Bash(sed -i '1i import { PublicPageSkeleton } from \"@/components/skeletons/page-skeletons\";' marketing/landing-page/public-landing-page.tsx)",
+      "Bash(sed -i '1i import { DetailPageSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-article-page.tsx)",
+      "Bash(sed -i '1i import { ListRowsSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-category-page.tsx)",
+      "Bash(sed -i '1i import { CardGridSkeleton, ListRowsSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-center-page.tsx)"
     ]
   }
 }

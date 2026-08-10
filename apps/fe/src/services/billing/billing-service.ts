@@ -36,6 +36,14 @@ export type PlanCard = {
   } | null;
 };
 
+// Brand and last four only, both straight from Stripe. Nothing PCI-sensitive
+// crosses the API boundary.
+export type PaymentMethodSummary = {
+  type: string;
+  brand: string | null;
+  last4: string | null;
+};
+
 export type InvoiceRow = {
   id: string;
   number: string | null;
@@ -46,6 +54,27 @@ export type InvoiceRow = {
   created: string;
   hostedInvoiceUrl: string | null;
   invoicePdf: string | null;
+  paymentMethod: PaymentMethodSummary | null;
+};
+
+export const TRANSACTION_TYPES = [
+  "SUBSCRIPTION",
+  "SEAT_CHANGE",
+  "REFUND",
+  "OTHER",
+] as const;
+
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+
+export type TransactionRow = {
+  id: string;
+  type: TransactionType;
+  status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
+  amountCents: number;
+  currency: string;
+  description: string;
+  stripeInvoiceId: string | null;
+  createdAt: string;
 };
 
 export const getPlans = async () => {
@@ -66,6 +95,18 @@ export const getInvoices = async (startingAfter?: string) => {
   });
 
   return response.data as { data: InvoiceRow[]; hasMore: boolean };
+};
+
+export const getTransactions = async (params: {
+  limit: number;
+  offset: number;
+  type?: TransactionType;
+}) => {
+  const response = await axiosClient.get("/api/billing/transactions", {
+    params,
+  });
+
+  return response.data as { data: TransactionRow[]; total: number };
 };
 
 export const cancelSubscription = async () => {

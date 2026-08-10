@@ -1,3 +1,4 @@
+import { BuilderPageSkeleton } from "@/components/skeletons/builder-page-skeleton";
 import {
   formBuilderSchema,
   type FormBuilderValues,
@@ -101,7 +102,7 @@ export const MarketingFormBuilderPage = () => {
   });
 
   if (isLoading || !marketingForm) {
-    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
+    return <BuilderPageSkeleton />;
   }
 
   const publicUrl = `${window.location.origin}/f/${marketingForm.slug}`;

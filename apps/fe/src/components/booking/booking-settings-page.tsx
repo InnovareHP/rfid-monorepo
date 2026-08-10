@@ -1,3 +1,4 @@
+import { SettingsPageSkeleton } from "@/components/skeletons/page-skeletons";
 import {
   OptionalTag,
   RequiredLegend,
@@ -227,9 +228,7 @@ export function BookingSettingsPage() {
 
   if (pageQuery.isLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
+      <SettingsPageSkeleton cards={3} className="mx-auto space-y-6 p-6" />
     );
   }
 

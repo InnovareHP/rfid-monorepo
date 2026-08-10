@@ -33,13 +33,7 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
   });
 
   // Stub: this screen is routed but never wired to a verification endpoint.
-  const handleVerifyOtp = async (_values: z.infer<typeof formSchema>) => {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    } catch {
-      // No verification call to fail yet.
-    }
-  };
+  const handleVerifyOtp = async (_values: z.infer<typeof formSchema>) => {};
 
   const handleResendOtp = () => {};
 

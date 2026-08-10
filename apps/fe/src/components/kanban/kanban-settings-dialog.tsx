@@ -1,10 +1,10 @@
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import {
-  getPipelineConfig,
-  setPipelineConfig,
-  updatePipelineStages,
-  type PipelineConfig,
+  getKanbanConfig,
+  updateKanbanStages,
+  type KanbanConfig,
   type StageType,
-} from "@/services/pipeline/pipeline-service";
+} from "@/services/kanban/kanban-service";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -28,9 +28,9 @@ import { toast } from "sonner";
 
 const STAGE_TYPES: StageType[] = ["OPEN", "WON", "LOST"];
 
-type StageDraft = PipelineConfig["stages"][number];
+type StageDraft = KanbanConfig["stages"][number];
 
-export function PipelineSettingsDialog({
+export function KanbanSettingsDialog({
   open,
   setOpen,
   moduleType = "LEAD",
@@ -40,8 +40,8 @@ export function PipelineSettingsDialog({
   moduleType?: string;
 }) {
   const { data: config } = useQuery({
-    queryKey: ["pipeline-config", moduleType],
-    queryFn: () => getPipelineConfig(moduleType),
+    queryKey: ["kanban-config", moduleType],
+    queryFn: () => getKanbanConfig(moduleType),
     enabled: open,
   });
 
@@ -49,67 +49,60 @@ export function PipelineSettingsDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Pipeline settings</DialogTitle>
+          <DialogTitle>Kanban settings</DialogTitle>
         </DialogHeader>
 
         {config ? (
-          <PipelineSettingsForm
-            key={config.stageFieldId ?? "unset"}
+          <KanbanSettingsForm
+            key={config.stageField?.id ?? "unset"}
             config={config}
             moduleType={moduleType}
             setOpen={setOpen}
           />
         ) : (
-          <p className="text-sm text-gray-500">Loading pipeline settings...</p>
+          <div className="space-y-4">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-9 w-32" />
+          </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function PipelineSettingsForm({
+function KanbanSettingsForm({
   config,
   moduleType,
   setOpen,
 }: {
-  config: PipelineConfig;
+  config: KanbanConfig;
   moduleType: string;
   setOpen: (open: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const [stageFieldId, setStageFieldId] = useState(config.stageFieldId ?? "");
-  const [amountFieldId, setAmountFieldId] = useState(config.amountFieldId ?? "");
   const [stages, setStages] = useState<StageDraft[]>(config.stages);
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      await setPipelineConfig({
+    mutationFn: () =>
+      updateKanbanStages({
         moduleType,
-        stageFieldId,
-        amountFieldId: amountFieldId || null,
-      });
-      // Stage rows belong to the saved stage field, so skip them when it changes
-      if (stages.length && stageFieldId === config.stageFieldId) {
-        await updatePipelineStages({
-          moduleType,
-          stages: stages.map((stage, index) => ({
-            optionId: stage.id,
-            optionOrder: index,
-            stageType: stage.stageType,
-            probability: stage.probability,
-          })),
-        });
-      }
-    },
+        stages: stages.map((stage, index) => ({
+          optionId: stage.id,
+          optionOrder: index,
+          stageType: stage.stageType,
+          probability: stage.probability,
+        })),
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pipeline", moduleType] });
+      queryClient.invalidateQueries({ queryKey: ["kanban", moduleType] });
       queryClient.invalidateQueries({
-        queryKey: ["pipeline-config", moduleType],
+        queryKey: ["kanban-config", moduleType],
       });
-      toast.success("Pipeline settings saved");
+      toast.success("Kanban settings saved");
       setOpen(false);
     },
-    onError: () => toast.error("Failed to save pipeline settings"),
+    onError: () => toast.error("Failed to save Kanban settings"),
   });
 
   const updateStage = (id: string, patch: Partial<StageDraft>) => {
@@ -128,48 +121,28 @@ function PipelineSettingsForm({
     });
   };
 
+  if (!config.stageField) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        This module has no status field, so there is nothing to group by yet. Add
+        a status field to the board first.
+      </p>
+    );
+  }
+
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Stage field</Label>
-          <Select value={stageFieldId} onValueChange={setStageFieldId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a status field" />
-            </SelectTrigger>
-            <SelectContent>
-              {config.stageCandidates.map((field) => (
-                <SelectItem key={field.id} value={field.id}>
-                  {field.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Deal value field</Label>
-          <Select value={amountFieldId} onValueChange={setAmountFieldId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a number field" />
-            </SelectTrigger>
-            <SelectContent>
-              {config.amountCandidates.map((field) => (
-                <SelectItem key={field.id} value={field.id}>
-                  {field.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Columns come from the <strong>{config.stageField.name}</strong> field.
+        Set each stage's outcome and, for open stages, how likely it is to close.
+      </p>
 
       <div className="space-y-2">
         <Label>Stages</Label>
         {stages.map((stage, index) => (
           <div
             key={stage.id}
-            className="flex items-center gap-2 rounded-md border border-gray-200 p-2"
+            className="flex items-center gap-2 rounded-md border border-border p-2"
           >
             <span className="flex-1 truncate text-sm">{stage.optionName}</span>
 
@@ -225,8 +198,9 @@ function PipelineSettingsForm({
           </div>
         ))}
         {!stages.length && (
-          <p className="text-sm text-gray-500">
-            Pick a stage field to configure its stages.
+          <p className="text-sm text-muted-foreground">
+            {config.stageField.name} has no options yet. Add options to the field
+            to build the board.
           </p>
         )}
       </div>
@@ -234,7 +208,7 @@ function PipelineSettingsForm({
       <DialogFooter>
         <Button
           onClick={() => saveMutation.mutate()}
-          disabled={!stageFieldId || saveMutation.isPending}
+          disabled={!stages.length || saveMutation.isPending}
         >
           Save
         </Button>

@@ -1,4 +1,5 @@
 import { IntegrationCard } from "@/components/integrations/integration-card";
+import { ProviderLogo } from "@/components/integrations/provider-logo";
 import { PageHeader } from "@/components/page-header";
 import {
   disconnectGoogleCalendar,
@@ -33,16 +34,12 @@ import {
 } from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
-import { Calendar, Copy, Inbox, Printer } from "lucide-react";
+import { Calendar, Copy, Inbox, Mail, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const TAB_TRIGGER =
   "rounded-md px-4 py-1.5 text-sm font-bold text-muted-foreground data-[state=active]:bg-brand-accent data-[state=active]:text-brand-accent-foreground data-[state=active]:shadow-xs";
-
-const ProviderLogo = ({ src, alt }: { src: string; alt: string }) => (
-  <img src={src} alt={alt} className="size-full object-contain" />
-);
 
 export default function IntegrationPage() {
   const queryClient = useQueryClient();
@@ -53,6 +50,7 @@ export default function IntegrationPage() {
     queryKey: ["email-ingest-address"],
     queryFn: getEmailIngestAddress,
     retry: false,
+    staleTime: 1000 * 60 * 60,
   });
 
   const ingestAddress = ingestAddressQuery.data?.address ?? null;
@@ -265,6 +263,7 @@ export default function IntegrationPage() {
                   <ProviderLogo
                     src="/branding/Integrations/gmail.png"
                     alt="Gmail"
+                    fallback={<Mail className="size-8 text-primary" />}
                   />
                 }
                 connected={Boolean(gmailStatusQuery.data?.connected)}
@@ -283,6 +282,7 @@ export default function IntegrationPage() {
                   <ProviderLogo
                     src="/branding/Integrations/outlook.png"
                     alt="Outlook"
+                    fallback={<Mail className="size-8 text-primary" />}
                   />
                 }
                 connected={Boolean(outlookStatusQuery.data?.connected)}
@@ -337,7 +337,13 @@ export default function IntegrationPage() {
               <IntegrationCard
                 name="Google Calendar"
                 description="View and manage Google events from your dashboard."
-                logo={<Calendar className="size-8 text-primary" />}
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/google-calendar.png"
+                    alt="Google Calendar"
+                    fallback={<Calendar className="size-8 text-primary" />}
+                  />
+                }
                 connected={Boolean(calendarStatusQuery.data?.google.connected)}
                 connectedDetail={`Synced with ${calendarStatusQuery.data?.google.email ?? ""}`}
                 onConnect={() => connectGoogleCalendarMutation.mutate()}
@@ -350,7 +356,15 @@ export default function IntegrationPage() {
               <IntegrationCard
                 name="Outlook Calendar"
                 description="View and manage Outlook events from your dashboard."
-                logo={<Calendar className="size-8 text-primary" />}
+                // Microsoft ships no separate calendar mark, so Outlook's own
+                // icon stands for both its mail and its calendar.
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/outlook.png"
+                    alt="Outlook Calendar"
+                    fallback={<Calendar className="size-8 text-primary" />}
+                  />
+                }
                 connected={Boolean(calendarStatusQuery.data?.outlook.connected)}
                 connectedDetail={`Synced with ${calendarStatusQuery.data?.outlook.email ?? ""}`}
                 onConnect={() => connectOutlookCalendarMutation.mutate()}
@@ -367,7 +381,13 @@ export default function IntegrationPage() {
               <IntegrationCard
                 name="Eldon Fax"
                 description="Send documents as faxes directly from record activities. Paste an organization API key with faxes:read and faxes:write scopes (owner only)."
-                logo={<Printer className="size-8 text-primary" />}
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/eldonfax.png"
+                    alt="Eldon Fax"
+                    fallback={<Printer className="size-8 text-primary" />}
+                  />
+                }
                 connected={Boolean(faxStatusQuery.data?.connected)}
                 connectedDetail={`Connected with key ending in …${faxStatusQuery.data?.apiKeyLast4 ?? ""}`}
                 connectLabel="Connect"

@@ -1,3 +1,5 @@
+import { FormFieldsSkeleton } from "@/components/skeletons/page-skeletons";
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import LocationCell, {
   type AddressComponents,
 } from "@/components/reusable-table/location-cell";
@@ -120,8 +122,20 @@ const RecordCreatePage = ({
 }: RecordCreatePageProps) => {
   if (isLoadingColumns) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="page-style">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <Skeleton className="size-9 shrink-0" />
+          <div className="min-w-0 space-y-2">
+            <Skeleton className="h-8 w-56 sm:h-9 sm:w-72" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+          </div>
+        </div>
+        <Card>
+          <CardContent className="space-y-6 p-6">
+            <FormFieldsSkeleton fields={8} />
+            <Skeleton className="h-10 w-40" />
+          </CardContent>
+        </Card>
       </div>
     );
   }

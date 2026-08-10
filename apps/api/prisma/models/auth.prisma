@@ -30,8 +30,6 @@ model User {
   SupportLiveChatAttachment SupportLiveChatAttachment[] @relation("SupportLiveChatAttachmentSender")
   SupportHistory            SupportHistory[]            @relation("SupportHistorySender")
   SupportTicketRating       SupportTicketRating[]       @relation("SupportTicketRatingCreatedBy")
-  AdminActivityLogAdmin     AdminActivityLog[]          @relation("AdminActivityLogAdmin")
-  AdminActivityLogTarget    AdminActivityLog[]          @relation("AdminActivityLogTarget")
   Activity                  Activity[]
   GmailToken                GmailToken?
   OutlookToken              OutlookToken?
@@ -213,6 +211,9 @@ enum AdminAction {
   REMOVE_USER
   IMPERSONATE_USER
   STOP_IMPERSONATE
+  SET_PASSWORD
+  REVOKE_SESSIONS
+  UPDATE_USER
 
   @@schema("auth_schema")
 }
@@ -247,18 +248,23 @@ model AuditLog {
   @@schema("auth_schema")
 }
 
+// Append-only and deliberately free of user foreign keys: a cascade from a
+// deleted admin used to erase that admin's own history. Names are snapshotted at
+// insert so a row still reads after the account is gone.
 model AdminActivityLog {
   id           String      @id @default(uuid())
   createdAt    DateTime    @default(now()) @db.Timestamptz(3)
   adminId      String
+  adminName    String
   action       AdminAction
   targetUserId String?
+  targetName   String?
   targetOrgId  String?
   details      String?
   ipAddress    String?
-  adminUser    User        @relation("AdminActivityLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
-  targetUser   User?       @relation("AdminActivityLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
 
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
   @@schema("auth_schema")
 }
 

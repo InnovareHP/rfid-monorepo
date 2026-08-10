@@ -17,10 +17,10 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlignLeft,
+  Building2,
   Calendar,
   CheckSquare,
   ChevronDown,
-  Building2,
   Hash,
   Mail,
   Phone,
@@ -113,7 +113,7 @@ export function CreateColumnModal({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add a New Column</DialogTitle>
         </DialogHeader>

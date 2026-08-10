@@ -21,13 +21,12 @@ import {
   CreditCard,
   DollarSign,
   FileText,
-  Folder,
   HistoryIcon,
   LayoutTemplate,
-  Megaphone,
   MailCheck,
   MailPlus,
   MapPin,
+  Megaphone,
   Route,
   Settings,
   ShieldCheck,
@@ -41,6 +40,16 @@ import * as React from "react";
 
 const BRAND_WORDMARK =
   "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
+
+// The CRM group is where board modules live. Organizations will be able to add
+// their own, so these are mapped from a list rather than written out one by one;
+// that list becomes an API response once user-created modules land.
+const CRM_MODULES = [
+  { title: "Master Marketing List", path: "master-list", icon: FileText },
+  { title: "Referral Logs", path: "referral-list", icon: Users },
+  { title: "Phonebook", path: "contacts", icon: Contact },
+  { title: "Companies", path: "companies", icon: Building2 },
+];
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   activeOrganizationId: string;
@@ -65,7 +74,6 @@ export function AppSidebar({
         {
           title: "Overview",
           icon: SquareTerminal,
-          isActive: true,
           items: [
             {
               title: "Referral Analytics",
@@ -82,39 +90,16 @@ export function AppSidebar({
         {
           title: "CRM",
           icon: Contact,
-          items: [
-            {
-              title: "Master Marketing List",
-              url: `/${activeOrganizationId}/master-list`,
-              icon: FileText,
-            },
-            {
-              title: "Referral Logs",
-              url: `/${activeOrganizationId}/referral-list`,
-              icon: Users,
-            },
-            {
-              title: "Phonebook",
-              url: `/${activeOrganizationId}/contacts`,
-              icon: Contact,
-            },
-            {
-              title: "Companies",
-              url: `/${activeOrganizationId}/companies`,
-              icon: Building2,
-            },
-          ],
+          items: CRM_MODULES.map((module) => ({
+            title: module.title,
+            url: `/${activeOrganizationId}/${module.path}`,
+            icon: module.icon,
+          })),
         },
         {
-          title: "Productivity",
+          title: "Tasks",
+          url: `/${activeOrganizationId}/tasks`,
           icon: ClipboardList,
-          items: [
-            {
-              title: "Tasks",
-              url: `/${activeOrganizationId}/tasks`,
-              icon: ClipboardList,
-            },
-          ],
         },
         {
           title: "Marketing Hub",
@@ -129,21 +114,25 @@ export function AppSidebar({
               title: "Campaigns",
               url: `/${activeOrganizationId}/marketing/campaigns`,
               icon: Megaphone,
+              // Audience and sending identity are what a campaign is built from,
+              // so they hang off it instead of sitting as siblings.
+              items: [
+                {
+                  title: "Groups",
+                  url: `/${activeOrganizationId}/marketing/groups`,
+                  icon: Users,
+                },
+                {
+                  title: "Senders",
+                  url: `/${activeOrganizationId}/marketing/senders`,
+                  icon: MailCheck,
+                },
+              ],
             },
             {
               title: "Blasts",
               url: `/${activeOrganizationId}/marketing/blasts`,
               icon: MailPlus,
-            },
-            {
-              title: "Groups",
-              url: `/${activeOrganizationId}/marketing/groups`,
-              icon: Users,
-            },
-            {
-              title: "Senders",
-              url: `/${activeOrganizationId}/marketing/senders`,
-              icon: MailCheck,
             },
             {
               title: "Landing Pages",
@@ -155,22 +144,18 @@ export function AppSidebar({
         ...(can(memberData?.role, { report: ["read"] })
           ? [
               {
-                title: "Records",
+                title: "History",
+                url: `/${activeOrganizationId}/history`,
                 icon: HistoryIcon,
-                items: [
-                  {
-                    title: "History Check",
-                    url: `/${activeOrganizationId}/history`,
-                    icon: HistoryIcon,
-                  },
-                ],
               },
             ]
           : []),
+        // Renamed from "Marketing": these are the field logs, and two sibling
+        // categories both called Marketing gave no way to tell them apart.
         ...(can(memberData?.role, { log: ["create"] })
           ? [
               {
-                title: "Marketing",
+                title: "Logs",
                 icon: CircuitBoard,
                 items: [
                   {
@@ -221,21 +206,16 @@ export function AppSidebar({
           ? [
               {
                 title: "Import",
-                icon: Folder,
-                items: [
-                  {
-                    title: "Master Marketing List",
-                    url: `/${activeOrganizationId}/import/master-list`,
-                    icon: Upload,
-                  },
-                ],
+                url: `/${activeOrganizationId}/import/master-list`,
+                icon: Upload,
               },
             ]
           : []),
         {
           title: "Settings",
-          url: `/${activeOrganizationId}/settings`,
           icon: Settings,
+          // No row for /settings itself: that route is a layout with a bare
+          // Outlet and no index child, so it renders blank.
           items: [
             {
               title: "Team",
@@ -264,14 +244,18 @@ export function AppSidebar({
             ...(can(memberData?.role, { billing: ["manage_billing"] })
               ? [
                   {
-                    title: "Plans",
-                    url: `/${activeOrganizationId}/plans`,
-                    icon: Sparkles,
-                  },
-                  {
                     title: "Billing",
                     url: `/${activeOrganizationId}/settings/billing`,
                     icon: CreditCard,
+                    // Changing plan is something you do from billing, not a
+                    // separate settings destination.
+                    items: [
+                      {
+                        title: "Plans",
+                        url: `/${activeOrganizationId}/plans`,
+                        icon: Sparkles,
+                      },
+                    ],
                   },
                 ]
               : []),

@@ -1,7 +1,9 @@
+import { CardGridSkeleton, ListRowsSkeleton } from "@/components/skeletons/page-skeletons";
 import {
   getCategories,
   getFeaturedArticles,
   getPublishedArticles,
+  MANUAL_STALE_TIME,
 } from "@/services/manual/manual-service";
 import { Card, CardContent } from "@dashboard/ui/components/card";
 import { useQuery } from "@tanstack/react-query";
@@ -21,11 +23,15 @@ export function HelpCenterPage({ team }: { team: string }) {
   const categoriesQuery = useQuery({
     queryKey: ["manual-categories"],
     queryFn: getCategories,
+    staleTime: MANUAL_STALE_TIME,
+    gcTime: MANUAL_STALE_TIME,
   });
 
   const featuredQuery = useQuery({
     queryKey: ["manual-featured-articles"],
     queryFn: () => getFeaturedArticles(9),
+    staleTime: MANUAL_STALE_TIME,
+    gcTime: MANUAL_STALE_TIME,
   });
 
   const searchQuery = useQuery({
@@ -49,7 +55,7 @@ export function HelpCenterPage({ team }: { team: string }) {
         <Card className="overflow-hidden p-0">
           <CardContent className="p-0">
             {searchQuery.isLoading ? (
-              <p className="p-6 text-sm text-muted-foreground">Searching...</p>
+              <ListRowsSkeleton />
             ) : !searchQuery.data?.articles.length ? (
               <p className="p-6 text-sm text-muted-foreground">
                 No guides match "{searchTerm}".
@@ -72,9 +78,7 @@ export function HelpCenterPage({ team }: { team: string }) {
               Browse by Category
             </h2>
             {categoriesQuery.isLoading ? (
-              <p className="text-center text-sm text-muted-foreground">
-                Loading categories...
-              </p>
+              <CardGridSkeleton />
             ) : !categories.length ? (
               <p className="text-center text-sm text-muted-foreground">
                 No categories available yet.

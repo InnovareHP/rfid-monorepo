@@ -11,11 +11,15 @@ import {
 } from "@nestjs/common";
 import type { NotificationCategoryValue } from "@dashboard/shared";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { MarkReadDto } from "./dto/notification.schema";
 import { NotificationService } from "./notification.service";
 
+// Titles and bodies quote the records they came from, so these routes carry PHI
+// and answer to the same compliance gate as the records themselves.
 @Controller("notification")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, HipaaGuard)
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 

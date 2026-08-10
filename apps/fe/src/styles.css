@@ -52,6 +52,14 @@ code {
      it solid, so its foreground is fixed white rather than a themed token. */
   --brand-accent: #005cb1;
   --brand-accent-foreground: #ffffff;
+  /* The nav rail is fixed brand artwork in both themes, so its stops and its ink
+     are theme-independent. Absent from .dark on purpose: pairing this gradient
+     with a themed foreground turned the rail labels near-black in dark mode. */
+  --brand-rail-from: #01184d;
+  --brand-rail-mid: #0d3185;
+  --brand-rail-via: #2c86d9;
+  --brand-rail-to: #64d1f4;
+  --brand-rail-foreground: #ffffff;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -168,6 +176,11 @@ code {
   --color-brand-ink: var(--brand-ink);
   --color-brand-accent: var(--brand-accent);
   --color-brand-accent-foreground: var(--brand-accent-foreground);
+  --color-brand-rail-from: var(--brand-rail-from);
+  --color-brand-rail-mid: var(--brand-rail-mid);
+  --color-brand-rail-via: var(--brand-rail-via);
+  --color-brand-rail-to: var(--brand-rail-to);
+  --color-brand-rail-foreground: var(--brand-rail-foreground);
   --color-table-header: var(--table-header);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -510,6 +523,29 @@ code {
 }
 
 @layer utilities {
+  /* The nav rail's gradient. It lives here rather than in JSX because a four-stop
+     gradient has no Tailwind color utility, and here it stays in one place with
+     its stops as tokens instead of hex literals repeated across components. */
+  .bg-brand-rail {
+    background-image: linear-gradient(
+      to bottom,
+      var(--brand-rail-from) 0%,
+      var(--brand-rail-mid) 38%,
+      var(--brand-rail-via) 78%,
+      var(--brand-rail-to) 100%
+    );
+  }
+
+  .bg-brand-rail-horizontal {
+    background-image: linear-gradient(
+      to right,
+      var(--brand-rail-from) 0%,
+      var(--brand-rail-mid) 38%,
+      var(--brand-rail-via) 78%,
+      var(--brand-rail-to) 100%
+    );
+  }
+
   .primary-active-border {
     position: relative;
     isolation: isolate;

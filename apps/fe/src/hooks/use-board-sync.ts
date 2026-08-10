@@ -1,7 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 import { connectSocket, setTokenGenerator } from "@/lib/socket-io/socket";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Socket } from "socket.io-client";
 
 async function generateToken(): Promise<string | null> {
@@ -22,23 +22,9 @@ function getQueryKey(moduleType?: string): string[] {
 
 export function useBoardSync() {
   const queryClient = useQueryClient();
-  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     setTokenGenerator(generateToken);
-
-    const connect = async () => {
-      const token = await generateToken();
-      if (!token) return;
-
-      const sock = await connectSocket(token, setSocket);
-      setSocket(sock);
-    };
-    connect();
-  }, []);
-
-  useEffect(() => {
-    if (!socket) return;
 
     const patchRows = (
       moduleType: string | undefined,
@@ -157,34 +143,54 @@ export function useBoardSync() {
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
     };
 
-    // Listeners
-    socket.on("board:update", handleUpdate);
-    socket.on("board:record-created", handleCreated);
-    socket.on("board:record-deleted", handleDelete);
-    socket.on("board:record-notification-state", handleUpdateNotificationState);
-    socket.on("board:update-location", handleUpdateLocation);
-    socket.on("board:update-status", handleUpdateStatus);
-    socket.on("board:column-created", handleColumnCreated);
-    socket.on("board:column-deleted", handleColumnDeleted);
-    socket.on("board:activity-created", handleActivityChanged);
-    socket.on("board:activity-updated", handleActivityChanged);
-    socket.on("board:csv-import-complete", handleCsvImportComplete);
+    const handlers: Record<string, (payload: any) => void> = {
+      "board:update": handleUpdate,
+      "board:record-created": handleCreated,
+      "board:record-deleted": handleDelete,
+      "board:record-notification-state": handleUpdateNotificationState,
+      "board:update-location": handleUpdateLocation,
+      "board:update-status": handleUpdateStatus,
+      "board:column-created": handleColumnCreated,
+      "board:column-deleted": handleColumnDeleted,
+      "board:activity-created": handleActivityChanged,
+      "board:activity-updated": handleActivityChanged,
+      "board:csv-import-complete": handleCsvImportComplete,
+    };
+
+    let bound: Socket | null = null;
+
+    const unbind = () => {
+      if (!bound) return;
+      for (const [event, handler] of Object.entries(handlers)) {
+        bound.off(event, handler);
+      }
+      bound = null;
+    };
+
+    // A reconnect swaps the socket, so rebinding goes through here rather than
+    // React state: this hook sits in the team layout and setState would re-render
+    // every sidebar and page under it on each connect_error.
+    const bind = (next: Socket) => {
+      if (bound === next) return;
+      unbind();
+      bound = next;
+      for (const [event, handler] of Object.entries(handlers)) {
+        next.on(event, handler);
+      }
+    };
+
+    let cancelled = false;
+
+    const connect = async () => {
+      const token = await generateToken();
+      if (!token || cancelled) return;
+      bind(await connectSocket(token, bind));
+    };
+    connect();
 
     return () => {
-      socket.off("board:update", handleUpdate);
-      socket.off("board:record-created", handleCreated);
-      socket.off("board:record-deleted", handleDelete);
-      socket.off(
-        "board:record-notification-state",
-        handleUpdateNotificationState
-      );
-      socket.off("board:update-location", handleUpdateLocation);
-      socket.off("board:update-status", handleUpdateStatus);
-      socket.off("board:column-created", handleColumnCreated);
-      socket.off("board:column-deleted", handleColumnDeleted);
-      socket.off("board:activity-created", handleActivityChanged);
-      socket.off("board:activity-updated", handleActivityChanged);
-      socket.off("board:csv-import-complete", handleCsvImportComplete);
+      cancelled = true;
+      unbind();
     };
-  }, [queryClient, socket]);
+  }, [queryClient]);
 }

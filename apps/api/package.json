@@ -29,6 +29,7 @@
     "crypto:encrypt-phi": "ts-node prisma/scripts/encrypt-phi.ts",
     "crypto:decrypt-phi": "ts-node prisma/scripts/decrypt-phi.ts",
     "seed:task-statuses": "ts-node prisma/scripts/seed-task-statuses.ts",
+    "seed:lead-kanban": "ts-node prisma/scripts/seed-lead-kanban.ts",
     "migrate:cloudinary-s3": "ts-node prisma/scripts/migrate-cloudinary-to-s3.ts",
     "docker:build": "docker build -t dashboard-backend .",
     "auth:generate": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/auth.ts",

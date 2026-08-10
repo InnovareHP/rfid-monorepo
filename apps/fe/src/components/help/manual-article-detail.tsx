@@ -1,14 +1,13 @@
 import type { ManualArticle } from "@/services/manual/manual-service";
 import { Badge } from "@dashboard/ui/components/badge";
+import { Button } from "@dashboard/ui/components/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { Separator } from "@dashboard/ui/components/separator";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@dashboard/ui/components/button";
 
 export function ManualArticleDetail({
   article,
@@ -33,7 +32,9 @@ export function ManualArticleDetail({
               {article.readMinutes} min read
             </span>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">{article.summary}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {article.summary}
+          </p>
         </div>
       </div>
 
@@ -63,15 +64,6 @@ export function ManualArticleDetail({
           </Card>
         ))}
       </div>
-
-      {article.createdByUser && (
-        <>
-          <Separator />
-          <p className="text-xs text-muted-foreground">
-            Written by {article.createdByUser.name}
-          </p>
-        </>
-      )}
     </div>
   );
 }

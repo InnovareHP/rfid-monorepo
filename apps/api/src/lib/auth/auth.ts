@@ -1,6 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { stripe } from "@better-auth/stripe";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import {
   admin,
@@ -58,6 +59,10 @@ import {
   super_admin,
   support,
 } from "./permission";
+import {
+  auditAdminActions,
+  requireImpersonationReason,
+} from "./admin-audit-hook";
 import { blockSessionGrantingEmailPaths } from "./session-path-guard";
 
 // Local dev runs over http, so secure and cross-subdomain cookies must be off.
@@ -121,7 +126,11 @@ export const auth = betterAuth({
     },
   },
   hooks: {
-    before: blockSessionGrantingEmailPaths,
+    before: createAuthMiddleware(async (ctx) => {
+      blockSessionGrantingEmailPaths(ctx);
+      requireImpersonationReason(ctx);
+    }),
+    after: auditAdminActions,
   },
   databaseHooks: {
     session: {

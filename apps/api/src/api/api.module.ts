@@ -15,7 +15,7 @@ import { MarketingModule } from "./marketing/marketing.module";
 import { NotificationModule } from "./notification/notification.module";
 import { OptionsModule } from "./options/options.module";
 import { PasskeysModule } from "./passkeys/passkeys.module";
-import { PipelineModule } from "./pipeline/pipeline.module";
+import { KanbanModule } from "./kanban/kanban.module";
 import { PlacesModule } from "./places/places.module";
 import { RegistrationModule } from "./registration/registration.module";
 import { SupportModule } from "./support/support.module";
@@ -42,7 +42,7 @@ import { UserModule } from "./user/user.module";
     SupportModule,
     ManualModule,
     PlacesModule,
-    PipelineModule,
+    KanbanModule,
     TaskModule,
     MarketingModule,
     NotificationModule,

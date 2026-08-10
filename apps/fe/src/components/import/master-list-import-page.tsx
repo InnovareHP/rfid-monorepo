@@ -165,7 +165,7 @@ export default function MasterListImportPage() {
   };
 
   return (
-    <div className="container max-w-3xl mx-auto py-12 space-y-8 animate-in fade-in duration-500">
+    <div className="page-style animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
           <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">

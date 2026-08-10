@@ -12,38 +12,44 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { Camera, Check, Loader2 } from "lucide-react";
+import { Spinner } from "@dashboard/ui/components/spinner";
+import { Camera, Check } from "lucide-react";
 import { useRef } from "react";
 import type { Control } from "react-hook-form";
 import { type FormValues } from "../onboarding";
 
 const PRESET_COLORS = [
-  { name: "Blue", hex: "#3b82f6" },
+  { name: "Refidly navy", hex: "#0d3185" },
+  { name: "Sky", hex: "#2c86d9" },
+  { name: "Teal", hex: "#14b8a6" },
   { name: "Green", hex: "#22c55e" },
   { name: "Purple", hex: "#a855f7" },
   { name: "Orange", hex: "#f97316" },
   { name: "Red", hex: "#ef4444" },
-  { name: "Teal", hex: "#14b8a6" },
   { name: "Pink", hex: "#ec4899" },
-  { name: "Indigo", hex: "#6366f1" },
 ];
 
-type StepFourProps = {
+type StepOrganizationProps = {
   control: Control<FormValues>;
   isSubmitting: boolean;
   progress: string;
 };
 
-const StepFour = ({ control, isSubmitting, progress }: StepFourProps) => {
+const StepOrganization = ({
+  control,
+  isSubmitting,
+  progress,
+}: StepOrganizationProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-semibold">Create your organization</h1>
-        <p>
-          This will help us personalize your experience and provide you with the
-          best possible service.
+    <div className="space-y-6">
+      <div className="space-y-1 text-center">
+        <h2 className="text-2xl xl:text-3xl font-bold text-brand">
+          Create your organization
+        </h2>
+        <p className="text-sm xl:text-base text-muted-foreground">
+          Your logo and colour brand every referral, form, and email you send.
         </p>
       </div>
 
@@ -62,7 +68,7 @@ const StepFour = ({ control, isSubmitting, progress }: StepFourProps) => {
                 onClick={() => fileInputRef.current?.click()}
                 className="group relative cursor-pointer"
               >
-                <Avatar className="w-24 h-24 border-2 border-dashed border-muted-foreground/40 group-hover:border-primary transition-colors">
+                <Avatar className="w-24 h-24 border-2 border-dashed border-border group-hover:border-primary transition-colors">
                   {previewUrl ? (
                     <AvatarImage
                       src={previewUrl}
@@ -98,13 +104,15 @@ const StepFour = ({ control, isSubmitting, progress }: StepFourProps) => {
         control={control}
         name="organizationName"
         render={({ field }) => (
-          <FormItem className="max-w-md mx-auto">
-            <FormLabel>Organization Name</FormLabel>
+          <FormItem>
+            <FormLabel className="text-sm font-semibold text-brand">
+              Organization name
+            </FormLabel>
             <FormControl>
               <Input
                 type="text"
-                placeholder="e.g. Dashboard Inc"
-                className="focus-visible:ring-primary"
+                placeholder="e.g. Refidly Health"
+                className="h-10 xl:h-12"
                 {...field}
               />
             </FormControl>
@@ -117,29 +125,24 @@ const StepFour = ({ control, isSubmitting, progress }: StepFourProps) => {
         control={control}
         name="brandColor"
         render={({ field }) => (
-          <FormItem className="max-w-md mx-auto">
-            <FormLabel>Brand Color</FormLabel>
+          <FormItem>
+            <FormLabel className="text-sm font-semibold text-brand">
+              Brand colour
+            </FormLabel>
             <div className="flex flex-wrap gap-2">
               {PRESET_COLORS.map((preset) => (
                 <button
                   key={preset.hex}
                   type="button"
                   onClick={() => field.onChange(preset.hex)}
-                  className="w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center"
-                  style={{
-                    backgroundColor: preset.hex,
-                    borderColor:
-                      field.value === preset.hex ? preset.hex : "transparent",
-                    outline:
-                      field.value === preset.hex
-                        ? `2px solid ${preset.hex}`
-                        : "none",
-                    outlineOffset: "2px",
-                  }}
+                  aria-label={preset.name}
                   title={preset.name}
+                  className="w-9 h-9 rounded-full flex items-center justify-center ring-offset-2 ring-offset-background transition-all data-[selected=true]:ring-2 data-[selected=true]:ring-ring"
+                  data-selected={field.value === preset.hex}
+                  style={{ backgroundColor: preset.hex }}
                 >
                   {field.value === preset.hex && (
-                    <Check className="w-4 h-4 text-white" />
+                    <Check className="w-4 h-4 text-brand-foreground" />
                   )}
                 </button>
               ))}
@@ -149,17 +152,14 @@ const StepFour = ({ control, isSubmitting, progress }: StepFourProps) => {
                 type="color"
                 value={field.value}
                 onChange={(e) => field.onChange(e.target.value)}
-                className="w-9 h-9 rounded-lg border-2 border-gray-200 cursor-pointer"
+                aria-label="Custom brand colour"
+                className="w-9 h-9 rounded-lg border-2 border-border cursor-pointer"
               />
               <FormControl>
-                <Input
-                  {...field}
-                  className="w-28 font-mono text-sm"
-                  maxLength={7}
-                />
+                <Input {...field} className="w-28 font-mono text-sm" maxLength={7} />
               </FormControl>
               <div
-                className="h-8 px-3 rounded-md text-white text-xs font-medium flex items-center"
+                className="h-9 px-3 rounded-md text-brand-foreground text-xs font-medium flex items-center"
                 style={{ backgroundColor: field.value }}
               >
                 Preview
@@ -171,11 +171,15 @@ const StepFour = ({ control, isSubmitting, progress }: StepFourProps) => {
       />
 
       <div className="flex flex-col items-center gap-2">
-        <Button type="submit" variant="secondary" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full h-10 xl:h-12 text-sm xl:text-base font-semibold rounded-lg shadow-sm"
+        >
           {isSubmitting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Spinner size="sm" className="text-current" />
           ) : (
-            "Continue"
+            "Create organization"
           )}
         </Button>
         {isSubmitting && progress && (
@@ -186,4 +190,4 @@ const StepFour = ({ control, isSubmitting, progress }: StepFourProps) => {
   );
 };
 
-export default StepFour;
+export default StepOrganization;

@@ -9,6 +9,7 @@ import {
   Query,
   UsePipes,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import { CrossTenant } from "../../filter/tenant-context";
 import { ZodValidationPipe } from "nestjs-zod";
@@ -43,6 +44,9 @@ export class BookingPublicController {
     }
   }
 
+  // The only anonymous write here, and it puts a row and a mail behind it, so it
+  // sits well under the global ceiling.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post("/:slug/bookings")
   async createBooking(
     @Param("slug") slug: string,

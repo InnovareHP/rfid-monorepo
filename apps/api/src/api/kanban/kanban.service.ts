@@ -5,32 +5,20 @@ import {
 } from "@nestjs/common";
 import { ModuleType, Prisma, StageType } from "@prisma/client";
 import { prisma } from "../../lib/prisma/prisma";
-import {
-  SetPipelineConfigDto,
-  UpdatePipelineStagesDto,
-} from "./dto/pipeline.schema";
+import { UpdateKanbanStagesDto } from "./dto/kanban.schema";
 
-type PipelineRange = { from?: string; to?: string };
+type KanbanRange = { from?: string; to?: string };
 
-type StageTotal = { count: number; value: number };
-
-// FieldValue.value and History values are encrypted at rest, so every sum and
+// FieldValue.value and History values are encrypted at rest, so every count and
 // grouping runs in memory after the extension decrypts, never in Postgres.
 @Injectable()
-export class PipelineService {
-  async getPipeline(
+export class KanbanService {
+  async getKanban(
     organizationId: string,
     moduleType: string,
-    range: PipelineRange
+    range: KanbanRange
   ) {
-    const { stageField, amountField } = await this.resolvePipelineFields(
-      organizationId,
-      moduleType
-    );
-
-    const fieldIds = amountField
-      ? [stageField.id, amountField.id]
-      : [stageField.id];
+    const stageField = await this.resolveStageField(organizationId, moduleType);
 
     const [options, boards] = await Promise.all([
       prisma.fieldOption.findMany({
@@ -42,36 +30,30 @@ export class PipelineService {
         select: {
           id: true,
           values: {
-            where: { fieldId: { in: fieldIds } },
+            where: { fieldId: stageField.id },
             select: { fieldId: true, value: true },
           },
         },
       }),
     ]);
 
-    const totals = new Map<string, StageTotal>();
-    const unstaged: StageTotal = { count: 0, value: 0 };
+    const counts = new Map<string, number>();
+    let unstaged = 0;
 
     for (const board of boards) {
       const stage = board.values.find(
         (v) => v.fieldId === stageField.id
       )?.value;
-      const amount = amountField
-        ? this.parseAmount(
-            board.values.find((v) => v.fieldId === amountField.id)?.value
-          )
-        : 0;
 
-      const bucket = stage
-        ? (totals.get(stage) ?? { count: 0, value: 0 })
-        : unstaged;
-      bucket.count += 1;
-      bucket.value += amount;
-      if (stage) totals.set(stage, bucket);
+      if (!stage) {
+        unstaged += 1;
+        continue;
+      }
+      counts.set(stage, (counts.get(stage) ?? 0) + 1);
     }
 
     const stages = options.map((option) => {
-      const total = totals.get(option.optionName) ?? { count: 0, value: 0 };
+      const count = counts.get(option.optionName) ?? 0;
       const probability = this.stageProbability(
         option.stageType,
         option.probability
@@ -84,9 +66,9 @@ export class PipelineService {
         order: option.optionOrder,
         stageType: option.stageType,
         probability,
-        count: total.count,
-        value: this.round(total.value),
-        forecast: this.round((total.value * probability) / 100),
+        count,
+        // Expected wins rather than money: a stage carries no amount.
+        forecast: this.round((count * probability) / 100),
       };
     });
 
@@ -97,17 +79,14 @@ export class PipelineService {
 
     return {
       stageField: { id: stageField.id, name: stageField.fieldName },
-      amountField: amountField
-        ? { id: amountField.id, name: amountField.fieldName }
-        : null,
       stages,
-      unstaged: { count: unstaged.count, value: this.round(unstaged.value) },
+      unstaged: { count: unstaged },
       totals: {
         open,
         won,
         lost,
         winRate: closed ? this.round((won.count / closed) * 100) : 0,
-        weightedForecast: this.round(open.forecast + won.value),
+        weightedForecast: this.round(open.forecast + won.count),
       },
     };
   }
@@ -115,12 +94,9 @@ export class PipelineService {
   async getWinLoss(
     organizationId: string,
     moduleType: string,
-    range: PipelineRange
+    range: KanbanRange
   ) {
-    const { stageField } = await this.resolvePipelineFields(
-      organizationId,
-      moduleType
-    );
+    const stageField = await this.resolveStageField(organizationId, moduleType);
 
     const options = await prisma.fieldOption.findMany({
       where: { fieldId: stageField.id, isDeleted: false },
@@ -134,7 +110,7 @@ export class PipelineService {
     );
     if (!outcomeByStage.size) {
       throw new BadRequestException(
-        "No stage is marked WON or LOST for this pipeline"
+        "No stage is marked WON or LOST for this Kanban"
       );
     }
 
@@ -196,24 +172,7 @@ export class PipelineService {
   }
 
   async getConfig(organizationId: string, moduleType: string) {
-    const fields = await prisma.field.findMany({
-      where: {
-        organizationId,
-        moduleType: moduleType as ModuleType,
-        isDeleted: false,
-        fieldType: { in: ["STATUS", "NUMBER"] },
-      },
-      orderBy: { fieldOrder: "asc" },
-      select: {
-        id: true,
-        fieldName: true,
-        fieldType: true,
-        isPipelineStage: true,
-        isPipelineAmount: true,
-      },
-    });
-
-    const stageField = fields.find((f) => f.isPipelineStage);
+    const stageField = await this.findStageField(organizationId, moduleType);
 
     const stages = stageField
       ? await prisma.fieldOption.findMany({
@@ -231,72 +190,14 @@ export class PipelineService {
       : [];
 
     return {
-      stageFieldId: stageField?.id ?? null,
-      amountFieldId: fields.find((f) => f.isPipelineAmount)?.id ?? null,
-      stageCandidates: fields
-        .filter((f) => f.fieldType === "STATUS")
-        .map((f) => ({ id: f.id, name: f.fieldName })),
-      amountCandidates: fields
-        .filter((f) => f.fieldType === "NUMBER")
-        .map((f) => ({ id: f.id, name: f.fieldName })),
+      stageField: stageField
+        ? { id: stageField.id, name: stageField.fieldName }
+        : null,
       stages,
     };
   }
 
-  async setConfig(organizationId: string, dto: SetPipelineConfigDto) {
-    const { moduleType, stageFieldId, amountFieldId } = dto;
-
-    const fields = await prisma.field.findMany({
-      where: {
-        id: { in: [stageFieldId, ...(amountFieldId ? [amountFieldId] : [])] },
-        organizationId,
-        moduleType: moduleType as ModuleType,
-        isDeleted: false,
-      },
-      select: { id: true, fieldType: true },
-    });
-
-    const stage = fields.find((f) => f.id === stageFieldId);
-    if (stage?.fieldType !== "STATUS") {
-      throw new BadRequestException("Stage field must be a STATUS field");
-    }
-
-    if (amountFieldId) {
-      const amount = fields.find((f) => f.id === amountFieldId);
-      if (amount?.fieldType !== "NUMBER") {
-        throw new BadRequestException("Amount field must be a NUMBER field");
-      }
-    }
-
-    const where = { organizationId, moduleType: moduleType as ModuleType };
-
-    await prisma.$transaction([
-      prisma.field.updateMany({
-        where: { ...where, isPipelineStage: true },
-        data: { isPipelineStage: false },
-      }),
-      prisma.field.updateMany({
-        where: { ...where, isPipelineAmount: true },
-        data: { isPipelineAmount: false },
-      }),
-      prisma.field.update({
-        where: { id: stageFieldId },
-        data: { isPipelineStage: true },
-      }),
-      ...(amountFieldId
-        ? [
-            prisma.field.update({
-              where: { id: amountFieldId },
-              data: { isPipelineAmount: true },
-            }),
-          ]
-        : []),
-    ]);
-
-    return this.getConfig(organizationId, moduleType);
-  }
-
-  async updateStages(organizationId: string, dto: UpdatePipelineStagesDto) {
+  async updateStages(organizationId: string, dto: UpdateKanbanStagesDto) {
     const { moduleType, stages } = dto;
 
     const owned = await prisma.fieldOption.findMany({
@@ -333,39 +234,33 @@ export class PipelineService {
     return this.getConfig(organizationId, moduleType);
   }
 
-  private async resolvePipelineFields(
-    organizationId: string,
-    moduleType: string
-  ) {
-    const fields = await prisma.field.findMany({
+  // Every module's Kanban groups by its first STATUS field, so a module created
+  // by an organization gets a board without configuring anything.
+  private async findStageField(organizationId: string, moduleType: string) {
+    return prisma.field.findFirst({
       where: {
         organizationId,
         moduleType: moduleType as ModuleType,
         isDeleted: false,
-        OR: [{ isPipelineStage: true }, { isPipelineAmount: true }],
+        fieldType: "STATUS",
       },
-      select: {
-        id: true,
-        fieldName: true,
-        isPipelineStage: true,
-        isPipelineAmount: true,
-      },
+      orderBy: { fieldOrder: "asc" },
+      select: { id: true, fieldName: true },
     });
+  }
 
-    const stageField = fields.find((f) => f.isPipelineStage);
+  private async resolveStageField(organizationId: string, moduleType: string) {
+    const stageField = await this.findStageField(organizationId, moduleType);
     if (!stageField) {
-      throw new NotFoundException(
-        "No pipeline stage field configured for this module"
-      );
+      throw new NotFoundException("This module has no status field to group by");
     }
-
-    return { stageField, amountField: fields.find((f) => f.isPipelineAmount) };
+    return stageField;
   }
 
   private boardWhere(
     organizationId: string,
     moduleType: string,
-    range: PipelineRange
+    range: KanbanRange
   ): Prisma.BoardWhereInput {
     return {
       organizationId,
@@ -387,25 +282,13 @@ export class PipelineService {
     return probability ?? 0;
   }
 
-  private parseAmount(value: string | null | undefined) {
-    if (!value) return 0;
-    const parsed = Number(value.replace(/[^0-9.-]/g, ""));
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
   private sumStages(
-    stages: {
-      stageType: StageType;
-      count: number;
-      value: number;
-      forecast: number;
-    }[],
+    stages: { stageType: StageType; count: number; forecast: number }[],
     stageType: StageType
   ) {
     const matching = stages.filter((s) => s.stageType === stageType);
     return {
       count: matching.reduce((sum, s) => sum + s.count, 0),
-      value: this.round(matching.reduce((sum, s) => sum + s.value, 0)),
       forecast: this.round(matching.reduce((sum, s) => sum + s.forecast, 0)),
     };
   }

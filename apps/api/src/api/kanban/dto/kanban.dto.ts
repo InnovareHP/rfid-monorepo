@@ -1,13 +1,7 @@
 import { StageType } from "@prisma/client";
 import { z } from "zod";
 
-export const SetPipelineConfigSchema = z.object({
-  moduleType: z.string(),
-  stageFieldId: z.string(),
-  amountFieldId: z.string().nullable().optional(),
-});
-
-export const UpdatePipelineStagesSchema = z.object({
+export const UpdateKanbanStagesSchema = z.object({
   moduleType: z.string(),
   stages: z
     .array(

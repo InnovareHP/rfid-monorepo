@@ -53,7 +53,6 @@ import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
 import LocationCell from "./location-cell";
-import { RecordAvatar } from "./record-avatar";
 import { StatusSelect } from "./status-action";
 
 type EditableCellProps = {
@@ -233,8 +232,7 @@ export function EditableCell({
     queryKey,
     queryFn: () => getDropdownOptions(fieldKey),
     enabled: false,
-    staleTime: 1000 * 60 * 5, // cache for 5 minutes
-    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 30,
   });
 
   const { mutate: createDropdownOptionMutation, isPending: isCreatingOption } =
@@ -417,6 +415,7 @@ export function EditableCell({
       queryKey: ["assigned-to-users"],
       queryFn: () => getDropdownOptions("ASSIGNED_TO"),
       enabled: type === "ASSIGNED_TO" || fieldName === "account_manager",
+      staleTime: 1000 * 60 * 30,
     });
 
   const isLinkType =
@@ -452,12 +451,8 @@ export function EditableCell({
         <SelectTrigger
           className={cn("w-auto text-sm", isUpdating && "opacity-50")}
         >
-          {isLoadingAssignedTo ? (
+          {isLoadingAssignedTo || isUpdating ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : isUpdating ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : val ? (
-            <RecordAvatar name={val} className="h-5 w-5 text-[10px] mr-1" />
           ) : null}
           <SelectValue placeholder={val || "Select user"} />
         </SelectTrigger>

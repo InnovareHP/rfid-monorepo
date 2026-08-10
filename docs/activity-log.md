@@ -434,3 +434,164 @@ Verified: `pnpm build:api`, `pnpm build:fe`, `pnpm --filter fe-support build` al
 Run with `pnpm --filter api prisma:seed-manual` after the migration is applied. It wipes and re-creates all manual rows and needs at least one super_admin or support user for `createdBy`.
 
 Verified: seed file typechecks, no duplicate slugs, no per-category `order` collisions. Seed not executed.
+
+## Page skeletons and query cache tuning (2026-08-10)
+
+Replaced spinner-and-text loading states with skeletons shaped like the page they stand in, and stopped the cache dropping data between navigations.
+
+Skeleton primitives, both new files:
+
+- `components/skeletons/page-skeletons.tsx` — `PageHeaderSkeleton`, `KpiStripSkeleton`, `TableSkeleton`, `ListPageSkeleton`, `SettingsCardSkeleton`, `SettingsPageSkeleton`, `DetailPageSkeleton`, `CardGridSkeleton`, `ListRowsSkeleton`, `PublicPageSkeleton`, `FormFieldsSkeleton`, `RoutePendingSkeleton`. Mirrors `PageHeader`, `KpiStatTile` and `page-style` so nothing shifts on load.
+- `components/skeletons/builder-page-skeleton.tsx` — `BuilderPageSkeleton` (top bar, canvas card, `lg:w-80` right panel) and `StepFormPageSkeleton` (blast editor's stepped form).
+- `components/side-bar/sidebar-skeleton.tsx` — holds the w-16 rail and w-64 panel while the org list loads.
+
+Wired into: blast editor, form builder, landing-page builder, public landing page, help center/category/article, pipeline settings dialog, blast group picker, related records popover, booking settings, booking list table, calendar page, record create.
+
+Router: `defaultPendingComponent` was a full-screen overlay spinner that blanked the tree on every navigation; it is now `RoutePendingSkeleton`. `_team.tsx` had the same overlay gating on `orgLoading` while its own comment said page content renders without the org list — replaced with `SidebarSkeleton` in place of the sidebars. `components/loader.tsx` deleted; nothing else imported it.
+
+Cache: the global client set `staleTime: 5m` but no `gcTime`, so TanStack's 5m default evicted data as soon as it went stale and every return trip refetched. Global `gcTime` is now 30m. Per-query bumps for data that rarely changes: published help content 1h (`MANUAL_STALE_TIME` in `manual-service.ts`), email ingest address 1h, counties and liaisons 30m, dropdown/status/assigned-to options and link-record lists 30m. Left short on purpose: notifications and blast send progress (polling), OAuth connection statuses, board rows, analytics and reports.
+
+Not done: no route `loader` + `ensureQueryData`, so `defaultPreload: "intent"` still only prefetches the JS chunk, not the data.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint reports 0 errors on every touched file. The 8 rules-of-hooks errors in `reusable-table/editable-cell.tsx` are pre-existing conditional hooks; that file's diff is two `staleTime` lines. No browser pass.
+
+### Nav rail rebuilt on tokens and variants (2026-08-10)
+
+`primary-sidebar.tsx` was the one nav surface not on convention: a hand-rolled `<aside>` with a four-stop gradient as a `bg-[linear-gradient(...)]` arbitrary value, a `bg-[#0D3185]` tooltip override, and the same active/inactive class string written out three times (rail item, Help item, bottom bar).
+
+- Tokens in `apps/fe/src/styles.css`: `--brand-rail-from/mid/via/to` and `--brand-rail-foreground`, mapped under `@theme inline`. Deliberately absent from `.dark` - the gradient is fixed brand artwork, and the rail previously painted `text-sidebar-primary-foreground` on it, which resolves to `#06183f` in dark and made the labels near-invisible against the dark end of the gradient.
+- `.bg-brand-rail` and `.bg-brand-rail-horizontal` in `@layer utilities`. A four-stop gradient has no Tailwind color utility, so this is the one place it lives, with its stops as tokens.
+- New `components/side-bar/rail-nav-item.tsx`: a `cva` component with `surface` (rail | bar) and `active` variants, consumed by the rail, the Help item, and the bottom bar. Replaces the three duplicated class strings.
+- Dropped the `TOOLTIP_BRAND` hex override; the default shadcn `TooltipContent` is `bg-primary text-primary-foreground`, identical in light and correctly themed in dark.
+- Labels are now solid `text-brand-rail-foreground` at every state, with hierarchy carried by the background. They were `/75` and `/70`, which is below AA for 10px text.
+- Added `aria-label="Primary"` on both nav landmarks and `aria-current="page"` on the active item.
+- `sidebar-skeleton.tsx`'s rail now matches: same gradient, same 3 items plus a footer slot.
+
+Routing, active-state logic and `useNavItems`/`useIsActive` are unchanged.
+
+Not done: the rail is a plain `<aside>`, not a shadcn `<Sidebar>`. `SidebarProvider` holds a single `state`, so a second `Sidebar` inside it would expand and collapse in lockstep with the main panel.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors and 0 warnings across `components/side-bar` except two pre-existing ones in files not touched. Confirmed `bg-brand-rail`, `bg-brand-rail-horizontal`, `text-brand-rail-foreground`, `bg-brand-rail-foreground/20`, `ring-brand-rail-foreground/35` and `hover:bg-brand-rail-foreground/10` are all present in the emitted CSS. No browser pass, so the dark-mode fix is reasoned from the token values, not observed.
+
+### Sidebar information architecture (2026-08-10)
+
+`NavMain` already supported both shapes - an item with `items` renders as a `Collapsible`, one without renders as a plain link - but the data in `app-sidebar.tsx` never used the second, so three categories were collapsibles wrapping a single link, and only one group ever opened.
+
+Tree changes:
+
+- Direct links, promoted out of collapsibles: Master Marketing List, Referral Logs, Tasks (was Productivity), History (was Records > History Check), Import (was Import > Master Marketing List).
+- CRM shrank to its remaining two entries and is now Contacts (Phonebook, Companies).
+- The second `Marketing` category is now `Logs`. Two sibling categories both called Marketing, one for email and one for field logs, could not be told apart.
+- Overview, Marketing Hub, Logs, Reports and Settings keep their sub-navigation.
+
+Open state, in `nav-main.tsx`:
+
+- `isActive: true` was hardcoded on Overview and nowhere else, so Overview always opened and every other group stayed shut even while you were inside it. Removed from the data and the type.
+- A group is open when the route is inside it. Only explicit user toggles are stored: `open = openOverrides[title] ?? hasActiveChild`. Derived during render, so no effect and no state mirroring, and collapsing a group you are inside sticks rather than springing back open on the next navigation.
+- Active matching moved from `subItem.url === pathname` to a `matchesPath` helper: a url owns its subtree, so Blasts stays lit on `/marketing/blasts/:id`. The org root is exact-match only, or it would light up on every page. The trailing slash in the prefix test keeps `/master-list` from matching `/master-list-analytics`.
+- The collapsed icon rail's hover dropdown now marks its trigger active when a child is active; previously the collapsed sidebar gave no indication of where you were.
+
+The Settings entry carried both `url` and `items`, and `NavMain` silently drops the url of a group. That url pointed at `/settings`, which is a layout route holding a bare `Outlet` with no index child, so it renders blank. Removed the phantom url rather than adding a nav row to an empty page. Giving `/settings` a real General page is a separate piece of work.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/side-bar` (2 pre-existing warnings in `nav-user.tsx` and `team-switcher.tsx`, both untouched). No browser pass, so the open/active behaviour is reasoned from the routes, not clicked through.
+
+### Third nav level (2026-08-10)
+
+`NavMain` gained a third level, rendered as a dropdown off the sub row rather than a deeper indent. At 256px the sidebar has no room for another rail, and the parent row has to stay a link to its own page.
+
+- `NavSubItem` gained optional `items`. A sub row with children keeps its `Link` and gains a `SidebarMenuAction` chevron that opens a `DropdownMenu` of its children, so Blasts is still one click while Groups and Senders are two.
+- `subItemIsActive` marks a row active when its own url matches or any child's does, so Blasts stays lit while you are on Senders, and the parent group still auto-opens.
+- The collapsed icon rail has no row to hang a nested dropdown off, so its hover menu indents the third level inside the existing one with `pl-6`. Without this, Groups, Senders and Plans were unreachable with the sidebar collapsed.
+
+Tree: Marketing Hub is now Forms, Campaigns, Blasts (Groups, Senders), Landing Pages. Settings is Team, Counties, Booking, Compliance, Billing (Plans).
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/side-bar`. No browser pass; the chevron sits on `SidebarMenuAction`, whose `peer-*` rules target a menu-button that `SidebarMenuSubButton` does not carry, so its vertical alignment inside the 28px sub row is worth an eye.
+
+### Collapsed sidebar menu opens on click (2026-08-10)
+
+The collapsed icon rail's group menu was hover-only: `<DropdownMenu open={hoveredMenu === item.title}>` with pointer-enter and pointer-leave handlers and a 120ms close timer. Because `open` was controlled entirely from hover state, the trigger's own click did nothing, so the menu could not be opened by click, keyboard, or touch.
+
+Now a plain uncontrolled `<DropdownMenu modal={false}>`. Radix handles click to toggle, Escape and outside-click to close, arrow-key navigation, and focus return. This deletes `hoveredMenu`, `closeTimerRef`, `openHoverMenu`, `closeHoverMenu` and the cleanup effect - the only `useEffect` left in the file. Hover styling on the items is unchanged; only hover-to-open went away.
+
+Both dropdowns in the sidebar are click-driven now: this one and the third-level chevron added earlier.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint clean on `nav-main.tsx`. No browser pass.
+
+### Nav: inline third level, CRM group back, no parent highlight (2026-08-10)
+
+Three follow-ups after the IA pass.
+
+- CRM restored as a group holding the four board modules, since organizations will be able to create their own. Its rows map over a `CRM_MODULES` list in `app-sidebar.tsx` so a new module is one entry, and that list becomes an API response when user-created modules land. Master Marketing List and Referral Logs came back out of the top level; Tasks stays a direct link.
+- The third level now expands in place instead of opening a portalled `DropdownMenu`. A sub row with children keeps its `Link` and its `SidebarMenuAction` chevron drives a nested `Collapsible` rendering a `SidebarMenuSub` of `size="sm"` rows. Same derived-open rule as the groups, keyed `parent/child` so sub and group overrides cannot collide. The collapsed icon rail keeps its dropdown - icon-only, there is nowhere to expand into.
+- Parent rows no longer show the active highlight. The group trigger dropped `isActive` entirely, and a parent sub row now lights only for its own url rather than standing in for a child. `subItemIsActive` is still what decides auto-open, so a group still expands when the route is inside it; only the highlight moved to the current page's row. The collapsed rail's trigger keeps its highlight, since nothing else there can show location.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/side-bar`. No browser pass.
+
+## Pipeline becomes Kanban, grouped by status (2026-08-10)
+
+Deal Value is gone, the Kanban groups by each module's own status field, and the whole feature is renamed from pipeline to kanban across API and frontend.
+
+Decisions taken, all confirmed except where noted:
+
+- Full rename including the API, so `GET /api/pipeline` is now `GET /api/kanban`. Frontend and API must deploy together; a cached client calling the old path gets a 404.
+- The stage field is always the module's first STATUS field by `fieldOrder`. Both marker columns are dropped, so there is nothing to configure and nothing to keep in sync. An organization that adds its own CRM module gets a working Kanban the moment the module has a status field.
+- Assumed, since it was not answered: LEAD's "Pipeline Stage" field is renamed to "Status" rather than replaced, so every stage option, colour and recorded value survives. "Deal Value" is soft-deleted rather than dropped, so its `FieldValue` rows stay recoverable. Stage probabilities are kept and now drive a count-weighted forecast.
+
+API:
+
+- `api/pipeline/` renamed to `api/kanban/`; controller, module, service and both dto files follow. `PipelineModule` to `KanbanModule` in `api.module.ts`.
+- `Field.isPipelineStage` and `Field.isPipelineAmount` removed from `prisma/models/board.prisma`, with `prisma/migrations/drop_pipeline_field_markers/migration.sql` to drop the columns.
+- `kanban.service.ts`: no amount anywhere. `stage.value`, `totals.*.value` and `parseAmount` are gone; `forecast` is now `count * probability / 100` and `weightedForecast` is `open.forecast + won.count`, both counts of expected wins rather than money. `resolvePipelineFields` became `findStageField` / `resolveStageField`, reading the first STATUS field.
+- `PATCH /config` and `setConfig` deleted along with `SetPipelineConfigDto`: with the field auto-derived and no amount, there was nothing left to set. `PATCH /stages` still owns order, outcome and probability.
+- `onboarding.ts`: `LEAD_PIPELINE_STAGE_FIELD` and `LEAD_PIPELINE_AMOUNT_FIELD` collapse into `LEAD_STATUS_FIELD = "Status"`. The Deal Value field and its 25000/18000/32000 samples are gone from the lead seed, and `configureLeadPipeline` is now `configureLeadKanban` with no marker-setting transaction.
+- `prisma/scripts/seed-lead-pipeline.ts` replaced by `seed-lead-kanban.ts`, registered as `pnpm --filter api seed:lead-kanban`. It is the data migration: renames "Pipeline Stage" to "Status", seeds default stages on any lead module lacking a STATUS field, and soft-deletes "Deal Value".
+
+Frontend:
+
+- `services/pipeline/pipeline-service.ts` moved to `services/kanban/kanban-service.ts`. Types renamed, `amountField`, `amountFieldId`, `amountCandidates`, `stageCandidates` and every `value` field removed, `setPipelineConfig` deleted.
+- `pipeline-settings-dialog.tsx` became `kanban-settings-dialog.tsx`. Both field pickers are gone; it now names the field it groups by and edits outcome, probability and order. It also handles a module with no status field instead of rendering an empty form.
+- `kanban-view.tsx`: the four currency tiles are counts now (Open, Expected wins, Won, Win rate), the per-card Deal Value line is gone, and stage headers read "N records". Its raw gray palette went to tokens while the file was being rewritten, and `SummaryTile` moved out to `kanban-summary-tile.tsx`.
+- Query keys `["pipeline", ...]` and `["pipeline-cards", ...]` are now `["kanban", ...]` and `["kanban-cards", ...]`. `["referral-pipeline-analytics"]` is a different feature and was left alone.
+
+Verified: `pnpm build:api` and `pnpm build:fe` both pass, `tsc --noEmit` clean on the frontend, eslint 0 errors on the touched files, `pnpm prisma:generate` succeeded, and a grep confirms no `isPipeline*`, `Deal Value`, `Pipeline Stage` or `/api/pipeline` references remain outside the migration script's legacy constants.
+
+NOT run, and order matters: `pnpm --filter api seed:lead-kanban` first, then `pnpm prisma:migrate`. Running the migration first drops the columns before the rename happens, which is harmless here only because the script never reads them. No browser pass.
+
+### Kanban tiles trimmed, referral status stages (2026-08-10)
+
+- `kanban-view.tsx` keeps only the Open tile; Expected wins, Won and Win rate are gone. The API still computes `weightedForecast`, `totals.won`, `totals.lost` and `winRate`, and `GET /api/kanban/win-loss` still exists - nothing on the frontend reads them now.
+- Referral Status options were seeded with no `stageType`, so every column defaulted to OPEN and the referral Kanban could never register a win or a loss. `statusOptionsMap` in `onboarding.ts` now carries stage metadata through a `ReferralStatusOption` type: Pending OPEN at 50%, Admitted WON, Rejected LOST, with explicit `optionOrder`.
+
+Both LEAD and REFERRAL now seed a Status field with real Kanban stages. LEAD gets them from `seedLeadKanban`, REFERRAL inline with its field options.
+
+Known gap, not addressed: there is no way to reach a referral Kanban in the UI. `referral-list-page.tsx` has no view toggle, and `KanbanView` fetches its cards through `getLeads`, which hardcodes `moduleType: "LEAD"` (`lead-service.ts:30`) and ignores the `moduleType` prop. Making the Kanban work for any module means routing card fetches through a module-aware service call first.
+
+Verified: `pnpm build:api` and `pnpm build:fe` pass, `tsc --noEmit` clean, eslint 0 errors on touched files. No browser pass.
+
+### CSV export date range (2026-08-10)
+
+`ExportCsvButton` was a plain button calling `onExport()`. It is now a `Popover` with From and To date inputs and an Export action, so all five surfaces get the same control from one component. `onExport` takes an `ExportRange` of `{ from?, to? }`; both empty exports everything, and From after To is blocked with a message rather than silently returning nothing. The entitlement gate is unchanged.
+
+Filtering is on the record's own created date, and where it happens differs by surface:
+
+- Master list and referral list already page through `/api/boards` to build the export, and that endpoint already accepted `boardDateFrom` / `boardDateTo` filtering `Board.createdAt` (`board.controller.ts:85`, `board.service.ts:118`). Both now pass the range straight through, so the server does the filtering and no extra rows cross the wire.
+- Marketing and mileage reports fold the range into their existing filter keys, `marketingDateFrom`/`marketingDateTo` and `mileageDateFrom`/`mileageDateTo`, so an explicit range overrides whatever the on-page filter had.
+- The CRM list exports the rows already in hand rather than re-fetching, so it narrows them in memory through a new `filterByCreatedAt` in `lib/helper/helper.ts`. An inclusive "to" needs the whole of that day, so the upper bound is the following midnight. It reports "No records in that date range" instead of downloading an empty file.
+
+`CrmRow` gained `createdAt?: string`. `getAllBoards` returns it on every flat row but the type never declared it, so the helper's generic could not accept `CrmRow[]`.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across the six touched files. No browser pass, and no export was actually downloaded.
+
+Also tidied: the comment explaining why Groups and Senders are nested moved from Blasts to Campaigns, following the hand edit that reparented them.
+
+### Referral Kanban made reachable (2026-08-10)
+
+The referral stage data was seeded but nothing could show it. Two blockers, both fixed.
+
+- `KanbanView` took a `moduleType` prop but fetched its cards through `getLeads`, which hardcodes `moduleType: "LEAD"` (`lead-service.ts:30`), so any module other than LEAD would have rendered lead cards under referral column headings. Added `getKanbanCards(moduleType, stageFieldId, stageName, limit)` to `kanban-service.ts` - one module-aware call that stringifies the stage filter the way `/api/boards` expects. `updateLead` already took a `moduleType`, so the drag-to-move path needed nothing.
+- `onSuccess` invalidated `["leads"]` unconditionally, so moving a referral card left the referral table stale. A `LIST_QUERY_KEYS` map now picks leads / referrals / contacts / companies from the module.
+- `referral-list-page.tsx` gained the table/Kanban toggle, the Kanban Settings button behind `can(role, { field: ["configure"] })`, and renders `KanbanView` with `moduleType="REFERRAL"` in place of the table. `ColumnFilter` is hidden in Kanban view, where it does nothing.
+
+The three Kanban components moved from `components/master-list/` to `components/kanban/`, since two feature folders consume them now.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/kanban`, `components/referral-list`, `master-list-page.tsx` and `services/kanban`. No browser pass: the drag-and-drop path and the referral board are unexercised.

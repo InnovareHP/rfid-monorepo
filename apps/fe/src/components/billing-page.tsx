@@ -1,4 +1,6 @@
+import { TransactionsCard } from "@/components/billing/transactions-card";
 import { authClient } from "@/lib/auth-client";
+import { can } from "@/lib/permissions";
 import {
   cancelSubscription,
   getPlanCard,
@@ -55,6 +57,12 @@ export function BillingPage({
     "member-data",
     activeOrganizationId,
   ]);
+
+  // The portal button reached every role while every billing endpoint behind it
+  // requires manage_billing.
+  const canManageBilling = can((memberData as Member)?.role, {
+    billing: ["manage_billing"],
+  });
 
   const billingInfo = subscriptions && {
     currentPlan: subscriptions?.plan,
@@ -205,13 +213,15 @@ export function BillingPage({
           )}
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={openBillingPortal}
-            >
-              Manage Billing
-            </Button>
+            {canManageBilling && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={openBillingPortal}
+              >
+                Manage Billing
+              </Button>
+            )}
 
             {(memberData as Member)?.role === ROLES.OWNER &&
               (planCard?.cancelAtPeriodEnd ? (
@@ -243,6 +253,9 @@ export function BillingPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Only reachable with manage_billing, which is what both history routes require. */}
+      {canManageBilling && <TransactionsCard />}
     </div>
   );
 }
