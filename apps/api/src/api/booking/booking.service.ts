@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   BookingLocation,
+  BookingStatus,
   CalendarProvider,
   LocationType,
   Prisma,
@@ -150,10 +151,72 @@ export class BookingService {
     ]);
 
     return {
-      data,
+      data: await this.backfillMeetingUrls(userId, data),
       total,
       nextPage: page * limit < total ? page + 1 : null,
     };
+  }
+
+  // A join link can land after the insert response returned, so an upcoming
+  // video booking still missing one is re-read when the host lists bookings.
+  private async backfillMeetingUrls<
+    T extends {
+      id: string;
+      meetingUrl: string | null;
+      locationType: BookingLocation;
+      status: BookingStatus;
+      startTime: Date;
+      externalEventId: string | null;
+      calendarProvider: string | null;
+    },
+  >(userId: string, bookings: T[]): Promise<T[]> {
+    const now = new Date();
+    const missing = bookings.filter(
+      (booking) =>
+        !booking.meetingUrl &&
+        booking.locationType === "VIDEO" &&
+        booking.status === "CONFIRMED" &&
+        booking.startTime > now &&
+        booking.externalEventId &&
+        booking.calendarProvider
+    );
+
+    if (!missing.length) return bookings;
+
+    const resolved = new Map<string, string>();
+
+    await Promise.all(
+      missing.map(async (booking) => {
+        const eventId = booking.externalEventId as string;
+        try {
+          const url =
+            booking.calendarProvider === "google"
+              ? await this.googleCalendarService.getMeetingUrl(userId, eventId)
+              : await this.outlookCalendarService.getMeetingUrl(
+                  userId,
+                  eventId
+                );
+          if (!url) return;
+          resolved.set(booking.id, url);
+          await prisma.booking.update({
+            where: { id: booking.id },
+            data: { meetingUrl: url },
+          });
+        } catch (error) {
+          this.logger.warn(
+            `Failed to backfill join link for booking ${booking.id}: ${error.message}`
+          );
+        }
+      })
+    );
+
+    if (!resolved.size) return bookings;
+
+    return bookings.map((booking) =>
+      resolved.has(booking.id)
+        ? { ...booking, meetingUrl: resolved.get(booking.id)! }
+        : booking
+    );
   }
 
   async cancelOwnBooking(
@@ -635,6 +698,14 @@ export class BookingService {
           eventData
         );
         provider = "google";
+      }
+
+      // A video booking with no join link is silent otherwise, and the cause is
+      // either no connected calendar or a conference the provider never minted.
+      if (eventData.createConference && !created?.meetingUrl) {
+        this.logger.warn(
+          `No join link for booking ${booking.id}: provider=${provider ?? "none"} google=${google.connected} outlook=${outlook.connected}`
+        );
       }
 
       if (created?.id && provider) {

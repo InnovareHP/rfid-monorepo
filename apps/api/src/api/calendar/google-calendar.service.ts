@@ -299,9 +299,10 @@ export class GoogleCalendarService {
     const immediate = this.readMeetingUrl(created);
     if (immediate) return immediate;
 
+    // Only a failure is terminal; a missing status still resolves on a re-read.
     if (
       !created.id ||
-      created.conferenceData?.createRequest?.status?.statusCode !== "pending"
+      created.conferenceData?.createRequest?.status?.statusCode === "failure"
     ) {
       return null;
     }
@@ -322,6 +323,34 @@ export class GoogleCalendarService {
     }
 
     return null;
+  }
+
+  async getMeetingUrl(userId: string, eventId: string): Promise<string | null> {
+    const token = await prisma.googleCalendarToken.findUnique({
+      where: { userId },
+    });
+
+    if (!token) return null;
+
+    const oauth2Client = this.createOAuth2Client();
+    oauth2Client.setCredentials({
+      access_token: token.accessToken,
+      refresh_token: token.refreshToken,
+      expiry_date: token.tokenExpiry.getTime(),
+    });
+
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+    try {
+      const { data } = await calendar.events.get({
+        calendarId: "primary",
+        eventId,
+      });
+      return this.readMeetingUrl(data);
+    } catch (error) {
+      this.logger.warn(`Failed to read Meet link for event ${eventId}`, error);
+      return null;
+    }
   }
 
   async deleteEvent(userId: string, eventId: string): Promise<void> {

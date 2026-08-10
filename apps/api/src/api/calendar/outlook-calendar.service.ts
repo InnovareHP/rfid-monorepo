@@ -298,6 +298,34 @@ export class OutlookCalendarService {
     };
   }
 
+  async getMeetingUrl(userId: string, eventId: string): Promise<string | null> {
+    const token = await prisma.outlookCalendarToken.findUnique({
+      where: { userId },
+    });
+
+    if (!token) return null;
+
+    let accessToken = token.accessToken;
+    if (new Date() >= token.tokenExpiry) {
+      accessToken = await this.refreshAccessToken(userId, token.refreshToken);
+    }
+
+    const response = await fetch(
+      `${GRAPH_API_URL}/me/events/${eventId}?$select=onlineMeeting`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!response.ok) {
+      this.logger.warn(
+        `Failed to read Teams link for event ${eventId}: ${response.status}`
+      );
+      return null;
+    }
+
+    const event = await response.json();
+    return event.onlineMeeting?.joinUrl ?? null;
+  }
+
   async deleteEvent(userId: string, eventId: string): Promise<void> {
     const token = await prisma.outlookCalendarToken.findUnique({
       where: { userId },
