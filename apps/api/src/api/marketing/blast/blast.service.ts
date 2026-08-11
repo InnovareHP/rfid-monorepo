@@ -173,6 +173,7 @@ export class BlastService {
       data: recipients.map((r) => ({
         blastId: id,
         recordId: r.recordId,
+        organizationId,
         email: r.email,
         status: "PENDING",
       })),

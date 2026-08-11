@@ -181,7 +181,14 @@ model BlastRecipient {
   recordId String
   record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
+  // Carried so the tenant extension can scope this model: SCOPED_MODELS is
+  // derived from the presence of this column, and reaching a recipient only
+  // through blastId left no guard against a query keyed on id alone.
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@unique([blastId, recordId])
+  @@index([organizationId])
   @@schema("marketing_schema")
 }
 
@@ -225,7 +232,13 @@ model FormSubmission {
   recordId String
   record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
+  // Same reason as BlastRecipient: without this column the submission row sits
+  // outside every tenant guard the extension applies.
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@index([formId])
+  @@index([organizationId])
   @@schema("marketing_schema")
 }
 

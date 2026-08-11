@@ -149,6 +149,8 @@ model Organization {
   recipientGroups  RecipientGroup[]
   senderIdentities SenderIdentity[]
   forms           Form[]
+  formSubmissions FormSubmission[]
+  blastRecipients BlastRecipient[]
   landingPages    LandingPage[]
   notifications   Notification[]
   expenses        Expense[]

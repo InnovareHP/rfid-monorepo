@@ -14,6 +14,13 @@ describe("SCOPED_MODELS", () => {
     }
   });
 
+  // Both were reachable only through a parent, so dropping the column again
+  // would silently take them back out of every tenant guard.
+  it("covers the marketing child rows that hold PHI", () => {
+    expect(SCOPED_MODELS.has("BlastRecipient")).toBe(true);
+    expect(SCOPED_MODELS.has("FormSubmission")).toBe(true);
+  });
+
   it("leaves platform and Better Auth owned models alone", () => {
     for (const model of ["User", "Organization", "SupportTicket", "Plan"]) {
       expect(SCOPED_MODELS.has(model)).toBe(false);

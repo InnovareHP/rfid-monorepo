@@ -300,10 +300,13 @@ export class FormService {
         initialValues: filteredValues,
       });
 
+      // Public submit runs @CrossTenant, so the extension injects nothing here
+      // and the organization has to be named outright.
       await tx.formSubmission.create({
         data: {
           formId: form.id,
           recordId: record.id,
+          organizationId,
           sourceIp: meta.ip ?? null,
           userAgent: meta.userAgent ?? null,
         },
