@@ -13,6 +13,7 @@ import {
 } from "@prisma/client";
 import { getOrganizationEntitlement } from "../../guard/subscription/subscription.guard";
 import { prisma } from "../../lib/prisma/prisma";
+import { privateViewUrl } from "../image/image.service";
 import { CreateTicketDto } from "./dto/support.schema";
 
 @Injectable()
@@ -36,6 +37,24 @@ export class SupportService {
       select: { id: true },
     });
     if (!ticket) throw new NotFoundException("Ticket not found");
+  }
+
+  // A support attachment sits under the uploader's prefix, so an agent reading it
+  // owns no part of the key. The ticket is the grant: reachable ticket, readable
+  // attachment. Live chats need no equivalent, being sender-scoped end to end.
+  async canReadAttachment(
+    key: string,
+    user: Pick<User & { role: string }, "id" | "role">
+  ) {
+    const attachment = await prisma.supportTicketAttachment.findFirst({
+      where: {
+        imageUrl: privateViewUrl(key),
+        supportTicketMessage: { supportTicket: this.ticketScope(user) },
+      },
+      select: { id: true },
+    });
+
+    return attachment !== null;
   }
 
   private async assertLiveChatOwned(chatId: string, userId: string) {

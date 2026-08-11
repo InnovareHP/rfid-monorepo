@@ -1,7 +1,9 @@
+import { ROLES } from "@dashboard/shared";
 import {
   BadRequestException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Post,
   Query,
@@ -20,6 +22,7 @@ import {
   UploadImageQueryDto,
   ViewImageQueryDto,
 } from "./dto/image-schema";
+import { SupportService } from "../support/support.service";
 import { ImageService } from "./image.service";
 
 // Org members share one prefix so any admin can clean up; support users get their own.
@@ -29,7 +32,10 @@ const scopeOf = (session: AuthenticatedSession) =>
 @Controller("image")
 @UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard)
 export class ImageController {
-  constructor(private readonly imageService: ImageService) {}
+  constructor(
+    private readonly imageService: ImageService,
+    private readonly supportService: SupportService
+  ) {}
 
   @Post("upload")
   @UseInterceptors(
@@ -62,9 +68,31 @@ export class ImageController {
     @Query() query: ViewImageQueryDto,
     @Session() session: AuthenticatedSession
   ) {
-    const url = await this.imageService.getViewUrl(query.key, scopeOf(session));
+    const scopeId = scopeOf(session);
 
-    return { url, statusCode: 302 };
+    if (this.imageService.ownedBy(query.key, scopeId)) {
+      return {
+        url: await this.imageService.presign(query.key),
+        statusCode: 302,
+      };
+    }
+
+    // A support agent owns no part of a tenant's key, so the only cross-scope
+    // read allowed is an attachment on a ticket that agent can already reach.
+    const role = session.user.role;
+    const isAgent = role === ROLES.SUPPORT || role === ROLES.SUPER_ADMIN;
+
+    if (
+      isAgent &&
+      (await this.supportService.canReadAttachment(query.key, session.user))
+    ) {
+      return {
+        url: await this.imageService.presign(query.key),
+        statusCode: 302,
+      };
+    }
+
+    throw new ForbiddenException("Image does not belong to this account");
   }
 
   @Delete()

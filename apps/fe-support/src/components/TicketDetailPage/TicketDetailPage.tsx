@@ -68,7 +68,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
       );
 
       for (const file of attachments) {
-        const { url } = await uploadImage(file, "public");
+        const { url } = await uploadImage(file, "private");
         await createTicketAttachment(ticket.id, message.id, url);
       }
     },

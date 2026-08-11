@@ -3,7 +3,7 @@ import { NotFoundException } from "@nestjs/common";
 jest.mock("../../lib/prisma/prisma", () => {
   const supportTicket = { findFirst: jest.fn() };
   const supportTicketMessage = { findFirst: jest.fn(), create: jest.fn() };
-  const supportTicketAttachment = { create: jest.fn() };
+  const supportTicketAttachment = { create: jest.fn(), findFirst: jest.fn() };
   const supportHistory = { create: jest.fn(), findMany: jest.fn() };
   const supportLiveChat = { findFirst: jest.fn() };
   const supportLiveChatMessage = { create: jest.fn() };
@@ -32,7 +32,7 @@ const FOREIGN = "ticket-owned-by-user-a";
 const db = prisma as unknown as {
   supportTicket: { findFirst: jest.Mock };
   supportTicketMessage: { findFirst: jest.Mock; create: jest.Mock };
-  supportTicketAttachment: { create: jest.Mock };
+  supportTicketAttachment: { create: jest.Mock; findFirst: jest.Mock };
   supportHistory: { create: jest.Mock; findMany: jest.Mock };
   supportLiveChat: { findFirst: jest.Mock };
   supportLiveChatMessage: { create: jest.Mock };
@@ -51,6 +51,7 @@ describe("SupportService cross-account isolation", () => {
     db.supportTicket.findFirst.mockResolvedValue(null);
     db.supportTicketMessage.findFirst.mockResolvedValue(null);
     db.supportLiveChat.findFirst.mockResolvedValue(null);
+    db.supportTicketAttachment.findFirst.mockResolvedValue(null);
     service = new SupportService();
   });
 
@@ -117,6 +118,54 @@ describe("SupportService cross-account isolation", () => {
         db.supportTicketMessage.findFirst.mock.calls[0][0].where
       ).toMatchObject({ supportTicket: { createBy: ATTACKER } });
       expect(db.supportTicketAttachment.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // The cross-scope read that replaced public attachment URLs: the ticket is the
+  // only grant, so the scope filter must reach the query every time.
+  describe("canReadAttachment", () => {
+    const KEY = "private/org-a/abc-shot.png";
+
+    it("refuses a key no attachment row references", async () => {
+      await expect(
+        service.canReadAttachment(KEY, asSupport(ATTACKER))
+      ).resolves.toBe(false);
+    });
+
+    it("scopes an agent to tickets assigned to them", async () => {
+      await service.canReadAttachment(KEY, asSupport(ATTACKER));
+
+      expect(
+        db.supportTicketAttachment.findFirst.mock.calls[0][0].where
+      ).toMatchObject({
+        supportTicketMessage: { supportTicket: { assignedTo: ATTACKER } },
+      });
+    });
+
+    it("scopes a plain user to tickets they opened", async () => {
+      await service.canReadAttachment(KEY, asUser(ATTACKER));
+
+      expect(
+        db.supportTicketAttachment.findFirst.mock.calls[0][0].where
+      ).toMatchObject({
+        supportTicketMessage: { supportTicket: { createBy: ATTACKER } },
+      });
+    });
+
+    it("matches the key on the stored private url, not a substring", async () => {
+      await service.canReadAttachment(KEY, asSupport(ATTACKER));
+
+      const { where } = db.supportTicketAttachment.findFirst.mock.calls[0][0];
+      expect(typeof where.imageUrl).toBe("string");
+      expect(where.imageUrl).toContain(encodeURIComponent(KEY));
+    });
+
+    it("grants when a reachable ticket owns the attachment", async () => {
+      db.supportTicketAttachment.findFirst.mockResolvedValue({ id: "att-1" });
+
+      await expect(
+        service.canReadAttachment(KEY, asSuperAdmin(ATTACKER))
+      ).resolves.toBe(true);
     });
   });
 
