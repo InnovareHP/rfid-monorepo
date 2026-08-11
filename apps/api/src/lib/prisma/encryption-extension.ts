@@ -4,10 +4,12 @@ import { decryptNullable, encryptNullable } from "../crypto/crypto";
 type FieldMap = Record<string, readonly string[]>;
 
 export const ENCRYPTED_FIELDS: FieldMap = {
-  GmailToken: ["accessToken", "refreshToken"],
-  OutlookToken: ["accessToken", "refreshToken"],
-  GoogleCalendarToken: ["accessToken", "refreshToken"],
-  OutlookCalendarToken: ["accessToken", "refreshToken"],
+  // The mailbox address rides along with the tokens: it identifies the account
+  // the grant belongs to and is only ever selected, never filtered on.
+  GmailToken: ["accessToken", "refreshToken", "gmailAddress"],
+  OutlookToken: ["accessToken", "refreshToken", "outlookEmail"],
+  GoogleCalendarToken: ["accessToken", "refreshToken", "email"],
+  OutlookCalendarToken: ["accessToken", "refreshToken", "email"],
   FieldPersonInformation: ["contactNumber", "email", "address"],
   TwoFactor: ["secret", "backupCodes"],
   OrgIntegration: ["apiKey"],
@@ -38,6 +40,13 @@ export const ENCRYPTED_FIELDS: FieldMap = {
   SupportTicketRating: ["comment"],
   SupportLiveChat: ["message"],
   SupportLiveChatMessage: ["message"],
+  // An IP is Safe Harbor identifier 18 and the user agent fingerprints a device.
+  // Neither is ever matched in SQL; both are write-only columns.
+  FormSubmission: ["sourceIp", "userAgent"],
+  // Built from a record name, so a notification title carries whatever the
+  // record is called. Encrypted in the service before this existed; the crypto
+  // helpers are idempotent, so listing it here is what makes it structural.
+  Notification: ["title", "body"],
 };
 
 // Relation key → model, so encrypted models are handled when nested
@@ -83,6 +92,8 @@ export const RELATION_MODELS: Record<string, string> = {
   agreements: "ContractAgreement",
   integrations: "OrgIntegration",
   bookings: "Booking",
+  formSubmissions: "FormSubmission",
+  submissions: "FormSubmission",
 };
 
 function encryptOwnFields(model: string, data: any): any {

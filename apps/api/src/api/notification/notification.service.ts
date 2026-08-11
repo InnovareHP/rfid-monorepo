@@ -4,12 +4,6 @@ import {
 } from "@dashboard/shared";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import {
-  decryptNullable,
-  decryptString,
-  encryptNullable,
-  encryptString,
-} from "../../lib/crypto/crypto";
 import { prisma } from "../../lib/prisma/prisma";
 
 export type NotifyInput = {
@@ -41,8 +35,8 @@ export class NotificationService {
     return {
       id: row.id,
       type: row.type,
-      title: decryptString(row.title),
-      body: decryptNullable(row.body),
+      title: row.title,
+      body: row.body,
       link: row.link,
       entityType: row.entityType,
       entityId: row.entityId,
@@ -75,8 +69,8 @@ export class NotificationService {
         recipientId: member.id,
         actorUserId: input.actorUserId ?? null,
         type: input.type,
-        title: encryptString(input.title),
-        body: encryptNullable(input.body ?? null),
+        title: input.title,
+        body: input.body ?? null,
         link: input.link ?? null,
         entityType: input.entityType ?? null,
         entityId: input.entityId ?? null,
@@ -141,8 +135,7 @@ export class NotificationService {
       return {
         data: matched.slice(start, start + query.limit),
         total: matched.length,
-        nextPage:
-          start + query.limit < matched.length ? query.page + 1 : null,
+        nextPage: start + query.limit < matched.length ? query.page + 1 : null,
       };
     }
 

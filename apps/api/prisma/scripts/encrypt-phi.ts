@@ -135,6 +135,52 @@ const SPECS: Spec[] = [
     load: () => raw.contractAgreement.findMany(),
     patch: (id, data) => raw.contractAgreement.update({ where: { id }, data }),
   },
+  {
+    label: "FormSubmission",
+    fields: ["sourceIp", "userAgent"],
+    load: () => raw.formSubmission.findMany(),
+    patch: (id, data) => raw.formSubmission.update({ where: { id }, data }),
+  },
+  {
+    label: "Notification",
+    fields: ["title", "body"],
+    load: () =>
+      raw.notification.findMany({
+        select: { id: true, title: true, body: true },
+      }),
+    patch: (id, data) => raw.notification.update({ where: { id }, data }),
+  },
+  // The mailbox addresses beside the tokens encrypt-tokens.ts already covers.
+  {
+    label: "GmailToken",
+    fields: ["gmailAddress"],
+    load: () =>
+      raw.gmailToken.findMany({ select: { id: true, gmailAddress: true } }),
+    patch: (id, data) => raw.gmailToken.update({ where: { id }, data }),
+  },
+  {
+    label: "OutlookToken",
+    fields: ["outlookEmail"],
+    load: () =>
+      raw.outlookToken.findMany({ select: { id: true, outlookEmail: true } }),
+    patch: (id, data) => raw.outlookToken.update({ where: { id }, data }),
+  },
+  {
+    label: "GoogleCalendarToken",
+    fields: ["email"],
+    load: () =>
+      raw.googleCalendarToken.findMany({ select: { id: true, email: true } }),
+    patch: (id, data) =>
+      raw.googleCalendarToken.update({ where: { id }, data }),
+  },
+  {
+    label: "OutlookCalendarToken",
+    fields: ["email"],
+    load: () =>
+      raw.outlookCalendarToken.findMany({ select: { id: true, email: true } }),
+    patch: (id, data) =>
+      raw.outlookCalendarToken.update({ where: { id }, data }),
+  },
 ];
 
 async function run() {

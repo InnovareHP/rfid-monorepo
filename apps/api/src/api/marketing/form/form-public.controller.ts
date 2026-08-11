@@ -67,6 +67,9 @@ export class FormPublicController {
     }
   }
 
+  // Anonymous write that creates a lead record, so it gets the same ceiling as
+  // the public booking write rather than the global 300/min.
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post("/:slug/submit")
   async submitPublicForm(
     @Param("slug") slug: string,

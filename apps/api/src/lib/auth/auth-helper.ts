@@ -4,6 +4,7 @@ import {
   resolveEntitlement,
   WORK_EMAIL_REQUIRED_MESSAGE,
 } from "@dashboard/shared";
+import { Logger } from "@nestjs/common";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
@@ -16,6 +17,8 @@ import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
 import { OnboardingSeeding } from "./onboarding";
+
+const logger = new Logger("org-hook");
 
 export const beforeSessionCreate = async (session: {
   userId: string;
@@ -434,9 +437,9 @@ export const afterRemoveMember = async ({
     data: { isActive: false },
   });
 
-  console.log(
-    `[org-hook] Member ${user.email} removed from ${organization.name}`
-  );
+  // Ids only: the actor and the affected member are already on the audit row,
+  // and stdout is not a place to put a workforce member's address.
+  logger.log(`Member ${user.id} removed from organization ${organization.id}`);
 };
 
 export const beforeUpdateMemberRole = async ({
@@ -468,17 +471,13 @@ export const beforeUpdateMemberRole = async ({
 export const afterUpdateMemberRole = async ({
   member,
   previousRole,
-  user,
-  organization,
 }: {
   member: { role: string };
   previousRole: string;
   user: { email: string };
   organization: { name: string };
 }) => {
-  console.log(
-    `[org-hook] ${user.email} role changed from ${previousRole} to ${member.role} in ${organization.name}`
-  );
+  logger.log(`Member role changed from ${previousRole} to ${member.role}`);
 };
 
 // ─── Invitation lifecycle hooks ────────────────────────────────────
@@ -639,9 +638,7 @@ export const afterCancelInvitation = async ({
   invitation: { id: string };
   cancelledBy: { id: string };
 }) => {
-  console.log(
-    `[org-hook] Invitation ${invitation.id} cancelled by ${cancelledBy.id}`
-  );
+  logger.log(`Invitation ${invitation.id} cancelled by ${cancelledBy.id}`);
 };
 
 // ─── Team lifecycle hooks ──────────────────────────────────────────
