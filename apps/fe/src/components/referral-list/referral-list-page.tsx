@@ -3,7 +3,8 @@ import {
   type ExportRange,
 } from "@/components/export-csv-button";
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import { exportToCSV } from "@/lib/fe-helpers";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
+import { exportBoardCsv } from "@/services/lead/lead-service";
 import {
   deleteReferral,
   getReferral,
@@ -186,34 +187,12 @@ export default function ReferralListPage() {
       return;
     }
 
-    const limit = 100;
-    let offset = 0;
-    let allData: ReferralRow[] = [];
+    const { blob, filename } = await exportBoardCsv(
+      { ...filterMeta, boardDateFrom: range.from, boardDateTo: range.to },
+      "REFERRAL"
+    );
 
-    let total = 0;
-    let columns: any[] = [];
-
-    do {
-      const res = await getReferral({
-        ...filterMeta,
-        boardDateFrom: range.from,
-        boardDateTo: range.to,
-        limit,
-        offset,
-      });
-
-      if (offset === 0) {
-        total = res.pagination.count;
-        columns = res.columns;
-      }
-
-      columns = res.columns;
-      allData = [...allData, ...res.data];
-      offset += res.data.length;
-    } while (offset < total);
-
-    const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(allData, columns, `Referral_List_${timestamp}`, [], true);
+    downloadCSVBlob(blob, filename);
     toast.success("CSV download started.");
   };
 

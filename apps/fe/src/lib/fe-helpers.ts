@@ -55,6 +55,23 @@ export function exportToCSV(
   }, 100);
 }
 
+// Saves a csv the server already assembled. The browser only handles the
+// download; nothing here reshapes or re-encodes the file.
+export function downloadCSVBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
 // Downloads a header-only CSV used as an import template.
 export function downloadCSVTemplate(headers: string[], filename: string) {
   const BOM = "﻿";

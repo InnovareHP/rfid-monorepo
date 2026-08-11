@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuthModule } from "./auth/auth.module";
 import { BillingModule } from "./billing/billing.module";
+import { BoardExportModule } from "./board/board-export.module";
 import { BoardModule } from "./board/board.module";
 import { BookingModule } from "./booking/booking.module";
 import { CalendarModule } from "./calendar/calendar.module";
@@ -34,6 +35,7 @@ import { UserModule } from "./user/user.module";
     ImageModule,
     UserModule,
     BoardModule,
+    BoardExportModule,
     BookingModule,
     CalendarModule,
     AnalyticsModule,
