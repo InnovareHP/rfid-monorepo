@@ -52,13 +52,12 @@ const SECTIONS = [
 >
   {SECTIONS.map((section) => <LegalSection {...section} />)}
 
-  <LegalSection heading="Contact">
+  <LegalSection heading="Security questions">
     <p class="legal-body">
-      Vulnerability reports, BAA requests, security questionnaires, and
-      procurement reviews all go to <a
-        href={`mailto:${SUPPORT_EMAIL}`}
-        class="legal-link">{SUPPORT_EMAIL}</a
-      >. Put "Security" in the subject line so it reaches the right team first.
+      Reach the team at <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
+        >{SUPPORT_EMAIL}</a
+      > for vulnerability reports, BAA requests, security questionnaires, and procurement
+      reviews. Put "Security" in the subject line so it reaches the right team first.
     </p>
   </LegalSection>
 </LegalLayout>

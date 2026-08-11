@@ -1,11 +1,14 @@
 export const APP_URL = "https://portal.refidly.com";
 export const SUPPORT_EMAIL = "support@refidly.com";
 
-// TODO: replace with the registered entity details before publishing.
-export const LEGAL_ENTITY = "[Registered entity name]";
-export const LEGAL_ADDRESS = "[Street address, City, State ZIP]";
-export const GOVERNING_STATE = "[State]";
-export const EFFECTIVE_DATE = "[Effective date]";
+export const LEGAL_ENTITY = "InnovareHP";
+export const LEGAL_ADDRESS = "4221 Bud Drive NE, Comstock Park, MI 49321";
+export const LEGAL_ADDRESS_URL =
+  "https://www.google.com/maps?q=4221+Bud+Drive+NE+Comstock+Park+MI+49321";
+
+export const GOVERNING_STATE = "Michigan";
+
+export const EFFECTIVE_DATE = "August 11, 2026";
 
 export const LEGAL_LINKS = [
   { href: "/privacy-policy", label: "Privacy Policy" },
@@ -13,5 +16,5 @@ export const LEGAL_LINKS = [
   { href: "/customer-agreement", label: "Customer Agreement" },
   { href: "/legal-notices", label: "Legal Notices" },
   { href: "/report-abuse", label: "Report Abuse" },
-  { href: "/accessibility-statement", label: "Accessibility" },
+  { href: "/accessibility-statement", label: "Accessibility Statement" },
 ];

@@ -5,14 +5,14 @@ import LegalLayout from "../layouts/LegalLayout.astro";
 
 const SECTIONS = [
   {
-    heading: "Our commitment",
+    heading: "Our standard",
     body: [
       "Liaisons, admission managers, and marketing directors should be able to run their referral operation in Refidly regardless of how they navigate a screen. We work toward conformance with the Web Content Accessibility Guidelines 2.1 at Level AA across both refidly.com and the application.",
       "This is an ongoing effort rather than a finished state. We are describing what is in place today and what we are still working on, because a statement that claims full conformance without qualification is rarely accurate.",
     ],
   },
   {
-    heading: "What is in place",
+    heading: "What we do",
     items: [
       "Keyboard operation across navigation, forms, dialogs, and the referral tables, with a visible focus indicator on every interactive element.",
       "Semantic headings, landmarks, and labelled navigation so screen reader users can move through a page by structure.",
@@ -33,13 +33,13 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "Assistive technology we test with",
+    heading: "How we test",
     body: [
       "We test with current versions of Chrome, Edge, Firefox, and Safari, using NVDA on Windows and VoiceOver on macOS and iOS, alongside keyboard-only navigation and automated checks in our review process.",
     ],
   },
   {
-    heading: "Feedback and support",
+    heading: "Feedback",
     body: [
       "If you hit a barrier in Refidly, tell us what you were trying to do, the page or feature, and the assistive technology and browser you were using. We acknowledge accessibility reports within two business days and prioritize anything that blocks a core task such as creating a referral, editing a record, or exporting a report.",
       "If a Refidly feature is unusable for you, we will find another way to get you the information or the action while we fix the underlying problem.",
@@ -57,11 +57,10 @@ const SECTIONS = [
 >
   {SECTIONS.map((section) => <LegalSection {...section} />)}
 
-  <LegalSection heading="Contact">
+  <LegalSection heading="Accessibility feedback">
     <p class="legal-body">
-      Accessibility feedback goes to <a
-        href={`mailto:${SUPPORT_EMAIL}`}
-        class="legal-link">{SUPPORT_EMAIL}</a
+      Reach the team at <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
+        >{SUPPORT_EMAIL}</a
       > with "Accessibility" in the subject line.
     </p>
   </LegalSection>
