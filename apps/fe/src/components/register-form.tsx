@@ -1,4 +1,5 @@
 import { AuthPanel } from "@/components/auth-panel";
+import { PasswordInput } from "@/components/password-input";
 import { authClient } from "@/lib/auth-client";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import {
