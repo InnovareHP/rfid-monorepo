@@ -3,18 +3,13 @@ import LegalSection from "../components/LegalSection.astro";
 import {
   EFFECTIVE_DATE,
   LEGAL_ADDRESS,
+  LEGAL_ADDRESS_URL,
   LEGAL_ENTITY,
   SUPPORT_EMAIL,
 } from "../config";
 import LegalLayout from "../layouts/LegalLayout.astro";
 
 const SECTIONS = [
-  {
-    heading: "Operator",
-    body: [
-      `refidly.com and the Refidly application at portal.refidly.com are operated by ${LEGAL_ENTITY}, ${LEGAL_ADDRESS}. General and legal correspondence can be sent to that address or to the email below.`,
-    ],
-  },
   {
     heading: "Trademarks",
     body: [
@@ -35,13 +30,13 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "Third-party software",
+    heading: "Third-party services",
     body: [
       "Refidly is built on open-source software and uses third-party services. Those components remain the property of their authors and are used under their respective licenses. A current list of components and license texts is available on request.",
     ],
   },
   {
-    heading: "Copyright and reporting infringement",
+    heading: "Copyright and DMCA notices",
     body: [
       `The design, text, graphics, and software of this site and the application are protected by copyright and owned by ${LEGAL_ENTITY} or its licensors. You may not copy, adapt, or redistribute them except as the Customer Agreement permits.`,
       "If you believe material on our site or hosted by a customer inside the application infringes your copyright, send a notice identifying the work, the material and its location, your contact details, a statement of good-faith belief that the use is unauthorized, a statement that the notice is accurate, and your signature. We respond to valid notices and terminate repeat infringers.",
@@ -54,7 +49,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "Legal process and law enforcement",
+    heading: "Legal process",
     body: [
       "Subpoenas, court orders, and other legal demands should be served at the address above. Where we may lawfully do so, we notify the affected organization before responding, so it can seek protection for its own records.",
     ],
@@ -69,11 +64,24 @@ const SECTIONS = [
   lead="Who operates Refidly, what the marks and example data on this site mean, and where to send legal correspondence."
   updated={EFFECTIVE_DATE}
 >
+  <LegalSection heading="Operator">
+    <p class="legal-body">
+      refidly.com and the Refidly application at portal.refidly.com are operated
+      by {LEGAL_ENTITY}, <a
+        href={LEGAL_ADDRESS_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="legal-link">{LEGAL_ADDRESS}</a
+      >. General and legal correspondence can be sent to that address or to the
+      email below.
+    </p>
+  </LegalSection>
+
   {SECTIONS.map((section) => <LegalSection {...section} />)}
 
-  <LegalSection heading="Contact">
+  <LegalSection heading="Legal correspondence">
     <p class="legal-body">
-      Legal correspondence goes to <a
+      Reach the team at <a
         href={`mailto:${SUPPORT_EMAIL}`}
         class="legal-link">{SUPPORT_EMAIL}</a
       >. The <a href="/customer-agreement" class="legal-link"
