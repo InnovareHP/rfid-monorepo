@@ -64,6 +64,7 @@ export default function MasterListPage() {
     field: ["configure"],
   });
   const entitlement = useEntitlement(activeOrganizationId);
+  const canUseAi = entitlement.has("ai");
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
@@ -121,9 +122,10 @@ export default function MasterListPage() {
           setOpenMasterListView(true);
         },
         { sortBy: filterMeta.sortBy, sortOrder: filterMeta.sortOrder },
-        handleSort
+        handleSort,
+        canUseAi
       ),
-    [data?.columns, filterMeta.sortBy, filterMeta.sortOrder]
+    [data?.columns, filterMeta.sortBy, filterMeta.sortOrder, canUseAi]
   ) as {
     id: string;
     name: string;
@@ -290,13 +292,16 @@ export default function MasterListPage() {
     <div className="page-style">
       <div className="space-y-6">
         {/* Header Section */}
-        <AnalyzeLeadDialog
-          recordId={selectedRecordId}
-          open={openAnalyzeDialog}
-          setOpen={setOpenAnalyzeDialog}
-        />
-
-        <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
+        {canUseAi && (
+          <>
+            <AnalyzeLeadDialog
+              recordId={selectedRecordId}
+              open={openAnalyzeDialog}
+              setOpen={setOpenAnalyzeDialog}
+            />
+            <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
+          </>
+        )}
 
         <KanbanSettingsDialog
           open={openKanbanSettings}
@@ -349,19 +354,15 @@ export default function MasterListPage() {
             onExport={handleExportCSV}
             className="flex items-center gap-2"
           />
-          <Button
-            onClick={() => setOpenSmartScan(true)}
-            disabled={!entitlement.has("ai")}
-            title={
-              entitlement.has("ai")
-                ? undefined
-                : "Upgrade your plan to use Smart Scan"
-            }
-            className="flex items-center gap-2"
-          >
-            <ScanLine className="h-4 w-4" />
-            Smart Scan
-          </Button>
+          {canUseAi && (
+            <Button
+              onClick={() => setOpenSmartScan(true)}
+              className="flex items-center gap-2"
+            >
+              <ScanLine className="h-4 w-4" />
+              Smart Scan
+            </Button>
+          )}
         </PageHeader>
 
         {view === "table" && <BoardStatsStrip />}

@@ -31,7 +31,8 @@ export function generateLeadColumns(
   onOpenAnalyzeDialog: (recordId: string) => void,
   onOpenMasterListView: (recordId: string) => void,
   sortState?: SortState,
-  onSort?: (columnId: string, order: "asc" | "desc" | null) => void
+  onSort?: (columnId: string, order: "asc" | "desc" | null) => void,
+  canUseAi?: boolean
 ): ColumnDef<LeadRow>[] {
   const filteredApiColumns = columnsFromApi.filter(
     (col) => col.name !== "History" && col.type !== "TIMELINE"
@@ -128,11 +129,16 @@ export function generateLeadColumns(
               icon: HistoryIcon,
               onSelect: () => onOpenMasterListView(row.original.id),
             },
-            {
-              label: "Analyze",
-              icon: SearchIcon,
-              onSelect: () => onOpenAnalyzeDialog(row.original.id),
-            },
+            // Analyze calls an ai-gated endpoint, so plans without it lose the action.
+            ...(canUseAi
+              ? [
+                  {
+                    label: "Analyze",
+                    icon: SearchIcon,
+                    onSelect: () => onOpenAnalyzeDialog(row.original.id),
+                  },
+                ]
+              : []),
           ]}
         />
       </div>

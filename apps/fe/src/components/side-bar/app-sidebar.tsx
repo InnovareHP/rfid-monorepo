@@ -66,7 +66,9 @@ export function AppSidebar({
 }: AppSidebarProps) {
   // HIPAA mode and the BAA are a Scale feature, so the tab is hidden rather
   // than shown leading to an upsell the plan cannot act on.
-  const canUseHipaa = useEntitlement(activeOrganizationId).has("hipaa");
+  const entitlement = useEntitlement(activeOrganizationId);
+  const canUseHipaa = entitlement.has("hipaa");
+  const canExport = entitlement.has("export");
 
   const data = React.useMemo(
     () => ({
@@ -202,7 +204,7 @@ export function AppSidebar({
               },
             ]
           : []),
-        ...(can(memberData?.role, { record: ["import"] })
+        ...(canExport && can(memberData?.role, { record: ["import"] })
           ? [
               {
                 title: "Import",
@@ -263,7 +265,7 @@ export function AppSidebar({
         },
       ],
     }),
-    [activeOrganizationId, memberData?.role, canUseHipaa]
+    [activeOrganizationId, memberData?.role, canUseHipaa, canExport]
   );
 
   return (

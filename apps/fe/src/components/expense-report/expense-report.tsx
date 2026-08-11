@@ -1,4 +1,6 @@
 import { PageHeader } from "@/components/page-header";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { useRouteContext } from "@tanstack/react-router";
 import {
   exportExpenseLogs,
   getExpenseLogs,
@@ -81,6 +83,11 @@ export default function ExpenseReportPage() {
     averageAmount: 0,
   };
 
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
+  const canExport = useEntitlement(activeOrganizationId).has("export");
+
   const handleExport = async () => {
     if (rows.length === 0) {
       toast.error("No expense logs available to export.");
@@ -99,13 +106,15 @@ export default function ExpenseReportPage() {
         description="Track and manage business expenses and receipts."
       />
 
-          <Button
-            onClick={handleExport}
-            className="bg-brand text-white hover:bg-brand/90"
-          >
-            <FileDown className="mr-1 h-4 w-4" />
-            Export PDF
-          </Button>
+          {canExport && (
+            <Button
+              onClick={handleExport}
+              className="bg-brand text-white hover:bg-brand/90"
+            >
+              <FileDown className="mr-1 h-4 w-4" />
+              Export PDF
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

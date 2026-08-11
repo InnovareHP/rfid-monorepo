@@ -22,8 +22,7 @@ type ExportCsvButtonProps = {
 
 // One gate for every export surface. The plan check lived on the master list
 // alone, so four other buttons shipped the feature to plans that had not bought
-// it. Soft by nature: the rows are already in the browser, so this states the
-// entitlement rather than enforcing it.
+// it. A plan without export does not see the button at all.
 export const ExportCsvButton = ({
   onExport,
   label = "Export CSV",
@@ -41,6 +40,8 @@ export const ExportCsvButton = ({
 
   const invalid = Boolean(from && to && from > to);
 
+  if (!entitled) return null;
+
   const runExport = () => {
     onExport({ from: from || undefined, to: to || undefined });
     setOpen(false);
@@ -49,12 +50,7 @@ export const ExportCsvButton = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant={variant}
-          disabled={!entitled}
-          title={entitled ? undefined : "Upgrade your plan to export data"}
-          className={className}
-        >
+        <Button variant={variant} className={className}>
           <Download className="h-4 w-4" />
           {label}
         </Button>

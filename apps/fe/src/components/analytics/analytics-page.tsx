@@ -1,4 +1,6 @@
 import { PageHeader } from "@/components/page-header";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { useRouteContext } from "@tanstack/react-router";
 import { lazy, Suspense, useState } from "react";
 
 import {
@@ -40,6 +42,11 @@ export default function ReferralAnalyticsDashboard() {
     end: null,
   });
 
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
+  const canUseAi = useEntitlement(activeOrganizationId).has("ai");
+
   const queryClient = useQueryClient();
 
   const { data: analytics, refetch: refetchAnalytics } = useQuery({
@@ -64,7 +71,7 @@ export default function ReferralAnalyticsDashboard() {
     error: summaryError,
   } = useQuery({
     queryKey: summaryQueryKey,
-    enabled: !!analytics,
+    enabled: !!analytics && canUseAi,
     queryFn: async () => {
       const start = dateRange.start ? dateRange.start.toISOString() : null;
       const end = dateRange.end ? dateRange.end.toISOString() : null;
@@ -139,7 +146,8 @@ export default function ReferralAnalyticsDashboard() {
           />
         </div>
 
-        {/* AI SUMMARY CARD */}
+        {/* AI SUMMARY CARD — the endpoint is gated on the ai feature */}
+        {canUseAi && (
         <AiSummaryCard
           isLoading={isLoadingSummary || regenerateSummaryMutation.isPending}
           preview={analyticsSummary?.executive_summary}
@@ -152,6 +160,7 @@ export default function ReferralAnalyticsDashboard() {
           }
           onRegenerate={() => regenerateSummaryMutation.mutate()}
         />
+        )}
 
         {/* KPI TILES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

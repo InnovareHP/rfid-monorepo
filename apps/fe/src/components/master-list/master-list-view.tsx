@@ -45,6 +45,8 @@ import { EditableCell } from "../reusable-table/editable-cell";
 import { ActivityTab } from "./activity-tab";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
 import { HistoryTimelineItem } from "./history-timeline-item";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { useRouteContext } from "@tanstack/react-router";
 import { RelatedRecords } from "../crm-list/related-records";
 
 function serializeValue(value: unknown): string {
@@ -76,6 +78,12 @@ export function MasterListView({
 }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState(initialTab);
+
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
+  const canUseAi = useEntitlement(activeOrganizationId).has("ai");
+
   const hasSeenRef = React.useRef(false);
   const prevLeadIdRef = React.useRef(leadId);
 
@@ -272,13 +280,15 @@ export function MasterListView({
                     History
                   </TabsTrigger>
 
-                  <TabsTrigger
-                    value="suggestions"
-                    className="rounded-none transition-colors data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary"
-                  >
-                    <Lightbulb className="mr-2 size-4" />
-                    Suggestions
-                  </TabsTrigger>
+                  {canUseAi && (
+                    <TabsTrigger
+                      value="suggestions"
+                      className="rounded-none transition-colors data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary"
+                    >
+                      <Lightbulb className="mr-2 size-4" />
+                      Suggestions
+                    </TabsTrigger>
+                  )}
 
                   <TabsTrigger
                     value="activities"
@@ -386,12 +396,14 @@ export function MasterListView({
                 )}
               </TabsContent>
 
-              <TabsContent value="suggestions" className="mt-0">
-                <FollowUpSuggestions
-                  recordId={leadId}
-                  enabled={activeTab === "suggestions"}
-                />
-              </TabsContent>
+              {canUseAi && (
+                <TabsContent value="suggestions" className="mt-0">
+                  <FollowUpSuggestions
+                    recordId={leadId}
+                    enabled={activeTab === "suggestions"}
+                  />
+                </TabsContent>
+              )}
 
               <TabsContent value="activities" className="mt-0">
                 <ActivityTab

@@ -10,6 +10,15 @@ export const PLAN_FEATURES = [
 
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
+// What a gated feature is called wherever it is shown or refused, so the plans
+// page cannot advertise something the guards do not grant.
+export const PLAN_FEATURE_LABELS: Record<PlanFeature, string> = {
+  ai: "AI insights, lead analysis & Smart Scan",
+  export: "CSV import & export",
+  priority_support: "Priority support",
+  hipaa: "HIPAA mode & BAA",
+};
+
 export type PlanEntitlement = {
   seats: number;
   features: readonly PlanFeature[];
