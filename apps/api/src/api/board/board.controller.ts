@@ -732,7 +732,8 @@ export class BoardController {
       return await this.boardService.createRecordDataFromCSV(
         dto.excelData,
         organizationId,
-        dto.moduleType
+        dto.moduleType,
+        session.user.id
       );
     } catch (error) {
       throw new BadRequestException(error.message);

@@ -3,6 +3,7 @@ import { Button } from "@dashboard/ui/components/button";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
   Bell,
+  Building2,
   CalendarDays,
   ClipboardList,
   Megaphone,
@@ -16,7 +17,12 @@ import {
 const iconFor = (type: string) => {
   if (type.startsWith("booking")) return CalendarDays;
   if (type.startsWith("task")) return ClipboardList;
-  if (type.startsWith("referral") || type.startsWith("lead"))
+  if (type.startsWith("company")) return Building2;
+  if (
+    type.startsWith("referral") ||
+    type.startsWith("lead") ||
+    type.startsWith("contact")
+  )
     return UserRoundPlus;
   if (type.startsWith("blast") || type.startsWith("campaign")) return Megaphone;
   return Bell;

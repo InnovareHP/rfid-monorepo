@@ -1,3 +1,4 @@
+import { BOARD_NOTIFICATION_EVENT } from "@dashboard/shared";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { ModuleType } from "@prisma/client";
@@ -5,6 +6,8 @@ import { Job } from "bullmq";
 import { prisma } from "src/lib/prisma/prisma";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
+import { LiaisonActivityService } from "../liaison/liaison-activity.service";
+import { BoardNotifyService } from "./board-notify.service";
 import { BoardGateway } from "./board.gateway";
 import { EmailDispatchService } from "./email-dispatch.service";
 
@@ -24,7 +27,9 @@ export class BulkEmailProcessor extends WorkerHost {
 
   constructor(
     private readonly boardGateway: BoardGateway,
-    private readonly emailDispatchService: EmailDispatchService
+    private readonly emailDispatchService: EmailDispatchService,
+    private readonly boardNotify: BoardNotifyService,
+    private readonly liaisonActivity: LiaisonActivityService
   ) {
     super();
   }
@@ -128,6 +133,13 @@ export class BulkEmailProcessor extends WorkerHost {
           },
         });
 
+        await this.liaisonActivity.logRecordActivity({
+          recordId: record.id,
+          organizationId,
+          userId,
+          activityType: "EMAIL",
+        });
+
         sent++;
       } catch (error) {
         this.logger.error(
@@ -151,6 +163,15 @@ export class BulkEmailProcessor extends WorkerHost {
     this.boardGateway.server
       .to(`org:${organizationId}`)
       .emit("board:bulk-email-complete", { jobId: job.id, ...result });
+
+    await this.boardNotify.notifyActor({
+      organizationId,
+      moduleType,
+      actorUserId: userId,
+      event: BOARD_NOTIFICATION_EVENT.BULK_EMAIL_FINISHED,
+      title: `Bulk email finished — ${sent} sent`,
+      body: `${skipped} skipped, ${errors} failed`,
+    });
 
     return result;
   }

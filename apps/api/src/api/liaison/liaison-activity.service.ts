@@ -1,0 +1,78 @@
+import { ROLES } from "@dashboard/shared";
+import { Injectable, Logger } from "@nestjs/common";
+import { ActivityType, TouchpointType } from "@prisma/client";
+import { prisma } from "../../lib/prisma/prisma";
+
+type RecordActivityLog = {
+  recordId: string;
+  organizationId: string;
+  userId: string;
+  activityType: ActivityType;
+};
+
+const ACTIVITY_TOUCHPOINTS: Record<ActivityType, TouchpointType> = {
+  CALL: TouchpointType.PHONE,
+  EMAIL: TouchpointType.EMAIL,
+  MEETING: TouchpointType.IN_PERSON_MEETING,
+  NOTE: TouchpointType.OTHER,
+  FAX: TouchpointType.OTHER,
+};
+
+@Injectable()
+export class LiaisonActivityService {
+  private readonly logger = new Logger(LiaisonActivityService.name);
+
+  // Mirrors an action taken on a record into the liaison marketing log, so a
+  // touchpoint a liaison made through the board does not have to be re-entered
+  // by hand. Never throws: the action itself already succeeded.
+  async logRecordActivity(input: RecordActivityLog) {
+    try {
+      const member = await prisma.member.findFirst({
+        where: { userId: input.userId, organizationId: input.organizationId },
+        select: { id: true, role: true },
+      });
+
+      if (member?.role !== ROLES.LIAISON) return;
+
+      const record = await prisma.board.findFirst({
+        where: { id: input.recordId, organizationId: input.organizationId },
+        select: { recordName: true },
+      });
+
+      if (!record) return;
+
+      const touchpoint = ACTIVITY_TOUCHPOINTS[input.activityType];
+
+      // Marketing rows are not encrypted at rest and facility is matched with a
+      // SQL contains, so nothing beyond the record name is copied in here.
+      await prisma.$transaction(async (tx) => {
+        await tx.marketing.create({
+          data: {
+            facility: record.recordName,
+            touchpoints: [touchpoint],
+            talkedTo: record.recordName,
+            notes: `Auto-logged from a ${input.activityType} activity on the board`,
+            memberId: member.id,
+            organizationId: input.organizationId,
+          },
+        });
+
+        await tx.history.create({
+          data: {
+            recordId: input.recordId,
+            column: "marketing",
+            newValue: `Auto-logged a ${touchpoint} touchpoint`,
+            action: "milestone_created",
+            createdBy: input.userId,
+            organizationId: input.organizationId,
+          },
+        });
+      });
+    } catch (error) {
+      this.logger.error(
+        `Liaison touchpoint log failed for ${input.recordId}`,
+        error as Error
+      );
+    }
+  }
+}

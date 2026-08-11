@@ -1,4 +1,8 @@
-import { normalizeKey, normalizeOptionValue } from "@dashboard/shared";
+import {
+  BOARD_NOTIFICATION_EVENT,
+  normalizeKey,
+  normalizeOptionValue,
+} from "@dashboard/shared";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
@@ -7,12 +11,14 @@ import { isSelectType } from "src/lib/helper";
 import { prisma } from "src/lib/prisma/prisma";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
+import { BoardNotifyService } from "./board-notify.service";
 import { BoardGateway } from "./board.gateway";
 
 export interface CsvImportJobData {
   excelData: Record<string, unknown>[];
   organizationId: string;
   moduleType: string;
+  userId: string;
 }
 
 function resolveRecordName(row: Record<string, unknown>): string {
@@ -29,7 +35,10 @@ function resolveRecordName(row: Record<string, unknown>): string {
 export class CsvImportProcessor extends WorkerHost {
   private readonly logger = new Logger(CsvImportProcessor.name);
 
-  constructor(private readonly boardGateway: BoardGateway) {
+  constructor(
+    private readonly boardGateway: BoardGateway,
+    private readonly boardNotify: BoardNotifyService
+  ) {
     super();
   }
 
@@ -194,6 +203,14 @@ export class CsvImportProcessor extends WorkerHost {
         recordsImported: recordsToCreate.length,
         moduleType,
       });
+
+    await this.boardNotify.notifyActor({
+      organizationId,
+      moduleType,
+      actorUserId: job.data.userId,
+      event: BOARD_NOTIFICATION_EVENT.IMPORT_FINISHED,
+      title: `Import finished — ${recordsToCreate.length} record(s) added`,
+    });
 
     return { recordsImported: recordsToCreate.length };
   }

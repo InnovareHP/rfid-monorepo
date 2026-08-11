@@ -10,10 +10,37 @@ export const NOTIFICATION_TYPE = {
 export type NotificationTypeValue =
   (typeof NOTIFICATION_TYPE)[keyof typeof NOTIFICATION_TYPE];
 
+// Board events are shared by every EAV module, so the event is stored as a
+// suffix and the module supplies the prefix that decides the category.
+export const BOARD_NOTIFICATION_EVENT = {
+  CREATED: "created",
+  ASSIGNED: "assigned",
+  STATUS_CHANGED: "status_changed",
+  LINKED: "linked",
+  DELETED: "deleted",
+  RESTORED: "restored",
+  ACTIVITY_LOGGED: "activity_logged",
+  ACTIVITY_COMPLETED: "activity_completed",
+  FAX_SENT: "fax_sent",
+  EMAIL_RECEIVED: "email_received",
+  BULK_EMAIL_FINISHED: "bulk_email_finished",
+  IMPORT_FINISHED: "import_finished",
+} as const;
+
+export type BoardNotificationEvent =
+  (typeof BOARD_NOTIFICATION_EVENT)[keyof typeof BOARD_NOTIFICATION_EVENT];
+
+export const boardNotificationType = (
+  moduleType: string,
+  event: BoardNotificationEvent
+) => `${moduleType.toLowerCase()}.${event}`;
+
 export const NOTIFICATION_ENTITY = {
   TASK: "TASK",
   LEAD: "LEAD",
   REFERRAL: "REFERRAL",
+  CONTACT: "CONTACT",
+  COMPANY: "COMPANY",
   BOOKING: "BOOKING",
 } as const;
 
@@ -35,7 +62,7 @@ const CATEGORY_PREFIXES: Record<
   string[]
 > = {
   tasks: ["task"],
-  referrals: ["referral", "lead"],
+  referrals: ["referral", "lead", "contact", "company"],
   marketing: ["blast", "campaign", "form", "landing"],
   booking: ["booking"],
 };

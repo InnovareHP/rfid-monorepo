@@ -1,5 +1,8 @@
 import { GeocodeCommand } from "@aws-sdk/client-geo-places";
-import { formatPhoneNumber } from "@dashboard/shared";
+import {
+  BOARD_NOTIFICATION_EVENT,
+  formatPhoneNumber,
+} from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
@@ -24,7 +27,9 @@ import { geoPlaces } from "../../lib/geo/geo-places";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
+import { LiaisonActivityService } from "../liaison/liaison-activity.service";
 import { toComponents } from "../places/places.service";
+import { BoardNotifyService } from "./board-notify.service";
 import { BoardGateway } from "./board.gateway";
 import { UpdateContactDto } from "./dto/board.schema";
 import { EmailDispatchService } from "./email-dispatch.service";
@@ -75,6 +80,8 @@ export class BoardService {
     private readonly boardGateway: BoardGateway,
     private readonly emailDispatchService: EmailDispatchService,
     private readonly faxService: FaxService,
+    private readonly boardNotify: BoardNotifyService,
+    private readonly liaisonActivity: LiaisonActivityService,
     @InjectQueue(QUEUE_NAMES.BULK_EMAIL)
     private readonly bulkEmailQueue: Queue,
     @InjectQueue(QUEUE_NAMES.CSV_IMPORT)
@@ -1218,6 +1225,12 @@ export class BoardService {
     previousValue?: string
   ) {
     try {
+      let changedField: {
+        id: string;
+        fieldType: BoardFieldType;
+        fieldName: string;
+      } | null = null;
+
       if (fieldId !== BoardFieldType.ASSIGNED_TO && fieldId !== "Record") {
         const field = await prisma.field.findUnique({
           where: { id: fieldId, organizationId: organizationId },
@@ -1235,6 +1248,8 @@ export class BoardService {
             moduleType
           );
         }
+
+        changedField = field;
       }
 
       const recordValue = await prisma.$transaction(async (tx) => {
@@ -1294,9 +1309,68 @@ export class BoardService {
 
       await deleteData(`followup:${recordId}`);
 
+      await this.notifyValueChange({
+        recordId,
+        organizationId,
+        moduleType,
+        actorUserId: memberId,
+        fieldId,
+        value,
+        field: changedField,
+      });
+
       return recordValue;
     } catch (error) {
       throw new NotFoundException(error.message);
+    }
+  }
+
+  // Runs after the transaction commits so the notice reads the settled row.
+  private async notifyValueChange(input: {
+    recordId: string;
+    organizationId: string;
+    moduleType: string;
+    actorUserId: string;
+    fieldId: string;
+    value: string;
+    field: { id: string; fieldType: BoardFieldType; fieldName: string } | null;
+  }) {
+    const base = {
+      recordId: input.recordId,
+      organizationId: input.organizationId,
+      moduleType: input.moduleType,
+      actorUserId: input.actorUserId,
+    };
+
+    if (input.fieldId === BoardFieldType.ASSIGNED_TO) {
+      await this.boardNotify.notifyRecord({
+        ...base,
+        event: BOARD_NOTIFICATION_EVENT.ASSIGNED,
+        title: (recordName) => `You were assigned ${recordName}`,
+      });
+      return;
+    }
+
+    const field = input.field;
+    if (!field) return;
+
+    if (field.fieldType === BoardFieldType.STATUS) {
+      await this.boardNotify.notifyRecord({
+        ...base,
+        event: BOARD_NOTIFICATION_EVENT.STATUS_CHANGED,
+        title: (recordName) => `${recordName} moved to ${input.value}`,
+        body: `${field.fieldName} was updated`,
+      });
+      return;
+    }
+
+    if (this.isLinkFieldType(field.fieldType)) {
+      await this.boardNotify.notifyRecord({
+        ...base,
+        event: BOARD_NOTIFICATION_EVENT.LINKED,
+        title: (recordName) => `${recordName} was linked to another record`,
+        body: field.fieldName,
+      });
     }
   }
 
@@ -2205,6 +2279,15 @@ export class BoardService {
 
     await this.afterRecordCreated(record, organizationId, moduleType);
 
+    await this.boardNotify.notifyRecord({
+      recordId: record.id,
+      organizationId,
+      moduleType,
+      actorUserId: memberId,
+      event: BOARD_NOTIFICATION_EVENT.CREATED,
+      title: (recordName) => `New ${moduleType.toLowerCase()}: ${recordName}`,
+    });
+
     return record;
   }
 
@@ -2383,6 +2466,15 @@ export class BoardService {
 
     for (const referral of result.referrals) {
       this.boardGateway.emitRecordCreated(organizationId, referral, moduleType);
+
+      await this.boardNotify.notifyRecord({
+        recordId: referral.id,
+        organizationId,
+        moduleType,
+        actorUserId: memberId,
+        event: BOARD_NOTIFICATION_EVENT.CREATED,
+        title: (recordName) => `New ${moduleType.toLowerCase()}: ${recordName}`,
+      });
     }
 
     return result;
@@ -2536,6 +2628,16 @@ export class BoardService {
         history.oldValue ?? "",
         moduleType
       );
+      await this.boardNotify.notifyRecord({
+        recordId: history.recordId,
+        organizationId,
+        moduleType,
+        actorUserId: userId,
+        event: BOARD_NOTIFICATION_EVENT.RESTORED,
+        title: (recordName) => `${recordName} was restored`,
+        body: history.column,
+      });
+
       return {
         message: "Record restored successfully",
       };
@@ -2570,6 +2672,15 @@ export class BoardService {
         history.oldValue ?? "",
         moduleType
       );
+      await this.boardNotify.notifyRecord({
+        recordId: history.recordId,
+        organizationId,
+        moduleType,
+        actorUserId: userId,
+        event: BOARD_NOTIFICATION_EVENT.RESTORED,
+        title: (recordName) => `${recordName} was restored`,
+      });
+
       return {
         message: "Record deleted successfully",
       };
@@ -2921,12 +3032,14 @@ export class BoardService {
   async createRecordDataFromCSV(
     excelData: Record<string, unknown>[],
     organizationId: string,
-    moduleType: string
+    moduleType: string,
+    userId: string
   ) {
     const job = await this.csvImportQueue.add("import", {
       excelData,
       organizationId,
       moduleType,
+      userId,
     });
 
     return { jobId: job.id, message: "CSV import queued" };
@@ -3086,6 +3199,17 @@ export class BoardService {
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
     this.boardGateway.emitRecordDeleted(organizationId, column_ids, moduleType);
+
+    for (const recordId of column_ids) {
+      await this.boardNotify.notifyRecord({
+        recordId,
+        organizationId,
+        moduleType,
+        actorUserId: memberId,
+        event: BOARD_NOTIFICATION_EVENT.DELETED,
+        title: (recordName) => `${recordName} was deleted`,
+      });
+    }
   }
 
   async sendBulkEmail(
@@ -3190,8 +3314,9 @@ export class BoardService {
     const title = data.title!;
     const activityType = data.activityType!;
 
-    await prisma.board.findFirstOrThrow({
+    const record = await prisma.board.findFirstOrThrow({
       where: { id: recordId, organizationId: organizationId },
+      select: { moduleType: true },
     });
 
     const activity = await prisma.activity.create({
@@ -3223,6 +3348,27 @@ export class BoardService {
       createdAt: activity.createdAt,
     });
 
+    await this.boardNotify.notifyRecord({
+      recordId,
+      organizationId,
+      moduleType: record.moduleType,
+      actorUserId: userId,
+      event: BOARD_NOTIFICATION_EVENT.ACTIVITY_LOGGED,
+      title: (recordName) =>
+        `${activity.activityType} logged on ${recordName}`,
+      body: activity.title,
+    });
+
+    // EMAIL activities are logged on completion, when the mail actually goes out.
+    if (activity.activityType !== "EMAIL") {
+      await this.liaisonActivity.logRecordActivity({
+        recordId,
+        organizationId,
+        userId,
+        activityType: activity.activityType,
+      });
+    }
+
     return {
       id: activity.id,
       title: activity.title,
@@ -3252,8 +3398,9 @@ export class BoardService {
     userId: string,
     memberRole: string
   ) {
-    await prisma.board.findFirstOrThrow({
+    const record = await prisma.board.findFirstOrThrow({
       where: { id: data.recordId, organizationId: organizationId },
+      select: { moduleType: true },
     });
 
     // Fax is sent immediately — the document is never stored, only the trail
@@ -3294,6 +3441,23 @@ export class BoardService {
       createdAt: activity.createdAt,
     });
 
+    await this.boardNotify.notifyRecord({
+      recordId: data.recordId,
+      organizationId,
+      moduleType: record.moduleType,
+      actorUserId: userId,
+      event: BOARD_NOTIFICATION_EVENT.FAX_SENT,
+      title: (recordName) => `Fax sent for ${recordName}`,
+      body: activity.title,
+    });
+
+    await this.liaisonActivity.logRecordActivity({
+      recordId: data.recordId,
+      organizationId,
+      userId,
+      activityType: activity.activityType,
+    });
+
     return {
       id: activity.id,
       title: activity.title,
@@ -3323,7 +3487,7 @@ export class BoardService {
     const activity = await prisma.activity.findFirstOrThrow({
       where: { id: activityId, organizationId: organizationId },
       include: {
-        record: { select: { recordName: true } },
+        record: { select: { recordName: true, moduleType: true } },
         creator: { select: { name: true, email: true } },
       },
     });
@@ -3384,6 +3548,27 @@ export class BoardService {
       activityId,
       "COMPLETED"
     );
+
+    await this.boardNotify.notifyRecord({
+      recordId: activity.recordId,
+      organizationId,
+      moduleType: activity.record.moduleType,
+      actorUserId: userId,
+      event: BOARD_NOTIFICATION_EVENT.ACTIVITY_COMPLETED,
+      title: (recordName) => `Activity completed on ${recordName}`,
+      body: activity.title,
+    });
+
+    // An EMAIL activity only reaches the recipient on completion, so that is
+    // where the liaison touchpoint belongs rather than at creation.
+    if (activity.activityType === "EMAIL") {
+      await this.liaisonActivity.logRecordActivity({
+        recordId: activity.recordId,
+        organizationId,
+        userId,
+        activityType: activity.activityType,
+      });
+    }
 
     return updated;
   }
