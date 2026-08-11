@@ -168,6 +168,9 @@ export const auth = betterAuth({
   },
   account: {
     modelName: "UserAccount",
+    // Keyed by BETTER_AUTH_SECRET, not ENCRYPTION_KEY, so the prisma encryption
+    // extension must never also list UserAccount or tokens double-encrypt.
+    encryptOAuthTokens: true,
     fields: {
       id: "id",
       accountId: "accountId",
