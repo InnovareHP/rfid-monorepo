@@ -34,7 +34,8 @@ import {
   TabsTrigger,
 } from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import type { IntegrationTab } from "@/components/integrations/integration-tabs";
 import { Calendar, Copy, Inbox, Mail, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -51,7 +52,8 @@ const TAB_TRIGGER =
 
 export default function IntegrationPage() {
   const queryClient = useQueryClient();
-  const search = useSearch({ strict: false }) as Record<string, string>;
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/_team/$team/integrations" });
 
   // Inbound ingest is optional infrastructure: the card only exists once it is set up.
   const ingestAddressQuery = useQuery({
@@ -243,6 +245,13 @@ export default function IntegrationPage() {
     }
   }, [queryClient, search?.outlook_calendar, search?.message]);
 
+  // A provider redirect names itself but not the tab it belongs to, so an absent
+  // tab resolves to the one the returning provider lives on: connecting a
+  // calendar should land on Calendar rather than bouncing back to Email.
+  const activeTab: IntegrationTab =
+    search.tab ??
+    (search.google_calendar || search.outlook_calendar ? "calendar" : "email");
+
   const faxKeyReady = faxApiKey.trim().length >= 10;
 
   // Bookings write to one calendar, so the other provider stays unavailable
@@ -262,7 +271,20 @@ export default function IntegrationPage() {
           description="Connect your external tools and accounts."
         />
 
-        <Tabs defaultValue="email" className="space-y-6">
+        {/* Tab lives in the url so a provider redirect can land on the right one
+            and a shared link opens where it was left. replace keeps switching
+            tabs out of the back button. */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(tab) =>
+            navigate({
+              to: ".",
+              search: (prev) => ({ ...prev, tab: tab as IntegrationTab }),
+              replace: true,
+            })
+          }
+          className="space-y-6"
+        >
           <TabsList className="h-auto w-fit gap-1 rounded-xl bg-table-header p-2.5">
             <TabsTrigger value="email" className={TAB_TRIGGER}>
               Email
