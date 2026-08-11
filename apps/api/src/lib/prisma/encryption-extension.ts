@@ -3,7 +3,7 @@ import { decryptNullable, encryptNullable } from "../crypto/crypto";
 
 type FieldMap = Record<string, readonly string[]>;
 
-const ENCRYPTED_FIELDS: FieldMap = {
+export const ENCRYPTED_FIELDS: FieldMap = {
   GmailToken: ["accessToken", "refreshToken"],
   OutlookToken: ["accessToken", "refreshToken"],
   GoogleCalendarToken: ["accessToken", "refreshToken"],
@@ -27,11 +27,22 @@ const ENCRYPTED_FIELDS: FieldMap = {
   TaskActivity: ["oldValue", "newValue"],
   Booking: ["inviteeName", "inviteeEmail", "inviteeNotes"],
   ContractAgreement: ["signerName", "signerEmail"],
+  // Copied off a lead's encrypted contact field, so it must not land plaintext.
+  // Safe to encrypt: the unique key is (blastId, recordId), never email.
+  BlastRecipient: ["email"],
+  // Tenants paste record detail into tickets to explain a bug, so support text is
+  // PHI-bearing. SupportHistory.message mirrors the message verbatim.
+  SupportTicket: ["title", "subject", "description"],
+  SupportTicketMessage: ["message"],
+  SupportHistory: ["message"],
+  SupportTicketRating: ["comment"],
+  SupportLiveChat: ["message"],
+  SupportLiveChatMessage: ["message"],
 };
 
 // Relation key → model, so encrypted models are handled when nested
 // under another model's include/select or nested-write payload.
-const RELATION_MODELS: Record<string, string> = {
+export const RELATION_MODELS: Record<string, string> = {
   values: "FieldValue",
   contactValue: "FieldPersonInformation",
   fieldvalue: "FieldValue",
@@ -54,6 +65,24 @@ const RELATION_MODELS: Record<string, string> = {
   blockedTask: "Task",
   blocking: "TaskDependency",
   blockedBy: "TaskDependency",
+  recipients: "BlastRecipient",
+  SupportTicketMessage: "SupportTicketMessage",
+  SupportHistory: "SupportHistory",
+  SupportTicketRating: "SupportTicketRating",
+  supportTicket: "SupportTicket",
+  supportLiveChat: "SupportLiveChat",
+  messages: "SupportLiveChatMessage",
+  // An unmapped key is worse on write than on read: a nested create descends no
+  // further and stores the child plaintext, where a nested read only returns
+  // ciphertext someone would notice. These had no entry at all.
+  GmailToken: "GmailToken",
+  OutlookToken: "OutlookToken",
+  GoogleCalendarToken: "GoogleCalendarToken",
+  OutlookCalendarToken: "OutlookCalendarToken",
+  TwoFactor: "TwoFactor",
+  agreements: "ContractAgreement",
+  integrations: "OrgIntegration",
+  bookings: "Booking",
 };
 
 function encryptOwnFields(model: string, data: any): any {
