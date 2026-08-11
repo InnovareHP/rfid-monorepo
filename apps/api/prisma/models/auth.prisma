@@ -62,7 +62,12 @@ model TwoFactor {
   secret      String
   backupCodes String
   userId      String
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Written by the better-auth two-factor plugin since 1.6.x.
+  verified                Boolean @default(false)
+  failedVerificationCount Int     @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@schema("auth_schema")
