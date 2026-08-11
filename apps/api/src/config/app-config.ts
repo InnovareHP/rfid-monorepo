@@ -61,6 +61,12 @@ export const appConfigSchema = z.object({
     .string()
     .default("true")
     .transform((v) => v.toLowerCase() !== "false"),
+  // Off by default: the job reports what it would remove until someone has read
+  // the counts against real data and opted in.
+  RETENTION_PURGE_ENABLED: z
+    .string()
+    .default("false")
+    .transform((v) => v.toLowerCase() === "true"),
   ELDONFAX_API_KEY: z.string().min(1).optional(),
   ELDONFAX_BASE_URL: z.url().default("https://api.eldonfax.com"),
   SES_CONFIGURATION_SET: z.string().min(1),

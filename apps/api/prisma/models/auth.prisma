@@ -251,6 +251,9 @@ model AuditLog {
   @@index([actorOrgId, createdAt])
   @@index([resourceType, resourceId])
   @@index([action, createdAt])
+  // The retention purge selects on age alone; every other index leads with a
+  // different column.
+  @@index([createdAt])
   @@schema("auth_schema")
 }
 
