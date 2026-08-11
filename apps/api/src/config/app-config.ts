@@ -51,6 +51,12 @@ export const appConfigSchema = z.object({
   ENCRYPTION_KEY: z
     .string()
     .min(1, "ENCRYPTION_KEY required (base64 of 32 random bytes)"),
+  // Separate from ENCRYPTION_KEY on purpose: audit integrity has to outlive a
+  // rotation of the confidentiality key. Sharing one key means the re-key that
+  // follows an incident is also what makes every changeHash unverifiable.
+  AUDIT_HMAC_KEY: z
+    .string()
+    .min(1, "AUDIT_HMAC_KEY required (base64 of 32 random bytes)"),
   AI_SCRUB_PHI: z
     .string()
     .default("true")

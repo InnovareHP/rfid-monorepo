@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { createHmac, randomBytes } from "crypto";
 import { appConfig } from "../../config/app-config";
 import { AuditService } from "../../lib/audit/audit.service";
+import { derivePurposeKey } from "../../lib/crypto/crypto";
 import { prisma } from "../../lib/prisma/prisma";
 
 // Transparent 1x1 GIF returned for every tracking hit.
@@ -50,8 +51,10 @@ export class EmailTrackingService {
       : `${html}${img}`;
   }
 
+  // Pseudonymised, not encrypted: the hash only has to collide with itself for
+  // the 60s dedupe window, so it never needs reversing.
   private hashIp(ip: string, organizationId: string): string {
-    return createHmac("sha256", appConfig.ENCRYPTION_KEY)
+    return createHmac("sha256", derivePurposeKey("email-open-iphash"))
       .update(`${organizationId}:${ip}`)
       .digest("hex");
   }
