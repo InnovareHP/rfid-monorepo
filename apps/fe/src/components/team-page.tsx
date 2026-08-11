@@ -17,7 +17,6 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "./analytics/charts/kpi-stat-tile";
-import { BrandingCard } from "./team/branding-card";
 import { EditRoleDialog } from "./team/edit-role-dialog";
 import {
   InviteMemberDialog,
@@ -218,9 +217,9 @@ const TeamPage = () => {
       <div className="space-y-8">
         <div className="flex flex-wrap space-y-4 items-center justify-between">
           <PageHeader
-        title="Team Management"
-        description="Manage who has access to your organization and what they can see."
-      />
+            title="Team Management"
+            description="Manage who has access to your organization and what they can see."
+          />
           {canManageTeam && (
             <InviteMemberDialog
               open={isInviteDialogOpen}
@@ -240,12 +239,12 @@ const TeamPage = () => {
           canEdit={canManageTeam}
         />
 
-        {canManageTeam && (
+        {/* {canManageTeam && (
           <BrandingCard
             organizationId={organizationData?.id}
             metadata={organizationData?.metadata}
           />
-        )}
+        )} */}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <KpiStatTile

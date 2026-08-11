@@ -77,7 +77,9 @@
       "Bash(sed -i '1i import { PublicPageSkeleton } from \"@/components/skeletons/page-skeletons\";' marketing/landing-page/public-landing-page.tsx)",
       "Bash(sed -i '1i import { DetailPageSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-article-page.tsx)",
       "Bash(sed -i '1i import { ListRowsSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-category-page.tsx)",
-      "Bash(sed -i '1i import { CardGridSkeleton, ListRowsSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-center-page.tsx)"
+      "Bash(sed -i '1i import { CardGridSkeleton, ListRowsSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-center-page.tsx)",
+      "Bash(echo \"lint-exit=$?\")",
+      "Bash(awk '/^model User /,/^}/' prisma/models/auth.prisma)"
     ]
   }
 }

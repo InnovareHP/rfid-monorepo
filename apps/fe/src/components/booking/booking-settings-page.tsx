@@ -1,10 +1,10 @@
-import { SettingsPageSkeleton } from "@/components/skeletons/page-skeletons";
 import {
   OptionalTag,
   RequiredLegend,
   RequiredMark,
 } from "@/components/field-marks";
 import { PageHeader } from "@/components/page-header";
+import { SettingsPageSkeleton } from "@/components/skeletons/page-skeletons";
 import {
   getOwnAvailability,
   getOwnBookingPage,
@@ -41,7 +41,13 @@ import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { AlertCircle, Copy, Eye, Link as LinkIcon, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Copy,
+  Eye,
+  Link as LinkIcon,
+  Loader2,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -155,7 +161,8 @@ export function BookingSettingsPage() {
           locationLabel: pageQuery.data.locationLabel ?? "",
           preferredProvider:
             pageQuery.data.preferredProvider ??
-            (pageQuery.data.calendars.outlook && !pageQuery.data.calendars.google
+            (pageQuery.data.calendars.outlook &&
+            !pageQuery.data.calendars.google
               ? "OUTLOOK"
               : "GOOGLE"),
           durationMinutes: String(pageQuery.data.durationMinutes),
@@ -227,9 +234,7 @@ export function BookingSettingsPage() {
   };
 
   if (pageQuery.isLoading) {
-    return (
-      <SettingsPageSkeleton cards={3} className="mx-auto space-y-6 p-6" />
-    );
+    return <SettingsPageSkeleton cards={3} className="mx-auto space-y-6 p-6" />;
   }
 
   return (
@@ -575,7 +580,7 @@ export function BookingSettingsPage() {
                 key={dayOfWeek}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2"
               >
-                <div className="flex w-24 shrink-0 items-center gap-2">
+                <div className="flex w-18 shrink-0 items-center gap-2">
                   <Switch
                     checked={row.enabled}
                     onCheckedChange={(checked) =>
