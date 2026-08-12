@@ -1,5 +1,4 @@
 ---
-import { buttonVariants } from "@dashboard/ui/components/button";
 import LegalSection from "../components/LegalSection.astro";
 import { EFFECTIVE_DATE, SUPPORT_EMAIL } from "../config";
 import LegalLayout from "../layouts/LegalLayout.astro";
@@ -67,18 +66,12 @@ const SECTIONS = [
 >
   <LegalSection heading="Send a report">
     <p class="legal-body">
-      Email <a
+      Reach the team at <a
         href={`mailto:${SUPPORT_EMAIL}?subject=Abuse%20report`}
         class="legal-link">{SUPPORT_EMAIL}</a
       > with "Abuse report" in the subject line. Requests about your own information
       reach us at the same address.
     </p>
-    <a
-      href={`mailto:${SUPPORT_EMAIL}?subject=Abuse%20report`}
-      class={buttonVariants({ className: "mt-6" })}
-    >
-      Email the abuse team
-    </a>
   </LegalSection>
 
   {SECTIONS.map((section) => <LegalSection {...section} />)}

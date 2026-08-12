@@ -5,13 +5,13 @@ import LegalLayout from "../layouts/LegalLayout.astro";
 
 const SECTIONS = [
   {
-    heading: "1. The short version",
+    heading: "The short version",
     body: [
       "Refidly uses cookies only where the product cannot work without them. We do not run advertising cookies, we do not embed third-party trackers on refidly.com, and we do not sell or share information collected through cookies. That is why you are not asked to dismiss a consent banner to read this page.",
     ],
   },
   {
-    heading: "2. What we set and why",
+    heading: "What we set and why",
     items: [
       "Session cookies. Set when you sign in to portal.refidly.com. They identify your authenticated session and the organization you are working in, so the application can enforce role-based access and show you the right workspace. They are HTTP-only, marked Secure, and expire on their own after a short period of inactivity or when you sign out.",
       "Security cookies. Short-lived values used to protect sign-in, password reset, and one-time-code flows against cross-site request forgery and replay.",
@@ -19,25 +19,25 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "3. What we do not set",
+    heading: "What we do not set",
     body: [
       "No advertising or retargeting pixels. No cross-site behavioral tracking. No social media embeds that phone home from our pages. Our marketing site loads a web font from Google Fonts and nothing else from a third party, and we do not place cookies through it.",
     ],
   },
   {
-    heading: "4. Connected accounts",
+    heading: "Connected accounts",
     body: [
       "When a user connects a Google or Microsoft account for outreach email, that provider runs its own sign-in flow on its own domain and sets its own cookies under its own policy. Refidly receives only the authorization needed to send on that user's behalf.",
     ],
   },
   {
-    heading: "5. Managing cookies",
+    heading: "Managing cookies",
     body: [
       "Every major browser lets you view, block, and delete cookies in its privacy settings. Because the cookies we set are strictly necessary, blocking them for our domains will sign you out and prevent the application from working. There is no separate consent toggle to manage here, because there is no optional category to turn off.",
     ],
   },
   {
-    heading: "6. If this changes",
+    heading: "Changes",
     body: [
       "If we ever add analytics or any non-essential cookie, we will update this page before it goes live and, where the law requires it, ask for your consent first rather than assume it.",
     ],
@@ -54,9 +54,9 @@ const SECTIONS = [
 >
   {SECTIONS.map((section) => <LegalSection {...section} />)}
 
-  <LegalSection heading="7. Questions">
+  <LegalSection heading="Cookie questions">
     <p class="legal-body">
-      Ask us at <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
+      Reach the team at <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
         >{SUPPORT_EMAIL}</a
       >. Broader detail on data handling is in the <a
         href="/privacy-policy"

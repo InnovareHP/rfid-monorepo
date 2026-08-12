@@ -10,21 +10,21 @@ import LegalLayout from "../layouts/LegalLayout.astro";
 
 const SECTIONS = [
   {
-    heading: "1. Agreement to these terms",
+    heading: "Agreement to these terms",
     body: [
-      `This Customer Agreement is between ${LEGAL_ENTITY} ("Refidly", "we") and the organization that creates a Refidly workspace ("Customer", "you"). Creating a workspace, inviting users, or using the service accepts it. If you accept on behalf of an organization, you confirm you are authorized to bind it.`,
+      `This Customer Agreement ("Agreement") governs your access to and use of Refidly, a product of ${LEGAL_ENTITY} ("Refidly," "we," "us"). It is between us and the organization that creates a Refidly workspace ("Customer," "you"). Creating a workspace, inviting users, or using the service accepts it. If you accept on behalf of an organization, you confirm you are authorized to bind it.`,
       "A signed order form or Business Associate Agreement controls where it conflicts with these terms.",
     ],
   },
   {
-    heading: "2. The service",
+    heading: "The service",
     body: [
       "Refidly is a hosted platform for healthcare marketing, liaison, and admission teams. It provides a master facility list, referral pipeline tracking, custom fields defined per organization, marketing and expense logs, county assignments, calendar and outreach tooling, analytics, and AI-assisted features.",
       "Refidly is business software. It is not a medical device, not an electronic health record, and not a source of clinical advice. Nothing in the product makes a clinical determination or replaces professional judgment.",
     ],
   },
   {
-    heading: "3. Workspaces, users, and roles",
+    heading: "Accounts and organizations",
     items: [
       "Each workspace is a separate tenant. Records, fields, and analytics in one workspace are not visible to another.",
       "Workspace owners control who is invited, what role each member holds, and what each role can see or change. You are responsible for keeping those assignments correct as people join and leave.",
@@ -33,7 +33,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "4. Trials, subscriptions, and billing",
+    heading: "Subscription plans and billing",
     items: [
       "Trials are free and require no card. At the end of a trial, the workspace is read-limited until a subscription starts. Trial data is retained through the deletion window described in the Privacy Policy.",
       "Subscriptions renew automatically for the term you selected until cancelled. Payment is processed by Stripe; Refidly does not store card numbers.",
@@ -44,21 +44,21 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "5. Your data",
+    heading: "Your content",
     body: [
       "You own the records you put into Refidly. You grant us only the license needed to host, process, transmit, back up, and display that content in order to operate the service for you, and to produce aggregated de-identified statistics that do not identify you, your patients, or your referral sources.",
       "We do not sell your data, and we do not use your workspace content to train AI models. You are responsible for having the right to submit the data you upload, including any patient or referral-source information, and for the accuracy of that data.",
     ],
   },
   {
-    heading: "6. Protected health information",
+    heading: "Protected health information",
     body: [
       "Where you are a covered entity or a business associate under HIPAA and Refidly handles protected health information on your behalf, we act as your business associate and will execute a Business Associate Agreement. That BAA governs our handling of PHI and prevails over any conflicting term here.",
       "Until a BAA is executed, you should not place protected health information in the workspace. Configure your custom fields accordingly.",
     ],
   },
   {
-    heading: "7. Acceptable use",
+    heading: "Acceptable use",
     body: ["You will not, and will not let your users:"],
     items: [
       "Upload data you lack the legal right or patient authorization to process, or use the service in a way that violates HIPAA, state privacy law, or professional obligations.",
@@ -70,64 +70,64 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "8. Outreach email and connected accounts",
+    heading: "Outreach email and connected accounts",
     body: [
       "Outreach is sent through the Google or Microsoft mailbox your user connects, under your organization's own sending identity. You are responsible for message content, consent, suppression handling, and for complying with each provider's terms and sending limits. Abuse of these features is grounds for suspension. See the Report Abuse page for how a recipient can reach us.",
     ],
   },
   {
-    heading: "9. AI features",
+    heading: "AI features",
     body: [
       "AI-generated follow-up suggestions, analytics summaries, and Smart Scan extractions are probabilistic and can be wrong or incomplete. They are decision support, not decisions. Review AI output before acting on it, and never rely on it for clinical, legal, financial, or compliance determinations.",
     ],
   },
   {
-    heading: "10. Availability, support, and changes",
+    heading: "Availability and support",
     body: [
       "We aim for high availability but do not promise uninterrupted service on standard plans. Planned maintenance is announced where practical. Support is provided by email during business hours.",
       "We improve the product continuously. We will not materially reduce core functionality during a paid term without notice and a reasonable alternative.",
     ],
   },
   {
-    heading: "11. Confidentiality",
+    heading: "Confidentiality",
     body: [
       "Each side will protect the other's non-public information with at least reasonable care and use it only to perform under this agreement. This does not cover information that is public, independently developed, or lawfully received from a third party, and it does not prevent a disclosure required by law after notice where notice is permitted.",
     ],
   },
   {
-    heading: "12. Disclaimers",
+    heading: "Disclaimers",
     body: [
       "Except as expressly stated here, the service is provided as is and as available. We disclaim all implied warranties, including merchantability, fitness for a particular purpose, and non-infringement. We do not warrant that the service will be error free, that AI output will be accurate, or that it will produce any particular referral, census, or revenue outcome.",
     ],
   },
   {
-    heading: "13. Limitation of liability",
+    heading: "Limitation of liability",
     body: [
       "Neither side is liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits, revenue, or goodwill. Our total liability arising out of this agreement is capped at the fees you paid in the 12 months before the event giving rise to the claim.",
       "These limits do not apply to your payment obligations, to either side's indemnity obligations, or to liability that cannot be limited by law. Obligations under an executed BAA are governed by that BAA.",
     ],
   },
   {
-    heading: "14. Indemnity",
+    heading: "Indemnity",
     body: [
       "You will defend and indemnify us against third-party claims arising from your data, your use of the service in breach of this agreement, or your outreach communications. We will defend and indemnify you against third-party claims that the service as provided infringes a US intellectual property right. The indemnified party must give prompt notice and reasonable cooperation.",
     ],
   },
   {
-    heading: "15. Term, termination, and export",
+    heading: "Termination and export",
     body: [
       "This agreement runs while your workspace is open. Either side may terminate for material breach not cured within 30 days of notice. We may suspend immediately for a security risk, non-payment after notice, or acceptable-use violations.",
       "You can export your records to CSV at any time while the workspace is active. After termination you have 30 days to export, after which data is deleted on the schedule in the Privacy Policy or in your BAA.",
     ],
   },
   {
-    heading: "16. Changes to this agreement",
+    heading: "Changes",
     body: [
       "We may update these terms. Material changes take effect at your next renewal, or 30 days after notice for month-to-month plans. Continuing to use the service after that accepts them.",
     ],
   },
   {
-    heading: "17. General",
+    heading: "Governing law",
     body: [
       `This agreement is governed by the laws of the State of ${GOVERNING_STATE}, without regard to conflict of law rules, and the state and federal courts located there have exclusive jurisdiction. Neither side may assign it without consent, except to a successor in a merger or asset sale. If a provision is unenforceable, the rest survives. Failure to enforce a term is not a waiver of it. Together with the Privacy Policy, any order form, and any BAA, this is the entire agreement between us.`,
     ],
@@ -144,12 +144,11 @@ const SECTIONS = [
 >
   {SECTIONS.map((section) => <LegalSection {...section} />)}
 
-  <LegalSection heading="18. Contact">
+  <LegalSection heading="Legal inquiries">
     <p class="legal-body">
-      Questions about this agreement, or a request for a Business Associate
-      Agreement, go to <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
+      Reach the team at <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
         >{SUPPORT_EMAIL}</a
-      >.
+      > for questions about this agreement or to request a Business Associate Agreement.
     </p>
   </LegalSection>
 </LegalLayout>
