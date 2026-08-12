@@ -1,0 +1,107 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+#
+# DNS warning: manage_dns and create_route53_zone create a hosted zone and
+# rewrite records. Re-applying them against a live domain is not a casual
+# change. Set create_route53_zone = false and pass existing_zone_id if the
+# zone already exists.
+
+project     = "refidly"
+environment = "prod"
+region      = "us-east-1"
+
+# ── Network ────────────────────────────────────────────────
+vpc_cidr = "10.30.0.0/16"
+azs      = ["us-east-1a", "us-east-1b"]
+
+# One NAT. Egress is third-party API calls only and S3 bypasses NAT through
+# the gateway endpoint, so a single-AZ NAT outage is retried away.
+single_nat_gateway   = true
+enable_vpc_endpoints = false
+
+# ── Domain ─────────────────────────────────────────────────
+# Leave manage_dns = false on the first apply. The ALB comes up HTTP-only,
+# the landing distribution serves on its *.cloudfront.net domain, and nothing
+# depends on a cert that does not exist yet. Flip it once the NS records from
+# the dns_name_servers output are live at the registrar.
+domain_name         = "refidly.com"
+manage_dns          = false
+create_route53_zone = true
+alb_cloudflare_only = false
+
+# ── Database ───────────────────────────────────────────────
+# Private, no public endpoint. Reach it with the command in the
+# db_tunnel_command output, which gives a localhost connection URL.
+db_instance_class          = "db.t4g.small"
+db_multi_az                = true
+db_allocated_storage       = 50
+db_max_allocated_storage   = 500
+db_backup_retention_period = 35
+db_publicly_accessible     = false
+enable_db_tunnel           = true
+
+# ── Redis ──────────────────────────────────────────────────
+redis_node_type               = "cache.t4g.micro"
+redis_replicas_per_node_group = 1
+
+# ── Compute ────────────────────────────────────────────────
+api_cpu           = 512
+api_memory        = 1024
+fe_cpu            = 512
+fe_memory         = 1024
+fe_support_cpu    = 256
+fe_support_memory = 512
+
+# One on-demand task per frontend service, the rest on Spot.
+frontend_spot_weight = 3
+
+# Flip to ARM64 only after CI pushes arm64 images and one service has run on
+# them in staging. Prisma engines and sharp both need arm64 builds.
+fargate_cpu_architecture = "X86_64"
+
+# Bills per ingested metric and scales with task count. On for a week when
+# investigating, off otherwise.
+container_insights_enabled = false
+
+enable_autoscaling = true
+api_min_count      = 2
+api_max_count      = 6
+fe_min_count       = 2
+fe_max_count       = 4
+
+# ── Observability ──────────────────────────────────────────
+# Container stdout is not an audit record. CloudTrail, the AuditLog table and
+# the flow logs carry the 7-year requirement.
+app_log_retention_days   = 30
+audit_log_retention_days = 2557
+
+alert_emails = ["alerts@example.com"]
+
+# ── Security ───────────────────────────────────────────────
+enable_waf              = true
+waf_rate_limit_per_5min = 2000
+
+# ── Storage ────────────────────────────────────────────────
+enable_s3_replication = true
+replication_region    = "us-west-2"
+force_destroy_buckets = false
+
+# The uploads bucket is already versioned, replicated and lifecycle-tiered.
+# AWS Backup warm tier costs more per GB than the storage it duplicates.
+enable_aws_backup = false
+
+# ── Email ──────────────────────────────────────────────────
+app_email      = "Refidly <no-reply@refidly.com>"
+ses_from_email = "no-reply@refidly.com"
+ses_sending_domain = "refidly.com"
+
+# Reply logging. The ingest domain must be a subdomain used only for ingest.
+enable_ses_inbound = false
+ses_inbound_domain = "in.refidly.com"
+
+# ── AI ─────────────────────────────────────────────────────
+bedrock_model_id        = "amazon.nova-micro-v1:0"
+bedrock_vision_model_id = "amazon.nova-lite-v1:0"
+ai_scrub_phi            = "true"
+
+# Reports what it would remove until someone has read the counts.
+retention_purge_enabled = "false"

@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { ModuleType, Prisma } from "@prisma/client";
+import { AudienceType, ModuleType, Prisma } from "@prisma/client";
+import { emailIndex } from "../../../lib/crypto/email-index";
 import { prisma } from "../../../lib/prisma/prisma";
+import { SubscriberService } from "../subscriber/subscriber.service";
 import {
   applyAudienceFilter,
   resolveLinkFieldValues,
@@ -18,14 +20,25 @@ export type AudienceFilter = {
   boardDateTo?: string;
 };
 
+// A member is either a CRM record or a newsletter subscriber, never both.
 export type GroupMember = {
-  recordId: string;
+  recordId: string | null;
+  subscriberId: string | null;
   recordName: string;
   email: string | null;
 };
 
+// Dedupe key for the union across groups, so a person on the subscriber list
+// and in a CRM group is still mailed once.
+const memberKey = (member: GroupMember) =>
+  member.email
+    ? `email:${emailIndex(member.email)}`
+    : `record:${member.recordId}`;
+
 @Injectable()
 export class GroupService {
+  constructor(private readonly subscriberService: SubscriberService) {}
+
   async getGroups(organizationId: string) {
     return prisma.recipientGroup.findMany({
       where: { organizationId },
@@ -55,6 +68,7 @@ export class GroupService {
         name: dto.name,
         description: dto.description ?? null,
         moduleType: dto.moduleType ?? ModuleType.LEAD,
+        audienceType: dto.audienceType ?? AudienceType.BOARD,
         filter: dto.filter as Prisma.InputJsonValue,
         organizationId,
         createdBy: userId,
@@ -71,6 +85,9 @@ export class GroupService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.moduleType !== undefined && { moduleType: dto.moduleType }),
+        ...(dto.audienceType !== undefined && {
+          audienceType: dto.audienceType,
+        }),
         ...(dto.filter !== undefined && {
           filter: dto.filter as Prisma.InputJsonValue,
         }),
@@ -161,6 +178,7 @@ export class GroupService {
 
     return boards.map((board) => ({
       recordId: board.id,
+      subscriberId: null,
       recordName: board.recordName,
       email: emailField
         ? (board.values.find((v) => v.field.id === emailField.id)?.value ??
@@ -169,18 +187,34 @@ export class GroupService {
     }));
   }
 
+  // The newsletter list as group members, so a subscriber audience flows
+  // through the same send path as a CRM one.
+  async resolveSubscriberMembers(
+    organizationId: string
+  ): Promise<GroupMember[]> {
+    const subscribers =
+      await this.subscriberService.subscribedMembers(organizationId);
+
+    return subscribers.map((subscriber) => ({
+      recordId: null,
+      subscriberId: subscriber.id,
+      recordName: subscriber.name ?? subscriber.email,
+      email: subscriber.email,
+    }));
+  }
+
   async previewMembers(
     organizationId: string,
     moduleType: ModuleType,
     audienceFilter: AudienceFilter,
     page: number,
-    limit: number
+    limit: number,
+    audienceType: AudienceType = AudienceType.BOARD
   ) {
-    const members = await this.resolveMembers(
-      organizationId,
-      moduleType,
-      audienceFilter
-    );
+    const members =
+      audienceType === AudienceType.SUBSCRIBER
+        ? await this.resolveSubscriberMembers(organizationId)
+        : await this.resolveMembers(organizationId, moduleType, audienceFilter);
 
     return {
       total: members.length,
@@ -204,7 +238,8 @@ export class GroupService {
       group.moduleType,
       group.filter as unknown as AudienceFilter,
       page,
-      limit
+      limit,
+      group.audienceType
     );
   }
 
@@ -224,17 +259,42 @@ export class GroupService {
       );
     }
 
-    const byRecord = new Map<string, GroupMember>();
+    const byMember = new Map<string, GroupMember>();
 
     for (const group of groups) {
-      const members = await this.resolveMembers(
-        organizationId,
-        group.moduleType,
-        group.filter as unknown as AudienceFilter
-      );
-      for (const member of members) byRecord.set(member.recordId, member);
+      const members =
+        group.audienceType === AudienceType.SUBSCRIBER
+          ? await this.resolveSubscriberMembers(organizationId)
+          : await this.resolveMembers(
+              organizationId,
+              group.moduleType,
+              group.filter as unknown as AudienceFilter
+            );
+      for (const member of members) byMember.set(memberKey(member), member);
     }
 
-    return [...byRecord.values()];
+    return this.dropUnsubscribed(organizationId, [...byMember.values()]);
+  }
+
+  // Suppression is applied here rather than at send, so audience counts and
+  // group previews report the same number the send will actually mail.
+  private async dropUnsubscribed(
+    organizationId: string,
+    members: GroupMember[]
+  ): Promise<GroupMember[]> {
+    const emails = members
+      .map((member) => member.email)
+      .filter((email): email is string => Boolean(email));
+
+    const suppressed = await this.subscriberService.suppressedHashes(
+      organizationId,
+      emails
+    );
+
+    if (suppressed.size === 0) return members;
+
+    return members.filter(
+      (member) => !member.email || !suppressed.has(emailIndex(member.email))
+    );
   }
 }

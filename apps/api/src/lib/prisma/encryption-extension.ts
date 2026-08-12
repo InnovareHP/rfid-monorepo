@@ -32,6 +32,9 @@ export const ENCRYPTED_FIELDS: FieldMap = {
   // Copied off a lead's encrypted contact field, so it must not land plaintext.
   // Safe to encrypt: the unique key is (blastId, recordId), never email.
   BlastRecipient: ["email"],
+  // Matching goes through the plaintext emailHash column, so the address and
+  // name stay encrypted and no unique key touches ciphertext.
+  EmailSubscriber: ["email", "name"],
   // Tenants paste record detail into tickets to explain a bug, so support text is
   // PHI-bearing. SupportHistory.message mirrors the message verbatim.
   SupportTicket: ["title", "subject", "description"],

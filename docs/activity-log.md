@@ -595,3 +595,156 @@ The referral stage data was seeded but nothing could show it. Two blockers, both
 The three Kanban components moved from `components/master-list/` to `components/kanban/`, since two feature folders consume them now.
 
 Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/kanban`, `components/referral-list`, `master-list-page.tsx` and `services/kanban`. No browser pass: the drag-and-drop path and the referral board are unexercised.
+
+### Terraform stack for AWS (2026-08-12)
+
+There was no `terraform/` here at all - `docs/aws-uploads-and-location-infra.md`
+and `docs/email-ingest-setup.md` both said so and described hand-applied
+resources. Ported the fax app's stack (16 modules, ~5k lines) and adapted it to
+this repo's shape, with the cost analysis from the Obsidian note
+`2026-08-12-terraform-cost-and-prod-db` applied from the start rather than as a
+later trim.
+
+Shape differences from the fax app: four apps instead of four services, BullMQ
+in-process in the API rather than a separate worker, socket.io on the API, an
+uploads bucket with `public/` and `private/` prefixes instead of a PHI document
+store, SES outbound plus optional reply ingest instead of email-to-fax, and
+Bedrock plus geo-places on the task role.
+
+- `landing` is static Astro (no SSR adapter), so it is S3 + CloudFront with an
+  index-rewrite function, not a Fargate service. Removes a service, a target
+  group and a log group.
+- Postgres moved in-account: private RDS, no public endpoint, `rds.force_ssl`,
+  and a `t4g.nano` SSM forwarder so a laptop still gets a plain connection URL
+  through a localhost port-forward. `DATABASE_URL` and `REDIS_URL` are
+  generated into their own Secrets Manager entries and injected from there, so
+  neither is a hand-populated key.
+- Levers taken as defaults: one NAT, app logs 30d against audit logs 7y, WAF
+  logs to S3, Spot with an on-demand base on both frontends, Container Insights
+  off. ARM64 and a Savings Plan are wired or documented but not on.
+- Added `apps/api/src/api/health/` - the ALB target group needs a health path
+  and the API had none.
+
+Verified: `terraform fmt -check` clean, `terraform validate` passes,
+`pnpm build:api` exits 0, eslint clean on the health module. Nothing applied
+against AWS - no `terraform plan` was run, since that needs credentials and a
+state bucket. The open items list in `docs/terraform-infrastructure.md` is real:
+both Vite apps still ship the dev server in their production image.
+
+## Email builder — Figma Blast Editor (2026-08-12)
+
+Applied the new blast editor from Figma (`Refidly`, nodes `703:17585` drag and
+drop, `698:16372` classic, `703:17266` review and send, `689:10505` new blast).
+A blast now picks its editor at creation and keeps it.
+
+Storage: `Blast` gained `bodyJson` and `editorType` (`BlastEditorType`, default
+`DRAG_DROP`). `bodyHtml` stays the only thing the send path reads — for drag and
+drop blasts the API renders it from the blocks on every write, so a client can
+never compose the outgoing HTML. Migration
+`blast_editor_type_and_body_json` backfills existing rows to `CLASSIC`.
+
+- Drag and drop editor mirrors the landing page builder: dnd-kit sortable canvas,
+  `Content` / `Email Settings` tabs, block types Headline, Text, Image,
+  Separator, Button, each with font, size, text color, background color,
+  background image, plus Duplicate and Delete.
+- Classic editor keeps the numbered step cards and swaps the bare `Textarea` for
+  a contentEditable toolbar (marks, alignment, lists, font, color, undo/redo,
+  Substitute Variables). No editor dependency was added.
+- `sanitizeRichText` and `applyMergeVariables` live in `packages/shared` so the
+  builder preview and the send path agree on the allowed tag set. The send
+  processor resolves `{{recordName}}`, `{{email}}` and `{{organizationName}}`
+  per recipient, and the Activity row records the resolved body.
+- New `POST /marketing/blasts/:id/test-send` sends the blast to one address
+  without creating recipient rows or moving the status.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `tsc --noEmit` on apps/fe all exit
+0, eslint clean (0 errors) on the blast feature. No migration was applied to a
+database and no email was sent — neither was run. The 8 eslint errors in
+`import/referral-list-import-page.tsx` are pre-existing and untouched.
+
+Left out: the design's footer address line (`Organization` has no address
+column) and a real unsubscribe link (no unsubscribe route exists), so the footer
+renders the org name and the unsubscribe line as text.
+
+## Unsubscribe and newsletter subscribers (2026-08-13)
+
+Closed the dead unsubscribe line left by the email builder and added the
+subscriber list behind it. Consent is org-wide: one opt-out silences every
+group and every module that shares the address.
+
+Model: `EmailSubscriber` in `marketing_schema` is both the newsletter list and
+the suppression list. `email` and `name` are encrypted, so matching goes
+through `emailHash`, an HMAC blind index built with
+`derivePurposeKey("marketing-email-index")` — the same construction as the
+open-tracking ip hash, and the reason the unique key is `(organizationId,
+emailHash)` rather than the ciphertext.
+
+- The unsubscribe link carries a signed claim (`organizationId` + `emailHash` +
+  HMAC), not a stored key. Mailing someone therefore creates no row, so the
+  Subscribers page stays a list of real subscribers and real opt-outs instead
+  of filling with every lead that was ever emailed. The address is never in the
+  URL, so no inbox lands in a server log.
+- Suppression is applied in `resolveForGroups`, so audience counts, group
+  previews and the send all report the same number.
+- `RecipientGroup.audienceType` (`BOARD` | `SUBSCRIBER`) lets a group target
+  the newsletter list, so subscribers are mailable without inventing CRM rows.
+  `BlastRecipient.recordId` became nullable with a `subscriberId` sibling;
+  a subscriber send writes no `Activity` because there is no record timeline.
+- `Form.subscribesToNewsletter` opts a public form's submitter onto the list,
+  resolved from the module's `EMAIL` field. Off by default.
+- Classic bodies are stored without the email shell, so `wrapClassicHtml`
+  applies the footer at send time; drag and drop bodies already carry it.
+  `{{unsubscribeUrl}}` resolves per recipient.
+- Public routes follow the `@CrossTenant() @AllowAnonymous()` pattern with
+  `@Throttle` on writes and `toPublicError`, and never 401 — the frontend's
+  auth interceptor would otherwise bounce the reader to /login.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `tsc --noEmit` on apps/fe all exit
+0; eslint 0 errors on the marketing and crypto code. Not run: the migration
+against a database, and no email was sent. The pre-existing unused `appConfig`
+eslint error in `sender/sender.service.ts` is untouched.
+
+Not built: double opt-in (single opt-in by design), SES bounce and complaint
+suppression, and a `List-Unsubscribe` header. Custom user-defined CRM modules
+were deferred — `ModuleType` is a Prisma enum wired into group resolution,
+permissions, the sidebar and the route tree, so it is its own piece of work.
+
+## Footer becomes a block; forms drop the newsletter opt-in (2026-08-13)
+
+The unsubscribe footer was hardcoded into the rendered document, so an author
+could not move or restyle it. It is now a `FOOTER` block like any other -
+draggable, editable (text, unsubscribe label, colors, background), removable.
+New drag and drop blasts seed with a headline and a footer.
+
+Removing it changes the layout, never the opt-out: `renderBlastHtml` appends a
+fallback footer row when no `FOOTER` block is present, and `wrapClassicHtml`
+does the same for classic bodies. The builder preview mirrors that fallback, so
+what the author sees matches what sends. Commercial email needs a working
+unsubscribe, so this is deliberately not configurable away.
+
+The footer can also carry a **subscribe** action, off by default: a link or a
+button for whoever received the mail as a forward and is not on the list. Its
+href is a `{{subscribeUrl}}` merge token resolved from the sending org, landing
+on a public `/s/$token` page. The token signs only the organization id, so the
+raw id never rides in a forwarded URL, and the reader types their own address
+rather than the link carrying anyone else's.
+
+Also this session:
+
+- The newsletter opt-in was removed from marketing forms at the user's request.
+  `Form.subscribesToNewsletter` / `newsletterLabel`, the submit `subscribe`
+  flag, the renderer checkbox and the builder toggle are all gone; the form
+  files are byte-identical to their pre-change state. Subscribers still arrive
+  through the Subscribers page and the public subscribe endpoint, and
+  `SubscriberSource.FORM` stays in the enum for a future signup surface.
+- Subscribers added to the sidebar under Marketing Hub > Campaigns, beside
+  Groups, since both are audience sources.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `tsc --noEmit` on apps/fe exit 0;
+eslint clean on the touched code apart from the pre-existing unused `appConfig`
+in `sender/sender.service.ts`. No migration was applied and no email was sent.
+
+Also wrote `docs/custom-crm-modules-plan.md`: a scoped plan for user-defined CRM
+modules. Nothing built. Correction captured there — permissions are
+module-agnostic (`record` / `field` resources), so they need no per-module work,
+contrary to an earlier note.

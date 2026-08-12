@@ -25,6 +25,7 @@ import {
   LayoutTemplate,
   MailCheck,
   MailPlus,
+  Mailbox,
   MapPin,
   Megaphone,
   Route,
@@ -123,6 +124,11 @@ export function AppSidebar({
                   title: "Groups",
                   url: `/${activeOrganizationId}/marketing/groups`,
                   icon: Users,
+                },
+                {
+                  title: "Subscribers",
+                  url: `/${activeOrganizationId}/marketing/subscribers`,
+                  icon: Mailbox,
                 },
                 {
                   title: "Senders",

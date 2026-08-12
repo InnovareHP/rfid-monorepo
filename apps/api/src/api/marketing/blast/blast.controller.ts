@@ -22,7 +22,12 @@ import {
 } from "../../../guard/permission/permission.guard";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
 import { BlastService } from "./blast.service";
-import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
+import {
+  CreateBlastDto,
+  SendBlastDto,
+  TestSendBlastDto,
+  UpdateBlastDto,
+} from "./dto/blast.dto";
 
 @Controller("marketing/blasts")
 @UseGuards(
@@ -159,6 +164,26 @@ export class BlastController {
         id,
         session.session.activeOrganizationId,
         session.user.id,
+        dto.sendVia
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/:id/test-send")
+  @RequirePermission({ outreach: ["send"] })
+  async testSendBlast(
+    @Param("id") id: string,
+    @Body() dto: TestSendBlastDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.blastService.sendTest(
+        id,
+        session.session.activeOrganizationId,
+        session.user.id,
+        dto.to,
         dto.sendVia
       );
     } catch (error) {

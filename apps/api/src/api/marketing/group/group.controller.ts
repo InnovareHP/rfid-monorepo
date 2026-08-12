@@ -64,7 +64,8 @@ export class GroupController {
         dto.moduleType,
         dto.filter,
         pageOf(page),
-        limitOf(limit)
+        limitOf(limit),
+        dto.audienceType
       );
     } catch (error) {
       throw new BadRequestException(error.message);

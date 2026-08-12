@@ -9,6 +9,7 @@ import { CalendarModule } from "./calendar/calendar.module";
 import { ComplianceModule } from "./compliance/compliance.module";
 import { EmailModule } from "./email/email.module";
 import { FaxModule } from "./fax/fax.module";
+import { HealthModule } from "./health/health.module";
 import { ImageModule } from "./image/image.module";
 import { LiaisonModule } from "./liaison/liaison.module";
 import { ManualModule } from "./manual/manual.module";
@@ -48,6 +49,7 @@ import { UserModule } from "./user/user.module";
     TaskModule,
     MarketingModule,
     NotificationModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [],

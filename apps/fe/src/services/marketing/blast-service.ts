@@ -1,4 +1,7 @@
+import type { BlastBlock } from "@/components/marketing/blasts/blast-block-schema";
 import { axiosClient } from "@/lib/axios-client";
+
+export type BlastEditorType = "DRAG_DROP" | "CLASSIC";
 
 export type MarketingBlast = {
   id: string;
@@ -7,6 +10,8 @@ export type MarketingBlast = {
   name: string;
   subject: string;
   bodyHtml: string;
+  bodyJson: BlastBlock[] | null;
+  editorType: BlastEditorType;
   status: "DRAFT" | "SCHEDULED" | "SENDING" | "SENT" | "FAILED";
   groups: { group: { id: string; name: string; moduleType: string } }[];
   scheduledAt: string | null;
@@ -53,9 +58,11 @@ export const getBlast = async (id: string): Promise<MarketingBlast> => {
 
 export const createBlast = async (data: {
   name: string;
-  campaignId?: string;
+  campaignId?: string | null;
   subject: string;
-  bodyHtml: string;
+  bodyHtml?: string;
+  editorType: BlastEditorType;
+  blocks?: BlastBlock[];
   groupIds?: string[];
   scheduledAt?: string;
 }): Promise<MarketingBlast> => {
@@ -70,6 +77,7 @@ export const updateBlast = async (
     campaignId: string | null;
     subject: string;
     bodyHtml: string;
+    blocks: BlastBlock[];
     groupIds: string[];
     scheduledAt: string;
   }>
@@ -90,6 +98,17 @@ export const sendBlast = async (
   const response = await axiosClient.post(
     `/api/marketing/blasts/${id}/send`,
     data
+  );
+  return response.data;
+};
+
+export const sendTestBlast = async (
+  id: string,
+  to: string
+): Promise<{ message: string }> => {
+  const response = await axiosClient.post(
+    `/api/marketing/blasts/${id}/test-send`,
+    { to }
   );
   return response.data;
 };

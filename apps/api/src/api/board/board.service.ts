@@ -3524,6 +3524,7 @@ export class BoardService {
         subject,
         recipientName: activity.record.recordName,
         body,
+        layout: "ACTIVITY",
         senderName: activity.creator.name,
         sendVia: emailOverrides?.send_via,
       });

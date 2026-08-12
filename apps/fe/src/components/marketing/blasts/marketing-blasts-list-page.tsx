@@ -1,29 +1,21 @@
 import { PageHeader } from "@/components/page-header";
 import {
-  createBlast,
   deleteBlast,
   getBlasts,
   type MarketingBlast,
 } from "@/services/marketing/blast-service";
 import { can } from "@/lib/permissions";
 import { Button } from "@dashboard/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFormFooter,
-  DialogFormHeader,
-} from "@dashboard/ui/components/dialog";
 import { Input } from "@dashboard/ui/components/input";
-import { Label } from "@dashboard/ui/components/label";
-import { Textarea } from "@dashboard/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
-import { Loader2, Mail, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "../../analytics/charts/kpi-stat-tile";
 import { MarketingSubNav } from "../marketing-sub-nav";
+import { BlastCreateDialog } from "./blast-create-dialog";
 import { BLAST_STATUS_LABELS, BlastListTable } from "./blast-list-table";
 import { BlastSendDialog } from "./blast-send-dialog";
 
@@ -44,9 +36,6 @@ export const MarketingBlastsListPage = () => {
   const canSend = can(memberData?.role, { outreach: ["send"] });
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [subject, setSubject] = useState("");
-  const [bodyHtml, setBodyHtml] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -56,32 +45,6 @@ export const MarketingBlastsListPage = () => {
   const { data: blasts = [], isLoading } = useQuery({
     queryKey: ["marketing-blasts"],
     queryFn: getBlasts,
-  });
-
-  const resetCreateState = () => {
-    setName("");
-    setSubject("");
-    setBodyHtml("");
-  };
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      createBlast({
-        name: name.trim(),
-        subject: subject.trim(),
-        bodyHtml: bodyHtml.trim(),
-      }),
-    onSuccess: (created: MarketingBlast) => {
-      toast.success("Blast created");
-      queryClient.invalidateQueries({ queryKey: ["marketing-blasts"] });
-      setCreateOpen(false);
-      resetCreateState();
-      navigate({
-        to: "/$team/marketing/blasts/$blastId",
-        params: { team, blastId: created.id },
-      });
-    },
-    onError: () => toast.error("Failed to create blast"),
   });
 
   const deleteMutation = useMutation({
@@ -186,83 +149,16 @@ export const MarketingBlastsListPage = () => {
         onDelete={(blast) => deleteMutation.mutate(blast)}
       />
 
-      <Dialog
+      <BlastCreateDialog
         open={createOpen}
-        onOpenChange={(open) => {
-          setCreateOpen(open);
-          if (!open) resetCreateState();
-        }}
-      >
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
-          <DialogFormHeader
-            icon={<Mail />}
-            title="New Blast"
-            description="Set the basics now - audience, campaign, and module can be refined after creation."
-          />
-
-          <div className="space-y-4 px-6 py-5">
-            <div className="space-y-2">
-              <Label htmlFor="blast-name">
-                Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="blast-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="blast-subject">
-                Subject <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="blast-subject"
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="blast-body">Body</Label>
-              <Textarea
-                id="blast-body"
-                rows={5}
-                value={bodyHtml}
-                onChange={(event) => setBodyHtml(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <DialogFormFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setCreateOpen(false);
-                resetCreateState();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={
-                !name.trim() ||
-                !subject.trim() ||
-                !bodyHtml.trim() ||
-                createMutation.isPending
-              }
-              className="bg-brand text-white hover:bg-brand/90"
-            >
-              {createMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-              Create Blast
-            </Button>
-          </DialogFormFooter>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={setCreateOpen}
+        onCreated={(created) =>
+          navigate({
+            to: "/$team/marketing/blasts/$blastId",
+            params: { team, blastId: created.id },
+          })
+        }
+      />
 
       <BlastSendDialog
         blast={sendingBlast}

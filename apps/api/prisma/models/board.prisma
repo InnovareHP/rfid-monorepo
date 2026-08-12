@@ -41,6 +41,7 @@ model Board {
   bookings          Booking[]
   formSubmissions   FormSubmission[]
   blastRecipients   BlastRecipient[]
+  emailSubscribers  EmailSubscriber[]
 
   @@index([organizationId, recordName])
   @@index([organizationId, moduleType, isDeleted, createdAt])

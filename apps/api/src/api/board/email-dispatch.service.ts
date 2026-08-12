@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { render } from "@react-email/render";
+import { sanitizeRichText } from "@dashboard/shared";
 import { appConfig } from "../../config/app-config";
 import { sendEmail } from "../../lib/aws/ses";
 import { ActivityEmail } from "../../react-email/activity-email";
@@ -16,6 +17,9 @@ export interface DispatchInput {
   senderName: string;
   sendVia?: string;
   sender?: DispatchSender;
+  // Required, not defaulted: a blast body is already a complete email document
+  // and must ship as-is, so every caller states which one it is.
+  layout: "ACTIVITY" | "NONE";
 }
 
 // A campaign's chosen identity. A verified domain sends through SES as that
@@ -46,15 +50,17 @@ export class EmailDispatchService {
     const trackingId = this.trackingService.newTrackingId();
     const references = this.trackingService.threadReference(trackingId);
 
-    const html = this.trackingService.injectPixel(
-      await render(
-        ActivityEmail({
-          recipientName: input.recipientName,
-          body: input.body,
-        })
-      ),
-      trackingId
-    );
+    const document =
+      input.layout === "NONE"
+        ? input.body
+        : await render(
+            ActivityEmail({
+              recipientName: input.recipientName,
+              body: sanitizeRichText(input.body),
+            })
+          );
+
+    const html = this.trackingService.injectPixel(document, trackingId);
 
     const senderEmail = await this.deliver(input, html, references);
 

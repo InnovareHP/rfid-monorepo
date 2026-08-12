@@ -16,7 +16,12 @@ export const ActivityEmail = ({ recipientName, body }: ActivityEmailProps) => {
 
       <Text style={emailStyles.paragraph}>Hi {recipientName},</Text>
 
-      <Text style={emailStyles.paragraph}>{body}</Text>
+      {/* Composed bodies carry markup, so they render as HTML rather than
+          being escaped into visible tags. Sanitized by the caller. */}
+      <div
+        style={emailStyles.paragraph}
+        dangerouslySetInnerHTML={{ __html: body }}
+      />
 
       <Text style={emailStyles.muted}>
         Best regards,

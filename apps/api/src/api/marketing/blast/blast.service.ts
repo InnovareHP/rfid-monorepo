@@ -4,12 +4,21 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { BlastStatus } from "@prisma/client";
+import { BlastEditorType, BlastStatus, Prisma } from "@prisma/client";
 import { Queue } from "bullmq";
 import { prisma } from "../../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
+import { EmailDispatchService } from "../../board/email-dispatch.service";
 import { GroupService } from "../group/group.service";
 import { SenderService } from "../sender/sender.service";
+import { SubscriberService } from "../subscriber/subscriber.service";
+import {
+  applyMergeVariables,
+  renderBlastHtml,
+  sanitizeRichText,
+  wrapClassicHtml,
+  type BlastBlock,
+} from "./blast-html";
 import { CreateBlastDto, UpdateBlastDto } from "./dto/blast.dto";
 
 const groupInclude = {
@@ -28,7 +37,9 @@ export class BlastService {
     @InjectQueue(QUEUE_NAMES.BLAST_SEND)
     private readonly blastSendQueue: Queue,
     private readonly groupService: GroupService,
-    private readonly senderService: SenderService
+    private readonly senderService: SenderService,
+    private readonly emailDispatchService: EmailDispatchService,
+    private readonly subscriberService: SubscriberService
   ) {}
 
   async getBlasts(organizationId: string) {
@@ -65,12 +76,19 @@ export class BlastService {
     const groupIds = dto.groupIds ?? [];
     await this.assertGroupsInOrg(groupIds, organizationId);
 
+    const editorType = dto.editorType ?? BlastEditorType.DRAG_DROP;
+    const blocks = dto.blocks ?? [];
+
     return prisma.blast.create({
       data: {
         name: dto.name,
         campaignId: dto.campaignId ?? null,
         subject: dto.subject,
-        bodyHtml: dto.bodyHtml,
+        editorType,
+        ...this.resolveBody(editorType, {
+          bodyHtml: dto.bodyHtml,
+          blocks,
+        }),
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         organizationId,
         createdBy: userId,
@@ -95,13 +113,21 @@ export class BlastService {
       await this.assertGroupsInOrg(dto.groupIds, organizationId);
     }
 
+    // The editor a blast was created with is fixed, so the body always resolves
+    // against the stored type rather than whatever the client sends.
+    const bodyChanged = dto.bodyHtml !== undefined || dto.blocks !== undefined;
+
     return prisma.blast.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
         ...(dto.subject !== undefined && { subject: dto.subject }),
-        ...(dto.bodyHtml !== undefined && { bodyHtml: dto.bodyHtml }),
+        ...(bodyChanged &&
+          this.resolveBody(blast.editorType, {
+            bodyHtml: dto.bodyHtml ?? blast.bodyHtml,
+            blocks: dto.blocks ?? this.readBlocks(blast.bodyJson),
+          })),
         ...(dto.scheduledAt !== undefined && {
           scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         }),
@@ -173,6 +199,7 @@ export class BlastService {
       data: recipients.map((r) => ({
         blastId: id,
         recordId: r.recordId,
+        subscriberId: r.subscriberId,
         organizationId,
         email: r.email,
         status: "PENDING",
@@ -193,6 +220,95 @@ export class BlastService {
     });
 
     return { jobId: job.id };
+  }
+
+  // Sends the blast as-is to one address so the author can proof it. No
+  // recipient rows, no status change, so a test never consumes the send path.
+  async sendTest(
+    id: string,
+    organizationId: string,
+    userId: string,
+    to: string,
+    sendVia?: string
+  ) {
+    const blast = await this.getBlast(id, organizationId);
+    const [organization, creator] = await Promise.all([
+      prisma.organization.findUniqueOrThrow({
+        where: { id: organizationId },
+        select: { name: true },
+      }),
+      prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { name: true },
+      }),
+    ]);
+
+    const sender = blast.campaignId
+      ? await this.senderService.resolveForCampaign(
+          blast.campaignId,
+          organizationId
+        )
+      : null;
+
+    // The test carries a real unsubscribe link so the footer can be proofed.
+    const documentHtml =
+      blast.editorType === BlastEditorType.CLASSIC
+        ? wrapClassicHtml(blast.bodyHtml, organization.name)
+        : blast.bodyHtml;
+
+    await this.emailDispatchService.send({
+      userId,
+      to,
+      subject: `[Test] ${blast.subject}`,
+      recipientName: creator.name,
+      body: applyMergeVariables(documentHtml, {
+        recordName: creator.name,
+        email: to,
+        organizationName: organization.name,
+        unsubscribeUrl: this.subscriberService.unsubscribeUrl(
+          organizationId,
+          to
+        ),
+        subscribeUrl: this.subscriberService.subscribeUrl(organizationId),
+      }),
+      layout: "NONE",
+      senderName: sender?.fromName ?? creator.name,
+      sendVia,
+      sender: sender
+        ? {
+            kind: sender.kind,
+            fromEmail: sender.fromEmail,
+            fromName: sender.fromName,
+            replyTo: sender.replyTo,
+            mailboxUserId: sender.mailboxUserId,
+          }
+        : undefined,
+    });
+
+    return { message: "Test email sent" };
+  }
+
+  private readBlocks(bodyJson: Prisma.JsonValue | null): BlastBlock[] {
+    return Array.isArray(bodyJson) ? (bodyJson as BlastBlock[]) : [];
+  }
+
+  // bodyHtml is the only thing the send path reads, so drag and drop blasts
+  // render it here instead of trusting whatever the client composed.
+  private resolveBody(
+    editorType: BlastEditorType,
+    input: { bodyHtml: string; blocks: BlastBlock[] }
+  ) {
+    if (editorType === BlastEditorType.CLASSIC) {
+      return {
+        bodyHtml: sanitizeRichText(input.bodyHtml),
+        bodyJson: Prisma.DbNull,
+      };
+    }
+
+    return {
+      bodyHtml: renderBlastHtml(input.blocks),
+      bodyJson: input.blocks as unknown as Prisma.InputJsonValue,
+    };
   }
 
   private async resolveMembers(id: string, organizationId: string) {

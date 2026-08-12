@@ -156,6 +156,7 @@ model Organization {
   forms           Form[]
   formSubmissions FormSubmission[]
   blastRecipients BlastRecipient[]
+  emailSubscribers EmailSubscriber[]
   landingPages    LandingPage[]
   notifications   Notification[]
   expenses        Expense[]
