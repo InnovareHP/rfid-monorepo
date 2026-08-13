@@ -31,6 +31,7 @@ import {
   MODULE_FIELD_TYPES,
   MODULE_ICON_CHOICES,
   MODULE_TEMPLATES,
+  SELECT_FIELD_TYPES,
 } from "./module-templates";
 
 const schema = z.object({
@@ -42,6 +43,7 @@ const schema = z.object({
       z.object({
         fieldName: z.string().trim().min(1, "Column name is required").max(60),
         fieldType: z.string().min(1),
+        options: z.array(z.string()).optional(),
       })
     )
     .min(1, "A module needs at least one column"),
@@ -53,6 +55,17 @@ const STEPS = ["Name it", "Columns", "Review"];
 
 // The key lands in URLs and query keys, so it is shown before creation and
 // frozen afterwards rather than being editable free text.
+// Templates are readonly literals, so they are copied into mutable rows before
+// the field array takes them.
+const templateFields = (value: string) =>
+  (MODULE_TEMPLATES.find((t) => t.value === value) ?? MODULE_TEMPLATES[2]).fields.map(
+    (field) => ({
+      fieldName: field.fieldName,
+      fieldType: field.fieldType as string,
+      options: "options" in field ? [...field.options] : [],
+    })
+  );
+
 const previewKey = (label: string) =>
   toSlug(label).replace(/-/g, "_").toUpperCase();
 
@@ -68,7 +81,7 @@ export default function ModuleSetupPage() {
       label: "",
       labelSingular: "",
       icon: "Table2",
-      fields: [...MODULE_TEMPLATES[2].fields],
+      fields: templateFields("CUSTOM"),
     },
   });
 
@@ -100,13 +113,23 @@ export default function ModuleSetupPage() {
     const valid = await form.trigger(
       step === 0 ? ["label", "labelSingular", "icon"] : ["fields"]
     );
+
+    if (valid && step === 1) {
+      const missing = fields.find(
+        (row) => SELECT_FIELD_TYPES.has(row.fieldType) && !row.options?.length
+      );
+
+      if (missing) {
+        toast.error(`${missing.fieldName || "A choice column"} needs at least one choice`);
+        return;
+      }
+    }
+
     if (valid) setStep(step + 1);
   };
 
-  const applyTemplate = (value: string) => {
-    const template = MODULE_TEMPLATES.find((t) => t.value === value);
-    if (template) fieldArray.replace([...template.fields]);
-  };
+  const applyTemplate = (value: string) =>
+    fieldArray.replace(templateFields(value));
 
   return (
     <div className="page-style">
@@ -178,11 +201,18 @@ export default function ModuleSetupPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {MODULE_ICON_CHOICES.map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
+                        {MODULE_ICON_CHOICES.map((name) => {
+                          const Choice = moduleIcon(name);
+
+                          return (
+                            <SelectItem key={name} value={name}>
+                              <span className="flex items-center gap-2">
+                                <Choice className="h-4 w-4" />
+                                {name}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -219,7 +249,11 @@ export default function ModuleSetupPage() {
 
               <div className="space-y-3">
                 {fieldArray.fields.map((row, index) => (
-                  <div key={row.id} className="flex items-end gap-2">
+                  <div
+                    key={row.id}
+                    className="space-y-2 rounded-lg border border-border p-3"
+                  >
+                    <div className="flex items-end gap-2">
                     <FormField
                       control={form.control}
                       name={`fields.${index}.fieldName`}
@@ -262,15 +296,43 @@ export default function ModuleSetupPage() {
                       )}
                     />
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      disabled={fieldArray.fields.length === 1}
-                      onClick={() => fieldArray.remove(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={fieldArray.fields.length === 1}
+                        onClick={() => fieldArray.remove(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {SELECT_FIELD_TYPES.has(fields[index]?.fieldType) && (
+                      <FormField
+                        control={form.control}
+                        name={`fields.${index}.options`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Choices</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="New, Active, Inactive"
+                                value={(field.value ?? []).join(", ")}
+                                onChange={(event) =>
+                                  field.onChange(
+                                    event.target.value
+                                      .split(",")
+                                      .map((choice) => choice.trim())
+                                      .filter(Boolean)
+                                  )
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -298,19 +360,36 @@ export default function ModuleSetupPage() {
                 </span>
               </div>
 
-              <ul className="space-y-1 text-sm">
-                {fields.map((row, index) => (
-                  <li key={index} className="flex justify-between">
-                    <span>{row.fieldName}</span>
-                    <span className="text-muted-foreground">
-                      {
-                        MODULE_FIELD_TYPES.find((t) => t.value === row.fieldType)
-                          ?.label
-                      }
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-table-header">
+                    <tr>
+                      <th className="p-2 font-medium">
+                        {form.getValues("labelSingular")} Name
+                      </th>
+                      {fields.map((row, index) => (
+                        <th key={index} className="p-2 font-medium">
+                          {row.fieldName}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="text-muted-foreground">
+                      <td className="p-2">Example</td>
+                      {fields.map((row, index) => (
+                        <td key={index} className="p-2">
+                          {row.options?.length
+                            ? row.options[0]
+                            : MODULE_FIELD_TYPES.find(
+                                (t) => t.value === row.fieldType
+                              )?.label}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

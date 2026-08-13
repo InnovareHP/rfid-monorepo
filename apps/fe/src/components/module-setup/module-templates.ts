@@ -9,7 +9,11 @@ export const MODULE_TEMPLATES = [
       { fieldName: "Email", fieldType: "EMAIL" },
       { fieldName: "Phone", fieldType: "PHONE" },
       { fieldName: "Address", fieldType: "LOCATION" },
-      { fieldName: "Status", fieldType: "STATUS" },
+      {
+        fieldName: "Status",
+        fieldType: "STATUS",
+        options: ["New", "Active", "Inactive"],
+      },
       { fieldName: "Notes", fieldType: "TEXT" },
     ],
   },
@@ -21,7 +25,11 @@ export const MODULE_TEMPLATES = [
       { fieldName: "Website", fieldType: "TEXT" },
       { fieldName: "Phone", fieldType: "PHONE" },
       { fieldName: "Address", fieldType: "LOCATION" },
-      { fieldName: "Status", fieldType: "STATUS" },
+      {
+        fieldName: "Status",
+        fieldType: "STATUS",
+        options: ["Prospect", "Active", "Inactive"],
+      },
       { fieldName: "Notes", fieldType: "TEXT" },
     ],
   },
@@ -32,6 +40,9 @@ export const MODULE_TEMPLATES = [
     fields: [{ fieldName: "Notes", fieldType: "TEXT" }],
   },
 ] as const;
+
+// Types that carry their own option list, so the wizard asks for one.
+export const SELECT_FIELD_TYPES = new Set(["DROPDOWN", "STATUS"]);
 
 export const MODULE_FIELD_TYPES = [
   { value: "TEXT", label: "Text" },

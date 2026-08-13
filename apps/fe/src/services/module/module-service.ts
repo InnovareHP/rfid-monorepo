@@ -21,7 +21,7 @@ export type CreateModuleInput = {
   label: string;
   labelSingular: string;
   icon?: string;
-  fields: { fieldName: string; fieldType: string }[];
+  fields: { fieldName: string; fieldType: string; options?: string[] }[];
 };
 
 export const createModule = async (input: CreateModuleInput) => {

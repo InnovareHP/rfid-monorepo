@@ -1,5 +1,6 @@
 import { toSlug } from "@dashboard/shared";
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { isSelectType } from "../../lib/helper";
 import { prisma } from "../../lib/prisma/prisma";
 import { CreateModuleDto } from "./dto/module.dto";
 
@@ -78,6 +79,14 @@ export class ModuleService {
             fieldType: field.fieldType,
             fieldOrder: index + 1,
             organizationId,
+            options: {
+              create: (isSelectType(field.fieldType) ? (field.options ?? []) : [])
+                .map((optionName, optionIndex) => ({
+                  optionName,
+                  optionOrder: optionIndex + 1,
+                  organizationId,
+                })),
+            },
           })),
         },
       },
