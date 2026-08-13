@@ -58,11 +58,24 @@ export const MarketingSendersPage = () => {
 
   const deleteMutation = useMutation({
     mutationFn: (sender: SenderIdentity) => deleteSender(sender.id),
-    onSuccess: () => {
+    onMutate: async (sender: SenderIdentity) => {
+      await queryClient.cancelQueries({ queryKey: SENDERS_KEY });
+      const previous = queryClient.getQueryData<SenderIdentity[]>(SENDERS_KEY);
+
+      queryClient.setQueryData<SenderIdentity[]>(SENDERS_KEY, (current = []) =>
+        current.filter((row) => row.id !== sender.id)
+      );
+
+      return { previous };
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SENDERS_KEY });
+    },
+    onSuccess: () => {
       toast.success("Sender removed");
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, _sender, context) => {
+      queryClient.setQueryData(SENDERS_KEY, context?.previous);
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message ?? "Failed to remove sender";

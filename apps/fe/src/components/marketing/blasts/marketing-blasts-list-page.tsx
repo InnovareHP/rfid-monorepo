@@ -49,11 +49,27 @@ export const MarketingBlastsListPage = () => {
 
   const deleteMutation = useMutation({
     mutationFn: (blast: MarketingBlast) => deleteBlast(blast.id),
-    onSuccess: () => {
-      toast.success("Blast deleted");
+    onMutate: async (blast: MarketingBlast) => {
+      await queryClient.cancelQueries({ queryKey: ["marketing-blasts"] });
+      const previous = queryClient.getQueryData<MarketingBlast[]>([
+        "marketing-blasts",
+      ]);
+
+      queryClient.setQueryData<MarketingBlast[]>(
+        ["marketing-blasts"],
+        (current = []) => current.filter((row) => row.id !== blast.id)
+      );
+
+      return { previous };
+    },
+    onError: (_error, _blast, context) => {
+      queryClient.setQueryData(["marketing-blasts"], context?.previous);
+      toast.error("Failed to delete blast");
+    },
+    onSuccess: () => toast.success("Blast deleted"),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["marketing-blasts"] });
     },
-    onError: () => toast.error("Failed to delete blast"),
   });
 
   const filtered = useMemo(() => {

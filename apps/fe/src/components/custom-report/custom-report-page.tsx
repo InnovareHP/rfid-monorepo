@@ -9,6 +9,7 @@ import {
   getReports,
   runReport,
   type ReportRun,
+  type SavedReport,
 } from "@/services/report/report-service";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,12 +42,30 @@ export default function CustomReportPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteReport,
-    onSuccess: (_result, id) => {
-      toast.success("Report deleted");
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: REPORTS_KEY });
+      const previous = queryClient.getQueryData<SavedReport[]>(REPORTS_KEY);
+
+      queryClient.setQueryData<SavedReport[]>(REPORTS_KEY, (current = []) =>
+        current.filter((report) => report.id !== id)
+      );
+
+      // The run view belongs to the row being removed, so it closes with it and
+      // comes back if the delete fails.
+      const previousActiveId = activeId;
       if (activeId === id) setActiveId(null);
+
+      return { previous, previousActiveId };
+    },
+    onError: (_error, _id, context) => {
+      queryClient.setQueryData(REPORTS_KEY, context?.previous);
+      setActiveId(context?.previousActiveId ?? null);
+      toast.error("Failed to delete report");
+    },
+    onSuccess: () => toast.success("Report deleted"),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: REPORTS_KEY });
     },
-    onError: () => toast.error("Failed to delete report"),
   });
 
   const columns: ReportColumn<Row>[] = [
