@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { BoardFieldType, ModuleType, PageStatus, Prisma } from "@prisma/client";
+import { resolveModuleId } from "../../../lib/module/system-modules";
 import { prisma } from "../../../lib/prisma/prisma";
 import { AuditService } from "../../../lib/audit/audit.service";
 import { BoardService } from "../../board/board.service";
@@ -49,7 +50,7 @@ export class FormService {
     const fields = await prisma.field.findMany({
       where: {
         organizationId,
-        moduleType: form.moduleType,
+        moduleId: form.moduleId,
         isDeleted: false,
       },
       orderBy: { fieldOrder: "asc" },
@@ -95,7 +96,10 @@ export class FormService {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
-        ...(dto.moduleType !== undefined && { moduleType: dto.moduleType }),
+        ...(dto.moduleType !== undefined && {
+          moduleType: dto.moduleType,
+          moduleId: await resolveModuleId(dto.moduleType),
+        }),
         ...(dto.fieldMappings !== undefined && {
           fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
         }),
@@ -344,13 +348,16 @@ export class FormService {
     userId: string,
     slug: string
   ) {
+    const moduleType = (dto.moduleType ?? ModuleType.LEAD) as ModuleType;
+
     return prisma.form.create({
       data: {
         name: dto.name,
         slug,
         organizationId,
         campaignId: dto.campaignId ?? null,
-        moduleType: (dto.moduleType ?? ModuleType.LEAD) as ModuleType,
+        moduleType,
+        moduleId: await resolveModuleId(moduleType),
         fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
         submitButtonText: dto.submitButtonText ?? "Submit",
         redirectUrl: dto.redirectUrl ?? null,

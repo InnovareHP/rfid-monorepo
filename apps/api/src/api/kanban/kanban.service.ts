@@ -3,8 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { ModuleType, Prisma, StageType } from "@prisma/client";
+import { Prisma, StageType } from "@prisma/client";
 import { prisma } from "../../lib/prisma/prisma";
+import { resolveModuleId } from "../../lib/module/system-modules";
 import { UpdateKanbanStagesDto } from "./dto/kanban.schema";
 
 type KanbanRange = { from?: string; to?: string };
@@ -26,7 +27,7 @@ export class KanbanService {
         orderBy: [{ optionOrder: "asc" }, { optionName: "asc" }],
       }),
       prisma.board.findMany({
-        where: this.boardWhere(organizationId, moduleType, range),
+        where: await this.boardWhere(organizationId, moduleType, range),
         select: {
           id: true,
           values: {
@@ -115,7 +116,7 @@ export class KanbanService {
     }
 
     const boards = await prisma.board.findMany({
-      where: this.boardWhere(organizationId, moduleType, range),
+      where: await this.boardWhere(organizationId, moduleType, range),
       select: {
         id: true,
         createdAt: true,
@@ -205,7 +206,7 @@ export class KanbanService {
         id: { in: stages.map((s) => s.optionId) },
         field: {
           organizationId,
-          moduleType: moduleType as ModuleType,
+          moduleId: await resolveModuleId(moduleType),
           isDeleted: false,
         },
       },
@@ -240,7 +241,7 @@ export class KanbanService {
     return prisma.field.findFirst({
       where: {
         organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: await resolveModuleId(moduleType),
         isDeleted: false,
         fieldType: "STATUS",
       },
@@ -252,19 +253,21 @@ export class KanbanService {
   private async resolveStageField(organizationId: string, moduleType: string) {
     const stageField = await this.findStageField(organizationId, moduleType);
     if (!stageField) {
-      throw new NotFoundException("This module has no status field to group by");
+      throw new NotFoundException(
+        "This module has no status field to group by"
+      );
     }
     return stageField;
   }
 
-  private boardWhere(
+  private async boardWhere(
     organizationId: string,
     moduleType: string,
     range: KanbanRange
-  ): Prisma.BoardWhereInput {
+  ): Promise<Prisma.BoardWhereInput> {
     return {
       organizationId,
-      moduleType: moduleType as ModuleType,
+      moduleId: await resolveModuleId(moduleType),
       isDeleted: false,
       ...((range.from || range.to) && {
         createdAt: {

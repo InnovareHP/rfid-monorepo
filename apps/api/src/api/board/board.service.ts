@@ -1,8 +1,5 @@
 import { GeocodeCommand } from "@aws-sdk/client-geo-places";
-import {
-  BOARD_NOTIFICATION_EVENT,
-  formatPhoneNumber,
-} from "@dashboard/shared";
+import { BOARD_NOTIFICATION_EVENT, formatPhoneNumber } from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
@@ -24,6 +21,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { geoPlaces } from "../../lib/geo/geo-places";
+import { resolveModuleId } from "../../lib/module/system-modules";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
@@ -105,6 +103,9 @@ export class BoardService {
       sortBy,
       sortOrder = "asc",
     } = filters;
+    const scopedModuleId = moduleType
+      ? await resolveModuleId(moduleType)
+      : undefined;
 
     const cachedData = await getData(
       `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:${boardDateFrom}:${boardDateTo}:${page}:${limit}:${search}:${sortBy}:${sortOrder}:${JSON.stringify(filter)}`
@@ -119,7 +120,7 @@ export class BoardService {
     const where: Prisma.BoardWhereInput = {
       organizationId: organizationId,
       isDeleted: false,
-      moduleType: moduleType as ModuleType,
+      moduleId: scopedModuleId,
     };
 
     if (boardDateFrom || boardDateTo) {
@@ -154,7 +155,7 @@ export class BoardService {
       prisma.field.findMany({
         where: {
           organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
           isDeleted: false,
         },
         orderBy: { fieldOrder: "asc" },
@@ -305,6 +306,7 @@ export class BoardService {
   }
 
   async getBoardStats(organizationId: string, moduleType: string) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const cacheKey = `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:stats`;
     const cachedStats = await getData(cacheKey);
 
@@ -320,13 +322,13 @@ export class BoardService {
     const recordWhere: Prisma.BoardWhereInput = {
       organizationId,
       isDeleted: false,
-      moduleType: moduleType as ModuleType,
+      moduleId: scopedModuleId,
     };
 
     const countyField = await prisma.field.findFirst({
       where: {
         organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
         fieldName: "County",
       },
@@ -400,11 +402,12 @@ export class BoardService {
     page: number,
     limit: number
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const offset = (page - 1) * Number(limit);
     const records = await prisma.board.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       select: {
@@ -441,6 +444,7 @@ export class BoardService {
             id: true,
             recordName: true,
             moduleType: true,
+            module: { select: { key: true } },
             isDeleted: true,
             organizationId: true,
           },
@@ -450,6 +454,7 @@ export class BoardService {
             id: true,
             recordName: true,
             moduleType: true,
+            module: { select: { key: true } },
             isDeleted: true,
             organizationId: true,
           },
@@ -474,7 +479,7 @@ export class BoardService {
       related.push({
         id: counterpart.id,
         recordName: counterpart.recordName,
-        moduleType: counterpart.moduleType,
+        moduleType: counterpart.module?.key ?? counterpart.moduleType,
         relationType: r.relationType,
       });
     }
@@ -492,13 +497,14 @@ export class BoardService {
       userId,
       column,
     } = filters;
+    const scopedModuleId = await resolveModuleId(moduleType);
     const offset = (page - 1) * Number(limit);
 
     // Stats and filter options stay on the unfiltered org scope.
     const scope: Prisma.HistoryWhereInput = {
       record: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
       action: { in: ["create", "delete", "update", "restore"] },
     };
@@ -562,10 +568,11 @@ export class BoardService {
   // Stats and filter options span the whole org scope, so they are fetched
   // separately from the paged rows and only change when the module changes.
   async getRecordHistoryMeta(organizationId: string, moduleType: string) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const scope: Prisma.HistoryWhereInput = {
       record: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
       action: { in: ["create", "delete", "update", "restore"] },
     };
@@ -986,11 +993,12 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const record = await prisma.board.findUniqueOrThrow({
       where: {
         id: recordId,
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
       select: {
         id: true,
@@ -1017,7 +1025,7 @@ export class BoardService {
       orderBy: { fieldOrder: "asc" },
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
     });
@@ -1079,10 +1087,11 @@ export class BoardService {
   }
 
   async getColumns(organizationId: string, moduleType: string) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const columns = await prisma.field.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       select: {
@@ -1224,6 +1233,7 @@ export class BoardService {
     reason?: string,
     previousValue?: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     try {
       let changedField: {
         id: string;
@@ -1275,7 +1285,7 @@ export class BoardService {
             id: fieldId,
             organizationId: organizationId,
             isDeleted: false,
-            moduleType: moduleType as ModuleType,
+            moduleId: scopedModuleId,
           },
           select: {
             fieldType: true,
@@ -1914,6 +1924,7 @@ export class BoardService {
       field,
       memberId,
     } = ctx;
+    const scopedModuleId = await resolveModuleId(moduleType);
 
     if (field.fieldType === BoardFieldType.STATUS) {
       const statusFields = await tx.field.findMany({
@@ -1923,7 +1934,7 @@ export class BoardService {
           },
           isDeleted: false,
           organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
         },
         select: { id: true, fieldName: true },
       });
@@ -2094,10 +2105,11 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const fields = await prisma.field.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       orderBy: { fieldOrder: "asc" },
@@ -2173,19 +2185,21 @@ export class BoardService {
       initialValues,
       personContact,
     } = params;
+    const scopedModuleId = await resolveModuleId(moduleType);
 
     const board = await tx.board.create({
       data: {
         recordName: recordName ?? "",
         organizationId: organizationId,
         moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
     });
 
     const fields = await tx.field.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
     });
@@ -2297,11 +2311,12 @@ export class BoardService {
     memberId: string,
     moduleType: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const result = await prisma.$transaction(async (tx) => {
       const fields = await tx.field.findMany({
         where: {
           organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
           isDeleted: false,
         },
         orderBy: { fieldOrder: "asc" },
@@ -2347,6 +2362,7 @@ export class BoardService {
           data: {
             recordName: referralData.referral_name ?? "",
             moduleType: moduleType as ModuleType,
+            moduleId: scopedModuleId,
             organizationId: organizationId,
           },
         });
@@ -2562,6 +2578,7 @@ export class BoardService {
     userId: string,
     moduleType: string = "LEAD"
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const history = await prisma.history.findUniqueOrThrow({
       where: { id: history_id },
       select: {
@@ -2591,7 +2608,7 @@ export class BoardService {
             : { fieldName: history.column ?? "" }),
           organizationId: organizationId,
           isDeleted: false,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
         },
       });
 
@@ -2694,7 +2711,7 @@ export class BoardService {
       }),
       prisma.board.findUnique({
         where: { id: recordId },
-        select: { moduleType: true },
+        select: { moduleType: true, module: { select: { key: true } } },
       }),
     ]);
 
@@ -2703,7 +2720,7 @@ export class BoardService {
     this.boardGateway.emitRecordNotificationState(
       organizationId,
       recordId,
-      record?.moduleType ?? "LEAD"
+      record?.module?.key ?? record?.moduleType ?? "LEAD"
     );
 
     return {
@@ -2718,10 +2735,11 @@ export class BoardService {
     moduleType: string,
     organizationId: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const lastColumn = await prisma.field.findFirst({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       orderBy: { fieldOrder: "desc" },
@@ -2736,6 +2754,7 @@ export class BoardService {
         fieldOrder: newOrder,
         organizationId: organizationId,
         moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
     });
 
@@ -3316,7 +3335,7 @@ export class BoardService {
 
     const record = await prisma.board.findFirstOrThrow({
       where: { id: recordId, organizationId: organizationId },
-      select: { moduleType: true },
+      select: { moduleType: true, module: { select: { key: true } } },
     });
 
     const activity = await prisma.activity.create({
@@ -3351,11 +3370,10 @@ export class BoardService {
     await this.boardNotify.notifyRecord({
       recordId,
       organizationId,
-      moduleType: record.moduleType,
+      moduleType: record.module?.key ?? record.moduleType,
       actorUserId: userId,
       event: BOARD_NOTIFICATION_EVENT.ACTIVITY_LOGGED,
-      title: (recordName) =>
-        `${activity.activityType} logged on ${recordName}`,
+      title: (recordName) => `${activity.activityType} logged on ${recordName}`,
       body: activity.title,
     });
 
@@ -3400,7 +3418,7 @@ export class BoardService {
   ) {
     const record = await prisma.board.findFirstOrThrow({
       where: { id: data.recordId, organizationId: organizationId },
-      select: { moduleType: true },
+      select: { moduleType: true, module: { select: { key: true } } },
     });
 
     // Fax is sent immediately — the document is never stored, only the trail
@@ -3444,7 +3462,7 @@ export class BoardService {
     await this.boardNotify.notifyRecord({
       recordId: data.recordId,
       organizationId,
-      moduleType: record.moduleType,
+      moduleType: record.module?.key ?? record.moduleType,
       actorUserId: userId,
       event: BOARD_NOTIFICATION_EVENT.FAX_SENT,
       title: (recordName) => `Fax sent for ${recordName}`,
@@ -3487,7 +3505,13 @@ export class BoardService {
     const activity = await prisma.activity.findFirstOrThrow({
       where: { id: activityId, organizationId: organizationId },
       include: {
-        record: { select: { recordName: true, moduleType: true } },
+        record: {
+          select: {
+            recordName: true,
+            moduleType: true,
+            module: { select: { key: true } },
+          },
+        },
         creator: { select: { name: true, email: true } },
       },
     });
@@ -3553,7 +3577,7 @@ export class BoardService {
     await this.boardNotify.notifyRecord({
       recordId: activity.recordId,
       organizationId,
-      moduleType: activity.record.moduleType,
+      moduleType: activity.record.module?.key ?? activity.record.moduleType,
       actorUserId: userId,
       event: BOARD_NOTIFICATION_EVENT.ACTIVITY_COMPLETED,
       title: (recordName) => `Activity completed on ${recordName}`,
@@ -3634,6 +3658,7 @@ export class BoardService {
     phone?: string,
     excludeRecordId?: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     if (!email && !phone) {
       return { duplicates: [] };
     }
@@ -3641,7 +3666,7 @@ export class BoardService {
     const fields = await prisma.field.findMany({
       where: {
         organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
         fieldType: { in: [BoardFieldType.EMAIL, BoardFieldType.PHONE] },
       },

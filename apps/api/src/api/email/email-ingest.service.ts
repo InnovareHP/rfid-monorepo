@@ -218,14 +218,14 @@ export class EmailIngestService {
 
     const record = await prisma.board.findFirst({
       where: { id: recordId, organizationId },
-      select: { moduleType: true },
+      select: { moduleType: true, module: { select: { key: true } } },
     });
 
     if (record) {
       await this.boardNotify.notifyRecord({
         recordId,
         organizationId,
-        moduleType: record.moduleType,
+        moduleType: record.module?.key ?? record.moduleType,
         event: BOARD_NOTIFICATION_EVENT.EMAIL_RECEIVED,
         title: (recordName) => `Reply received from ${recordName}`,
       });

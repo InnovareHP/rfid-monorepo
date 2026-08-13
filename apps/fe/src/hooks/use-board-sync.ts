@@ -16,8 +16,13 @@ const MODULE_QUERY_KEYS: Record<string, string> = {
   COMPANY: "companies",
 };
 
+// An unknown module gets the generic key rather than the lead one, so a module
+// this map does not cover misses a live patch instead of corrupting the leads
+// table. The map goes away when routes move to /records/$moduleKey.
 function getQueryKey(moduleType?: string): string[] {
-  return [MODULE_QUERY_KEYS[moduleType ?? "LEAD"] ?? "leads"];
+  const known = MODULE_QUERY_KEYS[moduleType ?? "LEAD"];
+
+  return known ? [known] : ["records", moduleType ?? ""];
 }
 
 export function useBoardSync() {

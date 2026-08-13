@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { AudienceType, ModuleType, Prisma } from "@prisma/client";
 import { emailIndex } from "../../../lib/crypto/email-index";
+import { resolveModuleId } from "../../../lib/module/system-modules";
 import { prisma } from "../../../lib/prisma/prisma";
 import { SubscriberService } from "../subscriber/subscriber.service";
 import {
@@ -50,7 +51,10 @@ export class GroupService {
   async getGroup(id: string, organizationId: string) {
     const group = await prisma.recipientGroup.findFirst({
       where: { id, organizationId },
-      include: { _count: { select: { blasts: true } } },
+      include: {
+        _count: { select: { blasts: true } },
+        module: { select: { key: true } },
+      },
     });
 
     if (!group) throw new NotFoundException("Group not found");
@@ -63,11 +67,14 @@ export class GroupService {
     organizationId: string,
     userId: string
   ) {
+    const moduleType = dto.moduleType ?? ModuleType.LEAD;
+
     return prisma.recipientGroup.create({
       data: {
         name: dto.name,
         description: dto.description ?? null,
-        moduleType: dto.moduleType ?? ModuleType.LEAD,
+        moduleType,
+        moduleId: await resolveModuleId(moduleType),
         audienceType: dto.audienceType ?? AudienceType.BOARD,
         filter: dto.filter as Prisma.InputJsonValue,
         organizationId,
@@ -84,7 +91,10 @@ export class GroupService {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.moduleType !== undefined && { moduleType: dto.moduleType }),
+        ...(dto.moduleType !== undefined && {
+          moduleType: dto.moduleType,
+          moduleId: await resolveModuleId(dto.moduleType),
+        }),
         ...(dto.audienceType !== undefined && {
           audienceType: dto.audienceType,
         }),
@@ -112,14 +122,16 @@ export class GroupService {
 
   async resolveAudience(
     organizationId: string,
-    moduleType: ModuleType,
+    moduleType: string,
     audienceFilter: AudienceFilter
   ) {
     const { filter, search, boardDateFrom, boardDateTo } = audienceFilter;
 
+    const moduleId = await resolveModuleId(moduleType);
+
     const where: Prisma.BoardWhereInput = {
       organizationId,
-      moduleType,
+      moduleId,
       isDeleted: false,
     };
 
@@ -143,7 +155,7 @@ export class GroupService {
         },
       }),
       prisma.field.findMany({
-        where: { organizationId, moduleType, isDeleted: false },
+        where: { organizationId, moduleId, isDeleted: false },
       }),
     ]);
 
@@ -160,7 +172,7 @@ export class GroupService {
   // will be skipped rather than quietly dropping them.
   async resolveMembers(
     organizationId: string,
-    moduleType: ModuleType,
+    moduleType: string,
     audienceFilter: AudienceFilter
   ): Promise<GroupMember[]> {
     const [boards, emailField] = await Promise.all([
@@ -168,7 +180,7 @@ export class GroupService {
       prisma.field.findFirst({
         where: {
           organizationId,
-          moduleType,
+          moduleId: await resolveModuleId(moduleType),
           fieldType: "EMAIL",
           isDeleted: false,
         },
@@ -205,7 +217,7 @@ export class GroupService {
 
   async previewMembers(
     organizationId: string,
-    moduleType: ModuleType,
+    moduleType: string,
     audienceFilter: AudienceFilter,
     page: number,
     limit: number,
@@ -235,7 +247,7 @@ export class GroupService {
 
     return this.previewMembers(
       organizationId,
-      group.moduleType,
+      group.module?.key ?? group.moduleType,
       group.filter as unknown as AudienceFilter,
       page,
       limit,
@@ -251,6 +263,7 @@ export class GroupService {
   ): Promise<GroupMember[]> {
     const groups = await prisma.recipientGroup.findMany({
       where: { id: { in: groupIds }, organizationId },
+      include: { module: { select: { key: true } } },
     });
 
     if (groups.length !== groupIds.length) {
@@ -267,7 +280,7 @@ export class GroupService {
           ? await this.resolveSubscriberMembers(organizationId)
           : await this.resolveMembers(
               organizationId,
-              group.moduleType,
+              group.module?.key ?? group.moduleType,
               group.filter as unknown as AudienceFilter
             );
       for (const member of members) byMember.set(memberKey(member), member);

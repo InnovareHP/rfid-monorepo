@@ -1,9 +1,9 @@
 import { BOARD_NOTIFICATION_EVENT } from "@dashboard/shared";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import { ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
 import { prisma } from "src/lib/prisma/prisma";
+import { resolveModuleId } from "src/lib/module/system-modules";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { LiaisonActivityService } from "../liaison/liaison-activity.service";
@@ -54,10 +54,12 @@ export class BulkEmailProcessor extends WorkerHost {
       `Processing bulk email job ${job.id} — ${recordIds.length} records`
     );
 
+    const scopedModuleId = await resolveModuleId(moduleType);
+
     const emailField = await prisma.field.findFirst({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         fieldType: "EMAIL",
       },
       select: { id: true },
@@ -71,7 +73,7 @@ export class BulkEmailProcessor extends WorkerHost {
       where: {
         id: { in: recordIds },
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       select: {

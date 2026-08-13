@@ -37,6 +37,7 @@ import {
 } from "@dashboard/ui/components/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useModules } from "@/hooks/use-modules";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { FileText, Loader2, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -46,11 +47,9 @@ import { z } from "zod";
 
 const FORMS_KEY = ["marketing-forms"];
 
-const MODULE_TYPES = ["LEAD", "REFERRAL", "CONTACT", "COMPANY"] as const;
-
 const createFormSchema = z.object({
   name: z.string().trim().min(1, "Form name is required"),
-  moduleType: z.enum(MODULE_TYPES),
+  moduleType: z.string().min(1, "Board is required"),
   fieldIds: z.array(z.string()).min(1, "Select at least one field"),
 });
 
@@ -71,6 +70,8 @@ export const MarketingFormsListPage = () => {
     queryKey: FORMS_KEY,
     queryFn: getForms,
   });
+
+  const { data: modules = [] } = useModules();
 
   const form = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
@@ -288,9 +289,9 @@ export const MarketingFormsListPage = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {MODULE_TYPES.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
+                          {modules.map((module) => (
+                            <SelectItem key={module.id} value={module.key}>
+                              {module.label}
                             </SelectItem>
                           ))}
                         </SelectContent>

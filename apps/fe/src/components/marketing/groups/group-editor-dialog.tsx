@@ -34,10 +34,9 @@ import { Loader2, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useModules } from "@/hooks/use-modules";
 import { GroupAudienceFilter } from "./group-audience-filter";
 import { GroupMembersTable } from "./group-members-table";
-
-const MODULE_TYPES = ["LEAD", "REFERRAL", "CONTACT", "COMPANY"] as const;
 
 const AUDIENCE_TYPES = [
   { value: "BOARD", label: "CRM records" },
@@ -79,6 +78,8 @@ export function GroupEditorDialog({
   onOpenChange,
 }: GroupEditorDialogProps) {
   const queryClient = useQueryClient();
+
+  const { data: modules = [] } = useModules();
 
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupFormSchema),
@@ -234,9 +235,9 @@ export function GroupEditorDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {MODULE_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
+                        {modules.map((module) => (
+                          <SelectItem key={module.id} value={module.key}>
+                            {module.label}
                           </SelectItem>
                         ))}
                       </SelectContent>

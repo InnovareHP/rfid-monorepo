@@ -8,6 +8,7 @@ import { Logger } from "@nestjs/common";
 import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
 import { isSelectType } from "src/lib/helper";
+import { resolveModuleId } from "src/lib/module/system-modules";
 import { prisma } from "src/lib/prisma/prisma";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
@@ -54,10 +55,12 @@ export class CsvImportProcessor extends WorkerHost {
       `Processing CSV import job ${job.id} — ${excelData.length} rows`
     );
 
+    const moduleId = await resolveModuleId(moduleType);
+
     const fields = (await prisma.field.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: moduleId,
       },
       include: { options: true },
     })) as (Field & { options: FieldOption[] })[];
@@ -71,6 +74,7 @@ export class CsvImportProcessor extends WorkerHost {
       recordName: string;
       organizationId: string;
       moduleType: ModuleType;
+      moduleId: string;
     }[] = [];
 
     const recordValueBuffer: {
@@ -88,6 +92,7 @@ export class CsvImportProcessor extends WorkerHost {
         recordName: recordName,
         organizationId: organizationId,
         moduleType: moduleType as ModuleType,
+        moduleId: moduleId,
       });
 
       for (const [csvFieldName, rawValue] of Object.entries(row)) {
