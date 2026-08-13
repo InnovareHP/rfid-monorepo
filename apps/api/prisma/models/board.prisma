@@ -1,3 +1,31 @@
+// The record types an organization has. The four seeded isSystem rows replace
+// what the ModuleType enum used to express, so a new type costs a row, not a
+// migration. Deleting the enum itself is a later phase.
+model Module {
+  id            String   @id @default(uuid())
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  key           String
+  label         String
+  labelSingular String
+  icon          String?
+  isSystem      Boolean  @default(false)
+  isArchived    Boolean  @default(false)
+  moduleOrder   Int      @default(0)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  fields          Field[]
+  records         Board[]
+  recipientGroups RecipientGroup[]
+  forms           Form[]
+
+  @@unique([organizationId, key])
+  @@index([organizationId, isArchived, moduleOrder])
+  @@schema("board_schema")
+}
+
 model Field {
   id         String         @id @default(uuid())
   createdAt  DateTime       @default(now()) @db.Timestamptz(3)
@@ -6,16 +34,19 @@ model Field {
   fieldOrder Int
   fieldType  BoardFieldType
   moduleType ModuleType     @default(LEAD)
+  moduleId   String?
   isDeleted  Boolean        @default(false)
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module         Module?      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   options FieldOption[]
   values  FieldValue[]
   history History[]
 
   @@index([organizationId, moduleType, isDeleted, fieldOrder])
+  @@index([moduleId, isDeleted, fieldOrder])
   @@schema("board_schema")
 }
 
@@ -27,10 +58,12 @@ model Board {
   assignedTo String?
   isDeleted  Boolean    @default(false)
   moduleType ModuleType @default(LEAD)
+  moduleId   String?
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   assignedUser   User?        @relation(fields: [assignedTo], references: [id])
+  module         Module?      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   values            FieldValue[]
   history           History[]
@@ -45,6 +78,7 @@ model Board {
 
   @@index([organizationId, recordName])
   @@index([organizationId, moduleType, isDeleted, createdAt])
+  @@index([moduleId, isDeleted, createdAt])
   @@index([assignedTo])
   @@schema("board_schema")
 }

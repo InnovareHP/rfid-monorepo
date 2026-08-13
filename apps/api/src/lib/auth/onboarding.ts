@@ -4,6 +4,10 @@ import {
   StageType,
   TaskStatusCategory,
 } from "@prisma/client";
+import {
+  resolveModuleId,
+  seedSystemModules,
+} from "src/lib/module/system-modules";
 import { prisma } from "src/lib/prisma/prisma";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 
@@ -138,16 +142,37 @@ export const OnboardingSeeding = async (organizationId: string) =>
 const seedOrganization = async (organizationId: string) => {
   console.log("🌱 Seeding start");
 
+  await seedSystemModules(organizationId);
+
+  const [leadModuleId, referralModuleId, contactModuleId, companyModuleId] =
+    await Promise.all([
+      resolveModuleId("LEAD"),
+      resolveModuleId("REFERRAL"),
+      resolveModuleId("CONTACT"),
+      resolveModuleId("COMPANY"),
+    ]);
+
   //
   // ✅ Seed referral records
   //
   await prisma.board.createMany({
     data: [
-      { recordName: "John Doe", moduleType: "REFERRAL", organizationId },
-      { recordName: "Jane Smith", moduleType: "REFERRAL", organizationId },
+      {
+        recordName: "John Doe",
+        moduleType: "REFERRAL",
+        moduleId: referralModuleId,
+        organizationId,
+      },
+      {
+        recordName: "Jane Smith",
+        moduleType: "REFERRAL",
+        moduleId: referralModuleId,
+        organizationId,
+      },
       {
         recordName: "Alice Johnson",
         moduleType: "REFERRAL",
+        moduleId: referralModuleId,
         organizationId,
       },
     ],
@@ -186,6 +211,7 @@ const seedOrganization = async (organizationId: string) => {
     fieldOrder: index + 1,
     organizationId,
     moduleType: "REFERRAL",
+    moduleId: referralModuleId,
   }));
 
   await prisma.field.createMany({
@@ -398,6 +424,7 @@ const seedOrganization = async (organizationId: string) => {
     fieldOrder: order,
     organizationId,
     moduleType: "LEAD",
+    moduleId: leadModuleId,
   }));
 
   await prisma.field.createMany({
@@ -415,14 +442,21 @@ const seedOrganization = async (organizationId: string) => {
       {
         recordName: "Sunrise Care Facility",
         moduleType: "LEAD",
+        moduleId: leadModuleId,
         organizationId,
       },
       {
         recordName: "Lakeside Health Center",
         moduleType: "LEAD",
+        moduleId: leadModuleId,
         organizationId,
       },
-      { recordName: "Maple Grove Nursing", moduleType: "LEAD", organizationId },
+      {
+        recordName: "Maple Grove Nursing",
+        moduleType: "LEAD",
+        moduleId: leadModuleId,
+        organizationId,
+      },
     ],
     skipDuplicates: true,
   });
@@ -536,6 +570,7 @@ const seedOrganization = async (organizationId: string) => {
     fieldOrder: index + 1,
     organizationId,
     moduleType: "CONTACT",
+    moduleId: contactModuleId,
   }));
 
   const companyFields = [
@@ -551,6 +586,7 @@ const seedOrganization = async (organizationId: string) => {
     fieldOrder: index + 1,
     organizationId,
     moduleType: "COMPANY",
+    moduleId: companyModuleId,
   }));
 
   await prisma.field.createMany({
@@ -610,16 +646,19 @@ const seedOrganization = async (organizationId: string) => {
       ...personSamples.map((name) => ({
         recordName: name,
         moduleType: "CONTACT" as const,
+        moduleId: contactModuleId,
         organizationId,
       })),
       {
         recordName: "CarePoint Group",
         moduleType: "COMPANY" as const,
+        moduleId: companyModuleId,
         organizationId,
       },
       {
         recordName: "Harbor Health Partners",
         moduleType: "COMPANY" as const,
+        moduleId: companyModuleId,
         organizationId,
       },
     ],

@@ -177,11 +177,13 @@ model RecipientGroup {
   name         String
   description  String?
   moduleType   ModuleType   @default(LEAD)
+  moduleId     String?
   audienceType AudienceType @default(BOARD)
   filter       Json
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module         Module?      @relation(fields: [moduleId], references: [id], onDelete: Restrict)
 
   createdBy String?
   creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
@@ -280,12 +282,14 @@ model Form {
   slug             String     @unique
   status           PageStatus @default(DRAFT)
   moduleType       ModuleType @default(LEAD)
+  moduleId         String?
   fieldMappings    Json
   submitButtonText String     @default("Submit")
   redirectUrl      String?
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module         Module?      @relation(fields: [moduleId], references: [id], onDelete: Restrict)
 
   campaignId String?
   campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)

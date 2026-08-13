@@ -136,6 +136,7 @@ model Organization {
   invitations     Invitation[]
   members         Member[]
   agreements      ContractAgreement[]
+  modules         Module[]
   Board           Board[]
   Field           Field[]
   BoardCounty     BoardCounty[]
