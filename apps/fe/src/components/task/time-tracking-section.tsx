@@ -6,6 +6,7 @@ import { Button } from "@dashboard/ui/components/button";
 import { Input } from "@dashboard/ui/components/input";
 import { Pause, Play, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { TaskSection } from "./task-section";
 
 type TimeTrackingSectionProps = {
   task: TaskDto;
@@ -43,10 +44,33 @@ export const TimeTrackingSection = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-900">Time Tracking</h4>
-        <span className="text-xs text-gray-500">
+    <TaskSection title="Time Tracking">
+      <div className="flex flex-wrap items-center gap-3">
+        {isRunningHere ? (
+          <Button variant="destructive" onClick={onStopTimer} disabled={disabled}>
+            <Pause className="size-4" />
+            Stop Timer
+          </Button>
+        ) : (
+          <Button
+            onClick={onStartTimer}
+            disabled={disabled || isRunningElsewhere}
+          >
+            <Play className="size-4" />
+            Start Timer
+          </Button>
+        )}
+        {isRunningHere && runningTimer && (
+          <span className="text-xs text-success">
+            Running since {formatDateTime(runningTimer.startedAt)}
+          </span>
+        )}
+        {isRunningElsewhere && runningTimer && (
+          <span className="text-xs text-warning">
+            Timer running on #{runningTimer.taskNumber}
+          </span>
+        )}
+        <span className="ml-auto text-sm text-muted-foreground">
           {formatMinutes(task.trackedMinutes)} tracked
           {task.estimatedMinutes
             ? ` of ${formatMinutes(task.estimatedMinutes)} estimated`
@@ -54,61 +78,27 @@ export const TimeTrackingSection = ({
         </span>
       </div>
 
-      <div className="flex items-center gap-2">
-        {isRunningHere ? (
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={onStopTimer}
-            disabled={disabled}
-          >
-            <Pause className="h-4 w-4 mr-1" />
-            Stop Timer
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            onClick={onStartTimer}
-            disabled={disabled || isRunningElsewhere}
-          >
-            <Play className="h-4 w-4 mr-1" />
-            Start Timer
-          </Button>
-        )}
-        {isRunningHere && runningTimer && (
-          <span className="text-xs text-green-600">
-            Running since {formatDateTime(runningTimer.startedAt)}
-          </span>
-        )}
-        {isRunningElsewhere && runningTimer && (
-          <span className="text-xs text-amber-600">
-            Timer running on #{runningTimer.taskNumber}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Input
           type="number"
           min={1}
           value={minutes}
           onChange={(event) => setMinutes(event.target.value)}
           placeholder="Minutes"
-          className="h-8 w-24"
+          className="w-36"
         />
         <Input
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          placeholder="Note (optional)"
-          className="h-8 flex-1"
+          placeholder="Note (Optional)"
+          className="flex-1"
         />
         <Button
           variant="outline"
-          size="sm"
           onClick={handleAddManual}
           disabled={disabled || !minutes}
         >
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus className="size-4" />
           Log
         </Button>
       </div>
@@ -118,35 +108,35 @@ export const TimeTrackingSection = ({
           {entries.map((entry) => (
             <div
               key={entry.id}
-              className="flex items-center gap-2 group py-1 px-1 rounded hover:bg-gray-50 text-sm"
+              className="group flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted"
             >
-              <span className="font-medium text-gray-900 w-16 shrink-0">
+              <span className="w-16 shrink-0 font-medium text-foreground">
                 {entry.durationMinutes
                   ? formatMinutes(entry.durationMinutes)
                   : "Running"}
               </span>
-              <span className="text-gray-500 text-xs flex-1 truncate">
+              <span className="flex-1 truncate text-xs text-muted-foreground">
                 {entry.userName ?? ""}
                 {entry.note ? ` — ${entry.note}` : ""}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 {formatDateTime(entry.startedAt)}
               </span>
               {entry.endedAt && (
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => onDeleteEntry(entry.id)}
-                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600"
+                  className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
                   aria-label="Delete time entry"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="size-3.5" />
                 </Button>
               )}
             </div>
           ))}
         </div>
       )}
-    </div>
+    </TaskSection>
   );
 };

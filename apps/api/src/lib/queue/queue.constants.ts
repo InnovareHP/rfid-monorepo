@@ -6,4 +6,5 @@ export const QUEUE_NAMES = {
   GEMINI: "gemini",
   BLAST_SEND: "blast-send",
   RETENTION: "retention",
+  MONTHLY_REPORT: "monthly-report",
 } as const;

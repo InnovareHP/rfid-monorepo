@@ -7,6 +7,7 @@ import { ApiModule } from "./api/api.module";
 import { appConfigSchema } from "./config/app-config";
 import { TenantContextInterceptor } from "./filter/tenant-context";
 import { AuditModule } from "./lib/audit/audit.module";
+import { MonthlyReportModule } from "./lib/monthly-report/monthly-report.module";
 import { auth } from "./lib/auth/auth";
 import { BullBoardSetupModule } from "./lib/queue/bull-board.module";
 import { QueueModule } from "./lib/queue/queue.module";
@@ -27,6 +28,7 @@ import { QueueModule } from "./lib/queue/queue.module";
     }),
     AuthModule.forRoot({ auth }),
     AuditModule,
+    MonthlyReportModule,
     ApiModule,
   ],
   controllers: [],

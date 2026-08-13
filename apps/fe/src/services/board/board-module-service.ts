@@ -14,12 +14,14 @@ export const getModuleRecords = async (
   return response.data;
 };
 
+export type ModuleColumn = { id: string; name: string; type: string };
+
 export const getModuleColumns = async (moduleType: CrmModuleType) => {
   const response = await axiosClient.get("/api/boards/column", {
     params: { moduleType },
   });
 
-  return response.data;
+  return response.data as ModuleColumn[];
 };
 
 export const createModuleRecords = async (

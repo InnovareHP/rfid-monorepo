@@ -9,7 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@dashboard/ui/components/popover";
-import { Plus, Tag } from "lucide-react";
+import { Plus, Tag, X } from "lucide-react";
 import { useState } from "react";
 
 const LABEL_COLORS = [
@@ -40,6 +40,9 @@ export const LabelPicker = ({
   const labels = labelsQuery.data ?? [];
   const selectedIds = new Set(selected.map((label) => label.id));
 
+  const remove = (labelId: string) =>
+    onChange(selected.filter((label) => label.id !== labelId).map((label) => label.id));
+
   const toggle = (labelId: string) => {
     const next = new Set(selectedIds);
     if (next.has(labelId)) {
@@ -65,33 +68,40 @@ export const LabelPicker = ({
         <Badge
           key={label.id}
           variant="outline"
-          className="text-xs"
+          className="gap-1.5 rounded-full py-1"
           style={{ borderColor: label.color, color: label.color }}
         >
           {label.name}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => remove(label.id)}
+            aria-label={`Remove ${label.name}`}
+          >
+            <X className="size-3" />
+          </button>
         </Badge>
       ))}
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            size="sm"
-            className="h-7"
+            className="border-dashed text-muted-foreground"
             disabled={disabled}
           >
-            <Tag className="h-3.5 w-3.5 mr-1" />
-            Labels
+            <Tag className="size-4" />
+            Add Tag
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 space-y-2" align="start">
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {labels.length === 0 && (
-              <p className="text-xs text-gray-400">No labels yet</p>
+              <p className="text-xs text-muted-foreground">No labels yet</p>
             )}
             {labels.map((label) => (
               <label
                 key={label.id}
-                className="flex items-center gap-2 py-1 px-1 rounded hover:bg-gray-50 cursor-pointer"
+                className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 hover:bg-muted"
               >
                 <Checkbox
                   checked={selectedIds.has(label.id)}
@@ -101,11 +111,11 @@ export const LabelPicker = ({
                   className="h-2.5 w-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: label.color }}
                 />
-                <span className="text-sm text-gray-800">{label.name}</span>
+                <span className="text-sm text-foreground">{label.name}</span>
               </label>
             ))}
           </div>
-          <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2 border-t pt-2">
             <Input
               value={newName}
               onChange={(event) => setNewName(event.target.value)}

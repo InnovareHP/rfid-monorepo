@@ -1,9 +1,11 @@
 import type { TaskAttachmentDto } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
-import { Loader2, Paperclip, Trash2, Upload } from "lucide-react";
+import { Spinner } from "@dashboard/ui/components/spinner";
+import { Paperclip, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "../confirmation-dialog";
+import { TaskSection } from "./task-section";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -39,60 +41,50 @@ export const AttachmentsSection = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-900">Attachments</h4>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4 mr-1" />
-          )}
-          Upload
-        </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </div>
+    <TaskSection title="Attachment/s">
+      <Button
+        variant="outline"
+        disabled={uploading}
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploading ? <Spinner size="sm" /> : <Upload className="size-4" />}
+        Upload
+      </Button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
-      {attachments.length === 0 ? (
-        <p className="text-sm text-gray-400">No attachments</p>
-      ) : (
+      {attachments.length > 0 && (
         <div className="space-y-1">
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-2 group py-1 px-1 rounded hover:bg-gray-50"
+              className="group flex items-center gap-2 rounded px-1 py-1 hover:bg-muted"
             >
-              <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
+              <Paperclip className="size-4 shrink-0 text-muted-foreground" />
               <a
                 href={attachment.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-sm text-primary hover:underline truncate"
+                className="flex-1 truncate text-sm text-primary hover:underline"
               >
                 {attachment.filename}
               </a>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 {(attachment.sizeBytes / 1024).toFixed(0)} KB
               </span>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => setDeletingId(attachment.id)}
-                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600"
+                className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
                 aria-label="Delete attachment"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="size-3.5" />
               </Button>
             </div>
           ))}
@@ -113,6 +105,6 @@ export const AttachmentsSection = ({
           setDeletingId(null);
         }}
       />
-    </div>
+    </TaskSection>
   );
 };

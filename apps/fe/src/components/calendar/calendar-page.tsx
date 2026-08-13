@@ -1,13 +1,25 @@
 import { CalendarSkeleton } from "@/components/booking/booking-skeleton";
 import {
+  CalendarToolbar,
+  type CalendarView,
+} from "@/components/calendar/calendar-toolbar";
+import { PageHeader } from "@/components/page-header";
+import {
   getCalendarConnectionStatus,
   getCalendarEvents,
   type CalendarConnectionStatus,
   type CalendarEvent,
 } from "@/services/calendar/calendar-service";
+import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
+import { Card } from "@dashboard/ui/components/card";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
-import type { DateSelectArg, EventClickArg } from "@fullcalendar/core";
+import type {
+  DateSelectArg,
+  DatesSetArg,
+  DayHeaderContentArg,
+  EventClickArg,
+} from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
@@ -24,6 +36,26 @@ interface RouteContext {
   activeOrganizationId: string;
 }
 
+// Weekday names carry the header typography, so the label is rendered rather
+// than left to FullCalendar's own formatting.
+function renderDayHeader(arg: DayHeaderContentArg) {
+  const isDayView = arg.view.type === "timeGridDay";
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-sm font-bold uppercase tracking-wide text-brand">
+        {arg.date.toLocaleDateString(undefined, {
+          weekday: isDayView ? "long" : "short",
+        })}
+      </span>
+      {arg.view.type === "timeGridWeek" && (
+        <span className="text-xs font-medium text-muted-foreground">
+          {arg.date.getMonth() + 1}/{arg.date.getDate()}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function CalendarPage() {
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const { activeOrganizationId } = ctx;
@@ -38,6 +70,12 @@ export function CalendarPage() {
     start: subMonths(startOfMonth(new Date()), 1).toISOString(),
     end: addMonths(startOfMonth(new Date()), 2).toISOString(),
   }));
+  // The toolbar lives outside FullCalendar, so its title and active view are
+  // mirrored from the calendar API on every navigation.
+  const [toolbar, setToolbar] = useState<{
+    title: string;
+    view: CalendarView;
+  }>({ title: "", view: "dayGridMonth" });
 
   const { data: connectionStatus, isLoading: statusLoading } =
     useQuery<CalendarConnectionStatus>({
@@ -63,9 +101,6 @@ export function CalendarPage() {
     end: event.end || undefined,
     allDay: event.allDay,
     extendedProps: event,
-    backgroundColor: event.provider === "google" ? "#ea4335" : "#0078d4",
-    borderColor: event.provider === "google" ? "#ea4335" : "#0078d4",
-    textColor: "#ffffff",
     classNames: [
       event.provider === "google" ? "fc-event-google" : "fc-event-outlook",
     ],
@@ -87,7 +122,11 @@ export function CalendarPage() {
   );
 
   const handleDatesSet = useCallback(
-    (arg: { start: Date; end: Date }) => {
+    (arg: DatesSetArg) => {
+      setToolbar({
+        title: arg.view.title,
+        view: arg.view.type as CalendarView,
+      });
       const newStart = subMonths(arg.start, 1).toISOString();
       const newEnd = addMonths(arg.end, 1).toISOString();
       if (newStart !== dateRange.start || newEnd !== dateRange.end) {
@@ -100,16 +139,13 @@ export function CalendarPage() {
   if (statusLoading) {
     return (
       <div className="page-style flex flex-col">
-        <div className="sticky top-0 z-20 border-b border-primary/15 px-4 py-4 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-10 rounded-xl" />
-              <Skeleton className="h-8 w-40" />
-            </div>
-            <Skeleton className="h-9 w-32" />
-          </div>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-9 w-32" />
         </div>
-        <CalendarSkeleton />
+        <Card className="gap-0 overflow-hidden p-0">
+          <CalendarSkeleton />
+        </Card>
       </div>
     );
   }
@@ -117,117 +153,107 @@ export function CalendarPage() {
   return (
     // h-full keeps the shell height definite so FullCalendar's height="100%" resolves.
     <div className="page-style flex h-full flex-col">
-      {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-primary/15">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary shadow-md">
-              <Calendar className="size-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight page-title">
-                Calendar
-              </h1>
-              {/* Legend */}
-              {hasConnection && (
-                <div className="flex items-center gap-3 mt-0.5">
-                  {connectionStatus?.google.connected && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <span className="inline-block size-2.5 rounded-full bg-[#ea4335] ring-2 ring-red-100" />
-                      <span>Google</span>
-                    </div>
-                  )}
-                  {connectionStatus?.outlook.connected && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <span className="inline-block size-2.5 rounded-full bg-[#0078d4] ring-2 ring-primary/15" />
-                      <span>Outlook</span>
-                    </div>
-                  )}
-                </div>
+      <PageHeader
+        title="Calendar"
+        description={
+          hasConnection && (
+            <span className="flex flex-wrap items-center gap-3">
+              {connectionStatus?.google.connected && (
+                <span className="flex items-center gap-1.5 text-foreground">
+                  <span className="inline-block size-2 rounded-full bg-google" />
+                  Google
+                </span>
               )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {hasConnection && (
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 shadow-md"
-                onClick={() => {
-                  setDefaultEventDate(new Date());
-                  setShowCreateEvent(true);
-                }}
-              >
-                <Plus className="size-4 mr-1" />
-                New Event
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+              {connectionStatus?.outlook.connected && (
+                <span className="flex items-center gap-1.5 text-foreground">
+                  <span className="inline-block size-2 rounded-full bg-outlook" />
+                  Outlook
+                </span>
+              )}
+              <Badge variant="success">Connected</Badge>
+            </span>
+          )
+        }
+      >
+        {hasConnection && (
+          <Button
+            onClick={() => {
+              setDefaultEventDate(new Date());
+              setShowCreateEvent(true);
+            }}
+          >
+            <Plus className="size-4" />
+            New Event
+          </Button>
+        )}
+      </PageHeader>
 
-      {/* Calendar or empty state */}
       {!hasConnection ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground px-4">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/15 shadow-inner">
-            <Calendar className="size-10 text-primary/50 stroke-[1.5]" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 text-muted-foreground">
+          <div className="flex size-20 items-center justify-center rounded-2xl bg-primary/15 shadow-inner">
+            <Calendar className="size-10 stroke-[1.5] text-primary/50" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-xl font-bold text-foreground">
               Connect a Calendar
             </h2>
-            <p className="mt-2 text-sm max-w-md text-gray-500">
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
               Connect your Google Calendar or Outlook Calendar from the
               Integrations page to view and manage your events here.
             </p>
           </div>
-          <Button
-            asChild
-            className="bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 shadow-md"
-          >
+          <Button asChild>
             <Link
               to="/$team/integrations"
               params={{ team: activeOrganizationId }}
               search={{ tab: "calendar" } as any}
             >
-              <PlugZap className="size-4 mr-1" />
+              <PlugZap className="size-4" />
               Go to Integrations
             </Link>
           </Button>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 relative mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-xl border border-primary/15 bg-white shadow-sm overflow-hidden">
+        <Card className="relative min-h-0 flex-1 gap-0 overflow-hidden p-0 shadow-xs">
+          <CalendarToolbar
+            title={toolbar.title}
+            view={toolbar.view}
+            onPrev={() => calendarRef.current?.getApi().prev()}
+            onNext={() => calendarRef.current?.getApi().next()}
+            onViewChange={(view) => calendarRef.current?.getApi().changeView(view)}
+          />
+
           {eventsLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-10">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/60 backdrop-blur-sm">
               <Loader2 className="size-6 animate-spin text-primary/50" />
             </div>
           )}
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
-            }}
-            events={calendarEvents}
-            eventClick={handleEventClick}
-            selectable
-            select={handleDateSelect}
-            datesSet={handleDatesSet}
-            height="100%"
-            nowIndicator
-            dayMaxEvents={3}
-            eventTimeFormat={{
-              hour: "numeric",
-              minute: "2-digit",
-              meridiem: "short",
-            }}
-          />
-        </div>
+
+          <div className="min-h-0 flex-1 border-t">
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={false}
+              dayHeaderContent={renderDayHeader}
+              events={calendarEvents}
+              eventClick={handleEventClick}
+              selectable
+              select={handleDateSelect}
+              datesSet={handleDatesSet}
+              height="100%"
+              nowIndicator
+              dayMaxEvents={3}
+              eventTimeFormat={{
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short",
+              }}
+            />
+          </div>
+        </Card>
       )}
 
-      {/* Dialogs */}
       {connectionStatus && (
         <CreateEventDialog
           open={showCreateEvent}

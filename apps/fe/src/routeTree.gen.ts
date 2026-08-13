@@ -61,6 +61,7 @@ import { Route as TeamTeamCompaniesCreateRouteImport } from './routes/_team/$tea
 import { Route as TeamTeamReportMileageIndexRouteImport } from './routes/_team/$team/report/mileage/index'
 import { Route as TeamTeamReportMarketingIndexRouteImport } from './routes/_team/$team/report/marketing/index'
 import { Route as TeamTeamReportExpenseIndexRouteImport } from './routes/_team/$team/report/expense/index'
+import { Route as TeamTeamReportCustomIndexRouteImport } from './routes/_team/$team/report/custom/index'
 import { Route as TeamTeamRecordsModuleKeyIndexRouteImport } from './routes/_team/$team/records/$moduleKey/index'
 import { Route as TeamTeamMarketingSubscribersIndexRouteImport } from './routes/_team/$team/marketing/subscribers/index'
 import { Route as TeamTeamMarketingLandingPagesIndexRouteImport } from './routes/_team/$team/marketing/landing-pages/index'
@@ -352,6 +353,12 @@ const TeamTeamReportExpenseIndexRoute =
     path: '/$team/report/expense/',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamReportCustomIndexRoute =
+  TeamTeamReportCustomIndexRouteImport.update({
+    id: '/$team/report/custom/',
+    path: '/$team/report/custom/',
+    getParentRoute: () => TeamRoute,
+  } as any)
 const TeamTeamRecordsModuleKeyIndexRoute =
   TeamTeamRecordsModuleKeyIndexRouteImport.update({
     id: '/$team/records/$moduleKey/',
@@ -550,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/$team/marketing/landing-pages/': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/$team/marketing/subscribers/': typeof TeamTeamMarketingSubscribersIndexRoute
   '/$team/records/$moduleKey/': typeof TeamTeamRecordsModuleKeyIndexRoute
+  '/$team/report/custom/': typeof TeamTeamReportCustomIndexRoute
   '/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
@@ -624,6 +632,7 @@ export interface FileRoutesByTo {
   '/$team/marketing/landing-pages': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/$team/marketing/subscribers': typeof TeamTeamMarketingSubscribersIndexRoute
   '/$team/records/$moduleKey': typeof TeamTeamRecordsModuleKeyIndexRoute
+  '/$team/report/custom': typeof TeamTeamReportCustomIndexRoute
   '/$team/report/expense': typeof TeamTeamReportExpenseIndexRoute
   '/$team/report/marketing': typeof TeamTeamReportMarketingIndexRoute
   '/$team/report/mileage': typeof TeamTeamReportMileageIndexRoute
@@ -701,6 +710,7 @@ export interface FileRoutesById {
   '/_team/$team/marketing/landing-pages/': typeof TeamTeamMarketingLandingPagesIndexRoute
   '/_team/$team/marketing/subscribers/': typeof TeamTeamMarketingSubscribersIndexRoute
   '/_team/$team/records/$moduleKey/': typeof TeamTeamRecordsModuleKeyIndexRoute
+  '/_team/$team/report/custom/': typeof TeamTeamReportCustomIndexRoute
   '/_team/$team/report/expense/': typeof TeamTeamReportExpenseIndexRoute
   '/_team/$team/report/marketing/': typeof TeamTeamReportMarketingIndexRoute
   '/_team/$team/report/mileage/': typeof TeamTeamReportMileageIndexRoute
@@ -777,6 +787,7 @@ export interface FileRouteTypes {
     | '/$team/marketing/landing-pages/'
     | '/$team/marketing/subscribers/'
     | '/$team/records/$moduleKey/'
+    | '/$team/report/custom/'
     | '/$team/report/expense/'
     | '/$team/report/marketing/'
     | '/$team/report/mileage/'
@@ -851,6 +862,7 @@ export interface FileRouteTypes {
     | '/$team/marketing/landing-pages'
     | '/$team/marketing/subscribers'
     | '/$team/records/$moduleKey'
+    | '/$team/report/custom'
     | '/$team/report/expense'
     | '/$team/report/marketing'
     | '/$team/report/mileage'
@@ -927,6 +939,7 @@ export interface FileRouteTypes {
     | '/_team/$team/marketing/landing-pages/'
     | '/_team/$team/marketing/subscribers/'
     | '/_team/$team/records/$moduleKey/'
+    | '/_team/$team/report/custom/'
     | '/_team/$team/report/expense/'
     | '/_team/$team/report/marketing/'
     | '/_team/$team/report/mileage/'
@@ -1316,6 +1329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamReportExpenseIndexRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/report/custom/': {
+      id: '/_team/$team/report/custom/'
+      path: '/$team/report/custom'
+      fullPath: '/$team/report/custom/'
+      preLoaderRoute: typeof TeamTeamReportCustomIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/records/$moduleKey/': {
       id: '/_team/$team/records/$moduleKey/'
       path: '/$team/records/$moduleKey'
@@ -1557,6 +1577,7 @@ interface TeamRouteChildren {
   TeamTeamMarketingLandingPagesIndexRoute: typeof TeamTeamMarketingLandingPagesIndexRoute
   TeamTeamMarketingSubscribersIndexRoute: typeof TeamTeamMarketingSubscribersIndexRoute
   TeamTeamRecordsModuleKeyIndexRoute: typeof TeamTeamRecordsModuleKeyIndexRoute
+  TeamTeamReportCustomIndexRoute: typeof TeamTeamReportCustomIndexRoute
   TeamTeamReportExpenseIndexRoute: typeof TeamTeamReportExpenseIndexRoute
   TeamTeamReportMarketingIndexRoute: typeof TeamTeamReportMarketingIndexRoute
   TeamTeamReportMileageIndexRoute: typeof TeamTeamReportMileageIndexRoute
@@ -1616,6 +1637,7 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamMarketingSubscribersIndexRoute:
     TeamTeamMarketingSubscribersIndexRoute,
   TeamTeamRecordsModuleKeyIndexRoute: TeamTeamRecordsModuleKeyIndexRoute,
+  TeamTeamReportCustomIndexRoute: TeamTeamReportCustomIndexRoute,
   TeamTeamReportExpenseIndexRoute: TeamTeamReportExpenseIndexRoute,
   TeamTeamReportMarketingIndexRoute: TeamTeamReportMarketingIndexRoute,
   TeamTeamReportMileageIndexRoute: TeamTeamReportMileageIndexRoute,

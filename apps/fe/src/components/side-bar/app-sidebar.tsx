@@ -38,6 +38,7 @@ import {
   Target,
   Upload,
   Plus,
+  FileBarChart,
   Users,
 } from "lucide-react";
 import * as React from "react";
@@ -65,6 +66,7 @@ export function AppSidebar({
   const entitlement = useEntitlement(activeOrganizationId);
   const canUseHipaa = entitlement.has("hipaa");
   const canExport = entitlement.has("export");
+  const canUseCustomReporting = entitlement.has("custom_reporting");
 
   const { data: modules = [] } = useModules();
 
@@ -212,6 +214,17 @@ export function AppSidebar({
                     url: `/${activeOrganizationId}/report/expense`,
                     icon: DollarSign,
                   },
+                  // Scale only, so the entry is hidden rather than leading to a
+                  // refusal the plan cannot act on.
+                  ...(canUseCustomReporting
+                    ? [
+                        {
+                          title: "Custom Reports",
+                          url: `/${activeOrganizationId}/report/custom`,
+                          icon: FileBarChart,
+                        },
+                      ]
+                    : []),
                 ],
               },
             ]
@@ -277,7 +290,14 @@ export function AppSidebar({
         },
       ],
     }),
-    [activeOrganizationId, memberData?.role, canUseHipaa, canExport, modules]
+    [
+      activeOrganizationId,
+      memberData?.role,
+      canUseHipaa,
+      canExport,
+      canUseCustomReporting,
+      modules,
+    ]
   );
 
   return (

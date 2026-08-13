@@ -3,6 +3,10 @@ import { IntegrationCard } from "@/components/integrations/integration-card";
 import { ProviderLogo } from "@/components/integrations/provider-logo";
 import { PageHeader } from "@/components/page-header";
 import {
+  SegmentedTabsList,
+  SegmentedTabsTrigger,
+} from "@/components/segmented-tabs";
+import {
   disconnectGoogleCalendar,
   disconnectOutlookCalendar,
   getCalendarConnectionStatus,
@@ -30,8 +34,6 @@ import { Label } from "@dashboard/ui/components/label";
 import {
   Tabs,
   TabsContent,
-  TabsList,
-  TabsTrigger,
 } from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
@@ -46,9 +48,6 @@ const errorMessage = (error: unknown, fallback: string) =>
   (axios.isAxiosError<{ message?: string }>(error)
     ? error.response?.data?.message
     : null) ?? fallback;
-
-const TAB_TRIGGER =
-  "rounded-md px-4 py-1.5 text-sm font-bold text-muted-foreground data-[state=active]:bg-brand-accent data-[state=active]:text-brand-accent-foreground data-[state=active]:shadow-xs";
 
 export default function IntegrationPage() {
   const queryClient = useQueryClient();
@@ -285,17 +284,13 @@ export default function IntegrationPage() {
           }
           className="space-y-6"
         >
-          <TabsList className="h-auto w-fit gap-1 rounded-xl bg-table-header p-2.5">
-            <TabsTrigger value="email" className={TAB_TRIGGER}>
-              Email
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className={TAB_TRIGGER}>
+          <SegmentedTabsList>
+            <SegmentedTabsTrigger value="email">Email</SegmentedTabsTrigger>
+            <SegmentedTabsTrigger value="calendar">
               Calendar
-            </TabsTrigger>
-            <TabsTrigger value="fax" className={TAB_TRIGGER}>
-              Fax
-            </TabsTrigger>
-          </TabsList>
+            </SegmentedTabsTrigger>
+            <SegmentedTabsTrigger value="fax">Fax</SegmentedTabsTrigger>
+          </SegmentedTabsList>
 
           <TabsContent value="email" className="mt-0 space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
