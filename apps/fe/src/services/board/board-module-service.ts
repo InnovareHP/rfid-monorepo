@@ -1,11 +1,7 @@
 import { axiosClient } from "@/lib/axios-client";
 
-export type CrmModuleType = "CONTACT" | "COMPANY";
-
-export const CRM_QUERY_KEYS: Record<CrmModuleType, string> = {
-  CONTACT: "contacts",
-  COMPANY: "companies",
-};
+// A module key is free text once organizations create their own.
+export type CrmModuleType = string;
 
 export const getModuleRecords = async (
   moduleType: CrmModuleType,

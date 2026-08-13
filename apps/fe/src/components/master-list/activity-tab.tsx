@@ -1,3 +1,4 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { resolveFaxAutofill } from "@/lib/helper/fax-autofill";
 import {
   createCalendarEvent,
@@ -249,7 +250,7 @@ export function ActivityTab({
         queryKey: [isReferral ? "referral" : "lead", recordId],
       });
       queryClient.invalidateQueries({
-        queryKey: [isReferral ? "referrals" : "leads"],
+        queryKey: boardQueryKey(isReferral ? "REFERRAL" : "LEAD"),
       });
       queryClient.invalidateQueries({
         queryKey: [isReferral ? "referral-history" : "lead-history", recordId],

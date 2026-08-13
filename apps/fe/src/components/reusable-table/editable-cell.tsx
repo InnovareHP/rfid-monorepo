@@ -10,7 +10,6 @@ import {
   updateReferral,
 } from "@/services/referral/referral-service";
 import {
-  CRM_QUERY_KEYS,
   getLinkCandidates,
   updateModuleRecord,
   type CrmModuleType,
@@ -49,6 +48,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
@@ -96,11 +96,9 @@ export function EditableCell({
   const [syncedValue, setSyncedValue] = useState(value);
   const [validationError, setValidationError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const isreferralKey = moduleType
-    ? CRM_QUERY_KEYS[moduleType]
-    : isReferral
-      ? "referrals"
-      : "leads";
+  const recordsKey = boardQueryKey(
+    moduleType ?? (isReferral ? "REFERRAL" : "LEAD")
+  );
 
   // Adopt a new server value during render, never over an in-progress edit
   if (!editing && value !== syncedValue) {
@@ -130,9 +128,9 @@ export function EditableCell({
           ? await updateReferral(id, field, value, reason, previousValue)
           : await updateLead(id, field, value),
     onMutate: async ({ id, fieldName: patchKey, value, displayValue }) => {
-      await queryClient.cancelQueries({ queryKey: [isreferralKey] });
-      const previous = queryClient.getQueriesData({ queryKey: [isreferralKey] });
-      queryClient.setQueriesData({ queryKey: [isreferralKey] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey: recordsKey });
+      const previous = queryClient.getQueriesData({ queryKey: recordsKey });
+      queryClient.setQueriesData({ queryKey: recordsKey }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,

@@ -1,3 +1,4 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   ExportCsvButton,
   type ExportRange,
@@ -65,7 +66,7 @@ export default function ReferralListPage() {
   });
 
   const { data, refetch, isFetching } = useQuery({
-    queryKey: ["referrals", filterMeta],
+    queryKey: [...boardQueryKey("REFERRAL"), filterMeta],
     queryFn: () => getReferral(filterMeta),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -158,9 +159,9 @@ export default function ReferralListPage() {
   const deleteReferralMutation = useMutation({
     mutationFn: deleteReferral,
     onMutate: async (columnIds: string[]) => {
-      await queryClient.cancelQueries({ queryKey: ["referrals"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["referrals"] });
-      queryClient.setQueriesData({ queryKey: ["referrals"] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey: boardQueryKey("REFERRAL") });
+      const previous = queryClient.getQueriesData({ queryKey: boardQueryKey("REFERRAL") });
+      queryClient.setQueriesData({ queryKey: boardQueryKey("REFERRAL") }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,

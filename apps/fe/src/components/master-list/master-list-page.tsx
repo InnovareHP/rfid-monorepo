@@ -1,3 +1,4 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import {
   ExportCsvButton,
@@ -93,7 +94,7 @@ export default function MasterListPage() {
   }
 
   const { data, refetch, isLoading } = useQuery({
-    queryKey: ["leads", filterMeta],
+    queryKey: [...boardQueryKey("LEAD"), filterMeta],
     queryFn: () => getLeads(filterMeta),
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
@@ -189,9 +190,9 @@ export default function MasterListPage() {
   const deleteLeadMutation = useMutation({
     mutationFn: (data: any) => deleteLead(data, "LEAD"),
     onMutate: async (ids: string[]) => {
-      await queryClient.cancelQueries({ queryKey: ["leads"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["leads"] });
-      queryClient.setQueriesData({ queryKey: ["leads"] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey: boardQueryKey("LEAD") });
+      const previous = queryClient.getQueriesData({ queryKey: boardQueryKey("LEAD") });
+      queryClient.setQueriesData({ queryKey: boardQueryKey("LEAD") }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,

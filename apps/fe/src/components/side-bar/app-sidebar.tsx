@@ -1,3 +1,5 @@
+import { useModules } from "@/hooks/use-modules";
+import { modulePath } from "@/lib/helper/module-route";
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
@@ -35,22 +37,24 @@ import {
   SquareTerminal,
   Target,
   Upload,
+  Table2,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import * as React from "react";
 
 const BRAND_WORDMARK =
   "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
 
-// The CRM group is where board modules live. Organizations will be able to add
-// their own, so these are mapped from a list rather than written out one by one;
-// that list becomes an API response once user-created modules land.
-const CRM_MODULES = [
-  { title: "Master Marketing List", path: "master-list", icon: FileText },
-  { title: "Referral Logs", path: "referral-list", icon: Users },
-  { title: "Phonebook", path: "contacts", icon: Contact },
-  { title: "Companies", path: "companies", icon: Building2 },
-];
+// Modules are per-organization rows, so the CRM group is whatever the API
+// returns. Icons are stored as lucide names; anything unrecognised gets Table2
+// rather than no icon at all.
+const MODULE_ICONS: Record<string, LucideIcon> = {
+  FileText,
+  Users,
+  Contact,
+  Building2,
+};
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   activeOrganizationId: string;
@@ -70,6 +74,8 @@ export function AppSidebar({
   const entitlement = useEntitlement(activeOrganizationId);
   const canUseHipaa = entitlement.has("hipaa");
   const canExport = entitlement.has("export");
+
+  const { data: modules = [] } = useModules();
 
   const data = React.useMemo(
     () => ({
@@ -93,10 +99,10 @@ export function AppSidebar({
         {
           title: "CRM",
           icon: Contact,
-          items: CRM_MODULES.map((module) => ({
-            title: module.title,
-            url: `/${activeOrganizationId}/${module.path}`,
-            icon: module.icon,
+          items: modules.map((module) => ({
+            title: module.label,
+            url: `/${activeOrganizationId}/${modulePath(module.key)}`,
+            icon: MODULE_ICONS[module.icon ?? ""] ?? Table2,
           })),
         },
         {
@@ -271,7 +277,7 @@ export function AppSidebar({
         },
       ],
     }),
-    [activeOrganizationId, memberData?.role, canUseHipaa, canExport]
+    [activeOrganizationId, memberData?.role, canUseHipaa, canExport, modules]
   );
 
   return (

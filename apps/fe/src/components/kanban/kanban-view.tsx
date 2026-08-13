@@ -16,14 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 const CARDS_PER_STAGE = 25;
-
-// Moving a card changes the module's board list too, so invalidate the right one.
-const LIST_QUERY_KEYS: Record<string, string> = {
-  LEAD: "leads",
-  REFERRAL: "referrals",
-  CONTACT: "contacts",
-  COMPANY: "companies",
-};
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 
 type KanbanCard = { id: string; recordName: string } & Record<string, unknown>;
 
@@ -109,7 +102,7 @@ export default function KanbanView({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kanban", moduleType] });
       queryClient.invalidateQueries({
-        queryKey: [LIST_QUERY_KEYS[moduleType] ?? "leads"],
+        queryKey: boardQueryKey(moduleType),
       });
     },
     onSettled: () => {

@@ -1,6 +1,6 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
 import type { CrmModuleType } from "@/services/board/board-module-service";
-import { CRM_QUERY_KEYS } from "@/services/board/board-module-service";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import { ColumnHeader } from "../reusable-table/column-header";
@@ -120,7 +120,7 @@ export function generateCrmColumns(
     header: () => (
       <CreateColumnModal
         moduleType={moduleType}
-        queryKey={CRM_QUERY_KEYS[moduleType]}
+        queryKey={boardQueryKey(moduleType)}
       />
     ),
     accessorKey: "create_column",

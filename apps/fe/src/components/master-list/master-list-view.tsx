@@ -1,3 +1,4 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   getLeadTimeline,
   getSpecificLead,
@@ -183,7 +184,7 @@ export function MasterListView({
       toast.success("History restored successfully");
 
       await queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
-      await queryClient.invalidateQueries({ queryKey: ["leads"] });
+      await queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
       await queryClient.invalidateQueries({
         queryKey: ["lead-history", leadId],
       });

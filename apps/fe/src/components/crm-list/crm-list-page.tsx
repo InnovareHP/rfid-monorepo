@@ -1,6 +1,5 @@
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import {
-  CRM_QUERY_KEYS,
   deleteModuleRecords,
   getModuleRecords,
   type CrmModuleType,
@@ -10,6 +9,7 @@ import {
   type ExportRange,
 } from "@/components/export-csv-button";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { filterByCreatedAt } from "@/lib/helper/helper";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
@@ -46,7 +46,7 @@ export default function CrmListPage({
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const activeOrganizationId = ctx?.activeOrganizationId ?? "";
   const queryClient = useQueryClient();
-  const queryKey = CRM_QUERY_KEYS[moduleType];
+  const queryKey = boardQueryKey(moduleType);
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
@@ -68,7 +68,7 @@ export default function CrmListPage({
   }
 
   const { data, isFetching } = useQuery({
-    queryKey: [queryKey, filterMeta],
+    queryKey: [...queryKey, filterMeta],
     queryFn: () => getModuleRecords(moduleType, filterMeta),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -145,9 +145,9 @@ export default function CrmListPage({
   const deleteMutation = useMutation({
     mutationFn: (ids: string[]) => deleteModuleRecords(moduleType, ids),
     onMutate: async (ids: string[]) => {
-      await queryClient.cancelQueries({ queryKey: [queryKey] });
-      const previous = queryClient.getQueriesData({ queryKey: [queryKey] });
-      queryClient.setQueriesData({ queryKey: [queryKey] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueriesData({ queryKey });
+      queryClient.setQueriesData({ queryKey }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,
@@ -163,7 +163,7 @@ export default function CrmListPage({
       toast.error("Failed to delete records.");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [queryKey] });
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 

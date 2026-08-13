@@ -1,3 +1,4 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { REFERRAL_FORM_SECTIONS } from "@/components/referral-list/referral-form-sections";
 import RecordCreatePage, {
   type CreatedRecord,
@@ -35,7 +36,7 @@ function RouteComponent() {
     mutationFn: createReferral,
     onSuccess: () => {
       toast.success("Referrals created successfully");
-      queryClient.invalidateQueries({ queryKey: ["referrals"] });
+      queryClient.invalidateQueries({ queryKey: boardQueryKey("REFERRAL") });
       queryClient.invalidateQueries({
         queryKey: ["referral-pipeline-analytics"],
       });

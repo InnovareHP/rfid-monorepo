@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { connectSocket, setTokenGenerator } from "@/lib/socket-io/socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -9,20 +10,8 @@ async function generateToken(): Promise<string | null> {
   return data?.token ?? null;
 }
 
-const MODULE_QUERY_KEYS: Record<string, string> = {
-  LEAD: "leads",
-  REFERRAL: "referrals",
-  CONTACT: "contacts",
-  COMPANY: "companies",
-};
-
-// An unknown module gets the generic key rather than the lead one, so a module
-// this map does not cover misses a live patch instead of corrupting the leads
-// table. The map goes away when routes move to /records/$moduleKey.
 function getQueryKey(moduleType?: string): string[] {
-  const known = MODULE_QUERY_KEYS[moduleType ?? "LEAD"];
-
-  return known ? [known] : ["records", moduleType ?? ""];
+  return boardQueryKey(moduleType ?? "LEAD");
 }
 
 export function useBoardSync() {
