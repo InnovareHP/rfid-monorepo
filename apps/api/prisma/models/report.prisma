@@ -1,0 +1,28 @@
+// A saved report is a named query over one module: which columns to show, how
+// to filter, and over what window. Running it reuses the board read path, so a
+// report never has its own copy of the record shape.
+model SavedReport {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  name      String
+
+  // Field ids, in the order the report renders them.
+  columnIds String[]
+  filter    Json
+  // Rolling window evaluated at run time, so a saved report does not freeze to
+  // the dates it was built on. Null means every record.
+  rangeDays Int?
+
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  creator   User?   @relation("SavedReportCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, moduleId])
+  @@schema("board_schema")
+}

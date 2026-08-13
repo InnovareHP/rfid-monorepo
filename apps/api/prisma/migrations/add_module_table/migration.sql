@@ -35,11 +35,19 @@ ALTER TABLE board_schema."Module"
 
 -- One row per (organization, enum value). Re-runnable: the unique index makes
 -- the insert a no-op for orgs already seeded.
+--
+-- Timestamps are written explicitly rather than left to the column defaults
+-- above. Prisma's @updatedAt is set by the client, not the database, so if this
+-- table was ever created from the Prisma schema instead of by the CREATE above,
+-- updatedAt has no default and the insert would fail on the NOT NULL.
 INSERT INTO board_schema."Module" (
-  "id", "key", "label", "labelSingular", "icon", "isSystem", "moduleOrder", "organizationId"
+  "id", "createdAt", "updatedAt", "key", "label", "labelSingular", "icon",
+  "isSystem", "moduleOrder", "organizationId"
 )
 SELECT
   gen_random_uuid()::text,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP,
   seed."key",
   seed."label",
   seed."labelSingular",

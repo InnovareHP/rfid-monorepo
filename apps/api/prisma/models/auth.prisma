@@ -42,6 +42,7 @@ model User {
   ManualArticle             ManualArticle[]             @relation("ManualArticleCreatedBy")
   TwoFactor                 TwoFactor[]
   createdTasks              Task[]                      @relation("TaskCreatedBy")
+  savedReports              SavedReport[]               @relation("SavedReportCreatedBy")
   taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
@@ -137,6 +138,7 @@ model Organization {
   members         Member[]
   agreements      ContractAgreement[]
   modules         Module[]
+  savedReports    SavedReport[]
   Board           Board[]
   Field           Field[]
   BoardCounty     BoardCounty[]

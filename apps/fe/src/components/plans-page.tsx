@@ -41,12 +41,12 @@ const PLAN_COPY: Record<
     name: "Growth",
     price: 49,
     isPopular: true,
-    extras: ["Advanced analytics & reporting"],
+    extras: [],
   },
   scale: {
     name: "Scale",
     price: 79,
-    extras: ["Custom reporting & dashboards", "Monthly performance reports"],
+    extras: ["Monthly performance reports"],
   },
 };
 
