@@ -1,3 +1,4 @@
+import { moduleIcon } from "@/lib/helper/module-icons";
 import { useModules } from "@/hooks/use-modules";
 import { modulePath } from "@/lib/helper/module-route";
 import { NavMain } from "@/components/side-bar/nav-main";
@@ -15,7 +16,6 @@ import { Link } from "@tanstack/react-router";
 import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
-  Building2,
   CalendarClock,
   CircuitBoard,
   ClipboardList,
@@ -37,24 +37,15 @@ import {
   SquareTerminal,
   Target,
   Upload,
-  Table2,
+  Plus,
   Users,
-  type LucideIcon,
 } from "lucide-react";
 import * as React from "react";
 
 const BRAND_WORDMARK =
   "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
 
-// Modules are per-organization rows, so the CRM group is whatever the API
-// returns. Icons are stored as lucide names; anything unrecognised gets Table2
-// rather than no icon at all.
-const MODULE_ICONS: Record<string, LucideIcon> = {
-  FileText,
-  Users,
-  Contact,
-  Building2,
-};
+
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   activeOrganizationId: string;
@@ -99,11 +90,20 @@ export function AppSidebar({
         {
           title: "CRM",
           icon: Contact,
-          items: modules.map((module) => ({
-            title: module.label,
-            url: `/${activeOrganizationId}/${modulePath(module.key)}`,
-            icon: MODULE_ICONS[module.icon ?? ""] ?? Table2,
-          })),
+          // New Module sits last so the group reads as the modules you have,
+          // then the way to add one.
+          items: [
+            ...modules.map((module) => ({
+              title: module.label,
+              url: `/${activeOrganizationId}/${modulePath(module.key)}`,
+              icon: moduleIcon(module.icon),
+            })),
+            {
+              title: "New Module",
+              url: `/${activeOrganizationId}/records/new`,
+              icon: Plus,
+            },
+          ],
         },
         {
           title: "Tasks",

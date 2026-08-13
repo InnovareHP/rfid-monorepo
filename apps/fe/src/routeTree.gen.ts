@@ -53,6 +53,7 @@ import { Route as TeamTeamSettingsComplianceRouteImport } from './routes/_team/$
 import { Route as TeamTeamSettingsBookingRouteImport } from './routes/_team/$team/settings/booking'
 import { Route as TeamTeamSettingsBillingRouteImport } from './routes/_team/$team/settings/billing'
 import { Route as TeamTeamReferralListCreateRouteImport } from './routes/_team/$team/referral-list/create'
+import { Route as TeamTeamRecordsNewRouteImport } from './routes/_team/$team/records/new'
 import { Route as TeamTeamMasterListCreateRouteImport } from './routes/_team/$team/master-list/create'
 import { Route as TeamTeamMarketingSendersRouteImport } from './routes/_team/$team/marketing/senders'
 import { Route as TeamTeamContactsCreateRouteImport } from './routes/_team/$team/contacts/create'
@@ -306,6 +307,11 @@ const TeamTeamReferralListCreateRoute =
     path: '/$team/referral-list/create',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamRecordsNewRoute = TeamTeamRecordsNewRouteImport.update({
+  id: '/$team/records/new',
+  path: '/$team/records/new',
+  getParentRoute: () => TeamRoute,
+} as any)
 const TeamTeamMasterListCreateRoute =
   TeamTeamMasterListCreateRouteImport.update({
     id: '/$team/master-list/create',
@@ -511,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/$team/contacts/create': typeof TeamTeamContactsCreateRoute
   '/$team/marketing/senders': typeof TeamTeamMarketingSendersRoute
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
+  '/$team/records/new': typeof TeamTeamRecordsNewRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
@@ -584,6 +591,7 @@ export interface FileRoutesByTo {
   '/$team/contacts/create': typeof TeamTeamContactsCreateRoute
   '/$team/marketing/senders': typeof TeamTeamMarketingSendersRoute
   '/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
+  '/$team/records/new': typeof TeamTeamRecordsNewRoute
   '/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
@@ -660,6 +668,7 @@ export interface FileRoutesById {
   '/_team/$team/contacts/create': typeof TeamTeamContactsCreateRoute
   '/_team/$team/marketing/senders': typeof TeamTeamMarketingSendersRoute
   '/_team/$team/master-list/create': typeof TeamTeamMasterListCreateRoute
+  '/_team/$team/records/new': typeof TeamTeamRecordsNewRoute
   '/_team/$team/referral-list/create': typeof TeamTeamReferralListCreateRoute
   '/_team/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/_team/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
@@ -735,6 +744,7 @@ export interface FileRouteTypes {
     | '/$team/contacts/create'
     | '/$team/marketing/senders'
     | '/$team/master-list/create'
+    | '/$team/records/new'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
     | '/$team/settings/booking'
@@ -808,6 +818,7 @@ export interface FileRouteTypes {
     | '/$team/contacts/create'
     | '/$team/marketing/senders'
     | '/$team/master-list/create'
+    | '/$team/records/new'
     | '/$team/referral-list/create'
     | '/$team/settings/billing'
     | '/$team/settings/booking'
@@ -883,6 +894,7 @@ export interface FileRouteTypes {
     | '/_team/$team/contacts/create'
     | '/_team/$team/marketing/senders'
     | '/_team/$team/master-list/create'
+    | '/_team/$team/records/new'
     | '/_team/$team/referral-list/create'
     | '/_team/$team/settings/billing'
     | '/_team/$team/settings/booking'
@@ -1248,6 +1260,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamReferralListCreateRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/records/new': {
+      id: '/_team/$team/records/new'
+      path: '/$team/records/new'
+      fullPath: '/$team/records/new'
+      preLoaderRoute: typeof TeamTeamRecordsNewRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/master-list/create': {
       id: '/_team/$team/master-list/create'
       path: '/$team/master-list/create'
@@ -1508,6 +1527,7 @@ interface TeamRouteChildren {
   TeamTeamContactsCreateRoute: typeof TeamTeamContactsCreateRoute
   TeamTeamMarketingSendersRoute: typeof TeamTeamMarketingSendersRoute
   TeamTeamMasterListCreateRoute: typeof TeamTeamMasterListCreateRoute
+  TeamTeamRecordsNewRoute: typeof TeamTeamRecordsNewRoute
   TeamTeamReferralListCreateRoute: typeof TeamTeamReferralListCreateRoute
   TeamTeamTasksTaskRoute: typeof TeamTeamTasksTaskRoute
   TeamTeamCompaniesIndexRoute: typeof TeamTeamCompaniesIndexRoute
@@ -1562,6 +1582,7 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamContactsCreateRoute: TeamTeamContactsCreateRoute,
   TeamTeamMarketingSendersRoute: TeamTeamMarketingSendersRoute,
   TeamTeamMasterListCreateRoute: TeamTeamMasterListCreateRoute,
+  TeamTeamRecordsNewRoute: TeamTeamRecordsNewRoute,
   TeamTeamReferralListCreateRoute: TeamTeamReferralListCreateRoute,
   TeamTeamTasksTaskRoute: TeamTeamTasksTaskRoute,
   TeamTeamCompaniesIndexRoute: TeamTeamCompaniesIndexRoute,

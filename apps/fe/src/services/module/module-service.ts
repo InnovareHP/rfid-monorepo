@@ -16,3 +16,19 @@ export const getModules = async () => {
 
   return response.data as CrmModule[];
 };
+
+export type CreateModuleInput = {
+  label: string;
+  labelSingular: string;
+  icon?: string;
+  fields: { fieldName: string; fieldType: string }[];
+};
+
+export const createModule = async (input: CreateModuleInput) => {
+  const response = await axiosClient.post(`/api/module`, input);
+
+  return response.data as Pick<
+    CrmModule,
+    "id" | "key" | "label" | "labelSingular"
+  >;
+};
