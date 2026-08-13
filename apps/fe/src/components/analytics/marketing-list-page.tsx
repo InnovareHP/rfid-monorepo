@@ -1,3 +1,6 @@
+import { FeatureLocked } from "@/components/feature-locked";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { useRouteContext } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { exportElementToPdf } from "@/lib/helper/pdf-export";
 import { getMarketingList } from "@/services/analytics/analytics-service";
@@ -29,6 +32,13 @@ const EMPTY_FILTERS: Filters = { start: null, end: null, userId: null };
 const PDF_ELEMENT_ID = "marketing-analytics-pdf";
 
 const MarketingListPage = () => {
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
+  const canUseAdvancedAnalytics = useEntitlement(activeOrganizationId).has(
+    "advanced_analytics"
+  );
+
   const [pendingFilters, setPendingFilters] = useState<Filters>(EMPTY_FILTERS);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [isExporting, setIsExporting] = useState(false);
@@ -76,6 +86,16 @@ const MarketingListPage = () => {
   const hasActiveFilters = Boolean(
     filters.start || filters.end || filters.userId
   );
+
+  if (!canUseAdvancedAnalytics) {
+    return (
+      <FeatureLocked
+        title="Analytics is a Growth feature"
+        description="Marketing list analytics and liaison reporting are available on Growth and Scale."
+        team={activeOrganizationId}
+      />
+    );
+  }
 
   const rows: LiaisonAnalyticsCardData[] = data?.analytics ?? [];
   const totalFacilities = new Set(rows.flatMap((row) => row.facilitiesCovered))

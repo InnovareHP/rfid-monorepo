@@ -67,6 +67,7 @@ export function AppSidebar({
   const canUseHipaa = entitlement.has("hipaa");
   const canExport = entitlement.has("export");
   const canUseCustomReporting = entitlement.has("custom_reporting");
+  const canUseAdvancedAnalytics = entitlement.has("advanced_analytics");
 
   const { data: modules = [] } = useModules();
 
@@ -76,18 +77,22 @@ export function AppSidebar({
         {
           title: "Overview",
           icon: SquareTerminal,
-          items: [
-            {
-              title: "Referral Analytics",
-              url: `/${activeOrganizationId}`,
-              icon: FileText,
-            },
-            {
-              title: "Master Marketing List Analytics",
-              url: `/${activeOrganizationId}/master-list-analytics`,
-              icon: Users,
-            },
-          ],
+          // Analytics is a paid feature, so the entries are hidden rather than
+          // leading to a lock screen.
+          items: canUseAdvancedAnalytics
+            ? [
+                {
+                  title: "Referral Analytics",
+                  url: `/${activeOrganizationId}`,
+                  icon: FileText,
+                },
+                {
+                  title: "Master Marketing List Analytics",
+                  url: `/${activeOrganizationId}/master-list-analytics`,
+                  icon: Users,
+                },
+              ]
+            : [],
         },
         {
           title: "CRM",
@@ -296,6 +301,7 @@ export function AppSidebar({
       canUseHipaa,
       canExport,
       canUseCustomReporting,
+      canUseAdvancedAnalytics,
       modules,
     ]
   );

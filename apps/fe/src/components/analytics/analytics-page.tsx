@@ -1,3 +1,4 @@
+import { FeatureLocked } from "@/components/feature-locked";
 import { PageHeader } from "@/components/page-header";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
@@ -45,7 +46,9 @@ export default function ReferralAnalyticsDashboard() {
   const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
     activeOrganizationId: string;
   };
-  const canUseAi = useEntitlement(activeOrganizationId).has("ai");
+  const entitlement = useEntitlement(activeOrganizationId);
+  const canUseAi = entitlement.has("ai");
+  const canUseAdvancedAnalytics = entitlement.has("advanced_analytics");
 
   const queryClient = useQueryClient();
 
@@ -56,6 +59,7 @@ export default function ReferralAnalyticsDashboard() {
       const end = dateRange.end ? dateRange.end.toISOString() : null;
       return (await getAnalytics(start, end)) as AnalyticsResponse;
     },
+    enabled: canUseAdvancedAnalytics,
   });
 
   const summaryQueryKey = [
@@ -102,6 +106,16 @@ export default function ReferralAnalyticsDashboard() {
     onError: (err) =>
       toast.error(getApiErrorMessage(err, "Failed to refresh insights")),
   });
+
+  if (!canUseAdvancedAnalytics) {
+    return (
+      <FeatureLocked
+        title="Analytics is a Growth feature"
+        description="Referral and marketing analytics, conversion tracking and AI insights are available on Growth and Scale."
+        team={activeOrganizationId}
+      />
+    );
+  }
 
   const hasPeriodFilter = dateRange.start && dateRange.end;
   const charts = buildAnalyticsChartData(analytics);

@@ -27,6 +27,7 @@ import { AnalyticsService } from "./analytics.service";
   EntitlementGuard,
   HipaaGuard
 )
+@RequireFeature("advanced_analytics")
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
