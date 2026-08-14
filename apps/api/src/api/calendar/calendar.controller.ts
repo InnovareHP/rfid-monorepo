@@ -13,6 +13,7 @@ import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import { createOAuthState } from "../../lib/auth/oauth-state";
 import { GoogleCalendarService } from "./google-calendar.service";
 import { OutlookCalendarService } from "./outlook-calendar.service";
 import { assertNoOtherCalendar } from "./single-calendar";
@@ -34,7 +35,7 @@ export class CalendarController {
         this.googleCalendarService,
         this.outlookCalendarService
       );
-      const state = JSON.stringify({
+      const state = await createOAuthState("google-calendar", {
         userId: session.user.id,
         orgId: session.session.activeOrganizationId,
       });
@@ -75,7 +76,7 @@ export class CalendarController {
         this.googleCalendarService,
         this.outlookCalendarService
       );
-      const state = JSON.stringify({
+      const state = await createOAuthState("outlook-calendar", {
         userId: session.user.id,
         orgId: session.session.activeOrganizationId,
       });

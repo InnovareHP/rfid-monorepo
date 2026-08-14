@@ -13,7 +13,6 @@ interface IntegrationSearch {
   outlook?: string;
   google_calendar?: string;
   outlook_calendar?: string;
-  message?: string;
 }
 
 export const Route = createFileRoute("/_team/$team/integrations")({
@@ -25,7 +24,6 @@ export const Route = createFileRoute("/_team/$team/integrations")({
     outlook: (search.outlook as string) || undefined,
     google_calendar: (search.google_calendar as string) || undefined,
     outlook_calendar: (search.outlook_calendar as string) || undefined,
-    message: (search.message as string) || undefined,
   }),
   component: RouteComponent,
 });

@@ -26,6 +26,7 @@ import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { Queue } from "bullmq";
 import { memoryStorage } from "multer";
 import { EldonFaxError } from "../../lib/eldonfax/eldonfax";
+import { createOAuthState } from "../../lib/auth/oauth-state";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 import {
@@ -116,7 +117,7 @@ export class BoardController {
   @Get("/gmail/auth-url")
   async getGmailAuthUrl(@Session() session: AuthenticatedSession) {
     try {
-      const state = JSON.stringify({
+      const state = await createOAuthState("gmail", {
         userId: session.user.id,
         orgId: session.session.activeOrganizationId,
       });
@@ -141,7 +142,7 @@ export class BoardController {
   @Get("/outlook/auth-url")
   async getOutlookAuthUrl(@Session() session: AuthenticatedSession) {
     try {
-      const state = JSON.stringify({
+      const state = await createOAuthState("outlook", {
         userId: session.user.id,
         orgId: session.session.activeOrganizationId,
       });

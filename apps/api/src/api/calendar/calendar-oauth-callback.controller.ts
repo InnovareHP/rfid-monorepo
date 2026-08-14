@@ -2,6 +2,7 @@ import { Controller, Get, Query, Res } from "@nestjs/common";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import type { Response } from "express";
 import { appConfig } from "src/config/app-config";
+import { consumeOAuthState } from "src/lib/auth/oauth-state";
 import { GoogleCalendarService } from "./google-calendar.service";
 import { OutlookCalendarService } from "./outlook-calendar.service";
 import { assertNoOtherCalendar } from "./single-calendar";
@@ -20,22 +21,22 @@ export class CalendarOAuthCallbackController {
     @Query("state") state: string,
     @Res() res: Response
   ) {
+    const claim = await consumeOAuthState("google-calendar", state);
+    if (!claim) return this.failure(res, "google_calendar");
+
     try {
-      const { userId, orgId } = JSON.parse(state);
       await assertNoOtherCalendar(
         "google",
-        userId,
+        claim.userId,
         this.googleCalendarService,
         this.outlookCalendarService
       );
-      await this.googleCalendarService.handleCallback(code, userId);
+      await this.googleCalendarService.handleCallback(code, claim.userId);
       res.redirect(
-        `${appConfig.WEBSITE_URL}/${orgId}/integrations?google_calendar=connected`
+        `${appConfig.WEBSITE_URL}/${claim.orgId}/integrations?google_calendar=connected`
       );
-    } catch (error: any) {
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/integrations?google_calendar=error&message=${encodeURIComponent(error.message)}`
-      );
+    } catch {
+      this.failure(res, "google_calendar");
     }
   }
 
@@ -45,22 +46,31 @@ export class CalendarOAuthCallbackController {
     @Query("state") state: string,
     @Res() res: Response
   ) {
+    const claim = await consumeOAuthState("outlook-calendar", state);
+    if (!claim) return this.failure(res, "outlook_calendar");
+
     try {
-      const { userId, orgId } = JSON.parse(state);
       await assertNoOtherCalendar(
         "outlook",
-        userId,
+        claim.userId,
         this.googleCalendarService,
         this.outlookCalendarService
       );
-      await this.outlookCalendarService.handleCallback(code, userId);
+      await this.outlookCalendarService.handleCallback(code, claim.userId);
       res.redirect(
-        `${appConfig.WEBSITE_URL}/${orgId}/integrations?outlook_calendar=connected`
+        `${appConfig.WEBSITE_URL}/${claim.orgId}/integrations?outlook_calendar=connected`
       );
-    } catch (error: any) {
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/integrations?outlook_calendar=error&message=${encodeURIComponent(error.message)}`
-      );
+    } catch {
+      this.failure(res, "outlook_calendar");
     }
+  }
+
+  // The single-calendar reason already surfaced on the authenticated auth-url
+  // call, so this anonymous redirect carries the provider flag and nothing else.
+  private failure(
+    res: Response,
+    provider: "google_calendar" | "outlook_calendar"
+  ) {
+    res.redirect(`${appConfig.WEBSITE_URL}/integrations?${provider}=error`);
   }
 }

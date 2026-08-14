@@ -145,8 +145,11 @@ export class RegistrationService {
     return { context: claim.token, expiresInSeconds: claim.expiresInSeconds };
   }
 
-  // Holding an unexpired, still-pending invitation id already proves mailbox
-  // control, and the email comes from the invitation row, not the caller.
+  // The invitation id is not proof of mailbox control: whoever sent the invite
+  // holds it too, and can read it back off their own pending list. So it buys an
+  // enrollment grant only for an email that has no account yet. An existing user
+  // joining a second org signs in with their own passkey, or recovers through
+  // the mailbox OTP in sendMigrationOtp.
   async invitationContext(invitationId: string) {
     const invitation = await prisma.invitation.findFirst({
       where: { id: invitationId, status: "pending" },
@@ -165,15 +168,9 @@ export class RegistrationService {
     });
 
     if (existing) {
-      const claim = await createRecoveryClaim(
-        { userId: existing.id, email },
-        "self"
+      throw new BadRequestException(
+        "An account already exists for this email. Sign in with your passkey to accept this invitation."
       );
-      return {
-        context: claim.token,
-        email,
-        expiresInSeconds: claim.expiresInSeconds,
-      };
     }
 
     const claim = await createSignupClaim({

@@ -213,36 +213,36 @@ export default function IntegrationPage() {
       toast.success("Gmail connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["gmail-status"] });
     } else if (search?.gmail === "error") {
-      toast.error(search?.message || "Failed to connect Gmail");
+      toast.error("Failed to connect Gmail");
     }
-  }, [queryClient, search?.gmail, search?.message]);
+  }, [queryClient, search?.gmail]);
 
   useEffect(() => {
     if (search?.outlook === "connected") {
       toast.success("Outlook connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
     } else if (search?.outlook === "error") {
-      toast.error(search?.message || "Failed to connect Outlook");
+      toast.error("Failed to connect Outlook");
     }
-  }, [queryClient, search?.outlook, search?.message]);
+  }, [queryClient, search?.outlook]);
 
   useEffect(() => {
     if (search?.google_calendar === "connected") {
       toast.success("Google Calendar connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
     } else if (search?.google_calendar === "error") {
-      toast.error(search?.message || "Failed to connect Google Calendar");
+      toast.error("Failed to connect Google Calendar");
     }
-  }, [queryClient, search?.google_calendar, search?.message]);
+  }, [queryClient, search?.google_calendar]);
 
   useEffect(() => {
     if (search?.outlook_calendar === "connected") {
       toast.success("Outlook Calendar connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
     } else if (search?.outlook_calendar === "error") {
-      toast.error(search?.message || "Failed to connect Outlook Calendar");
+      toast.error("Failed to connect Outlook Calendar");
     }
-  }, [queryClient, search?.outlook_calendar, search?.message]);
+  }, [queryClient, search?.outlook_calendar]);
 
   // A provider redirect names itself but not the tab it belongs to, so an absent
   // tab resolves to the one the returning provider lives on: connecting a
