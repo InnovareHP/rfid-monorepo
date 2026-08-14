@@ -24,12 +24,14 @@ export function StatCard({
   icon: Icon,
   tone = "default",
   loading,
+  suffix,
 }: {
   label: string;
   value: number | string | null;
   icon: React.ElementType;
   tone?: Tone;
   loading: boolean;
+  suffix?: string;
 }) {
   return (
     <Card>
@@ -47,6 +49,11 @@ export function StatCard({
         ) : (
           <p className="text-foreground text-3xl font-bold">
             {typeof value === "number" ? value.toLocaleString() : (value ?? "—")}
+            {suffix && value !== null && (
+              <span className="text-muted-foreground ml-1 text-lg font-normal">
+                {suffix}
+              </span>
+            )}
           </p>
         )}
       </CardContent>
@@ -57,12 +64,14 @@ export function StatCard({
 export function QuickLinkCard({
   to,
   href,
+  params,
   icon: Icon,
   title,
   description,
 }: {
   to?: string;
   href?: string;
+  params?: Record<string, string>;
   icon: React.ElementType;
   title: string;
   description: string;
@@ -90,5 +99,9 @@ export function QuickLinkCard({
     );
   }
 
-  return <Link to={to as never}>{body}</Link>;
+  return (
+    <Link to={to as never} params={params as never}>
+      {body}
+    </Link>
+  );
 }
