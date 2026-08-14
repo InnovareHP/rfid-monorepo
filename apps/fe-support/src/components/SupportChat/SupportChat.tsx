@@ -92,12 +92,12 @@ export function SupportChat() {
 
   const messageList = (
     <>
-      <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%]">
+      <div className="rounded-xl bg-card p-4 border border-border shadow-sm max-w-[90%]">
         <div className="flex items-center gap-2 mb-1.5">
           <img
-            src="/images/chat-logo.png"
+            src="/branding/Mascot/refidly-mascot.png"
             alt=""
-            className="size-7 rounded-lg object-cover shrink-0"
+            className="size-7 shrink-0 object-contain"
             aria-hidden
           />
           <p className="text-xs font-medium text-muted-foreground">
@@ -119,12 +119,12 @@ export function SupportChat() {
           </div>
         ) : (
           <div key={i} className="flex justify-start">
-            <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%] w-full">
+            <div className="rounded-xl bg-card p-4 border border-border shadow-sm max-w-[90%] w-full">
               <div className="flex items-center gap-2 mb-1.5">
                 <img
-                  src="/images/chat-logo.png"
+                  src="/branding/Mascot/refidly-mascot.png"
                   alt=""
-                  className="size-7 rounded-lg object-cover shrink-0"
+                  className="size-7 shrink-0 object-contain"
                   aria-hidden
                 />
                 <p className="text-xs font-medium text-muted-foreground">
@@ -133,7 +133,7 @@ export function SupportChat() {
               </div>
               {msg.showAssistanceForm || msg.content === "contact form" ? (
                 msg.formSubmitted ? (
-                  <p className="text-sm leading-relaxed text-green-600 dark:text-green-400">
+                  <p className="text-sm leading-relaxed text-success">
                     Thank you! We've received your request and will get back to
                     you shortly.
                   </p>
@@ -215,7 +215,7 @@ export function SupportChat() {
         aria-label="Open AI Assistant chat"
       >
         <span className="font-semibold text-[15px] text-foreground">
-          Innovare HP RFID AI Assistant
+          Refidly AI Assistant
         </span>
         <ChevronUp
           className="size-5 text-muted-foreground shrink-0"

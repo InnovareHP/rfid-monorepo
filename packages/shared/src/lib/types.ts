@@ -422,12 +422,26 @@ export type TicketRow = {
   hasAgentReply: boolean;
 };
 
+export type TicketWorkloadRow = {
+  userId: string;
+  name: string;
+  image: string | null;
+  activeCount: number;
+};
+
 export type TicketStats = {
   open: number;
   inProgress: number;
   resolved: number;
   closed: number;
-  unassigned: number;
+  total: number;
+  createdToday: number;
+  solvedToday: number;
+  // Past the first-reply SLA with no agent reply yet.
+  overdue: number;
+  // Answered but still unresolved past the resolution SLA.
+  atRisk: number;
+  workload: TicketWorkloadRow[];
   avgCsat: number | null;
   totalRatings: number;
   avgFirstReplyHours: number | null;

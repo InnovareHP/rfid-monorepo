@@ -127,7 +127,7 @@ export function OrganizationListPage() {
             <Building2 className="text-muted-foreground h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
               Organizations
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">

@@ -40,7 +40,7 @@ const ImpersonationBanner = () => {
         <div className="flex items-center justify-between px-4 py-2 text-sm">
           {/* Left */}
           <div className="flex items-center gap-2 text-muted-foreground">
-            <ShieldAlert className="h-4 w-4 text-yellow-500" />
+            <ShieldAlert className="h-4 w-4 text-warning" />
 
             <span>
               You are impersonating{" "}

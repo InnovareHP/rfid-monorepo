@@ -73,7 +73,7 @@ export function RatingDialog({ ticketId, existingRating }: RatingDialogProps) {
                 <Star
                   className={`h-8 w-8 transition-colors ${
                     star <= displayed
-                      ? "fill-yellow-400 text-yellow-400"
+                      ? "fill-warning text-warning"
                       : "text-muted-foreground"
                   }`}
                 />

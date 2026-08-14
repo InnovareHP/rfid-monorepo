@@ -387,7 +387,7 @@ export function UserManagementPage() {
     <div className="flex flex-1 flex-col">
       <div className="w-full flex-1 space-y-6 px-4 py-6 sm:px-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
             User Management
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

@@ -172,18 +172,18 @@ export function AccountPage({
 
   if (!user) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white border-2 border-red-200 rounded-lg p-8 text-center max-w-lg">
+      <div className="min-h-screen w-full bg-gradient-to-br from-muted via-primary/5 to-muted flex items-center justify-center p-4">
+        <div className="bg-card border-2 border-destructive/20 rounded-lg p-8 text-center max-w-lg">
           <div className="flex flex-col items-center gap-3">
-            <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertCircle className="h-8 w-8 text-red-600" />
+            <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-red-900">
+              <h3 className="text-lg font-semibold text-destructive">
                 Error Loading Account
               </h3>
-              <p className="text-red-700 mt-1">Could not load your account.</p>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-destructive mt-1">Could not load your account.</p>
+              <p className="text-sm text-muted-foreground mt-2">
                 Please try refreshing the page or contact support if the problem
                 persists.
               </p>
@@ -201,22 +201,22 @@ export function AccountPage({
   return (
     <div
       className={cn(
-        "min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-50",
+        "min-h-screen w-full bg-gradient-to-br from-muted via-primary/5 to-muted",
         className
       )}
       {...props}
     >
-      <div className="sticky top-0 z-40 border-b-2 border-blue-200 bg-white shadow-md">
+      <div className="sticky top-0 z-40 border-b-2 border-primary/20 bg-card shadow-md">
         <div className="max-w-[1920px] mx-auto p-4 sm:p-6">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-              <User className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-brand-rail-mid to-brand-rail-via flex items-center justify-center shadow-lg">
+              <User className="h-5 w-5 sm:h-6 sm:w-6 text-brand-rail-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              <h1 className="page-title text-2xl sm:text-3xl font-bold tracking-tight">
                 Profile Settings
               </h1>
-              <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Manage your account details and security
               </p>
             </div>
@@ -226,12 +226,12 @@ export function AccountPage({
 
       <div className="max-w-[1920px] mx-auto p-4 sm:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="lg:col-span-2 border-2 border-gray-300 shadow-sm">
-            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
+          <Card className="lg:col-span-2 border-2 border-border shadow-sm">
+            <CardHeader className="border-b-2 border-border bg-primary/10">
               <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-600" />
+                <User className="h-5 w-5 text-primary" />
                 <div>
-                  <CardTitle className="text-blue-900">
+                  <CardTitle className="text-primary">
                     Profile Information
                   </CardTitle>
                   <CardDescription>Your account details</CardDescription>
@@ -246,14 +246,14 @@ export function AccountPage({
                     className="relative cursor-pointer group"
                     onClick={handleAvatarClick}
                   >
-                    <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 border-4 border-blue-200 shadow-lg transition-all hover:border-blue-400 hover:shadow-xl">
+                    <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 border-4 border-primary/20 shadow-lg transition-all hover:border-primary/20 hover:shadow-xl">
                       {user.image ? (
                         <AvatarImage
                           src={`${user.image}?t=${Date.now()}`}
                           alt={user.name ?? "User"}
                         />
                       ) : (
-                        <AvatarFallback className="bg-blue-100 flex items-center justify-center text-blue-600 text-2xl font-bold">
+                        <AvatarFallback className="bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
                           {user.name?.charAt(0).toUpperCase() ||
                             user.email?.charAt(0).toUpperCase() ||
                             "U"}
@@ -279,17 +279,17 @@ export function AccountPage({
                 </div>
 
                 <div className="flex-1 text-center sm:text-left">
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  <h3 className="text-xl sm:text-2xl font-bold text-foreground">
                     {user.name || "No name set"}
                   </h3>
-                  <p className="text-gray-600 flex items-center justify-center sm:justify-start gap-2 mt-1 break-all">
-                    <Mail className="w-4 h-4 text-blue-600" />
+                  <p className="text-muted-foreground flex items-center justify-center sm:justify-start gap-2 mt-1 break-all">
+                    <Mail className="w-4 h-4 text-primary" />
                     {user.email}
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-3 sm:mt-4 border-blue-300 hover:bg-blue-50"
+                    className="mt-3 sm:mt-4 border-primary/20 hover:bg-primary/10"
                     onClick={handleAvatarClick}
                     disabled={isUploading || updateUserMutation.isPending}
                   >
@@ -299,30 +299,30 @@ export function AccountPage({
                 </div>
               </div>
 
-              <Separator className="bg-gray-300" />
+              <Separator className="bg-muted-foreground" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <div className="bg-primary/10 border-2 border-primary/20 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Mail className="h-4 w-4 text-blue-600" />
-                    <p className="text-sm font-medium text-blue-900">
+                    <Mail className="h-4 w-4 text-primary" />
+                    <p className="text-sm font-medium text-primary">
                       Email Address
                     </p>
                   </div>
-                  <p className="font-semibold text-gray-900 break-all">
+                  <p className="font-semibold text-foreground break-all">
                     {user.email}
                   </p>
                 </div>
 
                 {user.emailVerified && (
-                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                  <div className="bg-success/10 border-2 border-success/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <p className="text-sm font-medium text-green-900">
+                      <CheckCircle className="h-4 w-4 text-success" />
+                      <p className="text-sm font-medium text-success">
                         Email Status
                       </p>
                     </div>
-                    <Badge className="bg-green-100 text-green-700 border-2 border-green-300 font-semibold">
+                    <Badge className="bg-success/10 text-success border-2 border-success/20 font-semibold">
                       Verified
                     </Badge>
                   </div>
@@ -330,14 +330,14 @@ export function AccountPage({
 
                 {memberSinceDate &&
                   !Number.isNaN(memberSinceDate.getTime()) && (
-                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                    <div className="bg-primary/10 border-2 border-primary/20 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="h-4 w-4 text-blue-600" />
-                        <p className="text-sm font-medium text-blue-900">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <p className="text-sm font-medium text-primary">
                           Member Since
                         </p>
                       </div>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         {memberSinceDate.toLocaleDateString("en-US", {
                           year: "numeric",
                           month: "long",
@@ -348,12 +348,12 @@ export function AccountPage({
                   )}
 
                 {user.role && (
-                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <div className="bg-primary/10 border-2 border-primary/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Shield className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm font-medium text-blue-900">Role</p>
+                      <Shield className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium text-primary">Role</p>
                     </div>
-                    <Badge className="bg-blue-100 text-blue-700 border-2 border-blue-300 font-semibold capitalize">
+                    <Badge className="bg-primary/10 text-primary border-2 border-primary/20 font-semibold capitalize">
                       {user.role}
                     </Badge>
                   </div>
@@ -362,12 +362,12 @@ export function AccountPage({
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-gray-300 shadow-sm">
-            <CardHeader className="border-b-2 border-gray-300 bg-blue-50">
+          <Card className="border-2 border-border shadow-sm">
+            <CardHeader className="border-b-2 border-border bg-primary/10">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-blue-600" />
+                <Shield className="h-5 w-5 text-primary" />
                 <div>
-                  <CardTitle className="text-blue-900">
+                  <CardTitle className="text-primary">
                     Account Actions
                   </CardTitle>
                   <CardDescription>
@@ -380,7 +380,7 @@ export function AccountPage({
             <CardContent className="space-y-4 p-4 sm:p-6">
               <Button
                 variant="outline"
-                className="w-full justify-start border-blue-300 hover:bg-blue-50"
+                className="w-full justify-start border-primary/20 hover:bg-primary/10"
                 onClick={() => setShowPasswordForm((prev) => !prev)}
                 disabled={
                   isChangingPassword || changePasswordMutation.isPending
@@ -394,20 +394,20 @@ export function AccountPage({
                 <Form {...passwordForm}>
                   <form
                     onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
-                    className="space-y-4 border-2 border-blue-200 rounded-lg p-4 bg-blue-50"
+                    className="space-y-4 border-2 border-primary/20 rounded-lg p-4 bg-primary/10"
                   >
                     <FormField
                       control={passwordForm.control}
                       name="currentPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-blue-900 font-medium">
+                          <FormLabel className="text-primary font-medium">
                             Current Password
                           </FormLabel>
                           <FormControl>
                             <Input
                               type="password"
-                              className="border-blue-300 focus:ring-2 focus:ring-blue-500"
+                              className="border-primary/20 focus:ring-2 focus:ring-ring"
                               {...field}
                             />
                           </FormControl>
@@ -421,13 +421,13 @@ export function AccountPage({
                       name="newPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-blue-900 font-medium">
+                          <FormLabel className="text-primary font-medium">
                             New Password
                           </FormLabel>
                           <FormControl>
                             <Input
                               type="password"
-                              className="border-blue-300 focus:ring-2 focus:ring-blue-500"
+                              className="border-primary/20 focus:ring-2 focus:ring-ring"
                               {...field}
                             />
                           </FormControl>
@@ -437,7 +437,7 @@ export function AccountPage({
                     />
 
                     <Button
-                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      className="w-full bg-primary hover:bg-primary"
                       type="submit"
                       disabled={
                         isChangingPassword || changePasswordMutation.isPending
@@ -457,7 +457,7 @@ export function AccountPage({
                 </Form>
               )}
 
-              <Separator className="bg-gray-300" />
+              <Separator className="bg-muted-foreground" />
 
               <Button
                 variant="destructive"

@@ -24,17 +24,17 @@ const CHANGE_TYPE_CONFIG: Record<
   CREATED: {
     icon: CircleDot,
     label: "Ticket created",
-    color: "text-blue-500",
+    color: "text-primary",
   },
   STATUS_CHANGED: {
     icon: RefreshCw,
     label: "Status changed",
-    color: "text-yellow-500",
+    color: "text-warning",
   },
   ASSIGNED: {
     icon: UserCheck,
     label: "Assigned",
-    color: "text-purple-500",
+    color: "text-avatar-8",
   },
   MESSAGE_SENT: {
     icon: MessageSquare,
@@ -44,22 +44,22 @@ const CHANGE_TYPE_CONFIG: Record<
   PRIORITY_CHANGED: {
     icon: RefreshCw,
     label: "Priority changed",
-    color: "text-orange-500",
+    color: "text-warning",
   },
   CLOSED: {
     icon: XCircle,
     label: "Closed",
-    color: "text-red-500",
+    color: "text-destructive",
   },
   REOPENED: {
     icon: CheckCircle2,
     label: "Reopened",
-    color: "text-green-500",
+    color: "text-success",
   },
   RATED: {
     icon: Star,
     label: "Rated",
-    color: "text-yellow-400",
+    color: "text-warning",
   },
 };
 

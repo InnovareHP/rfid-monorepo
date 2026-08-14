@@ -120,7 +120,7 @@ export function ManualManagementPage() {
     <div className="space-y-6 p-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">User Manual</h1>
+          <h1 className="page-title text-2xl font-bold tracking-tight">User Manual</h1>
           <p className="text-sm text-muted-foreground">
             Manage help articles and categories displayed on the dashboard help
             page.

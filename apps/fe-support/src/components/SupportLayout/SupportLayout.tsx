@@ -68,27 +68,27 @@ export function SupportLayout({ children }: SupportLayoutProps) {
   };
   return (
     <div className="min-h-screen flex flex-col bg-muted/30 overflow-x-hidden">
-      <header className="shrink-0 bg-[#004aad] text-white">
+      <header className="shrink-0 bg-brand-rail-horizontal text-brand-rail-foreground">
         <div className="flex items-center justify-between h-14 px-3 sm:px-4 max-w-[1920px] mx-auto gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
               to="/"
-              className="block shrink-0 cursor-pointer rounded transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#004aad]"
+              className="block shrink-0 cursor-pointer rounded transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-rail-foreground/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-rail-from"
               aria-label="Go to home"
             >
               <img
-                src="/images/navbar-logo.png"
+                src="/branding/Full/refidly-full-white.png"
                 alt={LOGO_ALT_TEXT}
-                className="h-[60px] w-auto object-contain"
+                className="h-9 w-auto object-contain"
               />
             </Link>
-            <div className="h-6 w-px bg-white/50 shrink-0" aria-hidden />
+            <div className="h-6 w-px bg-brand-rail-foreground/40 shrink-0" aria-hidden />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="cursor-pointer text-white hover:bg-white/10 hover:text-white gap-1 shrink-0"
+                  className="cursor-pointer text-brand-rail-foreground hover:bg-brand-rail-foreground/10 hover:text-brand-rail-foreground gap-1 shrink-0"
                 >
                   {DEFAULT_LANGUAGE_LABEL}
                   <ChevronDown className="size-4" />
@@ -111,7 +111,7 @@ export function SupportLayout({ children }: SupportLayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="cursor-pointer text-white hover:bg-white/10 hover:text-white"
+              className="cursor-pointer text-brand-rail-foreground hover:bg-brand-rail-foreground/10 hover:text-brand-rail-foreground"
             >
               Contact Us
             </Button>
@@ -121,7 +121,7 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="cursor-pointer text-white hover:bg-white/10 hover:text-white gap-1"
+                    className="cursor-pointer text-brand-rail-foreground hover:bg-brand-rail-foreground/10 hover:text-brand-rail-foreground gap-1"
                   >
                     <img
                       src={user.image ?? ""}
@@ -179,7 +179,8 @@ export function SupportLayout({ children }: SupportLayoutProps) {
             ) : (
               <Button
                 asChild
-                className="cursor-pointer text-white hover:bg-white/10 hover:text-white"
+                variant="outline"
+                className="cursor-pointer border-brand-rail-foreground/40 bg-transparent text-brand-rail-foreground hover:bg-brand-rail-foreground/10 hover:text-brand-rail-foreground"
               >
                 <a href={`${DASHBOARD_URL}/login`}>
                   <LogIn className="size-4" />
@@ -193,7 +194,7 @@ export function SupportLayout({ children }: SupportLayoutProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="cursor-pointer md:hidden text-white hover:bg-white/10 hover:text-white shrink-0"
+                className="cursor-pointer md:hidden text-brand-rail-foreground hover:bg-brand-rail-foreground/10 hover:text-brand-rail-foreground shrink-0"
                 aria-label="Open menu"
               >
                 <Menu className="size-5" />
@@ -241,15 +242,9 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                 )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Button
-                  size="icon"
-                  onClick={handleLogout}
-                  className="w-full cursor-pointer text-white hover:bg-white/10 hover:text-white gap-1"
-                >
-                  <LogOut className="size-4" />
-                  Sign out
-                </Button>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="size-4" />
+                Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

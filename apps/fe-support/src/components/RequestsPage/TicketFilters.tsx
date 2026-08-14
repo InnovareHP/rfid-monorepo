@@ -98,7 +98,7 @@ export function TicketFilters({ filters, onChange }: TicketFiltersProps) {
                     <SelectItem key={s} value={s}>
                       <span className="flex items-center gap-2">
                         <span
-                          className={`inline-block h-2 w-2 rounded-full ${statusConfig[s]?.dot ?? "bg-gray-400"}`}
+                          className={`inline-block h-2 w-2 rounded-full ${statusConfig[s]?.dot ?? "bg-muted-foreground"}`}
                         />
                         {getStatusLabel(s)}
                       </span>

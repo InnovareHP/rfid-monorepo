@@ -1,4 +1,10 @@
-import { entitlementHasFeature, ROLES, User } from "@dashboard/shared";
+import {
+  entitlementHasFeature,
+  ROLES,
+  SLA_FIRST_REPLY_HOURS,
+  SLA_RESOLUTION_HOURS,
+  User,
+} from "@dashboard/shared";
 import {
   BadRequestException,
   Injectable,
@@ -524,63 +530,86 @@ export class SupportService {
   }
 
   async getStats(user: AuthenticatedSession["user"]) {
+    const scope = this.ticketScope(user);
+    const terminal = [TicketStatus.RESOLVED, TicketStatus.CLOSED];
+    const agentReply = { senderUser: { role: ROLES.SUPPORT } };
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const now = Date.now();
+    const noReplyBefore = new Date(now - SLA_FIRST_REPLY_HOURS * 3_600_000);
+    const unresolvedBefore = new Date(now - SLA_RESOLUTION_HOURS * 3_600_000);
+
     const [
       open,
       inProgress,
       resolved,
       closed,
-      unassigned,
+      total,
+      createdToday,
+      solvedToday,
+      overdue,
+      atRisk,
       csatAgg,
       ticketsWithFirstReply,
       resolvedTickets,
+      workloadCounts,
     ] = await Promise.all([
+      prisma.supportTicket.count({ where: { status: "OPEN", ...scope } }),
+      prisma.supportTicket.count({
+        where: { status: "IN_PROGRESS", ...scope },
+      }),
+      prisma.supportTicket.count({ where: { status: "RESOLVED", ...scope } }),
+      prisma.supportTicket.count({ where: { status: "CLOSED", ...scope } }),
+      prisma.supportTicket.count({ where: { ...scope } }),
+      prisma.supportTicket.count({
+        where: { createdAt: { gte: startOfToday }, ...scope },
+      }),
+      // Counted per ticket, not per history row, so a resolve-then-close is one.
       prisma.supportTicket.count({
         where: {
-          status: "OPEN",
-          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+          status: { in: terminal },
+          SupportHistory: {
+            some: {
+              changeType: {
+                in: [HistoryChangeType.RESOLVED, HistoryChangeType.CLOSED],
+              },
+              createdAt: { gte: startOfToday },
+            },
+          },
+          ...scope,
         },
       }),
       prisma.supportTicket.count({
         where: {
-          status: "IN_PROGRESS",
-          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+          status: { notIn: terminal },
+          createdAt: { lt: noReplyBefore },
+          SupportTicketMessage: { none: agentReply },
+          ...scope,
         },
       }),
       prisma.supportTicket.count({
         where: {
-          status: "RESOLVED",
-          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
+          status: { notIn: terminal },
+          createdAt: { lt: unresolvedBefore },
+          SupportTicketMessage: { some: agentReply },
+          ...scope,
         },
-      }),
-      prisma.supportTicket.count({
-        where: {
-          status: "CLOSED",
-          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
-        },
-      }),
-      prisma.supportTicket.count({
-        where: { ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }) },
       }),
       prisma.supportTicketRating.aggregate({
         _avg: { rating: true },
         _count: { rating: true },
-        where: {
-          supportTicket: {
-            ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
-          },
-        },
+        where: { supportTicket: { ...scope } },
       }),
       prisma.supportTicket.findMany({
         where: {
-          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
-          SupportTicketMessage: {
-            some: { senderUser: { role: ROLES.SUPPORT } },
-          },
+          SupportTicketMessage: { some: agentReply },
+          ...scope,
         },
         select: {
           createdAt: true,
           SupportTicketMessage: {
-            where: { senderUser: { role: ROLES.SUPPORT } },
+            where: agentReply,
             orderBy: { createdAt: "asc" },
             take: 1,
             select: { createdAt: true },
@@ -589,10 +618,7 @@ export class SupportService {
       }),
 
       prisma.supportTicket.findMany({
-        where: {
-          ...(user.role === ROLES.SUPPORT && { assignedTo: user.id }),
-          status: { in: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
-        },
+        where: { status: { in: terminal }, ...scope },
         select: {
           createdAt: true,
           SupportHistory: {
@@ -606,6 +632,11 @@ export class SupportService {
             select: { createdAt: true },
           },
         },
+      }),
+      prisma.supportTicket.groupBy({
+        by: ["assignedTo"],
+        where: { status: { notIn: terminal }, ...scope },
+        _count: { _all: true },
       }),
     ]);
 
@@ -629,12 +660,32 @@ export class SupportService {
         ? toHours(arr.reduce((a, b) => a + b, 0) / arr.length)
         : null;
 
+    const agents = await prisma.user.findMany({
+      where: { id: { in: workloadCounts.map((row) => row.assignedTo) } },
+      select: { id: true, name: true, image: true },
+    });
+    const agentById = new Map(agents.map((a) => [a.id, a]));
+
+    const workload = workloadCounts
+      .map((row) => ({
+        userId: row.assignedTo,
+        name: agentById.get(row.assignedTo)?.name ?? "Unknown",
+        image: agentById.get(row.assignedTo)?.image ?? null,
+        activeCount: row._count._all,
+      }))
+      .sort((a, b) => b.activeCount - a.activeCount);
+
     return {
       open,
       inProgress,
       resolved,
       closed,
-      unassigned,
+      total,
+      createdToday,
+      solvedToday,
+      overdue,
+      atRisk,
+      workload,
       avgCsat: csatAgg._avg.rating
         ? Number(csatAgg._avg.rating.toFixed(1))
         : null,

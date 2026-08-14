@@ -47,7 +47,7 @@ const STATUS_VARIANTS: Record<string, BadgeVariant> = {
 export function AdminStatsDashboard() {
   const { data: ticketStats, isLoading: ticketsLoading } =
     useQuery<TicketStats>({
-      queryKey: ["admin-ticket-stats"],
+      queryKey: ["support-stats"],
       queryFn: getTicketStats,
       refetchInterval: 60_000,
     });
@@ -77,7 +77,7 @@ export function AdminStatsDashboard() {
             <Shield className="text-muted-foreground h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
+            <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
               Admin Dashboard
             </h1>
             <p className="text-muted-foreground mt-0.5 text-sm">

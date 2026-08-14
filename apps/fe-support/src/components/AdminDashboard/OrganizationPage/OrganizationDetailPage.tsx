@@ -330,7 +330,7 @@ export function OrganizationDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
               {org.name}
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
