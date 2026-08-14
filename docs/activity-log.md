@@ -1125,3 +1125,83 @@ Both lock returns sit after every hook; eslint react-hooks/rules-of-hooks is
 clean on both files.
 
 Verified: `pnpm build:api` and `pnpm build:fe` exit 0, eslint clean.
+
+## fe-support rebranded to Refidly (2026-08-15)
+
+`apps/fe-support` was still carrying the pre-Refidly identity: a hardcoded
+`#004aad` header, `rfid.png` / `tarsier.png` logos, "Innovare HP RFID" product
+copy, no brand tokens, and ~330 raw Tailwind palette classes that ignore
+`.dark`.
+
+- `src/index.css` now mirrors `apps/fe`'s token set: brand navy `#0d3185`,
+  `--primary` aliased to it, brand rail gradient stops, table-header,
+  success/warning/info, avatar 1-8, chart 1-5 and the sequential brand ramp,
+  sidebar tokens, Manrope body and Red Hat Display for `page-title`.
+  `page-title` resolves to `var(--color-primary)`, not `var(--color-brand)` as
+  in `apps/fe` — brand navy is unreadable on the dark surface, and primary is
+  already lifted to the brand mid blue under `.dark`.
+- `index.html` — Refidly title, description, OG tags, Google Fonts, theme-color
+  `#0d3185`, apple-touch-icon on the Refidly mark.
+- `public/branding/` — Refidly Full / Icon / Wordmark / Mascot copied from
+  `apps/fe/public/branding` under kebab-case names (the source filenames carry
+  spaces and brackets). `public/images/` deleted.
+- Header uses `bg-brand-rail-horizontal` with `text-brand-rail-foreground`;
+  sidebars swap wordmark (expanded) and icon (collapsed); the AI chat avatar is
+  the brand mascot.
+- `packages/shared/src/lib/constant.ts` — product copy rewritten from RFID
+  readers and call quality to the actual Refidly surfaces (leads, referrals,
+  analytics, integrations, billing). `statusConfig` / `priorityConfig` and the
+  knowledge-base tiles now carry tokens instead of palette classes; `titleColor`
+  is gone, titles are `text-foreground` because the avatar hues sit far above
+  the lightness needed for small text.
+- The palette sweep is mechanical: neutrals to muted/foreground/border, blues to
+  primary, greens to success, amber/yellow/orange to warning, reds to
+  destructive. `text-white` survives only on `bg-black/*` scrims, matching
+  `apps/fe`.
+- Dead `components/support-portal-page.tsx` removed — an unmaintained duplicate
+  of `components/SupportPortalPage/`, imported by nothing.
+
+Verified: `pnpm build:shared`, `pnpm --filter fe-support build` (tsc + vite) and
+`pnpm build:fe` exit 0. `pnpm --filter fe-support lint` reports 0 errors; the 14
+warnings are pre-existing `any` usages plus the four scrim `text-white` icons.
+Not verified: no browser pass, so the light and dark renders are unconfirmed.
+
+## Support KPI pages wired to real data (2026-08-15)
+
+Both KPI pages under `/support/kpi` were hardcoded mockups — `value={64}`,
+"Admin A/B/C", and two dashed placeholder boxes. The branding sweep retokened
+them but left fabricated numbers on screen, which is worse than an empty state.
+
+`GET /api/support/stats` did not carry what the pages need, so `getStats` grew:
+
+- `total`, `createdToday`, `solvedToday`, `overdue`, `atRisk`, and `workload`.
+- `overdue` is unresolved past `SLA_FIRST_REPLY_HOURS` with no agent message;
+  `atRisk` is answered but unresolved past `SLA_RESOLUTION_HOURS`. Both
+  thresholds moved to `packages/shared` so the ticket-table badges and the KPI
+  counts cannot drift apart — `SupportDashboardTickets` had them inline as 24
+  and 72.
+- `solvedToday` counts tickets, not history rows, so a resolve-then-close on the
+  same day is one.
+- `workload` is a `groupBy` on `assignedTo` over non-terminal tickets, joined to
+  user names in a second query.
+- The hand-rolled role branch was replaced with the existing `ticketScope(user)`
+  helper, so scoping matches every other read on this service.
+
+`unassigned` is gone from `TicketStats`. `SupportTicket.assignedTo` is
+non-nullable, so no ticket can ever be unassigned — the field counted every
+ticket in scope and the Support Dashboard rendered that under an "Unassigned"
+label. That card now shows `overdue`, which is the number it was trying to be.
+
+Frontend: `KpiCard` takes `loading` / `suffix` / nullable `value` and lost its
+`trendDirection` prop — the trends were invented, and the API has no
+period-over-period data to replace them with. New siblings `KpiPanel`,
+`StatusBreakdown`, and `WorkloadList` in the same feature folder. Both pages
+share the `["support-stats"]` query key with the two admin dashboards, so the
+same payload is fetched once; `AdminStatsDashboard` was still on
+`["admin-ticket-stats"]` for the identical request.
+
+Verified: `pnpm build:shared`, `pnpm build:api`, `pnpm --filter fe-support build`
+exit 0; `pnpm --filter fe-support lint` 0 errors (same 14 pre-existing warnings).
+`pnpm --filter api lint` fails on 63 pre-existing errors, none in
+`support.service.ts`. Not verified: no browser pass and no request against a
+live database, so the new counts are unconfirmed against real rows.
