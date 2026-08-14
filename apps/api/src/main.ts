@@ -56,7 +56,7 @@ async function bootstrap() {
   if (process.env.NODE_ENV !== "production") {
     const config = new DocumentBuilder()
       .setTitle(appConfig.APP_NAME)
-      .setDescription("Innovare Service API Documentation")
+      .setDescription("Refidly API Documentation")
       .setVersion("1.0")
       .addTag(appConfig.APP_NAME)
       .build();

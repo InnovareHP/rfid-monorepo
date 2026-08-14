@@ -27,7 +27,7 @@ export const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-red-600",
     title: "Getting started",
     description:
-      "Everything you need to know to get started with Innovare HP RFID.",
+      "Everything you need to know to get started with Refidly.",
   },
   {
     iconKey: "messageCircle" as const,
@@ -35,7 +35,7 @@ export const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-amber-600",
     title: "Conversations",
     description:
-      "Master RFID systems, readers, and software through Innovare HP RFID documentation and guides.",
+      "Master RFID systems, readers, and software through Refidly documentation and guides.",
   },
   {
     iconKey: "settings" as const,
@@ -43,7 +43,7 @@ export const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-teal-600",
     title: "Admin activities",
     description:
-      "Manage users, settings, devices, and boost productivity with Innovare HP RFID analytics.",
+      "Manage users, settings, devices, and boost productivity with Refidly analytics.",
   },
   {
     iconKey: "mic2" as const,
@@ -57,9 +57,9 @@ export const KNOWLEDGE_BASE_ITEMS = [
     iconKey: "brain" as const,
     iconBg: "bg-blue-600",
     titleColor: "text-blue-600",
-    title: "Innovare HP RFID AI features",
+    title: "Refidly AI features",
     description:
-      "Take advantage of AI-assisted support and troubleshooting for Innovare HP RFID.",
+      "Take advantage of AI-assisted support and troubleshooting for Refidly.",
   },
   {
     iconKey: "creditCard" as const,
@@ -75,7 +75,7 @@ export const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-purple-600",
     title: "Integrations",
     description:
-      "Make the most of Innovare HP RFID integrations with your systems and tools.",
+      "Make the most of Refidly integrations with your systems and tools.",
   },
   {
     iconKey: "package" as const,
@@ -88,14 +88,14 @@ export const KNOWLEDGE_BASE_ITEMS = [
 
 export const RESOURCE_LINKS = [
   {
-    title: "Innovare HP RFID Learning",
+    title: "Refidly Learning",
     description:
-      "Courses, videos, and learning paths designed to help you master Innovare HP RFID",
+      "Courses, videos, and learning paths designed to help you master Refidly",
   },
   {
-    title: "Innovare HP RFID Webinars & Events",
+    title: "Refidly Webinars & Events",
     description:
-      "Discover upcoming Innovare HP RFID webinars and events and watch on-demand sessions",
+      "Discover upcoming Refidly webinars and events and watch on-demand sessions",
   },
   {
     title: "Developers",
@@ -105,7 +105,7 @@ export const RESOURCE_LINKS = [
   {
     title: "Integrations",
     description:
-      "Extend Innovare HP RFID with integrations and third-party solutions",
+      "Extend Refidly with integrations and third-party solutions",
   },
 ];
 
@@ -119,14 +119,14 @@ export const FOOTER_LINKS = [
 ];
 
 export const AI_WELCOME_MESSAGE =
-  "Hello! I'm your AI assistant. I know a lot about Innovare HP RFID and I can do much more than chatbots you've seen before. How can I help? Tell me as much as you can about your question.";
+  "Hello! I'm your AI assistant. I know a lot about Refidly and I can do much more than chatbots you've seen before. How can I help? Tell me as much as you can about your question.";
 
 // Support portal page – copy & section titles
 export const SEARCH_PLACEHOLDER = "Search for articles";
 export const KNOWLEDGE_BASE_SECTION_TITLE = "Browse our knowledge base";
 export const RESOURCE_LINKS_SECTION_TITLE = "Resource Links";
 export const FOOTER_COPYRIGHT = "© Copyright Support";
-export const LOGO_ALT_TEXT = "Dashboard logo";
+export const LOGO_ALT_TEXT = "Refidly logo";
 
 // Header / nav
 export const DEFAULT_LANGUAGE_LABEL = "EN";

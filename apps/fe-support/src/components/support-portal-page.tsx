@@ -37,7 +37,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 const AI_WELCOME_MESSAGE =
-  "Hello! I'm your AI assistant. I know a lot about Innovare HP RFID and I can do much more than chatbots you've seen before. How can I help? Tell me as much as you can about your question.";
+  "Hello! I'm your AI assistant. I know a lot about Refidly and I can do much more than chatbots you've seen before. How can I help? Tell me as much as you can about your question.";
 
 function TypingText({
   text,
@@ -82,7 +82,7 @@ const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-red-600",
     title: "Getting started",
     description:
-      "Everything you need to know to get started with Innovare HP RFID.",
+      "Everything you need to know to get started with Refidly.",
   },
   {
     icon: MessageCircle,
@@ -90,7 +90,7 @@ const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-amber-600",
     title: "Conversations",
     description:
-      "Master RFID systems, readers, and software through Innovare HP RFID documentation and guides.",
+      "Master RFID systems, readers, and software through Refidly documentation and guides.",
   },
   {
     icon: Settings,
@@ -98,7 +98,7 @@ const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-teal-600",
     title: "Admin activities",
     description:
-      "Manage users, settings, devices, and boost productivity with Innovare HP RFID analytics.",
+      "Manage users, settings, devices, and boost productivity with Refidly analytics.",
   },
   {
     icon: Mic2,
@@ -112,9 +112,9 @@ const KNOWLEDGE_BASE_ITEMS = [
     icon: Brain,
     iconBg: "bg-blue-600",
     titleColor: "text-blue-600",
-    title: "Innovare HP RFID AI features",
+    title: "Refidly AI features",
     description:
-      "Take advantage of AI-assisted support and troubleshooting for Innovare HP RFID.",
+      "Take advantage of AI-assisted support and troubleshooting for Refidly.",
   },
   {
     icon: CreditCard,
@@ -130,7 +130,7 @@ const KNOWLEDGE_BASE_ITEMS = [
     titleColor: "text-purple-600",
     title: "Integrations",
     description:
-      "Make the most of Innovare HP RFID integrations with your systems and tools.",
+      "Make the most of Refidly integrations with your systems and tools.",
   },
   {
     icon: Package,
@@ -143,14 +143,14 @@ const KNOWLEDGE_BASE_ITEMS = [
 
 const RESOURCE_LINKS = [
   {
-    title: "Innovare HP RFID Learning",
+    title: "Refidly Learning",
     description:
-      "Courses, videos, and learning paths designed to help you master Innovare HP RFID",
+      "Courses, videos, and learning paths designed to help you master Refidly",
   },
   {
-    title: "Innovare HP RFID Webinars & Events",
+    title: "Refidly Webinars & Events",
     description:
-      "Discover upcoming Innovare HP RFID webinars and events and watch on-demand sessions",
+      "Discover upcoming Refidly webinars and events and watch on-demand sessions",
   },
   {
     title: "Developers",
@@ -160,7 +160,7 @@ const RESOURCE_LINKS = [
   {
     title: "Integrations",
     description:
-      "Extend Innovare HP RFID with integrations and third-party solutions",
+      "Extend Refidly with integrations and third-party solutions",
   },
 ];
 
@@ -251,8 +251,8 @@ export function SupportPortalPage() {
               aria-label="Go to home"
             >
               <img
-                src="/images/navbar-logo.png"
-                alt="Dashboard logo"
+                src="/branding/refidly-full-white.png"
+                alt="Refidly logo"
                 className="h-[60px] w-auto object-contain"
               />
             </Link>
@@ -444,7 +444,7 @@ export function SupportPortalPage() {
               <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%]">
                 <div className="flex items-center gap-2 mb-1.5">
                   <img
-                    src="/images/chat-logo.png"
+                    src="/branding/refidly-mascot.png"
                     alt=""
                     className="size-7 rounded-lg object-cover shrink-0"
                     aria-hidden
@@ -471,7 +471,7 @@ export function SupportPortalPage() {
                     <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%]">
                       <div className="flex items-center gap-2 mb-1.5">
                         <img
-                          src="/images/chat-logo.png"
+                          src="/branding/refidly-mascot.png"
                           alt=""
                           className="size-7 rounded-lg object-cover shrink-0"
                           aria-hidden
@@ -523,7 +523,7 @@ export function SupportPortalPage() {
                 variant="link"
                 className="cursor-pointer text-xs h-auto p-0 text-muted-foreground font-normal"
               >
-                Get your own AI Chat with Innovare HP RFID
+                Get your own AI Chat with Refidly
               </Button>
             </div>
           </Card>
@@ -537,7 +537,7 @@ export function SupportPortalPage() {
         aria-label="Open AI Assistant chat"
       >
         <span className="font-semibold text-[15px] text-foreground">
-          Innovare HP RFID AI Assistant
+          Refidly AI Assistant
         </span>
         <ChevronUp
           className="size-5 text-muted-foreground shrink-0"
@@ -592,7 +592,7 @@ export function SupportPortalPage() {
                 <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%]">
                   <div className="flex items-center gap-2 mb-1.5">
                     <img
-                      src="/images/chat-logo.png"
+                      src="/branding/refidly-mascot.png"
                       alt=""
                       className="size-7 rounded-lg object-cover shrink-0"
                       aria-hidden
@@ -619,7 +619,7 @@ export function SupportPortalPage() {
                       <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%]">
                         <div className="flex items-center gap-2 mb-1.5">
                           <img
-                            src="/images/chat-logo.png"
+                            src="/branding/refidly-mascot.png"
                             alt=""
                             className="size-7 rounded-lg object-cover shrink-0"
                             aria-hidden
@@ -663,7 +663,7 @@ export function SupportPortalPage() {
                   variant="link"
                   className="cursor-pointer text-xs h-auto p-0 text-muted-foreground font-normal"
                 >
-                  Get your own AI Chat with Innovare HP RFID
+                  Get your own AI Chat with Refidly
                 </Button>
               </div>
             </Card>

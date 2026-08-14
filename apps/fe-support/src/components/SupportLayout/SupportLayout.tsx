@@ -77,7 +77,7 @@ export function SupportLayout({ children }: SupportLayoutProps) {
               aria-label="Go to home"
             >
               <img
-                src="/images/navbar-logo.png"
+                src="/branding/refidly-full-white.png"
                 alt={LOGO_ALT_TEXT}
                 className="h-[60px] w-auto object-contain"
               />

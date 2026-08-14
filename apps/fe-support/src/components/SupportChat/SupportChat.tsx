@@ -95,7 +95,7 @@ export function SupportChat() {
       <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%]">
         <div className="flex items-center gap-2 mb-1.5">
           <img
-            src="/images/chat-logo.png"
+            src="/branding/refidly-mascot.png"
             alt=""
             className="size-7 rounded-lg object-cover shrink-0"
             aria-hidden
@@ -122,7 +122,7 @@ export function SupportChat() {
             <div className="rounded-xl bg-white p-4 border border-border shadow-sm max-w-[90%] w-full">
               <div className="flex items-center gap-2 mb-1.5">
                 <img
-                  src="/images/chat-logo.png"
+                  src="/branding/refidly-mascot.png"
                   alt=""
                   className="size-7 rounded-lg object-cover shrink-0"
                   aria-hidden
@@ -215,7 +215,7 @@ export function SupportChat() {
         aria-label="Open AI Assistant chat"
       >
         <span className="font-semibold text-[15px] text-foreground">
-          Innovare HP RFID AI Assistant
+          Refidly AI Assistant
         </span>
         <ChevronUp
           className="size-5 text-muted-foreground shrink-0"

@@ -322,7 +322,7 @@ export function AppSidebar({
           >
             <img
               src={BRAND_WORDMARK}
-              alt="Dashboard Logo"
+              alt="Refidly"
               className="h-auto w-[70%] max-w-full cursor-pointer object-contain object-left"
               loading="eager"
               decoding="async"

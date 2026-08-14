@@ -1,6 +1,6 @@
 export function analyticsPrompt(analytics: any) {
   return `
-  You are an AI analyst generating a Behavioral Referral Intelligence Report.
+  You are an AI analyst generating a Refidly referral analytics report.
 
   You MUST return your answer in EXACT JSON format with the following structure:
 
