@@ -43,7 +43,7 @@ export const InputBlock = ({
       variant="link"
       className="cursor-pointer text-xs h-auto p-0 text-muted-foreground font-normal"
     >
-      Get your own AI Chat with Innovare HP RFID
+      Get your own AI Chat with Refidly
     </Button>
   </div>
 );

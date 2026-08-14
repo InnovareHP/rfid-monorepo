@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
-const ogImage = new URL("/logo.png", Astro.site ?? Astro.url);
+const ogImage = new URL("/og-image.png", Astro.site ?? Astro.url);
 const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
 ---
 
@@ -19,6 +19,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="canonical" href={canonical} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
@@ -26,7 +27,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#2563eb" />
+    <meta name="theme-color" content="#0d3185" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

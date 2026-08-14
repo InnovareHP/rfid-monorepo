@@ -47,8 +47,8 @@ import * as React from "react";
 
 const QUEUE_BOARD_URL = "/api/queues";
 
-const LOGO_RFID = "/images/rfid.png";
-const LOGO_TARSIER = "/images/tarsier.png";
+const LOGO_WORDMARK = "/branding/refidly-wordmark.png";
+const LOGO_ICON = "/branding/refidly-icon.png";
 
 export function AdminSidebar() {
   const { pathname } = useLocation();
@@ -70,17 +70,17 @@ export function AdminSidebar() {
   }, [queryClient, router]);
 
   React.useEffect(() => {
-    const rfidImage = new Image();
-    rfidImage.src = LOGO_RFID;
-    const tarsierImage = new Image();
-    tarsierImage.src = LOGO_TARSIER;
+    const wordmarkImage = new Image();
+    wordmarkImage.src = LOGO_WORDMARK;
+    const iconImage = new Image();
+    iconImage.src = LOGO_ICON;
     return () => {
-      rfidImage.src = "";
-      tarsierImage.src = "";
+      wordmarkImage.src = "";
+      iconImage.src = "";
     };
   }, []);
 
-  const logoSrc = state === "collapsed" ? LOGO_TARSIER : LOGO_RFID;
+  const logoSrc = state === "collapsed" ? LOGO_ICON : LOGO_WORDMARK;
 
   const logoClassName = cn(
     "cursor-pointer transition-all duration-300 object-contain object-center",
@@ -97,7 +97,7 @@ export function AdminSidebar() {
           >
             <img
               src={logoSrc}
-              alt="Admin Dashboard"
+              alt="Refidly"
               className={logoClassName}
               loading="eager"
               decoding="async"
