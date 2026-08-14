@@ -20,13 +20,15 @@ export function ImpersonationBanner({ userName }: { userName: string }) {
   });
 
   return (
-    <div className="sticky top-0 z-50 flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-amber-950">
+    <div className="bg-warning text-warning-foreground sticky top-0 z-50 flex items-center justify-center gap-3 px-4 py-2 text-sm font-medium">
       <AlertTriangle className="h-4 w-4" />
       <span>You are impersonating {userName}</span>
+      {/* Tinted from the banner's own foreground so it stays legible on
+          bg-warning in both themes. */}
       <Button
         variant="outline"
         size="sm"
-        className="h-7 border-amber-700 bg-amber-400 text-amber-950 hover:bg-amber-300"
+        className="border-warning-foreground/40 bg-warning-foreground/10 text-warning-foreground hover:bg-warning-foreground/20 hover:text-warning-foreground h-7"
         onClick={() => stopMutation.mutate()}
         disabled={stopMutation.isPending}
       >

@@ -29,7 +29,7 @@ function StarDisplay({ rating }: { rating: number }) {
           key={s}
           className={`h-3.5 w-3.5 ${
             s <= rating
-              ? "fill-yellow-400 text-yellow-400"
+              ? "fill-warning text-warning"
               : "text-muted-foreground/30"
           }`}
         />
@@ -62,8 +62,8 @@ export function CsatReportPage() {
       header: "Ticket",
       render: (row: TicketRatingRow) => (
         <Link
-          to={"/support/tickets/$ticketNumber" as any}
-          params={{ ticketNumber: row.supportTicket.ticketNumber } as any}
+          to="/support/tickets/$ticketNumber"
+          params={{ ticketNumber: row.supportTicket.ticketNumber }}
           className="group flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary"
         >
           #{row.supportTicket.ticketNumber}
@@ -138,7 +138,7 @@ export function CsatReportPage() {
         {/* Header */}
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
               CSAT Report
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -157,7 +157,7 @@ export function CsatReportPage() {
                         key={s}
                         className={`h-4 w-4 ${
                           s <= Math.round(Number(avgRating ?? 0))
-                            ? "fill-yellow-400 text-yellow-400"
+                            ? "fill-warning text-warning"
                             : "text-muted-foreground/30"
                         }`}
                       />
@@ -260,7 +260,7 @@ function RatingDistribution({ ratings }: { ratings: TicketRatingRow[] }) {
                   key={s}
                   className={`h-3 w-3 ${
                     s <= star
-                      ? "fill-yellow-400 text-yellow-400"
+                      ? "fill-warning text-warning"
                       : "text-muted-foreground/20"
                   }`}
                 />
@@ -268,7 +268,7 @@ function RatingDistribution({ ratings }: { ratings: TicketRatingRow[] }) {
             </div>
             <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
               <div
-                className="h-full rounded-full bg-yellow-400 transition-all"
+                className="h-full rounded-full bg-warning transition-all"
                 style={{ width: `${(count / max) * 100}%` }}
               />
             </div>

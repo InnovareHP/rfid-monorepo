@@ -160,7 +160,7 @@ export function SupportDashboardTicketDetail({
       queryClient.invalidateQueries({
         queryKey: ["support-dashboard-tickets"],
       });
-      navigate({ to: "/support/tickets" as any });
+      navigate({ to: "/support/tickets" });
     },
     onError: () => toast.error("Failed to delete ticket"),
   });
@@ -214,7 +214,7 @@ export function SupportDashboardTicketDetail({
   };
 
   const handleBack = () => {
-    navigate({ to: "/support/tickets" as any });
+    navigate({ to: "/support/tickets" });
   };
 
   if (isLoading) {
@@ -254,7 +254,7 @@ export function SupportDashboardTicketDetail({
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
+          <h1 className="page-title text-xl font-semibold sm:text-2xl">
             {ticket.title}
           </h1>
         </div>
@@ -319,6 +319,10 @@ export function SupportDashboardTicketDetail({
                             onClick={() => removeAttachment(i)}
                             className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
                           >
+                            {/* Scrim sits on the uploaded image, not on themed
+                                UI, so its foreground is fixed white in both
+                                themes rather than a token that would invert. */}
+                            {/* eslint-disable-next-line no-restricted-syntax */}
                             <X className="h-4 w-4 text-white" />
                           </Button>
                         </div>
@@ -483,7 +487,7 @@ export function SupportDashboardTicketDetail({
                         <SelectItem key={s} value={s}>
                           <span className="flex items-center gap-2">
                             <span
-                              className={`inline-block h-2 w-2 rounded-full ${statusConfig[s]?.dot ?? "bg-gray-400"}`}
+                              className={`inline-block h-2 w-2 rounded-full ${statusConfig[s]?.dot ?? "bg-muted-foreground"}`}
                             />
                             {getStatusLabel(s)}
                           </span>
@@ -565,7 +569,7 @@ export function SupportDashboardTicketDetail({
                     {reopenMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                     )}
                     Reopen ticket
                   </Button>
@@ -581,7 +585,7 @@ export function SupportDashboardTicketDetail({
                       {resolveMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <CircleCheck className="h-4 w-4 text-green-500" />
+                        <CircleCheck className="h-4 w-4 text-success" />
                       )}
                       Mark as resolved
                     </Button>
@@ -595,7 +599,7 @@ export function SupportDashboardTicketDetail({
                       {closeMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                       )}
                       Close ticket
                     </Button>

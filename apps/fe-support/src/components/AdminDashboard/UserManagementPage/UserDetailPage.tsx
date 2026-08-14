@@ -232,7 +232,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
             </Link>
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="page-title text-2xl font-bold tracking-tight">
               User Details
             </h1>
           </div>
@@ -291,9 +291,9 @@ export function UserDetailPage({ userId }: { userId: string }) {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     {user.emailVerified ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                      <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
                     ) : (
-                      <XCircle className="h-4 w-4 shrink-0 text-amber-500" />
+                      <XCircle className="text-warning h-4 w-4 shrink-0" />
                     )}
                     <span>
                       Email {user.emailVerified ? "verified" : "not verified"}
