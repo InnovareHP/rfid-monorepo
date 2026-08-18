@@ -7,7 +7,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Board, BoardFieldType, ModuleType, Prisma } from "@prisma/client";
+import { Board, BoardFieldType, Prisma } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
 import { aiGenerateVision } from "src/lib/aws/ai-guard";
@@ -21,7 +21,10 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { geoPlaces } from "../../lib/geo/geo-places";
-import { resolveModuleId } from "../../lib/module/system-modules";
+import {
+  resolveModuleId,
+  toModuleType,
+} from "../../lib/module/system-modules";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
@@ -2191,7 +2194,7 @@ export class BoardService {
       data: {
         recordName: recordName ?? "",
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleType: toModuleType(moduleType),
         moduleId: scopedModuleId,
       },
     });
@@ -2361,7 +2364,7 @@ export class BoardService {
         const referral = await tx.board.create({
           data: {
             recordName: referralData.referral_name ?? "",
-            moduleType: moduleType as ModuleType,
+            moduleType: toModuleType(moduleType),
             moduleId: scopedModuleId,
             organizationId: organizationId,
           },
@@ -2753,7 +2756,7 @@ export class BoardService {
         fieldType: fieldType,
         fieldOrder: newOrder,
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleType: toModuleType(moduleType),
         moduleId: scopedModuleId,
       },
     });

@@ -15,8 +15,6 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import { memoryStorage } from "multer";
-import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
-import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import {
   DeleteImageDto,
   UploadImageQueryDto,
@@ -29,8 +27,10 @@ import { ImageService } from "./image.service";
 const scopeOf = (session: AuthenticatedSession) =>
   session.session.activeOrganizationId ?? session.user.id;
 
+// No SubscriptionGuard: the organization logo is uploaded during onboarding,
+// before any subscription row exists, and support agents carry no org at all.
 @Controller("image")
-@UseGuards(AuthGuard, SubscriptionGuard, EntitlementGuard)
+@UseGuards(AuthGuard)
 export class ImageController {
   constructor(
     private readonly imageService: ImageService,

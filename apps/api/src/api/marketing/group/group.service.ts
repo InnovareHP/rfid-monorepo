@@ -3,9 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { AudienceType, ModuleType, Prisma } from "@prisma/client";
+import { AudienceType, Prisma } from "@prisma/client";
 import { emailIndex } from "../../../lib/crypto/email-index";
-import { resolveModuleId } from "../../../lib/module/system-modules";
+import {
+  resolveModuleId,
+  toModuleType,
+} from "../../../lib/module/system-modules";
 import { prisma } from "../../../lib/prisma/prisma";
 import { SubscriberService } from "../subscriber/subscriber.service";
 import {
@@ -67,14 +70,14 @@ export class GroupService {
     organizationId: string,
     userId: string
   ) {
-    const moduleType = dto.moduleType ?? ModuleType.LEAD;
+    const moduleKey = dto.moduleType ?? "LEAD";
 
     return prisma.recipientGroup.create({
       data: {
         name: dto.name,
         description: dto.description ?? null,
-        moduleType,
-        moduleId: await resolveModuleId(moduleType),
+        moduleType: toModuleType(moduleKey),
+        moduleId: await resolveModuleId(moduleKey),
         audienceType: dto.audienceType ?? AudienceType.BOARD,
         filter: dto.filter as Prisma.InputJsonValue,
         organizationId,
@@ -92,7 +95,7 @@ export class GroupService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.moduleType !== undefined && {
-          moduleType: dto.moduleType,
+          moduleType: toModuleType(dto.moduleType),
           moduleId: await resolveModuleId(dto.moduleType),
         }),
         ...(dto.audienceType !== undefined && {

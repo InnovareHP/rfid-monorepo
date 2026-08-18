@@ -10,8 +10,10 @@ import {
   Patch,
   Post,
   UseGuards,
+  UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { ZodValidationPipe } from "nestjs-zod";
 import { EntitlementGuard } from "../../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
@@ -37,6 +39,7 @@ import {
   EntitlementGuard,
   HipaaGuard
 )
+@UsePipes(ZodValidationPipe)
 export class BlastController {
   constructor(
     private readonly blastService: BlastService,

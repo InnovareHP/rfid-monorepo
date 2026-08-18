@@ -4,8 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { BoardFieldType, ModuleType, PageStatus, Prisma } from "@prisma/client";
-import { resolveModuleId } from "../../../lib/module/system-modules";
+import { BoardFieldType, PageStatus, Prisma } from "@prisma/client";
+import {
+  resolveModuleId,
+  toModuleType,
+} from "../../../lib/module/system-modules";
 import { prisma } from "../../../lib/prisma/prisma";
 import { AuditService } from "../../../lib/audit/audit.service";
 import { BoardService } from "../../board/board.service";
@@ -348,7 +351,7 @@ export class FormService {
     userId: string,
     slug: string
   ) {
-    const moduleType = (dto.moduleType ?? ModuleType.LEAD) as ModuleType;
+    const moduleKey = dto.moduleType ?? "LEAD";
 
     return prisma.form.create({
       data: {
@@ -356,8 +359,8 @@ export class FormService {
         slug,
         organizationId,
         campaignId: dto.campaignId ?? null,
-        moduleType,
-        moduleId: await resolveModuleId(moduleType),
+        moduleType: toModuleType(moduleKey),
+        moduleId: await resolveModuleId(moduleKey),
         fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
         submitButtonText: dto.submitButtonText ?? "Submit",
         redirectUrl: dto.redirectUrl ?? null,

@@ -342,6 +342,11 @@ enum ModuleType {
   CONTACT
   COMPANY
 
+  // Every organization-defined module shares this value; the module itself is
+  // identified by moduleId, so the legacy column stays truthful without
+  // growing a value per custom key.
+  CUSTOM
+
   @@schema("board_schema")
 }
 

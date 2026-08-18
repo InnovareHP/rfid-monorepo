@@ -1,3 +1,4 @@
+import { ModuleType } from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
 
 // The record types every organization starts with. Labels match the sidebar
@@ -55,3 +56,15 @@ export const resolveModuleId = async (key: string) => {
 
   return found.id;
 };
+
+// A custom module has no enum member of its own, so the legacy column records
+// CUSTOM and moduleId carries the identity.
+const MODULE_TYPE_BY_KEY: Record<string, ModuleType> = {
+  LEAD: ModuleType.LEAD,
+  REFERRAL: ModuleType.REFERRAL,
+  CONTACT: ModuleType.CONTACT,
+  COMPANY: ModuleType.COMPANY,
+};
+
+export const toModuleType = (key: string): ModuleType =>
+  MODULE_TYPE_BY_KEY[key] ?? ModuleType.CUSTOM;

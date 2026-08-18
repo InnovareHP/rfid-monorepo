@@ -9,8 +9,10 @@ import {
   Post,
   Query,
   UseGuards,
+  UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { ZodValidationPipe } from "nestjs-zod";
 import { EntitlementGuard } from "../../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import {
@@ -35,6 +37,7 @@ const PAGE_SIZE_CAP = 100;
   EntitlementGuard,
   HipaaGuard
 )
+@UsePipes(ZodValidationPipe)
 export class GroupController {
   constructor(private readonly groupService: GroupService) {}
 
