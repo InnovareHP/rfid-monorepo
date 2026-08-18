@@ -120,7 +120,9 @@ export function ManualManagementPage() {
     <div className="space-y-6 p-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title text-2xl font-bold tracking-tight">User Manual</h1>
+          <h1 className="page-title text-2xl font-bold tracking-tight">
+            User Manual
+          </h1>
           <p className="text-sm text-muted-foreground">
             Manage help articles and categories displayed on the dashboard help
             page.
@@ -208,7 +210,7 @@ export function ManualManagementPage() {
       {/* Articles */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start space-y-4">
             <div>
               <CardTitle>Articles</CardTitle>
               <CardDescription>
@@ -216,7 +218,7 @@ export function ManualManagementPage() {
               </CardDescription>
             </div>
             {categoriesQuery.data && categoriesQuery.data.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex-1 space-y-4 space-x-4">
                 <Button
                   variant={categoryFilter === "" ? "default" : "outline"}
                   size="sm"

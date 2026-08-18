@@ -1,12 +1,14 @@
+import { AI_REQUEST_ACTION_LABEL } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Input } from "@dashboard/ui/components/input";
-import { Send } from "lucide-react";
+import { LifeBuoy, Send } from "lucide-react";
 
 type InputBlockProps = {
   disabled: boolean;
   inputValue: string;
   setInputValue: (value: string) => void;
   handleSendMessage: () => void;
+  onRequestAssistance: () => void;
 };
 
 export const InputBlock = ({
@@ -14,6 +16,7 @@ export const InputBlock = ({
   inputValue,
   setInputValue,
   handleSendMessage,
+  onRequestAssistance,
 }: InputBlockProps) => (
   <div className="p-4 border-t bg-background space-y-2">
     <div className="flex gap-2 min-w-0 items-center">
@@ -33,17 +36,24 @@ export const InputBlock = ({
       <Button
         type="button"
         size="icon"
+        disabled={disabled}
         className="cursor-pointer shrink-0 rounded-full size-10 min-w-11 min-h-11 bg-primary text-primary-foreground hover:bg-primary/90 touch-manipulation"
         onClick={handleSendMessage}
+        aria-label="Send message"
       >
         <Send className="size-4" />
       </Button>
     </div>
     <Button
-      variant="link"
-      className="cursor-pointer text-xs h-auto p-0 text-muted-foreground font-normal"
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={disabled}
+      onClick={onRequestAssistance}
+      className="cursor-pointer w-full rounded-xl text-xs"
     >
-      Get your own AI Chat with Refidly
+      <LifeBuoy className="size-3.5" />
+      {AI_REQUEST_ACTION_LABEL}
     </Button>
   </div>
 );

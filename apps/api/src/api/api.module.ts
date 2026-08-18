@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AnalyticsModule } from "./analytics/analytics.module";
+import { AssistantModule } from "./assistant/assistant.module";
 import { AuthModule } from "./auth/auth.module";
 import { BillingModule } from "./billing/billing.module";
 import { BoardExportModule } from "./board/board-export.module";
@@ -46,6 +47,7 @@ import { UserModule } from "./user/user.module";
     LiaisonModule,
     SupportModule,
     ManualModule,
+    AssistantModule,
     PlacesModule,
     KanbanModule,
     TaskModule,

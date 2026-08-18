@@ -1205,3 +1205,10 @@ exit 0; `pnpm --filter fe-support lint` 0 errors (same 14 pre-existing warnings)
 `pnpm --filter api lint` fails on 63 pre-existing errors, none in
 `support.service.ts`. Not verified: no browser pass and no request against a
 live database, so the new counts are unconfirmed against real rows.
+
+## 2026-08-18 docker compose dev infra
+
+- Compose split: postgres and redis run by default, app containers moved behind `--profile apps`, stripe-cli webhook forwarder behind `--profile stripe`.
+- fe-support VITE_API_URL moved from a build arg (no matching ARG in its Dockerfile, so it was dropped) to a runtime env var, which is what vite loadEnv reads.
+- S3, SES, SNS, Bedrock and AWS Location have no local substitute: the clients in `src/lib` build with no endpoint override, so dev points at a real AWS account.
+- Root scripts added: `infra:up`, `infra:down`, `infra:logs`, `infra:stripe`, `stack:up`. `docker compose down` tears down profiled containers too, so no separate stack:down.

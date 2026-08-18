@@ -389,11 +389,50 @@ export type MarketLogRow = {
   notes: string;
 };
 
+// Destinations the assistant may link to, keyed so the model never supplies a path.
+export const ASSISTANT_DESTINATIONS = {
+  home: "",
+  my_requests: "/request",
+  account: "/account",
+} as const;
+
+export type AssistantDestination = keyof typeof ASSISTANT_DESTINATIONS;
+
+export type AssistantFormPrefill = {
+  title?: string;
+  subject?: string;
+  description?: string;
+  category?: TicketCategory;
+};
+
+export type AssistantAction =
+  | { kind: "open_form"; label: string; prefill: AssistantFormPrefill }
+  | { kind: "navigate"; label: string; destination: AssistantDestination };
+
+export type AssistantStreamEvent =
+  | { type: "token"; text: string }
+  | { type: "step"; tool: string }
+  // The text so far was preamble to a tool call, not the answer.
+  | { type: "reset" }
+  | {
+      type: "done";
+      answered: boolean;
+      answer: string | null;
+      actions: AssistantAction[];
+    }
+  | { type: "error" };
+
 export type ChatMessage = {
+  id: string;
   role: "user" | "assistant";
   content: string;
   showAssistanceForm?: boolean;
   formSubmitted?: boolean;
+  pending?: boolean;
+  // Tool name behind the current step; the label for it lives in AI_STEP_LABELS.
+  step?: string;
+  actions?: AssistantAction[];
+  prefill?: AssistantFormPrefill;
 };
 
 export type SupportTicket = {

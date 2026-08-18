@@ -120,6 +120,30 @@ export const FOOTER_LINKS = [
 export const AI_WELCOME_MESSAGE =
   "Hello! I'm your AI assistant. I know a lot about Refidly and I can do much more than chatbots you've seen before. How can I help? Tell me as much as you can about your question.";
 
+// Shown when the assistant cannot answer and falls back to a support ticket.
+export const AI_ASSISTANCE_FALLBACK_MESSAGE =
+  "I can't answer that one yet. Fill out the form below and our support team will get back to you shortly.";
+
+// Shown when the user opens the request form directly.
+export const AI_ASSISTANCE_FORM_MESSAGE =
+  "Please fill out the form below and we'll get back to you shortly.";
+
+// Shown when the assistant request itself fails.
+export const AI_ASSISTANCE_ERROR_MESSAGE =
+  "The assistant is unavailable right now. Fill out the form below and our support team will take it from here.";
+
+export const AI_REQUEST_ACTION_LABEL = "Submit a request";
+
+// The runtime emits tool names only; the copy for each one lives here.
+export const AI_STEP_LABELS: Record<string, string> = {
+  list_my_tickets: "Checking your requests...",
+  get_ticket_status: "Looking up that request...",
+  propose_contact_form: "Preparing a request form...",
+  propose_navigate: "Finding the right page...",
+};
+
+export const AI_STEP_FALLBACK_LABEL = "Working on it...";
+
 // Support portal page – copy & section titles
 export const SEARCH_PLACEHOLDER = "Search for articles";
 export const KNOWLEDGE_BASE_SECTION_TITLE = "Browse our knowledge base";

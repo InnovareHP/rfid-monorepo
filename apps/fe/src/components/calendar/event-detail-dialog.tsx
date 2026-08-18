@@ -66,7 +66,7 @@ export function EventDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {event.title}
@@ -81,7 +81,7 @@ export function EventDetailDialog({
             </Badge>
           </DialogTitle>
           {event.description && (
-            <DialogDescription>{event.description}</DialogDescription>
+            <DialogDescription >{event.description}</DialogDescription>
           )}
         </DialogHeader>
 

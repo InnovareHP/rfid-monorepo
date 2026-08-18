@@ -1,7 +1,7 @@
 export enum TicketCategory {
   GENERAL = "GENERAL",
   TECHNICAL = "TECHNICAL",
-  ACCOUNTING = "ACCOUNTING",
+  ACCOUNT = "ACCOUNT",
   OTHER = "OTHER",
 }
 

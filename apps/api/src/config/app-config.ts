@@ -13,6 +13,10 @@ export const appConfigSchema = z.object({
   SES_FROM_EMAIL: z.string().min(1),
   BEDROCK_MODEL_ID: z.string().min(1).default("amazon.nova-micro-v1:0"),
   BEDROCK_VISION_MODEL_ID: z.string().min(1).default("amazon.nova-lite-v1:0"),
+  BEDROCK_EMBED_MODEL_ID: z
+    .string()
+    .min(1)
+    .default("amazon.titan-embed-text-v2:0"),
 
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   LOG_SERVICE: z.string().default("auth"),

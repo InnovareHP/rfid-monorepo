@@ -1,6 +1,10 @@
 import { Logger } from "@nestjs/common";
 import { appConfig } from "../../config/app-config";
-import { bedrockGenerateText, bedrockGenerateVision } from "./bedrock";
+import {
+  bedrockGenerateProse,
+  bedrockGenerateText,
+  bedrockGenerateVision,
+} from "./bedrock";
 
 const logger = new Logger("AIGuard");
 
@@ -42,21 +46,38 @@ export interface GuardOptions {
   temperature?: number;
 }
 
+function guardPrompt(
+  prompt: string,
+  opts: { type: string; allowRawPhi?: boolean }
+): string {
+  if (!PHI_GUARD_ENABLED || opts.allowRawPhi) return prompt;
+  const { scrubbed, hits } = scrubPhi(prompt);
+  if (hits.length) {
+    logger.warn(
+      `ai.scrub type=${opts.type} hits=${hits.map((h) => `${h.kind}:${h.count}`).join(",")}`
+    );
+  }
+  return scrubbed;
+}
+
 export async function aiGenerateText(
   prompt: string,
   opts: GuardOptions
 ): Promise<string> {
-  let toSend = prompt;
-  if (PHI_GUARD_ENABLED && !opts.allowRawPhi) {
-    const { scrubbed, hits } = scrubPhi(prompt);
-    toSend = scrubbed;
-    if (hits.length) {
-      logger.warn(
-        `ai.scrub type=${opts.type} hits=${hits.map((h) => `${h.kind}:${h.count}`).join(",")}`
-      );
-    }
-  }
+  const toSend = guardPrompt(prompt, opts);
   return bedrockGenerateText(toSend, {
+    modelId: opts.modelId,
+    maxTokens: opts.maxTokens,
+    temperature: opts.temperature,
+  });
+}
+
+export async function aiGenerateProse(
+  prompt: string,
+  opts: GuardOptions
+): Promise<string> {
+  const toSend = guardPrompt(prompt, opts);
+  return bedrockGenerateProse(toSend, {
     modelId: opts.modelId,
     maxTokens: opts.maxTokens,
     temperature: opts.temperature,
@@ -71,16 +92,7 @@ export async function aiGenerateVision(args: {
   modelId?: string;
   maxTokens?: number;
 }): Promise<string> {
-  let toSend = args.prompt;
-  if (PHI_GUARD_ENABLED && !args.allowRawPhi) {
-    const { scrubbed, hits } = scrubPhi(args.prompt);
-    toSend = scrubbed;
-    if (hits.length) {
-      logger.warn(
-        `ai.scrub type=${args.type} hits=${hits.map((h) => `${h.kind}:${h.count}`).join(",")}`
-      );
-    }
-  }
+  const toSend = guardPrompt(args.prompt, args);
   // Image bytes cannot be regex-scrubbed; vision use requires a BAA-covered
   // model/region (AI_SCRUB_PHI does not sanitize the image payload).
   return bedrockGenerateVision({

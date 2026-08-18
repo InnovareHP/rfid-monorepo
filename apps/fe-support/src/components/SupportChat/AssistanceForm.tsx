@@ -1,6 +1,10 @@
 import { deleteImage, uploadImage } from "@/services/image/image-service";
 import { createSupportTicket } from "@/services/support/support-service";
-import { TICKET_CATEGORIES, TicketCategory } from "@dashboard/shared";
+import {
+  TICKET_CATEGORIES,
+  TicketCategory,
+  type AssistantFormPrefill,
+} from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Form,
@@ -22,6 +26,7 @@ import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { toast } from "sonner";
 import { ImageDropper } from "./ImageDropper";
 
 const assistanceFormSchema = z.object({
@@ -34,14 +39,20 @@ const assistanceFormSchema = z.object({
 
 type AssistanceFormValues = z.infer<typeof assistanceFormSchema>;
 
-export const AssistanceForm = ({ onSuccess }: { onSuccess: () => void }) => {
+export const AssistanceForm = ({
+  onSuccess,
+  prefill,
+}: {
+  onSuccess: () => void;
+  prefill?: AssistantFormPrefill;
+}) => {
   const form = useForm<AssistanceFormValues>({
     resolver: zodResolver(assistanceFormSchema),
     defaultValues: {
-      title: "",
-      subject: "",
-      description: "",
-      category: "GENERAL",
+      title: prefill?.title ?? "",
+      subject: prefill?.subject ?? "",
+      description: prefill?.description ?? "",
+      category: prefill?.category ?? "GENERAL",
       images: [],
     },
   });
@@ -62,12 +73,13 @@ export const AssistanceForm = ({ onSuccess }: { onSuccess: () => void }) => {
       });
 
       form.reset();
+      toast.success("Request submitted. Our team will get back to you.");
       onSuccess();
-    } catch (error) {
+    } catch {
       await Promise.all(
         uploadedImages.map((img) => deleteImage(img.public_id))
       );
-      console.error(error);
+      toast.error("Could not submit your request. Please try again.");
     }
   };
 
