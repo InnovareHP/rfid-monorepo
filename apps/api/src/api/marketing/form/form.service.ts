@@ -100,7 +100,7 @@ export class FormService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
         ...(dto.moduleType !== undefined && {
-          moduleType: dto.moduleType,
+          moduleType: toModuleType(dto.moduleType),
           moduleId: await resolveModuleId(dto.moduleType),
         }),
         ...(dto.fieldMappings !== undefined && {
