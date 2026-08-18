@@ -202,7 +202,9 @@ export const statusConfig: Record<string, { className: string; dot: string }> =
   };
 
 export const priorityConfig: Record<string, { className: string }> = {
-  HIGH: { className: "bg-destructive/10 text-destructive border-destructive/20" },
+  HIGH: {
+    className: "bg-destructive/10 text-destructive border-destructive/20",
+  },
   MEDIUM: { className: "bg-warning/10 text-warning border-warning/20" },
   LOW: { className: "bg-muted text-muted-foreground border-border" },
 };

@@ -82,7 +82,10 @@ export function SupportLayout({ children }: SupportLayoutProps) {
                 className="h-9 w-auto object-contain"
               />
             </Link>
-            <div className="h-6 w-px bg-brand-rail-foreground/40 shrink-0" aria-hidden />
+            <div
+              className="h-6 w-px bg-brand-rail-foreground/40 shrink-0"
+              aria-hidden
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

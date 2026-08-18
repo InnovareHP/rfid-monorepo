@@ -190,7 +190,7 @@ export function AdminSidebar() {
           >
             <img
               src={logoSrc}
-              alt="Admin Dashboard"
+              alt="Refidly"
               className={logoClassName}
               loading="eager"
               decoding="async"
