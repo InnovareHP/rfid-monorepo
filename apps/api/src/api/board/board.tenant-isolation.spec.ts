@@ -79,6 +79,8 @@ describe("BoardService tenant isolation", () => {
       null as any,
       null as any,
       null as any,
+      null as any,
+      null as any,
       null as any
     );
   });
@@ -181,6 +183,8 @@ describe("BoardService tenant isolation", () => {
   describe("getJobStatus", () => {
     const withQueue = (job: unknown) =>
       new BoardService(
+        null as any,
+        null as any,
         null as any,
         null as any,
         null as any,

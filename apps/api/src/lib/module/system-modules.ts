@@ -1,3 +1,4 @@
+import { NotFoundException } from "@nestjs/common";
 import { ModuleType } from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
 
@@ -52,7 +53,11 @@ export const resolveModuleId = async (key: string) => {
     select: { id: true },
   });
 
-  if (!found) throw new Error(`No module "${key}" for the active organization`);
+  if (!found) {
+    throw new NotFoundException(
+      `No module "${key}" for the active organization`
+    );
+  }
 
   return found.id;
 };

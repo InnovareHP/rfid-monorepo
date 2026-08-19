@@ -21,6 +21,14 @@ type FieldMapping = {
   required: boolean;
 };
 
+// The wire always carries the module key. The enum column reads CUSTOM for
+// every organization-defined module, so it is internal to writes.
+const withModuleKey = <
+  T extends { moduleType: string; module?: { key: string } | null },
+>(
+  row: T
+) => ({ ...row, moduleType: row.module?.key ?? row.moduleType });
+
 @Injectable()
 export class FormService {
   constructor(
@@ -30,21 +38,27 @@ export class FormService {
   ) {}
 
   async getForms(organizationId: string) {
-    return prisma.form.findMany({
+    const forms = await prisma.form.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { submissions: true } } },
+      include: {
+        _count: { select: { submissions: true } },
+        module: { select: { key: true } },
+      },
     });
+
+    return forms.map(withModuleKey);
   }
 
   async getForm(id: string, organizationId: string) {
     const form = await prisma.form.findFirst({
       where: { id, organizationId },
+      include: { module: { select: { key: true } } },
     });
 
     if (!form) throw new NotFoundException("Form not found");
 
-    return form;
+    return withModuleKey(form);
   }
 
   async getFormFields(id: string, organizationId: string) {
@@ -248,11 +262,15 @@ export class FormService {
   ) {
     const form = await prisma.form.findUnique({
       where: { slug, status: PageStatus.PUBLISHED },
+      include: { module: { select: { key: true } } },
     });
 
     if (!form) throw new NotFoundException("Form not found");
 
-    const { organizationId, moduleType } = form;
+    // The stored enum reads CUSTOM for every organization-defined module, so
+    // the key has to come off the relation or the record has no module.
+    const { organizationId } = form;
+    const moduleType = form.module?.key ?? form.moduleType;
     const fieldMappings = form.fieldMappings as FieldMapping[];
 
     if (

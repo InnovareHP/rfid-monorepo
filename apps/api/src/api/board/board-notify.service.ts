@@ -41,9 +41,11 @@ export class BoardNotifyService {
 
   constructor(private readonly notificationService: NotificationService) {}
 
+  // Custom modules have no dedicated route, so they fall back to the generic
+  // records path the way the sidebar does rather than to the organization root.
   private listLink(moduleType: string, organizationId: string) {
-    const segment = MODULE_LISTS[moduleType];
-    return segment ? `/${organizationId}/${segment}` : `/${organizationId}`;
+    const segment = MODULE_LISTS[moduleType] ?? `records/${moduleType}`;
+    return `/${organizationId}/${segment}`;
   }
 
   // Only LEAD has a record detail route, so the rest deep link to their list.

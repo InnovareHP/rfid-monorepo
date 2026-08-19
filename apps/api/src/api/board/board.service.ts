@@ -2354,23 +2354,26 @@ export class BoardService {
         );
       }
 
-      const createdReferrals: any = [];
       const allReferralValues: any[] = [];
       const allHistoryEntries: any[] = [];
       const allNotificationStates: any[] = [];
       const allRelations: any[] = [];
 
-      for (const referralData of referralItems) {
-        const referral = await tx.board.create({
-          data: {
-            recordName: referralData.referral_name ?? "",
-            moduleType: toModuleType(moduleType),
-            moduleId: scopedModuleId,
-            organizationId: organizationId,
-          },
-        });
+      // One insert instead of one per item: a create per referral is a round
+      // trip inside the 5s interactive transaction default, so a large batch
+      // ran out of time part way through.
+      const recordsToCreate = referralItems.map((referralData) => ({
+        id: uuidv4(),
+        recordName: referralData.referral_name ?? "",
+        moduleType: toModuleType(moduleType),
+        moduleId: scopedModuleId,
+        organizationId: organizationId,
+      }));
 
-        createdReferrals.push(referral);
+      await tx.board.createMany({ data: recordsToCreate });
+
+      for (const [index, referralData] of referralItems.entries()) {
+        const recordId = recordsToCreate[index].id;
 
         for (const field of fields) {
           const customValue =
@@ -2405,7 +2408,7 @@ export class BoardService {
               value = target?.id ?? null;
               if (target) {
                 allRelations.push({
-                  sourceId: referral.id,
+                  sourceId: recordId,
                   targetId: target.id,
                   relationType: relation,
                   organizationId: organizationId,
@@ -2418,7 +2421,7 @@ export class BoardService {
 
           allReferralValues.push({
             id: uuidv4(),
-            recordId: referral.id,
+            recordId: recordId,
             fieldId: field.id,
             value: value,
             organizationId: organizationId,
@@ -2429,7 +2432,7 @@ export class BoardService {
         allHistoryEntries.push({
           id: uuidv4(),
           createdAt: new Date(),
-          recordId: referral.id,
+          recordId: recordId,
           oldValue: null,
           newValue: referralData.referral_name,
           action: "create",
@@ -2440,7 +2443,7 @@ export class BoardService {
 
         allNotificationStates.push({
           id: uuidv4(),
-          recordId: referral.id,
+          recordId: recordId,
           lastSeen: new Date(),
         });
       }
@@ -2473,6 +2476,10 @@ export class BoardService {
           skipDuplicates: true,
         });
       }
+
+      const createdReferrals = await tx.board.findMany({
+        where: { id: { in: recordsToCreate.map((record) => record.id) } },
+      });
 
       return {
         message: `${createdReferrals.length} referral(s) created successfully`,

@@ -7,6 +7,7 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
 import { Job } from "bullmq";
+import { v4 as uuidv4 } from "uuid";
 import { isSelectType } from "src/lib/helper";
 import { resolveModuleId, toModuleType } from "src/lib/module/system-modules";
 import { prisma } from "src/lib/prisma/prisma";
@@ -70,7 +71,11 @@ export class CsvImportProcessor extends WorkerHost {
       fieldMap.set(normalizeKey(field.fieldName), field);
     }
 
+    // Ids are generated here rather than read back after the insert: the read
+    // took the newest N rows for the organization, so anything created
+    // concurrently shifted every value onto the wrong record.
     const recordsToCreate: {
+      id: string;
       recordName: string;
       organizationId: string;
       moduleType: ModuleType;
@@ -89,6 +94,7 @@ export class CsvImportProcessor extends WorkerHost {
       const recordName = resolveRecordName(row);
 
       recordsToCreate.push({
+        id: uuidv4(),
         recordName: recordName,
         organizationId: organizationId,
         moduleType: toModuleType(moduleType),
@@ -146,54 +152,49 @@ export class CsvImportProcessor extends WorkerHost {
       }
     });
 
-    await prisma.$transaction(async (tx) => {
-      await tx.board.createMany({
-        data: recordsToCreate,
-      });
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.board.createMany({ data: recordsToCreate });
 
-      const createdRecords = await tx.board.findMany({
-        where: { organizationId: organizationId },
-        orderBy: { createdAt: "desc" },
-        take: recordsToCreate.length,
-      });
+        if (optionsToCreate.size > 0) {
+          const optionRows: {
+            optionName: string;
+            fieldId: string;
+            organizationId: string;
+          }[] = [];
 
-      createdRecords.reverse();
-
-      if (optionsToCreate.size > 0) {
-        const optionRows: {
-          optionName: string;
-          fieldId: string;
-          organizationId: string;
-        }[] = [];
-
-        for (const [fieldId, options] of optionsToCreate.entries()) {
-          for (const opt of options) {
-            optionRows.push({
-              optionName: opt,
-              fieldId: fieldId,
-              organizationId: organizationId,
-            });
+          for (const [fieldId, options] of optionsToCreate.entries()) {
+            for (const opt of options) {
+              optionRows.push({
+                optionName: opt,
+                fieldId: fieldId,
+                organizationId: organizationId,
+              });
+            }
           }
+
+          await tx.fieldOption.createMany({
+            data: optionRows,
+            skipDuplicates: true,
+          });
         }
 
-        await tx.fieldOption.createMany({
-          data: optionRows,
+        const recordValues = recordValueBuffer.map((lv) => ({
+          recordId: recordsToCreate[lv.record_index].id,
+          fieldId: lv.fieldId,
+          value: lv.value,
+          organizationId: organizationId,
+        }));
+
+        await tx.fieldValue.createMany({
+          data: recordValues,
           skipDuplicates: true,
         });
-      }
-
-      const recordValues = recordValueBuffer.map((lv) => ({
-        recordId: createdRecords[lv.record_index].id,
-        fieldId: lv.fieldId,
-        value: lv.value,
-        organizationId: organizationId,
-      }));
-
-      await tx.fieldValue.createMany({
-        data: recordValues,
-        skipDuplicates: true,
-      });
-    });
+      },
+      // A full file does not finish inside the 5s interactive default, and this
+      // runs on a worker where a long write is acceptable.
+      { timeout: 120_000, maxWait: 10_000 }
+    );
 
     await job.updateProgress({
       phase: "complete",

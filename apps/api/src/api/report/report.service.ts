@@ -1,10 +1,46 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma/prisma";
 import { SaveReportDto, UpdateReportDto } from "./dto/report.dto";
 
 @Injectable()
 export class ReportService {
+  // The ids arrive from the client, so ownership is proven here rather than
+  // trusted: a foreign module or column would be stored and then quietly
+  // resolve to nothing at run time.
+  private async assertOwned(
+    organizationId: string,
+    moduleId: string | undefined,
+    columnIds: string[] | undefined
+  ) {
+    if (moduleId !== undefined) {
+      const module = await prisma.module.findFirst({
+        where: { id: moduleId, organizationId },
+        select: { id: true },
+      });
+      if (!module) throw new NotFoundException("Module not found");
+    }
+
+    if (columnIds !== undefined) {
+      const owned = await prisma.field.count({
+        where: {
+          id: { in: columnIds },
+          organizationId,
+          ...(moduleId !== undefined && { moduleId }),
+        },
+      });
+      if (owned !== columnIds.length) {
+        throw new BadRequestException(
+          "Every column must belong to the selected module"
+        );
+      }
+    }
+  }
+
   async getReports(organizationId: string) {
     return prisma.savedReport.findMany({
       where: { organizationId },
@@ -29,6 +65,8 @@ export class ReportService {
     organizationId: string,
     userId: string
   ) {
+    await this.assertOwned(organizationId, dto.moduleId, dto.columnIds);
+
     return prisma.savedReport.create({
       data: {
         name: dto.name,
@@ -43,7 +81,14 @@ export class ReportService {
   }
 
   async updateReport(id: string, dto: UpdateReportDto, organizationId: string) {
-    await this.getReport(id, organizationId);
+    const existing = await this.getReport(id, organizationId);
+
+    await this.assertOwned(
+      organizationId,
+      dto.moduleId ??
+        (dto.columnIds !== undefined ? existing.moduleId : undefined),
+      dto.columnIds
+    );
 
     return prisma.savedReport.update({
       where: { id },

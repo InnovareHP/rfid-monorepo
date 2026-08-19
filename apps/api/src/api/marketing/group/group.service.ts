@@ -39,16 +39,29 @@ const memberKey = (member: GroupMember) =>
     ? `email:${emailIndex(member.email)}`
     : `record:${member.recordId}`;
 
+// The wire always carries the module key. The enum column reads CUSTOM for
+// every organization-defined module, so it is internal to writes.
+const withModuleKey = <
+  T extends { moduleType: string; module?: { key: string } | null },
+>(
+  row: T
+) => ({ ...row, moduleType: row.module?.key ?? row.moduleType });
+
 @Injectable()
 export class GroupService {
   constructor(private readonly subscriberService: SubscriberService) {}
 
   async getGroups(organizationId: string) {
-    return prisma.recipientGroup.findMany({
+    const groups = await prisma.recipientGroup.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { blasts: true } } },
+      include: {
+        _count: { select: { blasts: true } },
+        module: { select: { key: true } },
+      },
     });
+
+    return groups.map(withModuleKey);
   }
 
   async getGroup(id: string, organizationId: string) {
@@ -62,7 +75,7 @@ export class GroupService {
 
     if (!group) throw new NotFoundException("Group not found");
 
-    return group;
+    return withModuleKey(group);
   }
 
   async createGroup(

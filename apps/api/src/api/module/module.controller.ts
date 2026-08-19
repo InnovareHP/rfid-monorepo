@@ -5,8 +5,10 @@ import {
   Get,
   Post,
   UseGuards,
+  UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { ZodValidationPipe } from "nestjs-zod";
 import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
 import {
   PermissionGuard,
@@ -18,6 +20,7 @@ import { ModuleService } from "./module.service";
 
 @Controller("module")
 @UseGuards(AuthGuard, SubscriptionGuard, PermissionGuard, EntitlementGuard)
+@UsePipes(ZodValidationPipe)
 export class ModuleController {
   constructor(private readonly moduleService: ModuleService) {}
 

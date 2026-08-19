@@ -487,12 +487,10 @@ export class BoardController {
     const organizationId = session.session.activeOrganizationId;
 
     try {
-      if (["REFERRAL", "CONTACT", "COMPANY"].includes(dto.moduleType ?? "")) {
-        if (!dto.data?.length) {
-          throw new BadRequestException(
-            "data is required for this module type"
-          );
-        }
+      // Routed on the payload, not on a list of module keys: every custom
+      // module fell through to the single-record path, which reads recordName
+      // and initialValues that a rows request does not send.
+      if (dto.data?.length) {
         return this.boardService.createReferral(
           dto.data as { referral_name: string; [key: string]: any }[],
           organizationId,
@@ -500,6 +498,11 @@ export class BoardController {
           dto.moduleType
         );
       }
+
+      if (!dto.recordName) {
+        throw new BadRequestException("recordName is required");
+      }
+
       return this.boardService.createRecord(
         dto.recordName,
         organizationId,
