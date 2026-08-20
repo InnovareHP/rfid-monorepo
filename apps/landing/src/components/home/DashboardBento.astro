@@ -1,0 +1,157 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { Image } from "astro:assets";
+import analyticsAi from "../../assets/home/bento-analytics-ai.png";
+import fieldActivityLogs from "../../assets/home/bento-field-activity-logs.png";
+import masterFacilityList from "../../assets/home/bento-master-facility-list.png";
+import outreachCampaigns from "../../assets/home/bento-outreach-campaigns.png";
+import pipelineTracking from "../../assets/home/bento-pipeline-tracking.png";
+import schedulingTasks from "../../assets/home/bento-scheduling-tasks.png";
+import { APP_URL } from "../../config";
+
+const CARD = {
+  schedulingTasks: {
+    src: schedulingTasks,
+    width: 366,
+    widths: [366, 732],
+    height: 656,
+    sizes: "(min-width: 1024px) 366px, 100vw",
+    alt: "Scheduling and Tasks: a shared calendar, no-account booking links, and tasks owned by the liaison who covers them",
+  },
+  outreachCampaigns: {
+    src: outreachCampaigns,
+    width: 709,
+    widths: [709, 1418],
+    height: 283,
+    sizes: "(min-width: 1024px) 709px, 100vw",
+    alt: "Outreach and Campaigns: blasts and campaigns through your own Gmail or Outlook, plus forms, landing pages, and fax feeding straight into the pipeline",
+  },
+  fieldActivityLogs: {
+    src: fieldActivityLogs,
+    width: 269,
+    widths: [269, 538],
+    height: 348,
+    sizes: "(min-width: 1024px) 269px, 100vw",
+    alt: "Field Activity Logs: mileage, expenses, and visit notes logged in the field, ready when finance asks",
+  },
+  masterFacilityList: {
+    src: masterFacilityList,
+    width: 415,
+    widths: [415, 830],
+    height: 348,
+    sizes: "(min-width: 1024px) 415px, 100vw",
+    alt: "Master Facility List: every facility, contact, and company, cross-linked with the fields your team actually needs",
+  },
+  pipelineTracking: {
+    src: pipelineTracking,
+    width: 546,
+    widths: [546, 1092],
+    height: 259,
+    sizes: "(min-width: 1024px) 546px, 100vw",
+    alt: "Referral Pipeline Tracking: watch every referral move from first call to assessment to admission or referred-out, as a table or a board",
+  },
+  analyticsAi: {
+    src: analyticsAi,
+    width: 533,
+    widths: [533, 1066],
+    height: 259,
+    sizes: "(min-width: 1024px) 533px, 100vw",
+    alt: "Analytics with AI on Top: referral trends by county, facility, and payor, plus a scan that turns a business card into a record",
+  },
+};
+---
+
+<section
+  id="features"
+  class="bg-gradient-to-b from-background to-brand-fade py-16 lg:py-[51px]"
+>
+  <div class="site-shell">
+    <div data-reveal>
+      <h2
+        class="text-center text-[26px] leading-tight font-semibold sm:text-[34px] lg:text-[45px] lg:leading-[66px]"
+      >
+        The whole referral operation, one <span class="text-brand">
+          dashboard.
+        </span>
+      </h2>
+      <p
+        class="mx-auto mt-4 max-w-[807px] text-center text-base leading-relaxed text-foreground sm:text-lg lg:text-xl lg:leading-[30px]"
+      >
+        Generic CRMs make you translate your workflow into their language.
+        Refidly speaks yours from day one — counties, facilities, census,
+        admissions.
+      </p>
+    </div>
+
+    <div
+      class="mt-10 grid gap-5 sm:gap-[25px] lg:mt-12 lg:grid-cols-[366fr_709fr]"
+    >
+      <div class="lg:row-span-2" data-reveal>
+        <Image
+          {...CARD.schedulingTasks}
+          quality={90}
+          loading="lazy"
+          class="h-full w-full rounded-[20px] object-cover"
+        />
+      </div>
+      <div data-reveal>
+        <Image
+          {...CARD.outreachCampaigns}
+          quality={90}
+          loading="lazy"
+          class="w-full rounded-[20px]"
+        />
+      </div>
+      <div class="grid gap-5 sm:gap-[25px] lg:grid-cols-[269fr_415fr]">
+        <div class="h-full" data-reveal>
+          <Image
+            {...CARD.fieldActivityLogs}
+            quality={90}
+            loading="lazy"
+            class="h-full w-full rounded-[20px] object-cover"
+          />
+        </div>
+        <div class="h-full" data-reveal>
+          <Image
+            {...CARD.masterFacilityList}
+            quality={90}
+            loading="lazy"
+            class="h-full w-full rounded-[20px] object-cover"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="mt-5 grid gap-5 sm:mt-[25px] sm:gap-[25px] lg:grid-cols-[546fr_533fr]"
+    >
+      <div class="h-full" data-reveal>
+        <Image
+          {...CARD.pipelineTracking}
+          quality={90}
+          loading="lazy"
+          class="h-full w-full rounded-[20px] object-cover"
+        />
+      </div>
+      <div class="h-full" data-reveal>
+        <Image
+          {...CARD.analyticsAi}
+          quality={90}
+          loading="lazy"
+          class="h-full w-full rounded-[20px] object-cover"
+        />
+      </div>
+    </div>
+
+    <div class="mt-10 flex justify-center lg:mt-[50px]" data-reveal>
+      <a
+        href={APP_URL}
+        class={buttonVariants({
+          className: "h-[38px] w-[150px] text-base font-bold shadow-xs",
+        })}
+      >
+        Learn More
+      </a>
+    </div>
+  </div>
+</section>

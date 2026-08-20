@@ -1,0 +1,51 @@
+---
+import { CreditCard, ShieldCheck, UserRoundCog } from "lucide-react";
+
+const ITEMS = [
+  {
+    Icon: CreditCard,
+    label: "Start Free",
+    detail: "No credit card required",
+  },
+  {
+    Icon: UserRoundCog,
+    label: "Easy Setup",
+    detail: "Set up in minutes",
+  },
+  {
+    Icon: ShieldCheck,
+    label: "Healthcare-Ready",
+    detail: "HIPAA-conscious by design",
+  },
+];
+---
+
+<section class="brand-gradient text-brand-foreground">
+  <div class="site-shell">
+    <!-- The design insets the strip a further 100px inside the page column. -->
+    <div
+      class="grid gap-6 py-8 sm:grid-cols-3 lg:flex lg:h-[82px] lg:items-center lg:justify-between lg:px-[100px] lg:py-0"
+    >
+      {
+      ITEMS.map(({ Icon, label, detail }, index) => (
+        <div data-reveal>
+          <div class="flex items-center gap-[15px]">
+            <span
+              class="grid size-[52px] shrink-0 place-items-center rounded-lg bg-brand-foreground/11 shadow-[0_0_10px_0_color-mix(in_srgb,var(--brand-accent)_21%,transparent)]"
+              aria-hidden="true"
+            >
+              <Icon size={28} strokeWidth={2} />
+            </span>
+            <span class="flex flex-col">
+              <strong class="text-[15px] leading-5 font-semibold uppercase">
+                {label}
+              </strong>
+              <span class="text-[13px] leading-5">{detail}</span>
+            </span>
+          </div>
+        </div>
+      ))
+      }
+    </div>
+  </div>
+</section>

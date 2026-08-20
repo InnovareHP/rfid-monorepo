@@ -1,6 +1,13 @@
 export const APP_URL = "https://portal.refidly.com";
 export const SUPPORT_EMAIL = "support@refidly.com";
 
+export const NAV_LINKS = [
+  { href: "/#features", label: "Features" },
+  { href: "/#why", label: "Why Refidly" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/security", label: "Security" },
+];
+
 export const LEGAL_ENTITY = "InnovareHP";
 export const LEGAL_ADDRESS = "4221 Bud Drive NE, Comstock Park, MI 49321";
 export const LEGAL_ADDRESS_URL =

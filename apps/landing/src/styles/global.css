@@ -7,8 +7,14 @@
 
 :root {
   --radius: 0.65rem;
+  --nav-h: 72px;
   --brand: #0d3185;
   --brand-foreground: #ffffff;
+  --brand-accent: #2c86d9;
+  --brand-sky: #64d1f4;
+  --brand-night: #01184d;
+  --surface-mist: #fbfdff;
+  --surface-tint: #f4f9ff;
   --success: oklch(0.48 0.12 163.225);
   --warning: oklch(0.48 0.13 70.08);
   --warning-foreground: oklch(0.98 0.01 70.08);
@@ -38,6 +44,11 @@
 
 @theme inline {
   --color-brand: var(--brand);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-sky: var(--brand-sky);
+  --color-brand-night: var(--brand-night);
+  --color-surface-mist: var(--surface-mist);
+  --color-surface-tint: var(--surface-tint);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
@@ -69,8 +80,17 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  --font-display:
+    "Red Hat Display", "Manrope", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The design widens the nav bar at desktop; anchor offsets follow it. */
+@media (width >= 64rem) {
+  :root {
+    --nav-h: 105px;
+  }
 }
 
 @layer base {
@@ -81,7 +101,7 @@
   html {
     scroll-behavior: smooth;
     /* Offset anchor targets by the sticky header height. */
-    scroll-padding-top: 72px;
+    scroll-padding-top: var(--nav-h);
   }
 
   body {
@@ -92,8 +112,35 @@
   h2,
   h3,
   h4 {
-    @apply tracking-tight text-balance;
+    @apply font-display tracking-tight text-balance;
   }
+}
+
+/* The sky-to-night sweep used by the trust strip and the closing band. */
+@utility brand-gradient {
+  background-image: linear-gradient(
+    95deg,
+    var(--brand-sky) 6.6%,
+    var(--brand-accent) 16.3%,
+    var(--brand) 56.9%,
+    var(--brand-night) 102.7%
+  );
+}
+
+/* The same four stops swept wider for the closing band. */
+@utility brand-gradient-band {
+  background-image: linear-gradient(
+    71deg,
+    var(--brand-night) 0%,
+    var(--brand) 22.9%,
+    var(--brand-accent) 61.3%,
+    var(--brand-sky) 98.5%
+  );
+}
+
+/* The 1280px design frame keeps its content inside a 1088px column. */
+@utility site-shell {
+  @apply mx-auto w-full max-w-7xl px-6 lg:px-24;
 }
 
 @utility section-title {
@@ -110,6 +157,26 @@
 
 @utility legal-link {
   @apply text-brand-strong font-semibold underline underline-offset-4;
+}
+
+/* Reveals are additive: content ships visible, so no JS or CSS gap can hide it. */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  [data-reveal] {
+    animation: reveal-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
 }
 
 .reveal {
@@ -160,6 +227,10 @@
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  [data-reveal] {
+    animation: none;
   }
 
   .animate-float {

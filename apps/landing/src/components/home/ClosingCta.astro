@@ -1,0 +1,58 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { Image } from "astro:assets";
+import mark from "../../assets/brand/refidly-mark-white.png";
+import { APP_URL, SUPPORT_EMAIL } from "../../config";
+---
+
+<section
+  class="brand-gradient-band relative overflow-hidden rounded-t-[20px] py-16 text-center text-brand-foreground lg:py-[81px]"
+>
+  <Image
+    src={mark}
+    alt=""
+    aria-hidden="true"
+    width={420}
+    height={420}
+    quality={80}
+    loading="lazy"
+    class="pointer-events-none absolute -bottom-[90px] -left-[110px] w-[420px] opacity-[0.07]"
+  />
+
+  <div class="site-shell relative">
+    <div data-reveal>
+      <h2
+        class="text-[28px] leading-tight font-semibold sm:text-[38px] lg:text-[55px]"
+      >
+        Start tracking referrals today.
+      </h2>
+      <p
+        class="mx-auto mt-4 max-w-[594px] text-base leading-relaxed sm:text-lg lg:text-xl lg:leading-[30px]"
+      >
+        Try Refidly free — no credit card, no sales call, cancel anytime. Your
+        team can be working out of it this afternoon.
+      </p>
+    </div>
+
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-[21px]" data-reveal>
+      <a
+        href={APP_URL}
+        class={buttonVariants({
+          variant: "inverse",
+          className: "h-[38px] w-[182px] text-base font-bold",
+        })}
+      >
+        Start Free Trial
+      </a>
+      <a
+        href={`mailto:${SUPPORT_EMAIL}`}
+        class={buttonVariants({
+          variant: "inverseOutline",
+          className: "h-[38px] w-[152px] text-base font-bold",
+        })}
+      >
+        Talk To Us
+      </a>
+    </div>
+  </div>
+</section>

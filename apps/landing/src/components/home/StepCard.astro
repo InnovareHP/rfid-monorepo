@@ -1,0 +1,28 @@
+---
+interface Props {
+  step: string;
+  title: string;
+  body: string;
+}
+
+const { step, title, body } = Astro.props;
+---
+
+<div>
+  <span
+    class="grid size-[50px] place-items-center rounded-[10px] bg-[linear-gradient(154deg,var(--brand)_12.3%,var(--brand-accent)_52.4%,var(--brand-sky)_92.4%)] text-[40px] leading-[35px] font-semibold text-brand-foreground"
+    aria-hidden="true"
+  >
+    {step}
+  </span>
+  <h3
+    class="mt-[11px] font-sans text-xl leading-tight font-semibold sm:text-2xl lg:leading-[35px]"
+  >
+    {title}
+  </h3>
+  <p
+    class="mt-[11px] max-w-[330px] text-base leading-relaxed sm:text-lg lg:text-xl lg:leading-[30px]"
+  >
+    {body}
+  </p>
+</div>
