@@ -19,6 +19,7 @@
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.13.5",
     "better-auth": "^1.6.25",
+    "class-variance-authority": "^0.7.1",
     "lucide-react": "^0.476.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

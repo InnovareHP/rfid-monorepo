@@ -74,33 +74,6 @@ data "aws_iam_policy_document" "task_perms" {
     ]
   }
 
-  # Object Lock forbids early delete anyway, so DeleteObject is omitted rather
-  # than granted and ignored. PutObjectRetention sets the per-object hold.
-  statement {
-    sid = "DbBackupBucketRW"
-    actions = [
-      "s3:PutObject",
-      "s3:PutObjectRetention",
-      "s3:GetObject",
-      "s3:GetObjectVersion",
-      "s3:ListBucket",
-      "s3:GetBucketObjectLockConfiguration",
-    ]
-    resources = [
-      var.db_backup_bucket_arn,
-      "${var.db_backup_bucket_arn}/*",
-    ]
-  }
-
-  statement {
-    sid = "DbBackupKms"
-    actions = [
-      "kms:Decrypt",
-      "kms:GenerateDataKey",
-    ]
-    resources = [var.s3_kms_key_arn]
-  }
-
   # Raw MIME for the reply-ingest pipeline. Read and delete only; SES writes.
   dynamic "statement" {
     for_each = var.ses_inbound_bucket_arn != "" ? [1] : []
