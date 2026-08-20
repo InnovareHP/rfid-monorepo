@@ -1,3 +1,4 @@
+import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
@@ -33,13 +34,7 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
   });
 
   // Stub: this screen is routed but never wired to a verification endpoint.
-  const handleVerifyOtp = async (_values: z.infer<typeof formSchema>) => {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    } catch {
-      // No verification call to fail yet.
-    }
-  };
+  const handleVerifyOtp = async (_values: z.infer<typeof formSchema>) => {};
 
   const handleResendOtp = () => {};
 
@@ -145,14 +140,18 @@ export function OtpForm({ className, ...props }: React.ComponentProps<"div">) {
         <div className="mt-4 text-center text-xs text-muted-foreground">
           By clicking continue, you agree to our{" "}
           <a
-            href="#"
+            href={TERMS_URL}
+            target="_blank"
+            rel="noreferrer"
             className="text-primary hover:text-primary dark:text-primary dark:hover:text-primary underline underline-offset-4 transition-colors duration-200"
           >
             Terms of Service
           </a>{" "}
           and{" "}
           <a
-            href="#"
+            href={PRIVACY_URL}
+            target="_blank"
+            rel="noreferrer"
             className="text-primary hover:text-primary dark:text-primary dark:hover:text-primary underline underline-offset-4 transition-colors duration-200"
           >
             Privacy Policy

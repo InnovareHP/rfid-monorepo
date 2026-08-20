@@ -1,3 +1,4 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   createLead,
   scanBusinessCard,
@@ -174,7 +175,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
         personContact,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
       toast.success("Lead created from business card");
       handleClose(false);
     } catch {

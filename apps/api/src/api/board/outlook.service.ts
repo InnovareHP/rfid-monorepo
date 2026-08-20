@@ -2,8 +2,10 @@ import { Injectable, Logger } from "@nestjs/common";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
 
+// /organizations, not /common: common admits personal Microsoft accounts, and a
+// consumer mailbox is outside any BAA. Work and school accounts only.
 const MICROSOFT_AUTH_URL =
-  "https://login.microsoftonline.com/common/oauth2/v2.0";
+  "https://login.microsoftonline.com/organizations/oauth2/v2.0";
 const GRAPH_API_URL = "https://graph.microsoft.com/v1.0";
 const SCOPES = ["Mail.Send", "User.Read", "offline_access"];
 
@@ -28,6 +30,9 @@ export class OutlookService {
       throw new Error("Microsoft OAuth is not configured");
     }
 
+    // No prompt=consent: offline_access already yields a refresh token, and
+    // forcing user consent dead-ends tenants where only an admin may grant it.
+    // Matches the Outlook calendar connector.
     const params = new URLSearchParams({
       client_id: this.clientId,
       response_type: "code",
@@ -35,7 +40,6 @@ export class OutlookService {
       response_mode: "query",
       scope: SCOPES.join(" "),
       state,
-      prompt: "consent",
     });
 
     return `${MICROSOFT_AUTH_URL}/authorize?${params.toString()}`;

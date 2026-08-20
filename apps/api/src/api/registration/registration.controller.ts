@@ -9,6 +9,7 @@ import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import type { Request } from "express";
 import { consumeSlidingLimit } from "../../lib/auth/sliding-limiter";
 import {
+  CompleteSignupDto,
   InvitationContextDto,
   SendMigrationOtpDto,
   SendSignupOtpDto,
@@ -40,9 +41,21 @@ export class RegistrationController {
     }
   }
 
+  // The service already caps sends per mailbox; this caps one caller cycling
+  // addresses, which is the spend and the enumeration budget.
   @Post("otp/send")
-  async sendSignupOtp(@Body() dto: SendSignupOtpDto) {
+  async sendSignupOtp(@Body() dto: SendSignupOtpDto, @Req() request: Request) {
+    await this.limitPerIp(request, "otp-send");
     return this.registrationService.sendSignupOtp(dto.email);
+  }
+
+  @Post("otp/complete")
+  async completeSignup(
+    @Body() dto: CompleteSignupDto,
+    @Req() request: Request
+  ) {
+    await this.limitPerIp(request, "otp-verify");
+    return this.registrationService.completeSignup(dto.context, dto.password);
   }
 
   @Post("otp/verify")
@@ -68,7 +81,11 @@ export class RegistrationController {
   }
 
   @Post("migrate/send")
-  async sendMigrationOtp(@Body() dto: SendMigrationOtpDto) {
+  async sendMigrationOtp(
+    @Body() dto: SendMigrationOtpDto,
+    @Req() request: Request
+  ) {
+    await this.limitPerIp(request, "migrate-send");
     return this.registrationService.sendMigrationOtp(dto.email);
   }
 

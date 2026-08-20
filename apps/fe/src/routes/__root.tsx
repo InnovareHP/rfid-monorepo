@@ -1,3 +1,5 @@
+import { NotFoundPage } from "@/components/error-page/not-found-page";
+import { ServerErrorPage } from "@/components/error-page/server-error-page";
 import ImpersonationBanner from "@/components/impersonatedBanner/impersonatedBanner";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/lib/query-client";
@@ -64,4 +66,6 @@ export const Route = createRootRoute({
     };
   },
   component: App,
+  errorComponent: ({ reset }) => <ServerErrorPage reset={reset} />,
+  notFoundComponent: NotFoundPage,
 });

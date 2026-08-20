@@ -1,11 +1,10 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
-import { Button } from "@dashboard/ui/components/button";
+import { RecordActions } from "@/components/reusable-table/record-actions";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Bell, HistoryIcon } from "lucide-react";
 import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
-import { RecordAvatar } from "../reusable-table/record-avatar";
 
 type ColumnType = {
   id: string;
@@ -111,12 +110,6 @@ export function generateReferralColumns(
           </div>
         )}
 
-        <RecordAvatar
-          name={row.original.recordName}
-          onClick={() => onOpenMasterListView(row.original.id)}
-          title="View history"
-        />
-
         <div className="min-w-0 flex-1">
           <EditableCell
             isReferral={true}
@@ -127,14 +120,15 @@ export function generateReferralColumns(
             type="TEXT"
           />
         </div>
-        <div className="flex opacity-0 group-hover:opacity-100">
-          <Button
-            variant="outline"
-            onClick={() => onOpenMasterListView(row.original.id)}
-          >
-            <HistoryIcon /> History
-          </Button>
-        </div>
+        <RecordActions
+          actions={[
+            {
+              label: "View history",
+              icon: HistoryIcon,
+              onSelect: () => onOpenMasterListView(row.original.id),
+            },
+          ]}
+        />
       </div>
     ),
   };

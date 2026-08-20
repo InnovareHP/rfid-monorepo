@@ -1,9 +1,20 @@
-import { OnboardingStreamEvent, toSlug } from "@dashboard/shared";
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { AdminAction, Prisma } from "@prisma/client";
+import {
+  OnboardingStreamEvent,
+  resolveEntitlement,
+  ROLES,
+  toSlug,
+} from "@dashboard/shared";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { AdminAction, AgreementKind, Prisma } from "@prisma/client";
+import { invalidateSubscriptionCache } from "src/guard/subscription/subscription.guard";
 import { auth } from "src/lib/auth/auth";
 import { prisma } from "src/lib/prisma/prisma";
 import { v4 as uuidv4 } from "uuid";
+import { AdminEntitlementData } from "./dto/user.dto";
 import { OnboardingDto } from "./dto/user.schema";
 
 @Injectable()
@@ -216,38 +227,20 @@ export class UserService {
 
   // ─── Audit Log ───────────────────────────────────────────────────────
 
-  async logAdminAction(params: {
-    adminId: string;
-    action: AdminAction;
-    targetUserId?: string;
-    targetOrgId?: string;
-    details?: string;
-    ipAddress?: string;
-  }) {
-    return prisma.adminActivityLog.create({
-      data: {
-        adminId: params.adminId,
-        action: params.action,
-        targetUserId: params.targetUserId,
-        targetOrgId: params.targetOrgId,
-        details: params.details,
-        ipAddress: params.ipAddress,
-      },
-    });
-  }
-
   async getActivityLog(params: {
     page: number;
     take: number;
     actionFilter?: string;
+    adminId?: string;
     startDate?: string;
     endDate?: string;
   }) {
-    const { page, take, actionFilter, startDate, endDate } = params;
+    const { page, take, actionFilter, adminId, startDate, endDate } = params;
     const skip = (page - 1) * take;
 
     const where: Prisma.AdminActivityLogWhereInput = {
       ...(actionFilter ? { action: actionFilter as AdminAction } : {}),
+      ...(adminId ? { adminId } : {}),
       ...(startDate || endDate
         ? {
             createdAt: {
@@ -264,17 +257,26 @@ export class UserService {
         skip,
         take,
         orderBy: { createdAt: "desc" },
-        include: {
-          adminUser: {
-            select: { id: true, name: true, image: true },
-          },
-          targetUser: {
-            select: { id: true, name: true, image: true },
-          },
-        },
       }),
       prisma.adminActivityLog.count({ where }),
     ]);
+
+    // The log holds no user foreign keys, so avatars are looked up for whoever
+    // still has an account. Names always come from the row.
+    const userIds = [
+      ...new Set(
+        logs.flatMap((l) => [l.adminId, l.targetUserId].filter(Boolean))
+      ),
+    ] as string[];
+
+    const images = new Map(
+      (
+        await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, image: true },
+        })
+      ).map((u) => [u.id, u.image])
+    );
 
     return {
       logs: logs.map((l) => ({
@@ -283,75 +285,22 @@ export class UserService {
         action: l.action,
         details: l.details,
         targetOrgId: l.targetOrgId,
+        ipAddress: l.ipAddress,
         admin: {
-          id: l.adminUser.id,
-          name: l.adminUser.name,
-          image: l.adminUser.image,
+          id: l.adminId,
+          name: l.adminName,
+          image: images.get(l.adminId) ?? null,
         },
-        targetUser: l.targetUser
+        targetUser: l.targetUserId
           ? {
-              id: l.targetUser.id,
-              name: l.targetUser.name,
-              image: l.targetUser.image,
+              id: l.targetUserId,
+              name: l.targetName ?? "Deleted account",
+              image: images.get(l.targetUserId) ?? null,
             }
           : null,
       })),
       total,
     };
-  }
-
-  // ─── Admin Action Wrappers ──────────────────────────────────────────
-
-  async adminBanUser(
-    adminId: string,
-    userId: string,
-    banReason?: string,
-    banExpiresIn?: number
-  ) {
-    const result = await auth.api.banUser({
-      body: { userId, banReason, banExpiresIn },
-    });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.BAN_USER,
-      targetUserId: userId,
-      details: banReason ? `Reason: ${banReason}` : undefined,
-    });
-    return result;
-  }
-
-  async adminUnbanUser(adminId: string, userId: string) {
-    const result = await auth.api.unbanUser({ body: { userId } });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.UNBAN_USER,
-      targetUserId: userId,
-    });
-    return result;
-  }
-
-  async adminSetRole(adminId: string, userId: string, role: string) {
-    const result = await auth.api.setRole({
-      body: { userId, role: [role as "super_admin" | "support"] as const },
-      headers: {}, // provide required headers, or supply appropriate headers if necessary
-    });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.SET_ROLE,
-      targetUserId: userId,
-      details: `New role: ${role}`,
-    });
-    return result;
-  }
-
-  async adminRemoveUser(adminId: string, userId: string) {
-    const result = await auth.api.removeUser({ body: { userId } });
-    await this.logAdminAction({
-      adminId,
-      action: AdminAction.REMOVE_USER,
-      targetUserId: userId,
-    });
-    return result;
   }
 
   // ─── Organization Admin ─────────────────────────────────────────────
@@ -360,11 +309,14 @@ export class UserService {
     page: number;
     take: number;
     search?: string;
+    hipaaOnly?: boolean;
   }) {
-    const { page, take, search } = params;
+    const { page, take, search, hipaaOnly } = params;
     const skip = (page - 1) * take;
 
-    const where: Prisma.OrganizationWhereInput = search
+    const where: Prisma.OrganizationWhereInput = {
+      ...(hipaaOnly ? { hipaaEnabled: true } : {}),
+      ...(search
       ? {
           OR: [
             {
@@ -381,7 +333,8 @@ export class UserService {
             },
           ],
         }
-      : {};
+      : {}),
+    };
 
     const [orgs, total] = await Promise.all([
       prisma.organization.findMany({
@@ -396,6 +349,8 @@ export class UserService {
           logo: true,
           createdAt: true,
           metadata: true,
+          hipaaEnabled: true,
+          baaAcceptedAt: true,
           _count: { select: { members: true } },
         },
       }),
@@ -410,6 +365,9 @@ export class UserService {
         referenceId: true,
         plan: true,
         status: true,
+        isCustom: true,
+        contractLabel: true,
+        customLimits: true,
       },
     });
     const subMap = new Map(subscriptions.map((s) => [s.referenceId, s]));
@@ -427,9 +385,85 @@ export class UserService {
           memberCount: o._count.members,
           subscriptionStatus: sub?.status ?? null,
           subscriptionPlan: sub?.plan ?? null,
+          // The label a contract negotiated, not the tier name it stores.
+          entitlementLabel: resolveEntitlement(sub ?? null).label,
+          hipaaEnabled: o.hipaaEnabled,
+          baaAcceptedAt: o.baaAcceptedAt?.toISOString() ?? null,
         };
       }),
       total,
+    };
+  }
+
+  // ─── Platform Metrics ───────────────────────────────────────────────
+
+  // Counted in the database rather than by paging rows into the browser, which
+  // is what the stats dashboard used to do. Revenue is absent on purpose: the
+  // price of a tier lives in Stripe, and a number derived from the local plan
+  // table would read as MRR while quietly ignoring discounts and proration.
+  async getAdminMetrics() {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const inSevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      usersTotal,
+      usersBanned,
+      superAdmins,
+      usersOnboarded,
+      usersNew,
+      orgsTotal,
+      orgsHipaa,
+      orgsBaaSigned,
+      orgsNew,
+      subscriptionsByStatus,
+      customContracts,
+      trialsExpiringSoon,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { banned: true } }),
+      prisma.user.count({ where: { role: ROLES.SUPER_ADMIN } }),
+      prisma.user.count({ where: { isOnboarded: true } }),
+      prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.organization.count(),
+      prisma.organization.count({ where: { hipaaEnabled: true } }),
+      prisma.organization.count({ where: { baaAcceptedAt: { not: null } } }),
+      prisma.organization.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.subscription.groupBy({
+        by: ["status"],
+        _count: { _all: true },
+      }),
+      prisma.subscription.count({ where: { isCustom: true } }),
+      prisma.subscription.count({
+        where: {
+          status: "trialing",
+          trialEnd: { gte: now, lte: inSevenDays },
+        },
+      }),
+    ]);
+
+    return {
+      users: {
+        total: usersTotal,
+        banned: usersBanned,
+        superAdmins,
+        onboarded: usersOnboarded,
+        newLast30Days: usersNew,
+      },
+      organizations: {
+        total: orgsTotal,
+        hipaaEnabled: orgsHipaa,
+        baaSigned: orgsBaaSigned,
+        newLast30Days: orgsNew,
+      },
+      subscriptions: {
+        byStatus: subscriptionsByStatus.map((row) => ({
+          status: row.status ?? "unknown",
+          count: row._count._all,
+        })),
+        customContracts,
+        trialsExpiringIn7Days: trialsExpiringSoon,
+      },
     };
   }
 
@@ -443,6 +477,11 @@ export class UserService {
         logo: true,
         createdAt: true,
         metadata: true,
+        hipaaEnabled: true,
+        baaAcceptedAt: true,
+        baaVersion: true,
+        retentionDays: true,
+        stripeCustomerId: true,
         members: {
           select: {
             id: true,
@@ -465,9 +504,29 @@ export class UserService {
 
     if (!org) throw new NotFoundException("Organization not found");
 
-    const subscription = await prisma.subscription.findFirst({
-      where: { referenceId: orgId },
-    });
+    const [subscription, agreement] = await Promise.all([
+      prisma.subscription.findFirst({ where: { referenceId: orgId } }),
+      // Latest executed agreement of any version, so an org sitting on a
+      // superseded BAA still shows who signed what and when.
+      prisma.contractAgreement.findFirst({
+        where: { organizationId: orgId, kind: AgreementKind.BAA },
+        orderBy: { signedAt: "desc" },
+        select: {
+          id: true,
+          termsVersion: true,
+          signedAt: true,
+          signerName: true,
+          signerTitle: true,
+          signerEmail: true,
+          companyLegalName: true,
+          acceptanceMethod: true,
+          ipAddress: true,
+          document: true,
+        },
+      }),
+    ]);
+
+    const entitlement = resolveEntitlement(subscription);
 
     return {
       id: org.id,
@@ -476,6 +535,35 @@ export class UserService {
       logo: org.logo,
       createdAt: org.createdAt.toISOString(),
       metadata: org.metadata,
+      stripeCustomerId: org.stripeCustomerId,
+      compliance: {
+        hipaaEnabled: org.hipaaEnabled,
+        baaAcceptedAt: org.baaAcceptedAt?.toISOString() ?? null,
+        baaVersion: org.baaVersion,
+        retentionDays: org.retentionDays,
+        // Whether the plan may enable HIPAA at all, which is a separate
+        // question from whether this org has.
+        planSupportsHipaa: entitlement.features.includes("hipaa"),
+        agreement: agreement
+          ? {
+              termsVersion: agreement.termsVersion,
+              signedAt: agreement.signedAt.toISOString(),
+              signerName: agreement.signerName,
+              signerTitle: agreement.signerTitle,
+              signerEmail: agreement.signerEmail,
+              companyLegalName: agreement.companyLegalName,
+              acceptanceMethod: agreement.acceptanceMethod,
+              ipAddress: agreement.ipAddress,
+              hasDocument: Boolean(agreement.document),
+            }
+          : null,
+      },
+      entitlement: {
+        label: entitlement.label,
+        seats: entitlement.seats,
+        features: entitlement.features,
+        isCustom: entitlement.isCustom,
+      },
       members: org.members.map((m) => ({
         memberId: m.id,
         role: m.role,
@@ -502,6 +590,106 @@ export class UserService {
             cancelAt: subscription.cancelAt?.toISOString() ?? null,
           }
         : null,
+    };
+  }
+
+  // Grants or clears a negotiated contract. The Redis entitlement cache is
+  // cleared in the same call: without that, a grant sits invisible behind
+  // subscription.guard for up to its TTL and reads as a broken feature flag.
+  async setAdminOrganizationEntitlement(
+    adminId: string,
+    adminName: string,
+    orgId: string,
+    input: AdminEntitlementData
+  ) {
+    const organization = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true },
+    });
+    if (!organization) throw new NotFoundException("Organization not found");
+
+    const subscription = await prisma.subscription.findFirst({
+      where: { referenceId: orgId },
+      select: { id: true },
+      orderBy: { periodEnd: "desc" },
+    });
+
+    // A contract hangs off a subscription row. Without one there is nothing to
+    // carry it, and inventing a row here would fake a billing relationship.
+    if (!subscription) {
+      throw new BadRequestException(
+        "Organization has no subscription to attach a contract to"
+      );
+    }
+
+    const { contract } = input;
+
+    const updated = await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: contract
+        ? {
+            isCustom: true,
+            contractLabel: contract.label,
+            customLimits: {
+              seats: contract.seats,
+              features: contract.features,
+            },
+          }
+        : {
+            isCustom: false,
+            contractLabel: null,
+            customLimits: Prisma.DbNull,
+          },
+      select: {
+        plan: true,
+        status: true,
+        isCustom: true,
+        contractLabel: true,
+        customLimits: true,
+      },
+    });
+
+    await invalidateSubscriptionCache(orgId);
+
+    await prisma.adminActivityLog.create({
+      data: {
+        adminId,
+        adminName,
+        action: AdminAction.SET_ENTITLEMENT,
+        targetOrgId: orgId,
+        targetName: organization.name,
+        details: contract
+          ? `${contract.label}: ${contract.seats} seats, features [${contract.features.join(", ")}]`
+          : "Cleared custom contract, reverted to plan tier",
+      },
+    });
+
+    const entitlement = resolveEntitlement(updated);
+
+    return {
+      label: entitlement.label,
+      seats: entitlement.seats,
+      features: entitlement.features,
+      isCustom: entitlement.isCustom,
+    };
+  }
+
+  // Serves whichever BAA version the org last executed, not only the current
+  // one, because oversight has to read what was actually signed.
+  async getAdminOrganizationBaa(orgId: string) {
+    const agreement = await prisma.contractAgreement.findFirst({
+      where: { organizationId: orgId, kind: AgreementKind.BAA },
+      orderBy: { signedAt: "desc" },
+      select: { document: true, termsVersion: true },
+    });
+
+    if (!agreement?.document) {
+      throw new NotFoundException("No executed agreement for this organization");
+    }
+
+    return {
+      document: Buffer.from(agreement.document),
+      termsVersion: agreement.termsVersion,
     };
   }
 }

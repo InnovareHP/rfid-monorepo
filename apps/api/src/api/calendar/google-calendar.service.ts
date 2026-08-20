@@ -1,5 +1,6 @@
+import { randomUUID } from "crypto";
 import { Injectable, Logger } from "@nestjs/common";
-import { google } from "googleapis";
+import { calendar_v3, google } from "googleapis";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
 
@@ -194,6 +195,7 @@ export class GoogleCalendarService {
       allDay?: boolean;
       location?: string;
       attendees?: string[];
+      createConference?: boolean;
     }
   ) {
     const token = await prisma.googleCalendarToken.findUnique({
@@ -246,10 +248,26 @@ export class GoogleCalendarService {
       event.attendees = eventData.attendees.map((email) => ({ email }));
     }
 
+    // Google only mints the Meet link when conferenceDataVersion is 1; the
+    // request is otherwise accepted and the conference silently dropped.
+    if (eventData.createConference) {
+      event.conferenceData = {
+        createRequest: {
+          requestId: randomUUID(),
+          conferenceSolutionKey: { type: "hangoutsMeet" },
+        },
+      };
+    }
+
     const response = await calendar.events.insert({
       calendarId: "primary",
       requestBody: event,
+      conferenceDataVersion: eventData.createConference ? 1 : 0,
     });
+
+    const meetingUrl = eventData.createConference
+      ? await this.resolveMeetingUrl(calendar, response.data)
+      : null;
 
     return {
       id: response.data.id,
@@ -257,8 +275,82 @@ export class GoogleCalendarService {
       start: response.data.start?.dateTime || response.data.start?.date,
       end: response.data.end?.dateTime || response.data.end?.date,
       htmlLink: response.data.htmlLink,
+      meetingUrl,
       provider: "google",
     };
+  }
+
+  private readMeetingUrl(event: calendar_v3.Schema$Event): string | null {
+    return (
+      event.hangoutLink ??
+      event.conferenceData?.entryPoints?.find(
+        (entry) => entry.entryPointType === "video"
+      )?.uri ??
+      null
+    );
+  }
+
+  // Google mints the conference asynchronously, so a pending insert carries no
+  // join link yet and the event has to be re-read.
+  private async resolveMeetingUrl(
+    calendar: calendar_v3.Calendar,
+    created: calendar_v3.Schema$Event
+  ): Promise<string | null> {
+    const immediate = this.readMeetingUrl(created);
+    if (immediate) return immediate;
+
+    // Only a failure is terminal; a missing status still resolves on a re-read.
+    if (
+      !created.id ||
+      created.conferenceData?.createRequest?.status?.statusCode === "failure"
+    ) {
+      return null;
+    }
+
+    for (const delayMs of [1000, 2000]) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      try {
+        const { data } = await calendar.events.get({
+          calendarId: "primary",
+          eventId: created.id,
+        });
+        const url = this.readMeetingUrl(data);
+        if (url) return url;
+      } catch (error) {
+        this.logger.warn(`Failed to re-read event for Meet link: ${error}`);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  async getMeetingUrl(userId: string, eventId: string): Promise<string | null> {
+    const token = await prisma.googleCalendarToken.findUnique({
+      where: { userId },
+    });
+
+    if (!token) return null;
+
+    const oauth2Client = this.createOAuth2Client();
+    oauth2Client.setCredentials({
+      access_token: token.accessToken,
+      refresh_token: token.refreshToken,
+      expiry_date: token.tokenExpiry.getTime(),
+    });
+
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+    try {
+      const { data } = await calendar.events.get({
+        calendarId: "primary",
+        eventId,
+      });
+      return this.readMeetingUrl(data);
+    } catch (error) {
+      this.logger.warn(`Failed to read Meet link for event ${eventId}`, error);
+      return null;
+    }
   }
 
   async deleteEvent(userId: string, eventId: string): Promise<void> {

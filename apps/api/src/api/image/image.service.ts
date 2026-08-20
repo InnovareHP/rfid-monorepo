@@ -24,6 +24,11 @@ const publicBaseUrl =
 const safeName = (filename: string) =>
   filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
 
+// The stored form of a private image. Exported so a feature holding an imageUrl
+// can match it back to a key by exact equality instead of parsing the string.
+export const privateViewUrl = (key: string) =>
+  `${appConfig.API_URL}/api/image/view?key=${encodeURIComponent(key)}`;
+
 @Injectable()
 export class ImageService {
   async uploadImage(
@@ -46,9 +51,7 @@ export class ImageService {
     );
 
     const url =
-      visibility === "public"
-        ? `${publicBaseUrl}/${key}`
-        : `${appConfig.API_URL}/api/image/view?key=${encodeURIComponent(key)}`;
+      visibility === "public" ? `${publicBaseUrl}/${key}` : privateViewUrl(key);
 
     return { url, secure_url: url, public_id: key };
   }
@@ -69,6 +72,12 @@ export class ImageService {
   async getViewUrl(key: string, scopeId: string) {
     this.assertOwnership(key, scopeId);
 
+    return this.presign(key);
+  }
+
+  // Callers must have established the right to this key by other means. Only the
+  // support-attachment path uses it, where the grant comes from the ticket.
+  async presign(key: string) {
     return getSignedUrl(
       s3,
       new GetObjectCommand({
@@ -79,10 +88,15 @@ export class ImageService {
     );
   }
 
-  private assertOwnership(key: string, scopeId: string) {
-    const owned =
+  ownedBy(key: string, scopeId: string) {
+    return (
       key.startsWith(scopedPrefix("public", scopeId)) ||
-      key.startsWith(scopedPrefix("private", scopeId));
+      key.startsWith(scopedPrefix("private", scopeId))
+    );
+  }
+
+  private assertOwnership(key: string, scopeId: string) {
+    const owned = this.ownedBy(key, scopeId);
 
     if (!owned) {
       throw new ForbiddenException("Image does not belong to this account");

@@ -1,4 +1,4 @@
-import { FILETYPE } from "@/lib/fe-helpers";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   getLeadTimeline,
   getSpecificLead,
@@ -10,7 +10,6 @@ import {
   getSpecificReferral,
   seenReferrals,
 } from "@/services/referral/referral-service";
-import { formatDateTime } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -32,14 +31,12 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
-  ArrowRight,
   Building2,
   CalendarCheck,
   CheckCircle2,
   Clock,
   FileText,
   Lightbulb,
-  RotateCcw,
 } from "lucide-react";
 import * as React from "react";
 import { useCallback, useMemo } from "react";
@@ -48,6 +45,9 @@ import { RestoreHistoryModal } from "../history-report/restore-history-modal";
 import { EditableCell } from "../reusable-table/editable-cell";
 import { ActivityTab } from "./activity-tab";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
+import { HistoryTimelineItem } from "./history-timeline-item";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { useRouteContext } from "@tanstack/react-router";
 import { RelatedRecords } from "../crm-list/related-records";
 
 function serializeValue(value: unknown): string {
@@ -79,6 +79,12 @@ export function MasterListView({
 }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState(initialTab);
+
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
+  const canUseAi = useEntitlement(activeOrganizationId).has("ai");
+
   const hasSeenRef = React.useRef(false);
   const prevLeadIdRef = React.useRef(leadId);
 
@@ -178,7 +184,7 @@ export function MasterListView({
       toast.success("History restored successfully");
 
       await queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
-      await queryClient.invalidateQueries({ queryKey: ["leads"] });
+      await queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
       await queryClient.invalidateQueries({
         queryKey: ["lead-history", leadId],
       });
@@ -193,14 +199,14 @@ export function MasterListView({
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-          <div className="px-6 pt-6 pb-5 border-b bg-gray-50">
+          <div className="border-b bg-table-header px-6 pb-5 pt-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-                  <Building2 className="h-5 w-5 text-primary" />
+                <div className="flex size-11 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
+                  <Building2 className="size-5 text-primary" />
                 </div>
                 <div>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">
+                  <DialogTitle className="text-xl font-semibold text-foreground">
                     {serializeValue(record.recordName) !== "—"
                       ? String(record.recordName)
                       : isReferral
@@ -216,9 +222,9 @@ export function MasterListView({
               {data?.data.Status && (
                 <Badge
                   variant="outline"
-                  className="bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1.5 font-medium px-3 py-1.5"
+                  className="flex items-center gap-1.5 border-success/30 bg-success/10 px-3 py-1.5 font-medium text-success"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <CheckCircle2 className="size-3.5" />
                   {data.data.Status}
                 </Badge>
               )}
@@ -231,18 +237,18 @@ export function MasterListView({
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-16 w-full rounded-xl border bg-gray-100 animate-pulse"
+                    className="h-16 w-full animate-pulse rounded-lg border bg-muted"
                   />
                 ))}
               </div>
             </div>
           ) : isError ? (
             <div className="px-6 pb-6">
-              <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm">
-                <div className="font-semibold text-red-900 mb-2">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-sm">
+                <div className="mb-2 font-semibold text-destructive">
                   Failed to load referral
                 </div>
-                <div className="text-red-700">
+                <div className="text-destructive">
                   {(error as Error)?.message || "Something went wrong."}
                 </div>
               </div>
@@ -257,37 +263,39 @@ export function MasterListView({
               }
               className="w-full"
             >
-              <div className="px-6 border-b bg-gray-50">
+              <div className="border-b bg-table-header px-6">
                 <TabsList className="bg-transparent border-b-0">
                   <TabsTrigger
                     value="details"
-                    className="data-[state=active]:border-b-3 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-bold rounded-none transition-all"
+                    className="rounded-none transition-colors data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary"
                   >
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className="mr-2 size-4" />
                     Details
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="history"
-                    className="data-[state=active]:border-b-3 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-bold rounded-none transition-all"
+                    className="rounded-none transition-colors data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary"
                   >
-                    <Clock className="h-4 w-4 mr-2" />
+                    <Clock className="mr-2 size-4" />
                     History
                   </TabsTrigger>
 
-                  <TabsTrigger
-                    value="suggestions"
-                    className="data-[state=active]:border-b-3 data-[state=active]:border-purple-500 data-[state=active]:text-purple-600 data-[state=active]:font-bold rounded-none transition-all"
-                  >
-                    <Lightbulb className="h-4 w-4 mr-2" />
-                    Suggestions
-                  </TabsTrigger>
+                  {canUseAi && (
+                    <TabsTrigger
+                      value="suggestions"
+                      className="rounded-none transition-colors data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary"
+                    >
+                      <Lightbulb className="mr-2 size-4" />
+                      Suggestions
+                    </TabsTrigger>
+                  )}
 
                   <TabsTrigger
                     value="activities"
-                    className="data-[state=active]:border-b-3 data-[state=active]:border-amber-500 data-[state=active]:text-amber-600 data-[state=active]:font-bold rounded-none transition-all"
+                    className="rounded-none transition-colors data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary"
                   >
-                    <CalendarCheck className="h-4 w-4 mr-2" />
+                    <CalendarCheck className="mr-2 size-4" />
                     Activities
                   </TabsTrigger>
                 </TabsList>
@@ -296,11 +304,11 @@ export function MasterListView({
               <TabsContent value="details" className="mt-0">
                 <ScrollArea className="h-[calc(90vh-240px)]">
                   <div className="px-6 py-4">
-                    <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 bg-white">
+                    <div className="divide-y rounded-lg border bg-card">
                       {detailColumns.map((col) => (
                         <div
                           key={col.id}
-                          className="flex items-start gap-4 px-4 py-3 hover:bg-gray-50 transition-colors"
+                          className="flex items-start gap-4 px-4 py-3 transition-colors hover:bg-muted"
                         >
                           <div className="w-44 shrink-0 pt-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             {col.name}
@@ -321,12 +329,12 @@ export function MasterListView({
                         </div>
                       ))}
                       {detailColumns.length === 0 && (
-                        <p className="px-4 py-8 text-sm text-muted-foreground text-center">
+                        <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                           No fields configured yet.
                         </p>
                       )}
                     </div>
-                    <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
+                    <div className="mt-4 flex items-center justify-between rounded-lg border bg-card px-4 py-3">
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Related records
                       </span>
@@ -343,7 +351,7 @@ export function MasterListView({
                       {Array.from({ length: 5 }).map((_, i) => (
                         <div
                           key={i}
-                          className="h-24 w-full rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 animate-pulse"
+                          className="h-24 w-full animate-pulse rounded-lg bg-muted"
                         />
                       ))}
                     </div>
@@ -352,10 +360,10 @@ export function MasterListView({
                   {historyData &&
                     historyData.pages.flatMap((p) => p.data).length === 0 && (
                       <div className="flex flex-col items-center justify-center py-16">
-                        <div className="p-4 rounded-full bg-gray-100 mb-3">
-                          <Clock className="h-8 w-8 text-gray-400" />
+                        <div className="mb-3 rounded-full bg-muted p-4">
+                          <Clock className="size-8 text-muted-foreground" />
                         </div>
-                        <p className="text-center text-gray-500 font-medium">
+                        <p className="text-center font-medium text-muted-foreground">
                           No history found
                         </p>
                       </div>
@@ -363,156 +371,40 @@ export function MasterListView({
 
                   {historyData && historyData.pages.length > 0 && (
                     <div className="relative">
-                      {/* Modern Timeline Line with Gradient */}
-                      <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-primary to-primary"></div>
+                      <div className="absolute bottom-0 left-[19px] top-0 w-px bg-border" />
 
                       <div className="space-y-5">
                         {historyData.pages
-                          .flatMap((p) => p.data)
-                          .map((item) => {
-                            const Icon =
-                              FILETYPE[item.action as keyof typeof FILETYPE] ||
-                              FILETYPE.update;
-
-                            const actionColors = {
-                              create: "from-green-500 to-emerald-600",
-                              update: "from-primary to-primary",
-                              delete: "from-red-500 to-rose-600",
-                            };
-
-                            const actionColor =
-                              actionColors[
-                                item.action.toLowerCase() as keyof typeof actionColors
-                              ] || actionColors.update;
-
-                            return (
-                              <div
-                                key={item.id}
-                                className="relative pl-12 group"
-                              >
-                                {/* Enhanced Timeline Icon */}
-                                <div
-                                  className={`absolute left-0 w-10 h-10 rounded-full bg-gradient-to-br ${actionColor} flex items-center justify-center border-4 border-white shadow-lg group-hover:scale-110 transition-transform`}
-                                >
-                                  <Icon className="h-5 w-5 text-white" />
-                                </div>
-
-                                {/* Enhanced History Card */}
-                                <div className="bg-white rounded-xl border-2 border-gray-200 hover:border-primary/40 p-5 shadow-sm hover:shadow-md transition-all">
-                                  <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                      <div
-                                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${actionColor} text-white flex items-center justify-center text-sm font-bold shadow-md`}
-                                      >
-                                        {item.createdBy
-                                          .split(" ")
-                                          .map((n: string) => n[0])
-                                          .join("")
-                                          .toUpperCase()}
-                                      </div>
-
-                                      <div>
-                                        <p className="text-sm font-bold text-gray-900">
-                                          {item.createdBy}
-                                        </p>
-                                        <Badge
-                                          variant="outline"
-                                          className={`text-xs font-semibold mt-1 ${
-                                            item.action.toLowerCase() ===
-                                            "create"
-                                              ? "bg-green-50 text-green-700 border-green-300"
-                                              : item.action.toLowerCase() ===
-                                                  "delete"
-                                                ? "bg-red-50 text-red-700 border-red-300"
-                                                : "bg-primary/10 text-primary border-primary/40"
-                                          }`}
-                                        >
-                                          {item.action.charAt(0).toUpperCase() +
-                                            item.action.slice(1)}
-                                        </Badge>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3">
-                                      <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg font-medium">
-                                        <Clock className="h-3.5 w-3.5" />
-                                        {formatDateTime(item.createdAt)}
-                                      </div>
-
-                                      {(item.action.toLowerCase() ===
-                                        "update" ||
-                                        item.action.toLowerCase() ===
-                                          "delete") && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="h-8 gap-2 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300 font-semibold transition-colors"
-                                          onClick={() =>
-                                            handleOpenRestoreModal(item)
-                                          }
-                                          disabled={isRestoring}
-                                        >
-                                          <RotateCcw className="h-3.5 w-3.5" />
-                                          Restore
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Enhanced Change Display */}
-                                  <div className="mt-4 pt-4 border-t-2 border-gray-100">
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <FileText className="h-4 w-4 text-primary" />
-                                      <p className="text-sm font-bold text-gray-900">
-                                        {item.column}
-                                      </p>
-                                    </div>
-
-                                    {item.oldValue && item.newValue ? (
-                                      <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-primary/10 to-primary/10 rounded-lg border-2 border-primary/30">
-                                        <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-sm font-semibold border border-red-300">
-                                          {item.oldValue}
-                                        </span>
-                                        <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
-                                        <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm font-semibold border border-green-300">
-                                          {item.newValue}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-700 bg-gray-100 rounded-lg p-3 font-medium border border-gray-300">
-                                        {item.oldValue ||
-                                          item.newValue ||
-                                          "No value"}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
+                          .flatMap((page) => page.data)
+                          .map((item) => (
+                            <HistoryTimelineItem
+                              key={item.id}
+                              item={item}
+                              onRestore={handleOpenRestoreModal}
+                              isRestoring={isRestoring}
+                            />
+                          ))}
                       </div>
                     </div>
                   )}
                 </ScrollArea>
                 {hasNextPage && (
-                  <div className="flex justify-center items-center py-4 border-t bg-gray-50">
-                    <Button
-                      variant="outline"
-                      onClick={() => fetchNextPage()}
-                      className="hover:bg-primary/10 hover:text-primary hover:border-primary/40 font-semibold"
-                    >
+                  <div className="flex items-center justify-center border-t bg-muted py-4">
+                    <Button variant="outline" onClick={() => fetchNextPage()}>
                       Load More
                     </Button>
                   </div>
                 )}
               </TabsContent>
 
-              <TabsContent value="suggestions" className="mt-0">
-                <FollowUpSuggestions
-                  recordId={leadId}
-                  enabled={activeTab === "suggestions"}
-                />
-              </TabsContent>
+              {canUseAi && (
+                <TabsContent value="suggestions" className="mt-0">
+                  <FollowUpSuggestions
+                    recordId={leadId}
+                    enabled={activeTab === "suggestions"}
+                  />
+                </TabsContent>
+              )}
 
               <TabsContent value="activities" className="mt-0">
                 <ActivityTab
@@ -524,12 +416,8 @@ export function MasterListView({
             </Tabs>
           )}
 
-          <DialogFooter className="px-6 py-4 bg-gray-50 border-t">
-            <Button
-              variant="outline"
-              onClick={() => setOpen?.(false)}
-              className="font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary/40"
-            >
+          <DialogFooter className="border-t bg-muted px-6 py-4">
+            <Button variant="outline" onClick={() => setOpen?.(false)}>
               Close
             </Button>
           </DialogFooter>

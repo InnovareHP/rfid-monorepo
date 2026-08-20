@@ -5,7 +5,17 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { BookingLocation, LocationType, Prisma } from "@prisma/client";
+import {
+  BookingLocation,
+  BookingStatus,
+  CalendarProvider,
+  LocationType,
+  Prisma,
+} from "@prisma/client";
+import {
+  NOTIFICATION_ENTITY,
+  NOTIFICATION_TYPE,
+} from "@dashboard/shared";
 import { randomBytes } from "crypto";
 import type { z } from "zod";
 import { appConfig } from "../../config/app-config";
@@ -15,6 +25,7 @@ import { BookingCanceledEmail } from "../../react-email/booking-canceled-email";
 import { BookingConfirmationEmail } from "../../react-email/booking-confirmation-email";
 import { GoogleCalendarService } from "../calendar/google-calendar.service";
 import { OutlookCalendarService } from "../calendar/outlook-calendar.service";
+import { NotificationService } from "../notification/notification.service";
 import { UpdateBookingPageSchema } from "./dto/booking.dto";
 import { CreateBookingDto } from "./dto/booking.schema";
 import {
@@ -48,14 +59,25 @@ export class BookingService {
 
   constructor(
     private readonly googleCalendarService: GoogleCalendarService,
-    private readonly outlookCalendarService: OutlookCalendarService
+    private readonly outlookCalendarService: OutlookCalendarService,
+    private readonly notificationService: NotificationService
   ) {}
 
   // ─── Owner-facing (authenticated) ──────────────────────────────────
 
   async getOrCreateOwnPage(userId: string, organizationId: string) {
-    const page = await this.getOrCreatePage(userId, organizationId);
-    return { ...page, publicUrl: this.buildPublicUrl(page.slug) };
+    const [page, google, outlook] = await Promise.all([
+      this.getOrCreatePage(userId, organizationId),
+      this.googleCalendarService.getConnectionStatus(userId),
+      this.outlookCalendarService.getConnectionStatus(userId),
+    ]);
+    return {
+      ...page,
+      publicUrl: this.buildPublicUrl(page.slug),
+      // Per provider rather than one flag: the settings page only offers the
+      // Meet-or-Teams choice when both are connected.
+      calendars: { google: google.connected, outlook: outlook.connected },
+    };
   }
 
   async updateOwnPage(
@@ -129,10 +151,72 @@ export class BookingService {
     ]);
 
     return {
-      data,
+      data: await this.backfillMeetingUrls(userId, data),
       total,
       nextPage: page * limit < total ? page + 1 : null,
     };
+  }
+
+  // A join link can land after the insert response returned, so an upcoming
+  // video booking still missing one is re-read when the host lists bookings.
+  private async backfillMeetingUrls<
+    T extends {
+      id: string;
+      meetingUrl: string | null;
+      locationType: BookingLocation;
+      status: BookingStatus;
+      startTime: Date;
+      externalEventId: string | null;
+      calendarProvider: string | null;
+    },
+  >(userId: string, bookings: T[]): Promise<T[]> {
+    const now = new Date();
+    const missing = bookings.filter(
+      (booking) =>
+        !booking.meetingUrl &&
+        booking.locationType === "VIDEO" &&
+        booking.status === "CONFIRMED" &&
+        booking.startTime > now &&
+        booking.externalEventId &&
+        booking.calendarProvider
+    );
+
+    if (!missing.length) return bookings;
+
+    const resolved = new Map<string, string>();
+
+    await Promise.all(
+      missing.map(async (booking) => {
+        const eventId = booking.externalEventId as string;
+        try {
+          const url =
+            booking.calendarProvider === "google"
+              ? await this.googleCalendarService.getMeetingUrl(userId, eventId)
+              : await this.outlookCalendarService.getMeetingUrl(
+                  userId,
+                  eventId
+                );
+          if (!url) return;
+          resolved.set(booking.id, url);
+          await prisma.booking.update({
+            where: { id: booking.id },
+            data: { meetingUrl: url },
+          });
+        } catch (error) {
+          this.logger.warn(
+            `Failed to backfill join link for booking ${booking.id}: ${error.message}`
+          );
+        }
+      })
+    );
+
+    if (!resolved.size) return bookings;
+
+    return bookings.map((booking) =>
+      resolved.has(booking.id)
+        ? { ...booking, meetingUrl: resolved.get(booking.id)! }
+        : booking
+    );
   }
 
   async cancelOwnBooking(
@@ -171,6 +255,22 @@ export class BookingService {
     });
 
     await this.sendCancellationEmails(userId, organizationId, cancelled);
+
+    // Passing the canceller as actor means the host is not told about their
+    // own cancellation, and an invitee-initiated one would notify them.
+    const page = await prisma.bookingPage.findFirst({
+      where: { userId, organizationId },
+      select: { userId: true, organizationId: true, timezone: true },
+    });
+    if (page) {
+      await this.notifyHost(page, {
+        type: NOTIFICATION_TYPE.BOOKING_CANCELLED,
+        title: "Booking cancelled",
+        body: `${cancelled.inviteeName} cancelled ${this.formatFor(page.timezone, cancelled.startTime)}.`,
+        bookingId: cancelled.id,
+        actorUserId: userId,
+      });
+    }
 
     return cancelled;
   }
@@ -266,12 +366,18 @@ export class BookingService {
     });
     if (!page) throw new NotFoundException("Booking page not found");
 
-    const organization = await prisma.organization.findFirst({
-      where: { id: page.organizationId },
-      select: { name: true, logo: true },
-    });
+    const [organization, calendarConnected] = await Promise.all([
+      prisma.organization.findFirst({
+        where: { id: page.organizationId },
+        select: { name: true, logo: true },
+      }),
+      this.hasCalendarConnection(page.userId),
+    ]);
 
     return {
+      // Without a connected calendar the host cannot be told about a booking,
+      // so the page renders but takes nothing.
+      acceptingBookings: calendarConnected,
       title: page.title,
       description: page.description,
       durationMinutes: page.durationMinutes,
@@ -286,6 +392,8 @@ export class BookingService {
 
   async getPublicSlots(slug: string, date: string) {
     const page = await this.findActivePageOrThrow(slug);
+
+    if (!(await this.hasCalendarConnection(page.userId))) return [];
 
     const [year, month, day] = date.split("-").map(Number);
     const dayStart = zonedWallClockToUtc(year, month, day, 0, 0, page.timezone);
@@ -331,6 +439,14 @@ export class BookingService {
 
   async createPublicBooking(slug: string, dto: CreateBookingDto) {
     const page = await this.findActivePageOrThrow(slug);
+
+    // Re-checked here and not only in the slot list: this endpoint is reachable
+    // directly, and a booking the host never sees is worse than no booking.
+    if (!(await this.hasCalendarConnection(page.userId))) {
+      throw new BadRequestException(
+        "This booking page is not accepting bookings right now"
+      );
+    }
 
     if (dto.boardId) {
       const board = await prisma.board.findFirst({
@@ -419,14 +535,21 @@ export class BookingService {
       throw error;
     }
 
-    await this.syncBookingToCalendar(page, booking);
-    await this.sendBookingEmails(page, booking);
+    const meetingUrl = await this.syncBookingToCalendar(page, booking);
+    await this.sendBookingEmails(page, booking, meetingUrl);
+    await this.notifyHost(page, {
+      type: NOTIFICATION_TYPE.BOOKING_CREATED,
+      title: "New booking scheduled",
+      body: `${booking.inviteeName} booked a ${page.durationMinutes} min meeting for ${this.formatFor(page.timezone, booking.startTime)}.`,
+      bookingId: booking.id,
+    });
 
     return {
       id: booking.id,
       startTime: booking.startTime,
       endTime: booking.endTime,
       status: booking.status,
+      meetingUrl,
     };
   }
 
@@ -437,6 +560,55 @@ export class BookingService {
     });
     if (!page) throw new NotFoundException("Booking page not found");
     return page;
+  }
+
+  private formatFor(timezone: string, at: Date) {
+    return at.toLocaleString("en-US", {
+      timeZone: timezone,
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  }
+
+  // The host reads notifications as a member, so their member row is the
+  // recipient. An invitee has no account and is never the actor.
+  private async notifyHost(
+    page: { userId: string; organizationId: string },
+    event: {
+      type: string;
+      title: string;
+      body: string;
+      bookingId: string;
+      actorUserId?: string;
+    }
+  ) {
+    const member = await prisma.member.findFirst({
+      where: { userId: page.userId, organizationId: page.organizationId },
+      select: { id: true },
+    });
+    if (!member) return;
+
+    await this.notificationService.notify({
+      organizationId: page.organizationId,
+      recipientMemberIds: [member.id],
+      type: event.type,
+      title: event.title,
+      body: event.body,
+      link: `/${page.organizationId}/settings/booking`,
+      entityType: NOTIFICATION_ENTITY.BOOKING,
+      entityId: event.bookingId,
+      actorUserId: event.actorUserId ?? null,
+    });
+  }
+
+  // A booking is only real once it lands on the host's calendar, so every path
+  // that offers or writes one checks this first.
+  private async hasCalendarConnection(userId: string): Promise<boolean> {
+    const [google, outlook] = await Promise.all([
+      this.googleCalendarService.getConnectionStatus(userId),
+      this.outlookCalendarService.getConnectionStatus(userId),
+    ]);
+    return google.connected || outlook.connected;
   }
 
   // Fetches Google + Outlook events in range, drops cancelled events, and
@@ -469,16 +641,24 @@ export class BookingService {
       }));
   }
 
+  // Returns the join URL when the provider minted one, so the confirmation
+  // emails can carry it.
   private async syncBookingToCalendar(
-    page: { userId: string; title: string; locationLabel: string | null },
+    page: {
+      userId: string;
+      title: string;
+      locationLabel: string | null;
+      preferredProvider: CalendarProvider | null;
+    },
     booking: {
       id: string;
       startTime: Date;
       endTime: Date;
       inviteeName: string;
       inviteeEmail: string;
+      locationType: BookingLocation;
     }
-  ) {
+  ): Promise<string | null> {
     try {
       const [google, outlook] = await Promise.all([
         this.googleCalendarService.getConnectionStatus(page.userId),
@@ -491,31 +671,55 @@ export class BookingService {
         endTime: booking.endTime.toISOString(),
         location: page.locationLabel ?? undefined,
         attendees: [booking.inviteeEmail],
+        // An in-person meeting has a room, not a join link.
+        createConference: booking.locationType === "VIDEO",
       };
 
-      let created: { id?: string | null } | null = null;
+      let created: { id?: string | null; meetingUrl?: string | null } | null =
+        null;
       let provider: "google" | "outlook" | null = null;
 
-      if (google.connected) {
-        created = await this.googleCalendarService.createEvent(
-          page.userId,
-          eventData
-        );
-        provider = "google";
-      } else if (outlook.connected) {
+      // The host's preference decides when both are connected, because that
+      // choice is also Meet vs Teams for the invitee.
+      const useOutlook =
+        page.preferredProvider === "OUTLOOK"
+          ? outlook.connected
+          : !google.connected && outlook.connected;
+
+      if (useOutlook) {
         created = await this.outlookCalendarService.createEvent(
           page.userId,
           eventData
         );
         provider = "outlook";
+      } else if (google.connected) {
+        created = await this.googleCalendarService.createEvent(
+          page.userId,
+          eventData
+        );
+        provider = "google";
+      }
+
+      // A video booking with no join link is silent otherwise, and the cause is
+      // either no connected calendar or a conference the provider never minted.
+      if (eventData.createConference && !created?.meetingUrl) {
+        this.logger.warn(
+          `No join link for booking ${booking.id}: provider=${provider ?? "none"} google=${google.connected} outlook=${outlook.connected}`
+        );
       }
 
       if (created?.id && provider) {
         await prisma.booking.update({
           where: { id: booking.id },
-          data: { externalEventId: created.id, calendarProvider: provider },
+          data: {
+            externalEventId: created.id,
+            calendarProvider: provider,
+            meetingUrl: created.meetingUrl ?? null,
+          },
         });
       }
+
+      return created?.meetingUrl ?? null;
     } catch (error) {
       this.logger.warn(
         `Calendar sync failed for booking ${booking.id}: ${error.message}`
@@ -524,6 +728,7 @@ export class BookingService {
         where: { id: booking.id },
         data: { calendarSyncFailed: true },
       });
+      return null;
     }
   }
 
@@ -538,7 +743,8 @@ export class BookingService {
       inviteeName: string;
       inviteeEmail: string;
       startTime: Date;
-    }
+    },
+    meetingUrl: string | null
   ) {
     try {
       const host = await prisma.user.findUniqueOrThrow({
@@ -561,6 +767,7 @@ export class BookingService {
           startTime: formattedTime,
           hostName: host.name,
           locationLabel: page.locationLabel,
+          meetingUrl,
         }),
         from: appConfig.APP_EMAIL,
       });
@@ -574,6 +781,7 @@ export class BookingService {
           startTime: formattedTime,
           hostName: host.name,
           locationLabel: page.locationLabel,
+          meetingUrl,
         }),
         from: appConfig.APP_EMAIL,
       });

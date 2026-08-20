@@ -1,10 +1,11 @@
+import type { AdminRole } from "@/lib/auth-client";
 import { ROLES } from "@/lib/contant";
 import {
   banUser,
   impersonateUser,
   listUsers,
   removeUser,
-  revokeSession,
+  revokeUserSessions,
   setUserPassword,
   setUserRole,
   unbanUser,
@@ -68,12 +69,15 @@ import { RoleBadge, StatusBadge } from "../../Reusable/StatusBadges";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
 import { BanUserDialog } from "./BanUserDialog";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
+import { ImpersonateUserDialog } from "./ImpersonateUserDialog";
 
-const ROLE_LABELS = {
+const ROLE_LABELS: Record<AdminRole, string> = {
   [ROLES.USER]: "User",
   [ROLES.SUPPORT]: "Support",
   [ROLES.SUPER_ADMIN]: "Super Admin",
-} as const;
+};
+
+const ADMIN_ROLES = Object.keys(ROLE_LABELS) as AdminRole[];
 
 const ROLE_OPTIONS = [
   { label: "All roles", value: "ALL" },
@@ -96,6 +100,9 @@ export function UserManagementPage() {
   const [banTarget, setBanTarget] = useState<AdminUser | null>(null);
   const [removeTarget, setRemoveTarget] = useState<AdminUser | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
+  const [impersonateTarget, setImpersonateTarget] = useState<AdminUser | null>(
+    null
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users", filterMeta],
@@ -144,7 +151,7 @@ export function UserManagementPage() {
   });
 
   const roleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+    mutationFn: ({ userId, role }: { userId: string; role: AdminRole }) =>
       setUserRole(userId, role),
     onSuccess: () => {
       toast.success("Role updated");
@@ -164,7 +171,8 @@ export function UserManagementPage() {
   });
 
   const impersonateMutation = useMutation({
-    mutationFn: (userId: string) => impersonateUser(userId),
+    mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
+      impersonateUser(userId, reason),
     onSuccess: () => {
       toast.success("User impersonated");
       invalidateUsers();
@@ -173,13 +181,13 @@ export function UserManagementPage() {
     onError: () => toast.error("Failed to impersonate user"),
   });
 
-  const revokeSessionMutation = useMutation({
-    mutationFn: (sessionId: string) => revokeSession(sessionId),
+  const revokeSessionsMutation = useMutation({
+    mutationFn: (userId: string) => revokeUserSessions(userId),
     onSuccess: () => {
-      toast.success("Session revoked");
+      toast.success("Sessions revoked");
       invalidateUsers();
     },
-    onError: () => toast.error("Failed to revoke impersonation"),
+    onError: () => toast.error("Failed to revoke sessions"),
   });
 
   const verifyEmailMutation = useMutation({
@@ -318,7 +326,7 @@ export function UserManagementPage() {
                 Set role
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                {ADMIN_ROLES.map((value) => (
                   <DropdownMenuItem
                     key={value}
                     disabled={row.role === value}
@@ -326,7 +334,7 @@ export function UserManagementPage() {
                       roleMutation.mutate({ userId: row.id, role: value })
                     }
                   >
-                    {label}
+                    {ROLE_LABELS[value]}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuSubContent>
@@ -334,7 +342,7 @@ export function UserManagementPage() {
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={() => impersonateMutation.mutate(row.id)}
+              onClick={() => setImpersonateTarget(row)}
               disabled={impersonateMutation.isPending}
             >
               <User className="mr-2 h-4 w-4" />
@@ -342,11 +350,11 @@ export function UserManagementPage() {
             </DropdownMenuItem>
 
             <DropdownMenuItem
-              onClick={() => revokeSessionMutation.mutate(row.id)}
-              disabled={revokeSessionMutation.isPending}
+              onClick={() => revokeSessionsMutation.mutate(row.id)}
+              disabled={revokeSessionsMutation.isPending}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Revoke session
+              Revoke sessions
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setPasswordTarget(row)}>
               <KeyRound className="mr-2 h-4 w-4" />
@@ -379,7 +387,7 @@ export function UserManagementPage() {
     <div className="flex flex-1 flex-col">
       <div className="w-full flex-1 space-y-6 px-4 py-6 sm:px-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
             User Management
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -451,6 +459,18 @@ export function UserManagementPage() {
             reason: reason || undefined,
             expiresIn,
           })
+        }
+      />
+
+      {/* Impersonation dialog */}
+      <ImpersonateUserDialog
+        open={!!impersonateTarget}
+        onOpenChange={(open) => !open && setImpersonateTarget(null)}
+        userName={impersonateTarget?.name ?? ""}
+        isPending={impersonateMutation.isPending}
+        onConfirm={(reason) =>
+          impersonateTarget &&
+          impersonateMutation.mutate({ userId: impersonateTarget.id, reason })
         }
       />
 

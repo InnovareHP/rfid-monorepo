@@ -6,7 +6,9 @@ import { runWithTenant } from "../../../lib/prisma/tenant-context";
 import { BoardGateway } from "../../board/board.gateway";
 import { EmailDispatchService } from "../../board/email-dispatch.service";
 import { SenderService } from "../sender/sender.service";
+import { SubscriberService } from "../subscriber/subscriber.service";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
+import { applyMergeVariables, wrapClassicHtml } from "./blast-html";
 
 export interface BlastSendJobData {
   blastId: string;
@@ -22,7 +24,8 @@ export class BlastSendProcessor extends WorkerHost {
   constructor(
     private readonly boardGateway: BoardGateway,
     private readonly emailDispatchService: EmailDispatchService,
-    private readonly senderService: SenderService
+    private readonly senderService: SenderService,
+    private readonly subscriberService: SubscriberService
   ) {
     super();
   }
@@ -41,6 +44,10 @@ export class BlastSendProcessor extends WorkerHost {
     const creator = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
     });
+    const organization = await prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { name: true },
+    });
 
     // Resolved once for the whole run, and it throws if the campaign's domain
     // is no longer verified, so a bad identity fails before any mail goes out.
@@ -51,9 +58,19 @@ export class BlastSendProcessor extends WorkerHost {
         )
       : null;
 
+    // A classic body is stored without the email shell, so the footer that
+    // carries the unsubscribe link is wrapped on here.
+    const documentHtml =
+      blast.editorType === "CLASSIC"
+        ? wrapClassicHtml(blast.bodyHtml, organization.name)
+        : blast.bodyHtml;
+
     const pending = await prisma.blastRecipient.findMany({
       where: { blastId, status: "PENDING" },
-      include: { record: { select: { recordName: true } } },
+      include: {
+        record: { select: { recordName: true } },
+        subscriber: { select: { name: true } },
+      },
     });
 
     let sent = 0;
@@ -61,12 +78,30 @@ export class BlastSendProcessor extends WorkerHost {
 
     for (const recipient of pending) {
       try {
+        const recipientName =
+          recipient.record?.recordName ??
+          recipient.subscriber?.name ??
+          recipient.email;
+
+        // Merge tokens resolve per recipient, so the body is rendered here.
+        const body = applyMergeVariables(documentHtml, {
+          recordName: recipientName,
+          email: recipient.email,
+          organizationName: organization.name,
+          unsubscribeUrl: this.subscriberService.unsubscribeUrl(
+            organizationId,
+            recipient.email
+          ),
+          subscribeUrl: this.subscriberService.subscribeUrl(organizationId),
+        });
+
         const { trackingId } = await this.emailDispatchService.send({
           userId,
           to: recipient.email,
           subject: blast.subject,
-          recipientName: recipient.record.recordName,
-          body: blast.bodyHtml,
+          recipientName,
+          body,
+          layout: "NONE",
           senderName: sender?.fromName ?? creator.name,
           sendVia,
           sender: sender
@@ -80,29 +115,37 @@ export class BlastSendProcessor extends WorkerHost {
             : undefined,
         });
 
+        // An activity hangs off a CRM record's timeline. A newsletter
+        // subscriber has no record, so there is nothing to append to.
+        const recordId = recipient.recordId;
+
         await prisma.$transaction([
           prisma.blastRecipient.update({
             where: { id: recipient.id },
             data: { status: "SENT", trackingId, sentAt: new Date() },
           }),
-          prisma.activity.create({
-            data: {
-              title: blast.subject,
-              description: blast.bodyHtml,
-              activityType: "EMAIL",
-              status: "COMPLETED",
-              completedAt: new Date(),
-              recipientEmail: recipient.email,
-              emailSubject: blast.subject,
-              emailBody: blast.bodyHtml,
-              emailSentAt: new Date(),
-              trackingId,
-              threadToken: trackingId,
-              recordId: recipient.recordId,
-              createdBy: userId,
-              organizationId,
-            },
-          }),
+          ...(recordId
+            ? [
+                prisma.activity.create({
+                  data: {
+                    title: blast.subject,
+                    description: body,
+                    activityType: "EMAIL",
+                    status: "COMPLETED",
+                    completedAt: new Date(),
+                    recipientEmail: recipient.email,
+                    emailSubject: blast.subject,
+                    emailBody: body,
+                    emailSentAt: new Date(),
+                    trackingId,
+                    threadToken: trackingId,
+                    recordId,
+                    createdBy: userId,
+                    organizationId,
+                  },
+                }),
+              ]
+            : []),
         ]);
         sent++;
       } catch (error) {

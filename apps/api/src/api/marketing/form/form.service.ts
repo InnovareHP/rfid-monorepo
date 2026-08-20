@@ -4,7 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { BoardFieldType, ModuleType, PageStatus, Prisma } from "@prisma/client";
+import { BoardFieldType, PageStatus, Prisma } from "@prisma/client";
+import {
+  resolveModuleId,
+  toModuleType,
+} from "../../../lib/module/system-modules";
 import { prisma } from "../../../lib/prisma/prisma";
 import { AuditService } from "../../../lib/audit/audit.service";
 import { BoardService } from "../../board/board.service";
@@ -17,6 +21,14 @@ type FieldMapping = {
   required: boolean;
 };
 
+// The wire always carries the module key. The enum column reads CUSTOM for
+// every organization-defined module, so it is internal to writes.
+const withModuleKey = <
+  T extends { moduleType: string; module?: { key: string } | null },
+>(
+  row: T
+) => ({ ...row, moduleType: row.module?.key ?? row.moduleType });
+
 @Injectable()
 export class FormService {
   constructor(
@@ -26,21 +38,27 @@ export class FormService {
   ) {}
 
   async getForms(organizationId: string) {
-    return prisma.form.findMany({
+    const forms = await prisma.form.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { submissions: true } } },
+      include: {
+        _count: { select: { submissions: true } },
+        module: { select: { key: true } },
+      },
     });
+
+    return forms.map(withModuleKey);
   }
 
   async getForm(id: string, organizationId: string) {
     const form = await prisma.form.findFirst({
       where: { id, organizationId },
+      include: { module: { select: { key: true } } },
     });
 
     if (!form) throw new NotFoundException("Form not found");
 
-    return form;
+    return withModuleKey(form);
   }
 
   async getFormFields(id: string, organizationId: string) {
@@ -49,7 +67,7 @@ export class FormService {
     const fields = await prisma.field.findMany({
       where: {
         organizationId,
-        moduleType: form.moduleType,
+        moduleId: form.moduleId,
         isDeleted: false,
       },
       orderBy: { fieldOrder: "asc" },
@@ -95,7 +113,10 @@ export class FormService {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
-        ...(dto.moduleType !== undefined && { moduleType: dto.moduleType }),
+        ...(dto.moduleType !== undefined && {
+          moduleType: toModuleType(dto.moduleType),
+          moduleId: await resolveModuleId(dto.moduleType),
+        }),
         ...(dto.fieldMappings !== undefined && {
           fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
         }),
@@ -241,11 +262,15 @@ export class FormService {
   ) {
     const form = await prisma.form.findUnique({
       where: { slug, status: PageStatus.PUBLISHED },
+      include: { module: { select: { key: true } } },
     });
 
     if (!form) throw new NotFoundException("Form not found");
 
-    const { organizationId, moduleType } = form;
+    // The stored enum reads CUSTOM for every organization-defined module, so
+    // the key has to come off the relation or the record has no module.
+    const { organizationId } = form;
+    const moduleType = form.module?.key ?? form.moduleType;
     const fieldMappings = form.fieldMappings as FieldMapping[];
 
     if (
@@ -300,10 +325,13 @@ export class FormService {
         initialValues: filteredValues,
       });
 
+      // Public submit runs @CrossTenant, so the extension injects nothing here
+      // and the organization has to be named outright.
       await tx.formSubmission.create({
         data: {
           formId: form.id,
           recordId: record.id,
+          organizationId,
           sourceIp: meta.ip ?? null,
           userAgent: meta.userAgent ?? null,
         },
@@ -341,13 +369,16 @@ export class FormService {
     userId: string,
     slug: string
   ) {
+    const moduleKey = dto.moduleType ?? "LEAD";
+
     return prisma.form.create({
       data: {
         name: dto.name,
         slug,
         organizationId,
         campaignId: dto.campaignId ?? null,
-        moduleType: (dto.moduleType ?? ModuleType.LEAD) as ModuleType,
+        moduleType: toModuleType(moduleKey),
+        moduleId: await resolveModuleId(moduleKey),
         fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
         submitButtonText: dto.submitButtonText ?? "Submit",
         redirectUrl: dto.redirectUrl ?? null,

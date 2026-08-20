@@ -1,6 +1,9 @@
+import { FormFieldsSkeleton } from "@/components/skeletons/page-skeletons";
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import LocationCell, {
   type AddressComponents,
 } from "@/components/reusable-table/location-cell";
+import { placeholderFor } from "@/lib/helper/field-placeholder";
 import { getLinkCandidates } from "@/services/board/board-module-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
@@ -119,8 +122,20 @@ const RecordCreatePage = ({
 }: RecordCreatePageProps) => {
   if (isLoadingColumns) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="page-style">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <Skeleton className="size-9 shrink-0" />
+          <div className="min-w-0 space-y-2">
+            <Skeleton className="h-8 w-56 sm:h-9 sm:w-72" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+          </div>
+        </div>
+        <Card>
+          <CardContent className="space-y-6 p-6">
+            <FormFieldsSkeleton fields={8} />
+            <Skeleton className="h-10 w-40" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -141,6 +156,11 @@ const RecordCreatePage = ({
     />
   );
 };
+
+// One control height for every field type so inputs, selects, and pickers line up
+const FIELD_CONTROL_CLASS = "h-11 w-full";
+const SELECT_CONTROL_CLASS = "w-full data-[size=default]:h-11";
+const LABEL_CLASS = "text-sm font-semibold text-gray-700";
 
 function isOptionBacked(columnType: string) {
   return columnType === "DROPDOWN" || columnType === "STATUS";
@@ -290,7 +310,7 @@ const RecordCreateForm = ({
       name={`records.${index}.record_name`}
       render={({ field }) => (
         <FormItem>
-          <FormLabel className="text-sm font-semibold text-gray-700">
+          <FormLabel className={LABEL_CLASS}>
             {nameLabel} <span className="text-red-500">*</span>
           </FormLabel>
           {layout?.helperText && (
@@ -300,8 +320,8 @@ const RecordCreateForm = ({
             <Input
               {...field}
               value={field.value as string}
-              placeholder={`Enter ${nameLabel.toLowerCase()}`}
-              className="h-11"
+              placeholder={placeholderFor(nameLabel, "TEXT")}
+              className={FIELD_CONTROL_CLASS}
             />
           </FormControl>
           <FormMessage />
@@ -559,7 +579,7 @@ const RecordField = ({
   });
 
   const label = (
-    <FormLabel className="text-sm font-semibold text-gray-700">
+    <FormLabel className={LABEL_CLASS}>
       {column.name}
       {layout?.required && <span className="text-red-500"> *</span>}
     </FormLabel>
@@ -620,7 +640,7 @@ const RecordField = ({
               {helperText}
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className={SELECT_CONTROL_CLASS}>
                     <SelectValue
                       placeholder={`Select ${column.name.toLowerCase()}`}
                     />
@@ -655,7 +675,8 @@ const RecordField = ({
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        FIELD_CONTROL_CLASS,
+                        "justify-start text-left font-normal",
                         !field.value && "text-muted-foreground"
                       )}
                     >
@@ -697,7 +718,7 @@ const RecordField = ({
               {helperText}
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className={SELECT_CONTROL_CLASS}>
                     <SelectValue
                       placeholder={`Select ${column.name.toLowerCase()}`}
                     />
@@ -724,14 +745,14 @@ const RecordField = ({
           control={form.control}
           name={fieldName}
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-4">
+            <FormItem className="flex h-11 flex-row items-center space-x-3 space-y-0 rounded-md border px-3">
               <FormControl>
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel className="text-sm font-semibold text-gray-700 cursor-pointer leading-none">
+              <FormLabel className={cn(LABEL_CLASS, "cursor-pointer leading-none")}>
                 {column.name}
               </FormLabel>
             </FormItem>
@@ -753,7 +774,10 @@ const RecordField = ({
                   value={field.value}
                   onChange={field.onChange}
                   onSelectComponents={applyAddressComponents}
-                  className="w-full"
+                  className={cn(
+                    FIELD_CONTROL_CLASS,
+                    "rounded-md border-input bg-transparent text-sm shadow-xs"
+                  )}
                 />
               </FormControl>
               <FormMessage />
@@ -776,12 +800,14 @@ const RecordField = ({
                   <Textarea
                     {...field}
                     rows={4}
-                    placeholder={`Enter any additional information about this ${column.name.toLowerCase()}...`}
+                    placeholder={placeholderFor(column.name, column.type)}
+                    className="min-h-24 w-full"
                   />
                 ) : (
                   <Input
                     {...field}
-                    placeholder={`Enter ${column.name.toLowerCase()}`}
+                    placeholder={placeholderFor(column.name, column.type)}
+                    className={FIELD_CONTROL_CLASS}
                   />
                 )}
               </FormControl>

@@ -2,6 +2,7 @@ import { Controller, Get, Query, Res } from "@nestjs/common";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import type { Response } from "express";
 import { appConfig } from "src/config/app-config";
+import { consumeOAuthState } from "src/lib/auth/oauth-state";
 import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
@@ -19,16 +20,16 @@ export class BoardOAuthCallbackController {
     @Query("state") state: string,
     @Res() res: Response
   ) {
+    const claim = await consumeOAuthState("gmail", state);
+    if (!claim) return this.failure(res, "gmail");
+
     try {
-      const { userId, orgId } = JSON.parse(state);
-      await this.gmailService.handleCallback(code, userId);
+      await this.gmailService.handleCallback(code, claim.userId);
       res.redirect(
-        `${appConfig.WEBSITE_URL}/${orgId}/integrations?gmail=connected`
+        `${appConfig.WEBSITE_URL}/${claim.orgId}/integrations?gmail=connected`
       );
-    } catch (error) {
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/integrations?gmail=error&message=${encodeURIComponent(error.message)}`
-      );
+    } catch {
+      this.failure(res, "gmail");
     }
   }
 
@@ -38,16 +39,22 @@ export class BoardOAuthCallbackController {
     @Query("state") state: string,
     @Res() res: Response
   ) {
+    const claim = await consumeOAuthState("outlook", state);
+    if (!claim) return this.failure(res, "outlook");
+
     try {
-      const { userId, orgId } = JSON.parse(state);
-      await this.outlookService.handleCallback(code, userId);
+      await this.outlookService.handleCallback(code, claim.userId);
       res.redirect(
-        `${appConfig.WEBSITE_URL}/${orgId}/integrations?outlook=connected`
+        `${appConfig.WEBSITE_URL}/${claim.orgId}/integrations?outlook=connected`
       );
-    } catch (error) {
-      res.redirect(
-        `${appConfig.WEBSITE_URL}/integrations?outlook=error&message=${encodeURIComponent(error.message)}`
-      );
+    } catch {
+      this.failure(res, "outlook");
     }
+  }
+
+  // The caller is anonymous here, so the reason never travels in the redirect;
+  // the frontend renders its own copy off the provider flag alone.
+  private failure(res: Response, provider: "gmail" | "outlook") {
+    res.redirect(`${appConfig.WEBSITE_URL}/integrations?${provider}=error`);
   }
 }

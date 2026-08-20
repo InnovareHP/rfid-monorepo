@@ -1,20 +1,30 @@
 import { BoardFieldType } from "@prisma/client";
 import { z } from "zod";
 
-export const CreateRecordSchema = z.object({
-  data: z.array(z.record(z.string(), z.unknown())).optional(),
-  recordName: z.string(),
-  moduleType: z.string(),
-  initialValues: z.record(z.string(), z.string().nullable()).optional(),
-  personContact: z
-    .object({
-      fieldId: z.string(),
-      contactNumber: z.string().optional(),
-      email: z.string().optional(),
-      address: z.string().optional(),
-    })
-    .optional(),
-});
+export const CreateRecordSchema = z
+  .object({
+    data: z.array(z.record(z.string(), z.unknown())).optional(),
+    recordName: z.string().optional(),
+    moduleType: z.string(),
+    initialValues: z.record(z.string(), z.string().nullable()).optional(),
+    personContact: z
+      .object({
+        fieldId: z.string(),
+        contactNumber: z.string().optional(),
+        email: z.string().optional(),
+        address: z.string().optional(),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.data?.length && !value.recordName) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Either data rows or a recordName is required",
+        path: ["recordName"],
+      });
+    }
+  });
 
 export const UpdateRecordValueSchema = z.object({
   value: z.string(),
@@ -36,7 +46,7 @@ export const NotificationStateSchema = z.object({
 });
 
 export const CsvImportSchema = z.object({
-  excelData: z.array(z.record(z.string(), z.unknown())),
+  excelData: z.array(z.record(z.string(), z.unknown())).max(20_000),
   moduleType: z.string(),
 });
 

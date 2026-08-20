@@ -17,10 +17,10 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlignLeft,
+  Building2,
   Calendar,
   CheckSquare,
   ChevronDown,
-  Building2,
   Hash,
   Mail,
   Phone,
@@ -28,6 +28,7 @@ import {
   User,
 } from "lucide-react";
 import { useState } from "react";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
 
 export function CreateColumnModal({
@@ -37,7 +38,7 @@ export function CreateColumnModal({
 }: {
   isReferral?: boolean;
   moduleType?: string;
-  queryKey?: string;
+  queryKey?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -61,7 +62,7 @@ export function CreateColumnModal({
       );
 
       queryClient.invalidateQueries({
-        queryKey: [queryKey ?? (isReferral ? "referrals" : "leads")],
+        queryKey: queryKey ?? boardQueryKey(isReferral ? "REFERRAL" : "LEAD"),
       });
 
       toast.success("Column created successfully!");
@@ -113,7 +114,7 @@ export function CreateColumnModal({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add a New Column</DialogTitle>
         </DialogHeader>

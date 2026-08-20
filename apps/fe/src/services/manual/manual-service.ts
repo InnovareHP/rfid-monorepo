@@ -1,5 +1,8 @@
 import { axiosClient } from "../../lib/axios-client";
 
+// Published help content changes rarely, so it survives navigation for an hour.
+export const MANUAL_STALE_TIME = 1000 * 60 * 60;
+
 export interface ManualCategory {
   id: string;
   name: string;
@@ -24,6 +27,8 @@ export interface ManualArticle {
   slug: string;
   summary: string;
   published: boolean;
+  featured: boolean;
+  readMinutes: number;
   order: number;
   categoryId: string;
   category: { id: string; name: string; slug: string; icon: string | null };
@@ -31,27 +36,50 @@ export interface ManualArticle {
   createdByUser: { id: string; name: string; image: string | null };
 }
 
+export type ManualFeaturedArticle = Pick<
+  ManualArticle,
+  "id" | "title" | "slug" | "summary" | "readMinutes" | "category"
+>;
+
 export interface ManualArticleResponse {
   articles: ManualArticle[];
   total: number;
 }
 
 export const getCategories = async (): Promise<ManualCategory[]> => {
-  const response = await axiosClient.get("/api/manual/categories");
+  const response = await axiosClient.get("/api/manual/categories/published");
+  return response.data;
+};
+
+export const getCategoryBySlug = async (
+  slug: string
+): Promise<ManualCategory> => {
+  const response = await axiosClient.get(`/api/manual/categories/slug/${slug}`);
   return response.data;
 };
 
 export const getPublishedArticles = async (
   categoryId?: string,
   limit?: number,
-  page?: number
+  page?: number,
+  search?: string
 ): Promise<ManualArticleResponse> => {
   const params = {
     categoryId,
     limit,
     page,
+    search: search || undefined,
   };
   const response = await axiosClient.get("/api/manual/published", { params });
+  return response.data;
+};
+
+export const getFeaturedArticles = async (
+  limit?: number
+): Promise<ManualFeaturedArticle[]> => {
+  const response = await axiosClient.get("/api/manual/featured", {
+    params: { limit },
+  });
   return response.data;
 };
 

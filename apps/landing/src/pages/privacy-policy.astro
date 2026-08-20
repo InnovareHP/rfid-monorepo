@@ -1,0 +1,128 @@
+---
+import LegalSection from "../components/LegalSection.astro";
+import {
+  EFFECTIVE_DATE,
+  LEGAL_ADDRESS,
+  LEGAL_ADDRESS_URL,
+  LEGAL_ENTITY,
+  SUPPORT_EMAIL,
+} from "../config";
+import LegalLayout from "../layouts/LegalLayout.astro";
+
+const SECTIONS = [
+  {
+    heading: "Who this policy covers",
+    body: [
+      `This Privacy Policy describes how Refidly, a product of ${LEGAL_ENTITY} ("Refidly," "we," "us"), collects, uses, and shares information when you use our website and web application (together, the "Services").`,
+      "Refidly plays two different roles, and the difference matters. For our marketing site and for the account details of the people who administer a workspace, we are the controller of that information and this policy governs it directly. For the facility, referral, and field-activity records your organization puts into the application, your organization is the controller and we process that data only on its instructions, under the Customer Agreement and any Business Associate Agreement in place.",
+      "If you are a patient or a referral contact and your information appears in a Refidly workspace, the healthcare organization that operates the workspace is your point of contact. Direct access, correction, and deletion requests to them, and we will support them in responding.",
+    ],
+  },
+  {
+    heading: "Information we collect",
+    items: [
+      "Account information. Name, work email, password credentials or Google sign-in identifier, organization name, role within the organization, and profile image.",
+      "Workspace content. The facility, lead, and referral records your team creates, including any custom fields your organization defines and the notes kept against them. Depending on how your organization configures those fields, this content can include protected health information.",
+      "Field activity. Visit, expense, and calendar entries your team logs, and the files attached to them.",
+      "Integration data. Where a user connects a Google or Microsoft account, the authorization and account address needed to send outreach email on that user's behalf.",
+      "Billing information. Subscription plan, seat count, and billing status. Card numbers are collected and stored by Stripe, our payment processor, and never reach Refidly servers.",
+      "Technical and usage data. IP address, browser and device type, pages and features used, timestamps, and session and audit records of actions taken inside a workspace.",
+    ],
+  },
+  {
+    heading: "How we use information",
+    items: [
+      "To operate the service: sign users in, keep a team's records available to the people entitled to see them, and keep a record of changes.",
+      "To provide the features your organization has enabled, including analytics, AI assistance, exports, and outreach email sent through a connected mailbox.",
+      "To bill for subscriptions, prevent fraud, and enforce the Customer Agreement.",
+      "To provide support, respond to your requests, and send service notices about availability, security, and material product changes.",
+      "To improve reliability and performance using aggregated, de-identified usage metrics.",
+      "To comply with legal obligations and to establish, exercise, or defend legal claims.",
+    ],
+  },
+  {
+    heading: "AI features",
+    body: [
+      "Refidly uses a third-party AI provider, named under How we share information, for its AI-assisted features. Content is sent to that provider only when a user triggers one of them.",
+      "Your workspace content is not used to train Refidly models or any third-party AI model. AI processing is transient and stays within your organization. AI output is a suggestion, not a clinical or business decision, and should be reviewed by a person before it is acted on.",
+    ],
+  },
+  {
+    heading: "Outreach email",
+    body: [
+      "Bulk and individual outreach email is sent through the Gmail or Outlook account the sending user connects. Refidly does not operate a sending domain on your behalf, and recipients see your organization as the sender. Your organization is responsible for the content of those messages and for compliance with CAN-SPAM and any applicable state or professional rules. Transactional email from Refidly itself, such as invitations and password resets, is sent through our email provider.",
+    ],
+  },
+  {
+    heading: "How we share information",
+    body: [
+      "We do not sell personal information, referral records, or facility lists, and we do not share them for cross-context behavioral advertising. We disclose information only in these circumstances:",
+    ],
+    items: [
+      "Service providers who process data on our behalf under contract: cloud hosting and object storage, our database and cache infrastructure, Stripe for payments, Resend for transactional email, and Google for AI processing.",
+      "Other members of your organization, according to the role and permissions assigned to each user by a workspace owner.",
+      "Integration providers you connect, limited to what the integration needs to function.",
+      "Legal and safety disclosures where required by law, valid legal process, or to protect rights and safety. Where we may lawfully do so, we notify the affected organization first.",
+      "A successor in a merger, acquisition, or asset sale, subject to this policy and to notice before any change in how data is handled.",
+    ],
+  },
+  {
+    heading: "Data retention",
+    body: [
+      "Workspace content is retained for as long as the organization keeps its account open. Records deleted inside the application are recoverable from history for a limited period so an accidental deletion can be restored, then purged. Audit log entries are retained longer because their purpose is to show what happened.",
+      "On account closure, we delete or de-identify workspace content within 90 days, except where a Business Associate Agreement, a legal hold, or a records-retention obligation requires otherwise. Backups age out on their own schedule.",
+    ],
+  },
+  {
+    heading: "Security",
+    body: [
+      "Access is role-based and limited to your own organization. Protected health information is encrypted at rest, data is encrypted in transit, sessions expire automatically, and changes to records are written to an audit trail. Our full description of these controls, and how to request a Business Associate Agreement, is on the Security page.",
+      "No system is perfectly secure. If we become aware of a breach affecting your information, we will notify the affected organization without undue delay and within the timelines any applicable law or agreement requires.",
+    ],
+  },
+  {
+    heading: "Your rights",
+    body: [
+      "Depending on where you live, you may have rights to access, correct, delete, or port personal information, to opt out of sale or sharing, which we do not do, and to appeal a refused request. You can update most account information yourself in the application.",
+      "Requests about records inside a customer workspace go to that organization. Requests about the account information we control as a controller can be sent to the address below, and we will verify your identity before acting. Exercising a right will not cause us to deny service or degrade it.",
+    ],
+  },
+  {
+    heading: "Children and international users",
+    body: [
+      "Refidly is a workplace tool and is not directed to children. We do not knowingly collect personal information from anyone under 16 through the marketing site or through self-service signup. A workspace record about a minor patient is workspace content controlled by the healthcare organization, not by us.",
+      "Refidly is operated from the United States and data is processed there. If you access the service from another country, you are transferring information to the United States.",
+    ],
+  },
+  {
+    heading: "Changes",
+    body: [
+      "We update this policy as the product changes. Material changes are announced in the application or by email to workspace owners before they take effect, and the effective date above is revised each time.",
+    ],
+  },
+];
+---
+
+<LegalLayout
+  title="Privacy Policy — Refidly"
+  description="How Refidly collects, uses, shares, and protects information across the marketing site and the Refidly application."
+  heading="Privacy Policy"
+  lead="What Refidly collects, why, who it goes to, and what you can ask us to do about it."
+  updated={EFFECTIVE_DATE}
+>
+  {SECTIONS.map((section) => <LegalSection {...section} />)}
+
+  <LegalSection heading="Privacy questions">
+    <p class="legal-body">
+      Reach the team at <a
+        href={`mailto:${SUPPORT_EMAIL}?subject=Privacy%20request`}
+        class="legal-link">{SUPPORT_EMAIL}</a
+      > with "Privacy" in the subject line, or by mail to {LEGAL_ENTITY}, <a
+        href={LEGAL_ADDRESS_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="legal-link">{LEGAL_ADDRESS}</a
+      >.
+    </p>
+  </LegalSection>
+</LegalLayout>

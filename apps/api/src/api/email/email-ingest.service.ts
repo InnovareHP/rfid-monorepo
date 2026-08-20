@@ -1,9 +1,11 @@
+import { BOARD_NOTIFICATION_EVENT } from "@dashboard/shared";
 import { Injectable, Logger } from "@nestjs/common";
 import { randomBytes } from "crypto";
 import { appConfig } from "../../config/app-config";
 import { AuditService } from "../../lib/audit/audit.service";
 import { prisma } from "../../lib/prisma/prisma";
 import { runUnscoped, runWithTenant } from "../../lib/prisma/tenant-context";
+import { BoardNotifyService } from "../board/board-notify.service";
 
 export interface ParsedInboundEmail {
   from: string;
@@ -23,7 +25,10 @@ const THREAD_TOKEN_PATTERN = /a\.([0-9a-f]{32})@/i;
 export class EmailIngestService {
   private readonly logger = new Logger(EmailIngestService.name);
 
-  constructor(private readonly auditService: AuditService) {}
+  constructor(
+    private readonly auditService: AuditService,
+    private readonly boardNotify: BoardNotifyService
+  ) {}
 
   // Null when inbound ingest is not set up: outbound sending does not need it.
   async getIngestAddress(organizationId: string): Promise<string | null> {
@@ -210,6 +215,21 @@ export class EmailIngestService {
       resourceId: activity.id,
       metadata: { matchedBy: parent ? "thread-token" : "sender-address" },
     });
+
+    const record = await prisma.board.findFirst({
+      where: { id: recordId, organizationId },
+      select: { moduleType: true, module: { select: { key: true } } },
+    });
+
+    if (record) {
+      await this.boardNotify.notifyRecord({
+        recordId,
+        organizationId,
+        moduleType: record.module?.key ?? record.moduleType,
+        event: BOARD_NOTIFICATION_EVENT.EMAIL_RECEIVED,
+        title: (recordName) => `Reply received from ${recordName}`,
+      });
+    }
 
     return true;
   }

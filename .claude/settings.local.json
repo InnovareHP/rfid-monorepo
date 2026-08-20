@@ -67,7 +67,30 @@
       "Bash(echo \"exit=$?\")",
       "Bash(npx eslint *)",
       "Bash(python -)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "mcp__figma__download_assets",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/tasks/**)",
+      "Bash(rm 'routes/_team/$team/help.tsx' components/help/help-page.tsx)",
+      "Bash(mkdir -p 'routes/_team/$team/help/$categorySlug')",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/routes/_team/**)",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/fe/src/routes/_team/\\\\$team/marketing/blasts/**)",
+      "Bash(sed -i '1i import { PublicPageSkeleton } from \"@/components/skeletons/page-skeletons\";' marketing/landing-page/public-landing-page.tsx)",
+      "Bash(sed -i '1i import { DetailPageSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-article-page.tsx)",
+      "Bash(sed -i '1i import { ListRowsSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-category-page.tsx)",
+      "Bash(sed -i '1i import { CardGridSkeleton, ListRowsSkeleton } from \"@/components/skeletons/page-skeletons\";' help/help-center-page.tsx)",
+      "Bash(echo \"lint-exit=$?\")",
+      "Bash(awk '/^model User /,/^}/' prisma/models/auth.prisma)",
+      "Read(//c/Users/lhani/OneDrive/Desktop/**)",
+      "Read(//c/Users/lhani/Documents/**)",
+      "Read(//c/Users/lhani/AppData/Roaming/obsidian/**)",
+      "Read(//c/Users/lhani/.claude/projects/C--Users-lhani-OneDrive-Desktop-ivorzero-ivorzero-dashboard/07caf9fe-0746-4701-a51b-2b2c19355b3b/tool-results/**)",
+      "Bash(curl -sL -o dd-content.png \"https://www.figma.com/api/mcp/asset/14f5adad-9f83-45da-8e3e-bdf76da2d5fb.png\")",
+      "Bash(curl -sL -o dd-settings.png \"https://www.figma.com/api/mcp/asset/5f6c2b4b-3df9-435d-83be-5efe90b7a675.png\")",
+      "Bash(sed 's/\\\\\\\\n/\\\\n/g' mcp-figma-get_metadata-1786640990229.txt)",
+      "Bash(awk 'match\\($0,/^ <frame/\\)' meta.xml)",
+      "Bash(sed -i '/^  message?: string;$/d; /^    message: \\(search.message as string\\) || undefined,$/d' 'routes/_team/$team/integrations.tsx')",
+      "Bash(sed -i -e 's/toast.error\\(search?.message || \"Failed to connect Gmail\"\\);/toast.error\\(\"Failed to connect Gmail\"\\);/' -e 's/toast.error\\(search?.message || \"Failed to connect Outlook\"\\);/toast.error\\(\"Failed to connect Outlook\"\\);/' -e 's/toast.error\\(search?.message || \"Failed to connect Google Calendar\"\\);/toast.error\\(\"Failed to connect Google Calendar\"\\);/' -e 's/toast.error\\(search?.message || \"Failed to connect Outlook Calendar\"\\);/toast.error\\(\"Failed to connect Outlook Calendar\"\\);/' -e 's/, search?\\\\.message\\\\]\\);/]\\);/' components/integrations/integration-page.tsx)",
+      "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/api/src/routes/_team/\\\\$team/**)"
     ]
   }
 }

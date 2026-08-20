@@ -1,5 +1,5 @@
 import { GeocodeCommand } from "@aws-sdk/client-geo-places";
-import { formatPhoneNumber } from "@dashboard/shared";
+import { BOARD_NOTIFICATION_EVENT, formatPhoneNumber } from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
@@ -7,7 +7,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Board, BoardFieldType, ModuleType, Prisma } from "@prisma/client";
+import { Board, BoardFieldType, Prisma } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
 import { aiGenerateVision } from "src/lib/aws/ai-guard";
@@ -21,10 +21,16 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { geoPlaces } from "../../lib/geo/geo-places";
+import {
+  resolveModuleId,
+  toModuleType,
+} from "../../lib/module/system-modules";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
+import { LiaisonActivityService } from "../liaison/liaison-activity.service";
 import { toComponents } from "../places/places.service";
+import { BoardNotifyService } from "./board-notify.service";
 import { BoardGateway } from "./board.gateway";
 import { UpdateContactDto } from "./dto/board.schema";
 import { EmailDispatchService } from "./email-dispatch.service";
@@ -75,6 +81,8 @@ export class BoardService {
     private readonly boardGateway: BoardGateway,
     private readonly emailDispatchService: EmailDispatchService,
     private readonly faxService: FaxService,
+    private readonly boardNotify: BoardNotifyService,
+    private readonly liaisonActivity: LiaisonActivityService,
     @InjectQueue(QUEUE_NAMES.BULK_EMAIL)
     private readonly bulkEmailQueue: Queue,
     @InjectQueue(QUEUE_NAMES.CSV_IMPORT)
@@ -98,6 +106,9 @@ export class BoardService {
       sortBy,
       sortOrder = "asc",
     } = filters;
+    const scopedModuleId = moduleType
+      ? await resolveModuleId(moduleType)
+      : undefined;
 
     const cachedData = await getData(
       `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:${boardDateFrom}:${boardDateTo}:${page}:${limit}:${search}:${sortBy}:${sortOrder}:${JSON.stringify(filter)}`
@@ -112,7 +123,7 @@ export class BoardService {
     const where: Prisma.BoardWhereInput = {
       organizationId: organizationId,
       isDeleted: false,
-      moduleType: moduleType as ModuleType,
+      moduleId: scopedModuleId,
     };
 
     if (boardDateFrom || boardDateTo) {
@@ -147,7 +158,7 @@ export class BoardService {
       prisma.field.findMany({
         where: {
           organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
           isDeleted: false,
         },
         orderBy: { fieldOrder: "asc" },
@@ -298,6 +309,7 @@ export class BoardService {
   }
 
   async getBoardStats(organizationId: string, moduleType: string) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const cacheKey = `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:stats`;
     const cachedStats = await getData(cacheKey);
 
@@ -313,13 +325,13 @@ export class BoardService {
     const recordWhere: Prisma.BoardWhereInput = {
       organizationId,
       isDeleted: false,
-      moduleType: moduleType as ModuleType,
+      moduleId: scopedModuleId,
     };
 
     const countyField = await prisma.field.findFirst({
       where: {
         organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
         fieldName: "County",
       },
@@ -393,11 +405,12 @@ export class BoardService {
     page: number,
     limit: number
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const offset = (page - 1) * Number(limit);
     const records = await prisma.board.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       select: {
@@ -434,6 +447,7 @@ export class BoardService {
             id: true,
             recordName: true,
             moduleType: true,
+            module: { select: { key: true } },
             isDeleted: true,
             organizationId: true,
           },
@@ -443,6 +457,7 @@ export class BoardService {
             id: true,
             recordName: true,
             moduleType: true,
+            module: { select: { key: true } },
             isDeleted: true,
             organizationId: true,
           },
@@ -467,7 +482,7 @@ export class BoardService {
       related.push({
         id: counterpart.id,
         recordName: counterpart.recordName,
-        moduleType: counterpart.moduleType,
+        moduleType: counterpart.module?.key ?? counterpart.moduleType,
         relationType: r.relationType,
       });
     }
@@ -485,13 +500,14 @@ export class BoardService {
       userId,
       column,
     } = filters;
+    const scopedModuleId = await resolveModuleId(moduleType);
     const offset = (page - 1) * Number(limit);
 
     // Stats and filter options stay on the unfiltered org scope.
     const scope: Prisma.HistoryWhereInput = {
       record: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
       action: { in: ["create", "delete", "update", "restore"] },
     };
@@ -555,10 +571,11 @@ export class BoardService {
   // Stats and filter options span the whole org scope, so they are fetched
   // separately from the paged rows and only change when the module changes.
   async getRecordHistoryMeta(organizationId: string, moduleType: string) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const scope: Prisma.HistoryWhereInput = {
       record: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
       action: { in: ["create", "delete", "update", "restore"] },
     };
@@ -979,11 +996,12 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const record = await prisma.board.findUniqueOrThrow({
       where: {
         id: recordId,
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
       },
       select: {
         id: true,
@@ -1010,7 +1028,7 @@ export class BoardService {
       orderBy: { fieldOrder: "asc" },
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
     });
@@ -1072,10 +1090,11 @@ export class BoardService {
   }
 
   async getColumns(organizationId: string, moduleType: string) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const columns = await prisma.field.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       select: {
@@ -1217,7 +1236,14 @@ export class BoardService {
     reason?: string,
     previousValue?: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     try {
+      let changedField: {
+        id: string;
+        fieldType: BoardFieldType;
+        fieldName: string;
+      } | null = null;
+
       if (fieldId !== BoardFieldType.ASSIGNED_TO && fieldId !== "Record") {
         const field = await prisma.field.findUnique({
           where: { id: fieldId, organizationId: organizationId },
@@ -1229,11 +1255,14 @@ export class BoardService {
         if (field.fieldType === BoardFieldType.LOCATION) {
           return this.updateLocationValue(
             recordId,
+            field.id,
             value,
             organizationId,
             moduleType
           );
         }
+
+        changedField = field;
       }
 
       const recordValue = await prisma.$transaction(async (tx) => {
@@ -1259,7 +1288,7 @@ export class BoardService {
             id: fieldId,
             organizationId: organizationId,
             isDeleted: false,
-            moduleType: moduleType as ModuleType,
+            moduleId: scopedModuleId,
           },
           select: {
             fieldType: true,
@@ -1293,9 +1322,68 @@ export class BoardService {
 
       await deleteData(`followup:${recordId}`);
 
+      await this.notifyValueChange({
+        recordId,
+        organizationId,
+        moduleType,
+        actorUserId: memberId,
+        fieldId,
+        value,
+        field: changedField,
+      });
+
       return recordValue;
     } catch (error) {
       throw new NotFoundException(error.message);
+    }
+  }
+
+  // Runs after the transaction commits so the notice reads the settled row.
+  private async notifyValueChange(input: {
+    recordId: string;
+    organizationId: string;
+    moduleType: string;
+    actorUserId: string;
+    fieldId: string;
+    value: string;
+    field: { id: string; fieldType: BoardFieldType; fieldName: string } | null;
+  }) {
+    const base = {
+      recordId: input.recordId,
+      organizationId: input.organizationId,
+      moduleType: input.moduleType,
+      actorUserId: input.actorUserId,
+    };
+
+    if (input.fieldId === BoardFieldType.ASSIGNED_TO) {
+      await this.boardNotify.notifyRecord({
+        ...base,
+        event: BOARD_NOTIFICATION_EVENT.ASSIGNED,
+        title: (recordName) => `You were assigned ${recordName}`,
+      });
+      return;
+    }
+
+    const field = input.field;
+    if (!field) return;
+
+    if (field.fieldType === BoardFieldType.STATUS) {
+      await this.boardNotify.notifyRecord({
+        ...base,
+        event: BOARD_NOTIFICATION_EVENT.STATUS_CHANGED,
+        title: (recordName) => `${recordName} moved to ${input.value}`,
+        body: `${field.fieldName} was updated`,
+      });
+      return;
+    }
+
+    if (this.isLinkFieldType(field.fieldType)) {
+      await this.boardNotify.notifyRecord({
+        ...base,
+        event: BOARD_NOTIFICATION_EVENT.LINKED,
+        title: (recordName) => `${recordName} was linked to another record`,
+        body: field.fieldName,
+      });
     }
   }
 
@@ -1307,11 +1395,12 @@ export class BoardService {
 
   private async updateLocationValue(
     recordId: string,
+    fieldId: string,
     value: string,
     organizationId: string,
     moduleType: string
   ) {
-    const geocodeResult = await this.geocodeLocation(value, recordId);
+    const geocodeResult = await this.geocodeLocation(value, recordId, fieldId);
 
     const locationData = await prisma.$transaction(async (tx) => {
       return this.saveLocationFields(
@@ -1838,6 +1927,7 @@ export class BoardService {
       field,
       memberId,
     } = ctx;
+    const scopedModuleId = await resolveModuleId(moduleType);
 
     if (field.fieldType === BoardFieldType.STATUS) {
       const statusFields = await tx.field.findMany({
@@ -1847,7 +1937,7 @@ export class BoardService {
           },
           isDeleted: false,
           organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
         },
         select: { id: true, fieldName: true },
       });
@@ -2018,10 +2108,11 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const fields = await prisma.field.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       orderBy: { fieldOrder: "asc" },
@@ -2097,19 +2188,21 @@ export class BoardService {
       initialValues,
       personContact,
     } = params;
+    const scopedModuleId = await resolveModuleId(moduleType);
 
     const board = await tx.board.create({
       data: {
         recordName: recordName ?? "",
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleType: toModuleType(moduleType),
+        moduleId: scopedModuleId,
       },
     });
 
     const fields = await tx.field.findMany({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
     });
@@ -2203,6 +2296,15 @@ export class BoardService {
 
     await this.afterRecordCreated(record, organizationId, moduleType);
 
+    await this.boardNotify.notifyRecord({
+      recordId: record.id,
+      organizationId,
+      moduleType,
+      actorUserId: memberId,
+      event: BOARD_NOTIFICATION_EVENT.CREATED,
+      title: (recordName) => `New ${moduleType.toLowerCase()}: ${recordName}`,
+    });
+
     return record;
   }
 
@@ -2212,11 +2314,12 @@ export class BoardService {
     memberId: string,
     moduleType: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const result = await prisma.$transaction(async (tx) => {
       const fields = await tx.field.findMany({
         where: {
           organizationId: organizationId,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
           isDeleted: false,
         },
         orderBy: { fieldOrder: "asc" },
@@ -2251,22 +2354,26 @@ export class BoardService {
         );
       }
 
-      const createdReferrals: any = [];
       const allReferralValues: any[] = [];
       const allHistoryEntries: any[] = [];
       const allNotificationStates: any[] = [];
       const allRelations: any[] = [];
 
-      for (const referralData of referralItems) {
-        const referral = await tx.board.create({
-          data: {
-            recordName: referralData.referral_name ?? "",
-            moduleType: moduleType as ModuleType,
-            organizationId: organizationId,
-          },
-        });
+      // One insert instead of one per item: a create per referral is a round
+      // trip inside the 5s interactive transaction default, so a large batch
+      // ran out of time part way through.
+      const recordsToCreate = referralItems.map((referralData) => ({
+        id: uuidv4(),
+        recordName: referralData.referral_name ?? "",
+        moduleType: toModuleType(moduleType),
+        moduleId: scopedModuleId,
+        organizationId: organizationId,
+      }));
 
-        createdReferrals.push(referral);
+      await tx.board.createMany({ data: recordsToCreate });
+
+      for (const [index, referralData] of referralItems.entries()) {
+        const recordId = recordsToCreate[index].id;
 
         for (const field of fields) {
           const customValue =
@@ -2301,7 +2408,7 @@ export class BoardService {
               value = target?.id ?? null;
               if (target) {
                 allRelations.push({
-                  sourceId: referral.id,
+                  sourceId: recordId,
                   targetId: target.id,
                   relationType: relation,
                   organizationId: organizationId,
@@ -2314,7 +2421,7 @@ export class BoardService {
 
           allReferralValues.push({
             id: uuidv4(),
-            recordId: referral.id,
+            recordId: recordId,
             fieldId: field.id,
             value: value,
             organizationId: organizationId,
@@ -2325,7 +2432,7 @@ export class BoardService {
         allHistoryEntries.push({
           id: uuidv4(),
           createdAt: new Date(),
-          recordId: referral.id,
+          recordId: recordId,
           oldValue: null,
           newValue: referralData.referral_name,
           action: "create",
@@ -2336,7 +2443,7 @@ export class BoardService {
 
         allNotificationStates.push({
           id: uuidv4(),
-          recordId: referral.id,
+          recordId: recordId,
           lastSeen: new Date(),
         });
       }
@@ -2370,6 +2477,10 @@ export class BoardService {
         });
       }
 
+      const createdReferrals = await tx.board.findMany({
+        where: { id: { in: recordsToCreate.map((record) => record.id) } },
+      });
+
       return {
         message: `${createdReferrals.length} referral(s) created successfully`,
         count: createdReferrals.length,
@@ -2381,6 +2492,15 @@ export class BoardService {
 
     for (const referral of result.referrals) {
       this.boardGateway.emitRecordCreated(organizationId, referral, moduleType);
+
+      await this.boardNotify.notifyRecord({
+        recordId: referral.id,
+        organizationId,
+        moduleType,
+        actorUserId: memberId,
+        event: BOARD_NOTIFICATION_EVENT.CREATED,
+        title: (recordName) => `New ${moduleType.toLowerCase()}: ${recordName}`,
+      });
     }
 
     return result;
@@ -2468,6 +2588,7 @@ export class BoardService {
     userId: string,
     moduleType: string = "LEAD"
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const history = await prisma.history.findUniqueOrThrow({
       where: { id: history_id },
       select: {
@@ -2497,7 +2618,7 @@ export class BoardService {
             : { fieldName: history.column ?? "" }),
           organizationId: organizationId,
           isDeleted: false,
-          moduleType: moduleType as ModuleType,
+          moduleId: scopedModuleId,
         },
       });
 
@@ -2534,6 +2655,16 @@ export class BoardService {
         history.oldValue ?? "",
         moduleType
       );
+      await this.boardNotify.notifyRecord({
+        recordId: history.recordId,
+        organizationId,
+        moduleType,
+        actorUserId: userId,
+        event: BOARD_NOTIFICATION_EVENT.RESTORED,
+        title: (recordName) => `${recordName} was restored`,
+        body: history.column,
+      });
+
       return {
         message: "Record restored successfully",
       };
@@ -2568,6 +2699,15 @@ export class BoardService {
         history.oldValue ?? "",
         moduleType
       );
+      await this.boardNotify.notifyRecord({
+        recordId: history.recordId,
+        organizationId,
+        moduleType,
+        actorUserId: userId,
+        event: BOARD_NOTIFICATION_EVENT.RESTORED,
+        title: (recordName) => `${recordName} was restored`,
+      });
+
       return {
         message: "Record deleted successfully",
       };
@@ -2581,7 +2721,7 @@ export class BoardService {
       }),
       prisma.board.findUnique({
         where: { id: recordId },
-        select: { moduleType: true },
+        select: { moduleType: true, module: { select: { key: true } } },
       }),
     ]);
 
@@ -2590,7 +2730,7 @@ export class BoardService {
     this.boardGateway.emitRecordNotificationState(
       organizationId,
       recordId,
-      record?.moduleType ?? "LEAD"
+      record?.module?.key ?? record?.moduleType ?? "LEAD"
     );
 
     return {
@@ -2605,10 +2745,11 @@ export class BoardService {
     moduleType: string,
     organizationId: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     const lastColumn = await prisma.field.findFirst({
       where: {
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
       orderBy: { fieldOrder: "desc" },
@@ -2622,7 +2763,8 @@ export class BoardService {
         fieldType: fieldType,
         fieldOrder: newOrder,
         organizationId: organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleType: toModuleType(moduleType),
+        moduleId: scopedModuleId,
       },
     });
 
@@ -2668,11 +2810,15 @@ export class BoardService {
    * Geocode a location string via Amazon Location Service.
    * Runs OUTSIDE the transaction to avoid timeout from external HTTP calls.
    */
-  private async geocodeLocation(location_name: string, recordId: string) {
+  private async geocodeLocation(
+    location_name: string,
+    recordId: string,
+    fieldId: string
+  ) {
     if (location_name === "") return { cleared: true } as const;
 
-    const existing = await prisma.fieldValue.findFirst({
-      where: { recordId: recordId },
+    const existing = await prisma.fieldValue.findUnique({
+      where: { recordId_fieldId: { recordId: recordId, fieldId: fieldId } },
       select: { value: true },
     });
 
@@ -2743,11 +2889,18 @@ export class BoardService {
         },
         data: { value: null },
       });
-      return { address: null, isCached: true };
+      return {
+        Address: null,
+        City: null,
+        State: null,
+        "Zip Code": null,
+        County: null,
+        Country: null,
+      };
     }
 
     if ("cached" in geocodeResult) {
-      return { address: location_name, isCached: true };
+      return { Address: location_name };
     }
 
     const locationData = {
@@ -2908,12 +3061,14 @@ export class BoardService {
   async createRecordDataFromCSV(
     excelData: Record<string, unknown>[],
     organizationId: string,
-    moduleType: string
+    moduleType: string,
+    userId: string
   ) {
     const job = await this.csvImportQueue.add("import", {
       excelData,
       organizationId,
       moduleType,
+      userId,
     });
 
     return { jobId: job.id, message: "CSV import queued" };
@@ -3073,6 +3228,17 @@ export class BoardService {
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
     this.boardGateway.emitRecordDeleted(organizationId, column_ids, moduleType);
+
+    for (const recordId of column_ids) {
+      await this.boardNotify.notifyRecord({
+        recordId,
+        organizationId,
+        moduleType,
+        actorUserId: memberId,
+        event: BOARD_NOTIFICATION_EVENT.DELETED,
+        title: (recordName) => `${recordName} was deleted`,
+      });
+    }
   }
 
   async sendBulkEmail(
@@ -3177,8 +3343,9 @@ export class BoardService {
     const title = data.title!;
     const activityType = data.activityType!;
 
-    await prisma.board.findFirstOrThrow({
+    const record = await prisma.board.findFirstOrThrow({
       where: { id: recordId, organizationId: organizationId },
+      select: { moduleType: true, module: { select: { key: true } } },
     });
 
     const activity = await prisma.activity.create({
@@ -3210,6 +3377,26 @@ export class BoardService {
       createdAt: activity.createdAt,
     });
 
+    await this.boardNotify.notifyRecord({
+      recordId,
+      organizationId,
+      moduleType: record.module?.key ?? record.moduleType,
+      actorUserId: userId,
+      event: BOARD_NOTIFICATION_EVENT.ACTIVITY_LOGGED,
+      title: (recordName) => `${activity.activityType} logged on ${recordName}`,
+      body: activity.title,
+    });
+
+    // EMAIL activities are logged on completion, when the mail actually goes out.
+    if (activity.activityType !== "EMAIL") {
+      await this.liaisonActivity.logRecordActivity({
+        recordId,
+        organizationId,
+        userId,
+        activityType: activity.activityType,
+      });
+    }
+
     return {
       id: activity.id,
       title: activity.title,
@@ -3239,8 +3426,9 @@ export class BoardService {
     userId: string,
     memberRole: string
   ) {
-    await prisma.board.findFirstOrThrow({
+    const record = await prisma.board.findFirstOrThrow({
       where: { id: data.recordId, organizationId: organizationId },
+      select: { moduleType: true, module: { select: { key: true } } },
     });
 
     // Fax is sent immediately — the document is never stored, only the trail
@@ -3281,6 +3469,23 @@ export class BoardService {
       createdAt: activity.createdAt,
     });
 
+    await this.boardNotify.notifyRecord({
+      recordId: data.recordId,
+      organizationId,
+      moduleType: record.module?.key ?? record.moduleType,
+      actorUserId: userId,
+      event: BOARD_NOTIFICATION_EVENT.FAX_SENT,
+      title: (recordName) => `Fax sent for ${recordName}`,
+      body: activity.title,
+    });
+
+    await this.liaisonActivity.logRecordActivity({
+      recordId: data.recordId,
+      organizationId,
+      userId,
+      activityType: activity.activityType,
+    });
+
     return {
       id: activity.id,
       title: activity.title,
@@ -3310,7 +3515,13 @@ export class BoardService {
     const activity = await prisma.activity.findFirstOrThrow({
       where: { id: activityId, organizationId: organizationId },
       include: {
-        record: { select: { recordName: true } },
+        record: {
+          select: {
+            recordName: true,
+            moduleType: true,
+            module: { select: { key: true } },
+          },
+        },
         creator: { select: { name: true, email: true } },
       },
     });
@@ -3347,6 +3558,7 @@ export class BoardService {
         subject,
         recipientName: activity.record.recordName,
         body,
+        layout: "ACTIVITY",
         senderName: activity.creator.name,
         sendVia: emailOverrides?.send_via,
       });
@@ -3371,6 +3583,27 @@ export class BoardService {
       activityId,
       "COMPLETED"
     );
+
+    await this.boardNotify.notifyRecord({
+      recordId: activity.recordId,
+      organizationId,
+      moduleType: activity.record.module?.key ?? activity.record.moduleType,
+      actorUserId: userId,
+      event: BOARD_NOTIFICATION_EVENT.ACTIVITY_COMPLETED,
+      title: (recordName) => `Activity completed on ${recordName}`,
+      body: activity.title,
+    });
+
+    // An EMAIL activity only reaches the recipient on completion, so that is
+    // where the liaison touchpoint belongs rather than at creation.
+    if (activity.activityType === "EMAIL") {
+      await this.liaisonActivity.logRecordActivity({
+        recordId: activity.recordId,
+        organizationId,
+        userId,
+        activityType: activity.activityType,
+      });
+    }
 
     return updated;
   }
@@ -3435,6 +3668,7 @@ export class BoardService {
     phone?: string,
     excludeRecordId?: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType);
     if (!email && !phone) {
       return { duplicates: [] };
     }
@@ -3442,7 +3676,7 @@ export class BoardService {
     const fields = await prisma.field.findMany({
       where: {
         organizationId,
-        moduleType: moduleType as ModuleType,
+        moduleId: scopedModuleId,
         isDeleted: false,
         fieldType: { in: [BoardFieldType.EMAIL, BoardFieldType.PHONE] },
       },

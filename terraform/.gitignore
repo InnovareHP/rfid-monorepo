@@ -1,0 +1,21 @@
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Plan files serialize resolved attributes including generated passwords.
+# Match every spelling, not just `tfplan` — a stray `tf.plan` has been
+# committed before.
+tfplan
+*.tfplan
+*.plan

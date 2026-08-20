@@ -1,0 +1,41 @@
+// Our own itemized billing ledger. Stripe invoices are the customer-facing
+// receipts; this table records what we did and when, keyed back to Stripe by id.
+// No card data ever lands here, only Stripe ids.
+model Transaction {
+  id              String            @id @default(uuid())
+  organizationId  String
+  memberId        String?
+  type            TransactionType
+  status          TransactionStatus
+  amountCents     Int
+  currency        String            @default("usd")
+  description     String
+  stripeInvoiceId String?
+  stripeSessionId String?
+  metadata        Json?
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@index([organizationId, createdAt])
+  @@index([memberId])
+  @@index([type, status])
+  @@index([stripeInvoiceId])
+  @@schema("stripe_schema")
+}
+
+enum TransactionType {
+  SUBSCRIPTION
+  SEAT_CHANGE
+  REFUND
+  OTHER
+
+  @@schema("stripe_schema")
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+
+  @@schema("stripe_schema")
+}

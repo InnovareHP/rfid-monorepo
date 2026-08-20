@@ -3,7 +3,6 @@ import RecordCreatePage, {
   type RecordColumn,
 } from "@/components/record-create/record-create-page";
 import {
-  CRM_QUERY_KEYS,
   createModuleRecords,
   findModuleDuplicates,
   getModuleColumns,
@@ -23,6 +22,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
 
 type CrmRecordCreateProps = {
@@ -45,7 +45,7 @@ export default function CrmRecordCreate({
   onBack,
 }: CrmRecordCreateProps) {
   const queryClient = useQueryClient();
-  const queryKey = CRM_QUERY_KEYS[moduleType];
+  const queryKey = boardQueryKey(moduleType);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
   const [pendingRecords, setPendingRecords] = useState<CreatedRecord[] | null>(
     null
@@ -53,7 +53,7 @@ export default function CrmRecordCreate({
   const [isChecking, setIsChecking] = useState(false);
 
   const { data: columnsData, isLoading: isLoadingColumns } = useQuery({
-    queryKey: [`${queryKey}-columns`],
+    queryKey: [...queryKey, "columns"],
     queryFn: () => getModuleColumns(moduleType),
   });
 
@@ -74,7 +74,7 @@ export default function CrmRecordCreate({
     },
     onSuccess: () => {
       toast.success(`${entityLabel}(s) created successfully`);
-      queryClient.invalidateQueries({ queryKey: [queryKey] });
+      queryClient.invalidateQueries({ queryKey });
       onBack();
     },
     onError: () => {

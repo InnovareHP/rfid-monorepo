@@ -1,20 +1,22 @@
 import {
+  BarChart3,
   Brain,
+  ClipboardList,
   CreditCard,
-  MessageCircle,
-  Mic2,
   Package,
   Play,
   Puzzle,
   Settings,
+  Share2,
 } from "lucide-react";
 
 export const KNOWLEDGE_BASE_ICON_MAP = {
   play: Play,
-  messageCircle: MessageCircle,
-  settings: Settings,
-  mic2: Mic2,
+  clipboardList: ClipboardList,
+  share2: Share2,
+  barChart3: BarChart3,
   brain: Brain,
+  settings: Settings,
   creditCard: CreditCard,
   puzzle: Puzzle,
   package: Package,

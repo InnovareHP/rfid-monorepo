@@ -16,10 +16,10 @@ const LINE_GAP = 4;
 
 // The party blanks a blank copy shows, so a reader can see what they will fill.
 const BLANK_PARTY: BaaParty = {
-  companyLegalName: "[ORGANIZATION LEGAL NAME]",
-  companyJurisdiction: "[STATE]",
-  companyEntityType: "[ENTITY TYPE]",
-  companyAddress: "[PRINCIPAL OFFICE ADDRESS]",
+  companyLegalName: "[______________________________]",
+  companyJurisdiction: "[_______________]",
+  companyEntityType: "[corporation / limited liability company / other]",
+  companyAddress: "[_____________________________________]",
 };
 
 export type ExecutionDetails = {
@@ -67,18 +67,39 @@ function drawBlock(
   cursor: Cursor,
   text: string,
   font: PDFFont,
-  size: number
+  size: number,
+  indent = 0
 ): Cursor {
-  const width = PAGE.width - MARGIN * 2;
+  const width = PAGE.width - MARGIN * 2 - indent;
   let { page, y } = cursor;
 
-  for (const line of wrap(text, font, size, width)) {
-    if (y < MARGIN + size) ({ page, y } = newPage(doc));
-    page.drawText(line, { x: MARGIN, y, size, font });
-    y -= size + LINE_GAP;
+  // A body may carry its own paragraph breaks; each wraps independently.
+  for (const [index, paragraph] of text.split("\n").entries()) {
+    if (index > 0) y -= LINE_GAP * 2;
+
+    for (const line of wrap(paragraph, font, size, width)) {
+      if (y < MARGIN + size) ({ page, y } = newPage(doc));
+      page.drawText(line, { x: MARGIN + indent, y, size, font });
+      y -= size + LINE_GAP;
+    }
   }
 
   return { page, y };
+}
+
+// Bullet sits in the left margin gutter so wrapped lines stay aligned.
+function drawBullet(
+  doc: PDFDocument,
+  cursor: Cursor,
+  text: string,
+  font: PDFFont,
+  size: number
+): Cursor {
+  let { page, y } = cursor;
+  if (y < MARGIN + size * 2) ({ page, y } = newPage(doc));
+
+  page.drawText("•", { x: MARGIN + 6, y, size, font });
+  return drawBlock(doc, { page, y }, text, font, size, 18);
 }
 
 function drawSignatureBlock(
@@ -139,7 +160,7 @@ async function buildDocument(execution?: ExecutionDetails) {
   const party = execution?.party ?? BLANK_PARTY;
 
   let cursor = newPage(doc);
-  cursor.page.drawText("HIPAA BUSINESS ASSOCIATE AGREEMENT", {
+  cursor.page.drawText("HIPAA BUSINESS ASSOCIATE ADDENDUM", {
     x: MARGIN,
     y: cursor.y,
     size: 15,
@@ -163,6 +184,12 @@ async function buildDocument(execution?: ExecutionDetails) {
     });
     cursor.y -= 16;
     cursor = drawBlock(doc, cursor, section.body, font, BODY_SIZE);
+
+    for (const item of section.items ?? []) {
+      cursor.y -= 4;
+      cursor = drawBullet(doc, cursor, item, font, BODY_SIZE);
+    }
+
     cursor.y -= 10;
   }
 
@@ -191,7 +218,7 @@ async function drawExecutionPage(
   cursor = drawBlock(
     doc,
     cursor,
-    `The parties have executed this Business Associate Agreement, version ${BAA_VERSION}, as of ${signedOn}.`,
+    `The parties have executed this Business Associate Addendum, version ${BAA_VERSION}, as of ${signedOn}.`,
     font,
     BODY_SIZE
   );

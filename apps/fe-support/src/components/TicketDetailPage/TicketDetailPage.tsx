@@ -68,7 +68,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
       );
 
       for (const file of attachments) {
-        const { url } = await uploadImage(file, "public");
+        const { url } = await uploadImage(file, "private");
         await createTicketAttachment(ticket.id, message.id, url);
       }
     },
@@ -156,7 +156,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
+          <h1 className="page-title text-xl font-semibold sm:text-2xl">
             {ticket.title}
           </h1>
         </div>
@@ -333,7 +333,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
                     {closeMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
+                      <XCircle className="h-4 w-4 text-destructive" />
                     )}
                     Close ticket
                   </Button>
@@ -350,7 +350,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
                         {[1, 2, 3, 4, 5].map((s) => (
                           <Star
                             key={s}
-                            className={`h-4 w-4 ${s <= existingRating.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/40"}`}
+                            className={`h-4 w-4 ${s <= existingRating.rating ? "fill-warning text-warning" : "text-muted-foreground/40"}`}
                           />
                         ))}
                         <span className="ml-1.5 text-xs text-muted-foreground">

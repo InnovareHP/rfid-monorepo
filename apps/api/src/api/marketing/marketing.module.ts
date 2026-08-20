@@ -5,6 +5,7 @@ import { FormModule } from "./form/form.module";
 import { GroupModule } from "./group/group.module";
 import { LandingPageModule } from "./landing-page/landing-page.module";
 import { SenderModule } from "./sender/sender.module";
+import { SubscriberModule } from "./subscriber/subscriber.module";
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SenderModule } from "./sender/sender.module";
     GroupModule,
     SenderModule,
     LandingPageModule,
+    SubscriberModule,
   ],
 })
 export class MarketingModule {}

@@ -74,16 +74,16 @@ export function ReusableTable<T>({
   };
 
   return (
-    <div className="w-full border-2 border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className="w-full border-2 border-border rounded-lg overflow-hidden bg-card shadow-sm">
       <ScrollArea>
         <Table className="border-0">
           <TableHeader>
-            <TableRow className="border-b-2 border-gray-300 bg-blue-50 hover:bg-blue-50">
+            <TableRow className="border-b-2 border-border bg-primary/10 hover:bg-primary/10">
               {columns.map((col, idx) => (
                 <TableHead
                   key={idx}
                   className={cn(
-                    "text-blue-900 font-semibold text-sm border-r border-gray-300 last:border-r-0 py-4",
+                    "text-primary font-semibold text-sm border-r border-border last:border-r-0 py-4",
                     col.className
                   )}
                 >
@@ -100,8 +100,8 @@ export function ReusableTable<T>({
                   className="text-center py-16 border-0"
                 >
                   <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    <p className="text-sm font-medium text-blue-700">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm font-medium text-primary">
                       Loading data...
                     </p>
                   </div>
@@ -114,9 +114,9 @@ export function ReusableTable<T>({
                   className="text-center py-16 border-0"
                 >
                   <div className="flex flex-col items-center gap-3">
-                    <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20">
                       <svg
-                        className="h-8 w-8 text-blue-600"
+                        className="h-8 w-8 text-primary"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -130,10 +130,10 @@ export function ReusableTable<T>({
                       </svg>
                     </div>
                     <div className="space-y-1">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         {emptyMessage}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         No data available at the moment
                       </p>
                     </div>
@@ -145,8 +145,8 @@ export function ReusableTable<T>({
                 <TableRow
                   key={rowIndex}
                   className={cn(
-                    "border-b border-gray-300 hover:bg-blue-50/50 transition-colors",
-                    rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50",
+                    "border-b border-border hover:bg-primary/10 transition-colors",
+                    rowIndex % 2 === 0 ? "bg-card" : "bg-muted",
                     onRowClick && "cursor-pointer"
                   )}
                   onClick={() => onRowClick?.(row)}
@@ -155,7 +155,7 @@ export function ReusableTable<T>({
                     <TableCell
                       key={colIndex}
                       className={cn(
-                        "border-r border-gray-300 last:border-r-0 py-3 px-4 text-sm",
+                        "border-r border-border last:border-r-0 py-3 px-4 text-sm",
                         col.className
                       )}
                     >
@@ -178,13 +178,13 @@ export function ReusableTable<T>({
 
       {/* Pagination */}
       {onPageChange && totalPages > 1 && !isLoading && (
-        <div className="flex items-center justify-between px-4 py-4 bg-blue-50 border-t-2 border-gray-300">
-          <div className="text-sm text-gray-700">
+        <div className="flex items-center justify-between px-4 py-4 bg-primary/10 border-t-2 border-border">
+          <div className="text-sm text-muted-foreground">
             <span className="font-medium">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, totalCount ?? data.length)}
             </span>
-            <span className="text-gray-600">
+            <span className="text-muted-foreground">
               {" "}
               of {totalCount ?? data.length} entries
             </span>
@@ -195,7 +195,7 @@ export function ReusableTable<T>({
               size="sm"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="border-blue-300 hover:bg-blue-100"
+              className="border-primary/20 hover:bg-primary/10"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               Previous
@@ -206,7 +206,7 @@ export function ReusableTable<T>({
                   return (
                     <div
                       key={`ellipsis-${idx}`}
-                      className="w-8 h-8 flex items-center justify-center text-gray-500"
+                      className="w-8 h-8 flex items-center justify-center text-muted-foreground"
                     >
                       ...
                     </div>
@@ -225,8 +225,8 @@ export function ReusableTable<T>({
                     className={cn(
                       "w-8 h-8 p-0",
                       isActive
-                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                        : "border-blue-300 hover:bg-blue-100"
+                        ? "bg-primary hover:bg-primary text-primary-foreground shadow-sm"
+                        : "border-primary/20 hover:bg-primary/10"
                     )}
                   >
                     {pageNum}
@@ -239,7 +239,7 @@ export function ReusableTable<T>({
               size="sm"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="border-blue-300 hover:bg-blue-100"
+              className="border-primary/20 hover:bg-primary/10"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />

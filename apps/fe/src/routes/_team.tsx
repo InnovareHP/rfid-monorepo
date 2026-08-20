@@ -1,16 +1,13 @@
 // routes/_team/$team/route.tsx
 
-import { useEffect, useMemo } from "react";
-
-import Loader from "@/components/loader";
 import { NotificationBell } from "@/components/notification/notification-bell";
 import { AppSidebar } from "@/components/side-bar/app-sidebar";
 import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
+import { SidebarSkeleton } from "@/components/side-bar/sidebar-skeleton";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { useIdleLogout } from "@/hooks/use-idle-logout";
 import { authClient } from "@/lib/auth-client";
-import { applyBrandColor, removeBrandColor } from "@/lib/color-utils";
 import { queryClient } from "@/lib/query-client";
 import type { SessionMember, Subscription } from "@dashboard/shared";
 import { Separator } from "@dashboard/ui/components/separator";
@@ -105,35 +102,9 @@ function TeamLayout() {
     !orgLoading && !orgError && organizations && memberData
   );
 
-  const brandColor = useMemo(() => {
-    if (!organizations) return null;
-    const activeOrg = (organizations as any[]).find(
-      (o) => o.id === activeOrganizationId
-    );
-    try {
-      const metadata = activeOrg?.metadata
-        ? JSON.parse(activeOrg.metadata)
-        : null;
-      return metadata?.brandColor || null;
-    } catch {
-      return null;
-    }
-  }, [organizations, activeOrganizationId]);
-
-  useEffect(() => {
-    if (brandColor) {
-      applyBrandColor(brandColor);
-    } else {
-      removeBrandColor();
-    }
-    return () => {
-      removeBrandColor();
-    };
-  }, [brandColor]);
-
   return (
     <SidebarProvider className="h-full">
-      {sidebarsReady && (
+      {sidebarsReady ? (
         <>
           <PrimarySidebar activeOrganizationId={activeOrganizationId} />
           <AppSidebar
@@ -143,6 +114,8 @@ function TeamLayout() {
             user={user}
           />
         </>
+      ) : (
+        <SidebarSkeleton />
       )}
 
       <SidebarInset className="relative min-h-0 overflow-hidden">
@@ -166,8 +139,6 @@ function TeamLayout() {
         <div className="flex-1 overflow-auto">
           <Outlet />
         </div>
-
-        <Loader isLoading={orgLoading} />
       </SidebarInset>
     </SidebarProvider>
   );

@@ -1,6 +1,7 @@
 import {
   clearReadNotifications,
   deleteNotification,
+  getNotificationStats,
   getNotifications,
   getUnreadNotificationCount,
   markAllNotificationsRead,
@@ -8,10 +9,16 @@ import {
 } from "@/services/notification/notification-service";
 import type {
   NotificationDto,
+  NotificationListQuery,
   PaginatedResponse,
   UnreadCountDto,
 } from "@dashboard/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const UNREAD_COUNT_KEY = ["notifications-unread-count"];
@@ -22,6 +29,21 @@ export const useNotifications = (unreadOnly = false, limit = 20) =>
   useQuery({
     queryKey: ["notifications", { unreadOnly, limit }],
     queryFn: () => getNotifications({ unreadOnly, page: 1, limit }),
+  });
+
+// The page needs category, search and paging; the bell does not, so it keeps
+// the narrow hook above.
+export const useNotificationList = (query: NotificationListQuery) =>
+  useQuery({
+    queryKey: ["notifications", query],
+    queryFn: () => getNotifications(query),
+    placeholderData: keepPreviousData,
+  });
+
+export const useNotificationStats = () =>
+  useQuery({
+    queryKey: ["notifications-stats"],
+    queryFn: getNotificationStats,
   });
 
 export const useUnreadNotificationCount = () =>
@@ -38,6 +60,7 @@ export const useNotificationMutations = () => {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["notifications"] });
     queryClient.invalidateQueries({ queryKey: UNREAD_COUNT_KEY });
+    queryClient.invalidateQueries({ queryKey: ["notifications-stats"] });
   };
 
   const markReadMutation = useMutation({

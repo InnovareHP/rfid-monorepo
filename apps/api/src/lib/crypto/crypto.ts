@@ -1,4 +1,9 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  hkdfSync,
+  randomBytes,
+} from "crypto";
 import { appConfig } from "../../config/app-config";
 
 const ALGO = "aes-256-gcm";
@@ -63,4 +68,20 @@ export function decryptNullable(
 
 export function generateKeyBase64(): string {
   return randomBytes(32).toString("base64");
+}
+
+const derivedKeys = new Map<string, Buffer>();
+
+// A separate key per use, so nothing that only needs a salt ever holds the key
+// that decrypts PHI. Deriving rather than adding an env var is deliberate: these
+// uses have no reason to survive a rotation of the root key independently, which
+// is exactly what does not hold for the audit HMAC and why that one is its own
+// configured secret.
+export function derivePurposeKey(purpose: string): Buffer {
+  const cached = derivedKeys.get(purpose);
+  if (cached) return cached;
+
+  const derived = Buffer.from(hkdfSync("sha256", getKey(), "", purpose, 32));
+  derivedKeys.set(purpose, derived);
+  return derived;
 }

@@ -8,12 +8,11 @@ import {
   Patch,
   Post,
   UseGuards,
+  UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import {
-  EntitlementGuard,
-  RequireFeature,
-} from "../../../guard/entitlement/entitlement.guard";
+import { ZodValidationPipe } from "nestjs-zod";
+import { EntitlementGuard } from "../../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import {
@@ -31,6 +30,7 @@ import { FormService } from "./form.service";
   EntitlementGuard,
   HipaaGuard
 )
+@UsePipes(ZodValidationPipe)
 export class FormController {
   constructor(private readonly formService: FormService) {}
 

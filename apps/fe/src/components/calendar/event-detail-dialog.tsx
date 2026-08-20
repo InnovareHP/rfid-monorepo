@@ -81,7 +81,7 @@ export function EventDetailDialog({
             </Badge>
           </DialogTitle>
           {event.description && (
-            <DialogDescription>{event.description}</DialogDescription>
+            <DialogDescription >{event.description}</DialogDescription>
           )}
         </DialogHeader>
 

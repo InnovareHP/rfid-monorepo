@@ -103,37 +103,6 @@ export class BillingService {
     }
   }
 
-  async listInvoices(organizationId: string, startingAfter?: string) {
-    const organization = await prisma.organization.findFirst({
-      where: { id: organizationId },
-      select: { stripeCustomerId: true },
-    });
-    if (!organization?.stripeCustomerId) {
-      return { data: [], hasMore: false };
-    }
-
-    const invoices = await stripe.invoices.list({
-      customer: organization.stripeCustomerId,
-      limit: 20,
-      ...(startingAfter ? { starting_after: startingAfter } : {}),
-    });
-
-    return {
-      data: invoices.data.map((invoice) => ({
-        id: invoice.id,
-        number: invoice.number,
-        status: invoice.status,
-        amountPaid: invoice.amount_paid,
-        amountDue: invoice.amount_due,
-        currency: invoice.currency,
-        created: new Date(invoice.created * 1000),
-        hostedInvoiceUrl: invoice.hosted_invoice_url,
-        invoicePdf: invoice.invoice_pdf,
-      })),
-      hasMore: invoices.has_more,
-    };
-  }
-
   // Stripe and the local row are both written in-request rather than waiting
   // on a webhook, so the UI reflects the change immediately.
   private async setCancelAtPeriodEnd(

@@ -54,11 +54,11 @@ export const AssigneePicker = ({
           {selected.map((member) => (
             <Avatar
               key={member.memberId}
-              className="h-7 w-7 border-2 border-white"
+              className="size-10 border-2 border-card"
               title={member.name}
             >
               <AvatarImage src={member.image ?? undefined} />
-              <AvatarFallback className="text-[10px]">
+              <AvatarFallback className="text-xs">
                 {member.name?.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -69,29 +69,28 @@ export const AssigneePicker = ({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            size="sm"
-            className="h-7"
+            className="border-dashed text-muted-foreground"
             disabled={disabled}
           >
-            <UserPlus className="h-3.5 w-3.5 mr-1" />
+            <UserPlus className="size-4" />
             {label}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="space-y-1 max-h-56 overflow-y-auto">
             {members.length === 0 && (
-              <p className="text-xs text-gray-400">No members found</p>
+              <p className="text-xs text-muted-foreground">No members found</p>
             )}
             {members.map((member) => (
               <label
                 key={member.id}
-                className="flex items-center gap-2 py-1 px-1 rounded hover:bg-gray-50 cursor-pointer"
+                className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 hover:bg-muted"
               >
                 <Checkbox
                   checked={selectedIds.has(member.id)}
                   onCheckedChange={() => toggle(member.id)}
                 />
-                <span className="text-sm text-gray-800">{member.value}</span>
+                <span className="text-sm text-foreground">{member.value}</span>
               </label>
             ))}
           </div>

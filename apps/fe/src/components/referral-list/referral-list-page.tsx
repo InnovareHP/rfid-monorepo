@@ -1,5 +1,11 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import { exportToCSV } from "@/lib/fe-helpers";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
+import { exportBoardCsv } from "@/services/lead/lead-service";
 import {
   deleteReferral,
   getReferral,
@@ -14,9 +20,13 @@ import {
   useReactTable,
   type Header,
 } from "@tanstack/react-table";
-import { Download, Plus } from "lucide-react";
+import { KanbanSquare, Plus, Settings, TableProperties } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import KanbanView from "@/components/kanban/kanban-view";
+import { KanbanSettingsDialog } from "@/components/kanban/kanban-settings-dialog";
+import { can } from "@/lib/permissions";
+import type { Member } from "better-auth/plugins/organization";
 import ColumnFilter from "../master-list/column-filter";
 import { MasterListFilters } from "../master-list/master-list-filter";
 import { MasterListView } from "../master-list/master-list-view";
@@ -33,7 +43,14 @@ export default function ReferralListPage() {
 
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [openMasterListView, setOpenMasterListView] = useState(false);
+  const [view, setView] = useState<"table" | "kanban">("table");
+  const [openKanbanSettings, setOpenKanbanSettings] = useState(false);
   const queryClient = useQueryClient();
+  const memberData = queryClient.getQueryData<Member>([
+    "member-data",
+    activeOrganizationId,
+  ]);
+  const canConfigureKanban = can(memberData?.role, { field: ["configure"] });
   const [filterMeta, setFilterMeta] = useState<{
     boardDateFrom: null | Date;
     boardDateTo: null | Date;
@@ -49,7 +66,7 @@ export default function ReferralListPage() {
   });
 
   const { data, refetch, isFetching } = useQuery({
-    queryKey: ["referrals", filterMeta],
+    queryKey: [...boardQueryKey("REFERRAL"), filterMeta],
     queryFn: () => getReferral(filterMeta),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -142,9 +159,9 @@ export default function ReferralListPage() {
   const deleteReferralMutation = useMutation({
     mutationFn: deleteReferral,
     onMutate: async (columnIds: string[]) => {
-      await queryClient.cancelQueries({ queryKey: ["referrals"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["referrals"] });
-      queryClient.setQueriesData({ queryKey: ["referrals"] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey: boardQueryKey("REFERRAL") });
+      const previous = queryClient.getQueriesData({ queryKey: boardQueryKey("REFERRAL") });
+      queryClient.setQueriesData({ queryKey: boardQueryKey("REFERRAL") }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,
@@ -165,38 +182,18 @@ export default function ReferralListPage() {
     deleteReferralMutation.mutate(columnIds);
   };
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No leads available to export.");
       return;
     }
 
-    const limit = 100;
-    let offset = 0;
-    let allData: ReferralRow[] = [];
+    const { blob, filename } = await exportBoardCsv(
+      { ...filterMeta, boardDateFrom: range.from, boardDateTo: range.to },
+      "REFERRAL"
+    );
 
-    let total = 0;
-    let columns: any[] = [];
-
-    do {
-      const res = await getReferral({
-        ...filterMeta,
-        limit,
-        offset,
-      });
-
-      if (offset === 0) {
-        total = res.pagination.count;
-        columns = res.columns;
-      }
-
-      columns = res.columns;
-      allData = [...allData, ...res.data];
-      offset += res.data.length;
-    } while (offset < total);
-
-    const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(allData, columns, `Referral_List_${timestamp}`, [], true);
+    downloadCSVBlob(blob, filename);
     toast.success("CSV download started.");
   };
 
@@ -271,15 +268,45 @@ export default function ReferralListPage() {
           initialTab="history"
         />
         {/* Header Section */}
+        <KanbanSettingsDialog
+          open={openKanbanSettings}
+          setOpen={setOpenKanbanSettings}
+          moduleType="REFERRAL"
+        />
+
         <PageHeader
           title="Referral Logs"
           description="Manage your referrals and export data for reporting."
         >
-          <ColumnFilter tableColumns={tableColumns as any} />
-          <Button onClick={handleExportCSV} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Export CSV
+          <Button
+            variant="outline"
+            onClick={() => setView(view === "table" ? "kanban" : "table")}
+            className="flex items-center gap-2"
+          >
+            {view === "table" ? (
+              <KanbanSquare className="h-4 w-4" />
+            ) : (
+              <TableProperties className="h-4 w-4" />
+            )}
+            {view === "table" ? "Kanban" : "Table"}
           </Button>
+          {view === "kanban" && canConfigureKanban && (
+            <Button
+              variant="outline"
+              onClick={() => setOpenKanbanSettings(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Kanban Settings
+            </Button>
+          )}
+          {view === "table" && (
+            <ColumnFilter tableColumns={tableColumns as any} />
+          )}
+          <ExportCsvButton
+            onExport={handleExportCSV}
+            className="flex items-center gap-2"
+          />
         </PageHeader>
 
         <ReferralStatsStrip
@@ -306,6 +333,15 @@ export default function ReferralListPage() {
           }
         />
 
+        {view === "kanban" ? (
+          <KanbanView
+            moduleType="REFERRAL"
+            onCardOpen={(recordId) => {
+              setSelectedRecordId(recordId);
+              setOpenMasterListView(true);
+            }}
+          />
+        ) : (
         <ReusableTable
           table={table}
           columns={columns}
@@ -328,6 +364,7 @@ export default function ReferralListPage() {
             setFilterMeta((prev) => ({ ...prev, limit: size, page: 1 }) as any)
           }
         />
+        )}
       </div>
     </div>
   );

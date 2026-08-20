@@ -14,6 +14,10 @@ export interface BookingPage {
   minNoticeHours: number;
   isActive: boolean;
   publicUrl: string;
+  // No connected calendar means the public page takes no bookings at all.
+  calendars: { google: boolean; outlook: boolean };
+  // Decides Meet vs Teams when the host connected both calendars.
+  preferredProvider: "GOOGLE" | "OUTLOOK" | null;
 }
 
 export interface AvailabilityRule {
@@ -34,6 +38,8 @@ export interface Booking {
   status: "CONFIRMED" | "CANCELLED";
   calendarProvider: string | null;
   calendarSyncFailed: boolean;
+  // Meet or Teams join link, minted with the calendar event on VIDEO bookings.
+  meetingUrl: string | null;
 }
 
 export interface PaginatedBookings {
@@ -58,6 +64,7 @@ export const updateOwnBookingPage = async (
     bufferBeforeMinutes: number;
     bufferAfterMinutes: number;
     minNoticeHours: number;
+    preferredProvider: "GOOGLE" | "OUTLOOK" | null;
     isActive: boolean;
   }>
 ): Promise<BookingPage> => {

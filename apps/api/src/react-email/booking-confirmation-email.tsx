@@ -8,6 +8,7 @@ type BookingConfirmationEmailProps = {
   startTime: string;
   hostName: string;
   locationLabel?: string | null;
+  meetingUrl?: string | null;
 };
 
 export const BookingConfirmationEmail = ({
@@ -16,6 +17,7 @@ export const BookingConfirmationEmail = ({
   startTime,
   hostName,
   locationLabel,
+  meetingUrl,
 }: BookingConfirmationEmailProps) => {
   return (
     <EmailLayout preview={`Your booking for ${title} is confirmed`}>
@@ -38,6 +40,12 @@ export const BookingConfirmationEmail = ({
             <>
               <br />
               Location: <strong>{locationLabel}</strong>
+            </>
+          ) : null}
+          {meetingUrl ? (
+            <>
+              <br />
+              Join: <a href={meetingUrl}>{meetingUrl}</a>
             </>
           ) : null}
         </Text>

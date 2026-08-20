@@ -10,7 +10,6 @@ import {
   updateReferral,
 } from "@/services/referral/referral-service";
 import {
-  CRM_QUERY_KEYS,
   getLinkCandidates,
   updateModuleRecord,
   type CrmModuleType,
@@ -49,11 +48,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
 import LocationCell from "./location-cell";
-import { RecordAvatar } from "./record-avatar";
 import { StatusSelect } from "./status-action";
 
 type EditableCellProps = {
@@ -97,11 +96,9 @@ export function EditableCell({
   const [syncedValue, setSyncedValue] = useState(value);
   const [validationError, setValidationError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const isreferralKey = moduleType
-    ? CRM_QUERY_KEYS[moduleType]
-    : isReferral
-      ? "referrals"
-      : "leads";
+  const recordsKey = boardQueryKey(
+    moduleType ?? (isReferral ? "REFERRAL" : "LEAD")
+  );
 
   // Adopt a new server value during render, never over an in-progress edit
   if (!editing && value !== syncedValue) {
@@ -131,9 +128,9 @@ export function EditableCell({
           ? await updateReferral(id, field, value, reason, previousValue)
           : await updateLead(id, field, value),
     onMutate: async ({ id, fieldName: patchKey, value, displayValue }) => {
-      await queryClient.cancelQueries({ queryKey: [isreferralKey] });
-      const previous = queryClient.getQueriesData({ queryKey: [isreferralKey] });
-      queryClient.setQueriesData({ queryKey: [isreferralKey] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey: recordsKey });
+      const previous = queryClient.getQueriesData({ queryKey: recordsKey });
+      queryClient.setQueriesData({ queryKey: recordsKey }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,
@@ -233,8 +230,7 @@ export function EditableCell({
     queryKey,
     queryFn: () => getDropdownOptions(fieldKey),
     enabled: false,
-    staleTime: 1000 * 60 * 5, // cache for 5 minutes
-    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 30,
   });
 
   const { mutate: createDropdownOptionMutation, isPending: isCreatingOption } =
@@ -417,6 +413,7 @@ export function EditableCell({
       queryKey: ["assigned-to-users"],
       queryFn: () => getDropdownOptions("ASSIGNED_TO"),
       enabled: type === "ASSIGNED_TO" || fieldName === "account_manager",
+      staleTime: 1000 * 60 * 30,
     });
 
   const isLinkType =
@@ -452,12 +449,8 @@ export function EditableCell({
         <SelectTrigger
           className={cn("w-auto text-sm", isUpdating && "opacity-50")}
         >
-          {isLoadingAssignedTo ? (
+          {isLoadingAssignedTo || isUpdating ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : isUpdating ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : val ? (
-            <RecordAvatar name={val} className="h-5 w-5 text-[10px] mr-1" />
           ) : null}
           <SelectValue placeholder={val || "Select user"} />
         </SelectTrigger>

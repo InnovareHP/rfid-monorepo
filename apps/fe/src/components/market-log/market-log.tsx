@@ -130,12 +130,35 @@ const MarketLogPage = () => {
 
   const deleteMarketMutation = useMutation({
     mutationFn: async (id: string) => await deleteMarketLog(id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["market-logs"] });
+      const previous = queryClient.getQueriesData({ queryKey: ["market-logs"] });
+
+      // Every page cached under the prefix is patched, since the key carries
+      // the filter and the row can sit in any of them.
+      queryClient.setQueriesData({ queryKey: ["market-logs"] }, (old: any) => {
+        if (!Array.isArray(old?.data)) return old;
+
+        return {
+          ...old,
+          data: old.data.filter((row: { id: string }) => row.id !== id),
+          total: Math.max(0, (old.total ?? 0) - 1),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (error, _id, context) => {
+      for (const [key, data] of context?.previous ?? []) {
+        queryClient.setQueryData(key, data);
+      }
+      toast.error(error.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["market-logs"] });
       toast.success("Marketing log deleted successfully!");
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["market-logs"] });
     },
   });
 

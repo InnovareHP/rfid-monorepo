@@ -70,6 +70,7 @@ export function PublicBookingPage({
     title: string;
     startTime: string;
     hostName: string;
+    meetingUrl: string | null;
   } | null>(null);
 
   const date = toIsoDate(selectedDate);
@@ -104,12 +105,13 @@ export function PublicBookingPage({
             : "VIDEO"),
         boardId,
       }),
-    onSuccess: () => {
+    onSuccess: (booking) => {
       if (!pageQuery.data || !selectedSlot) return;
       setConfirmed({
         title: pageQuery.data.title,
         startTime: selectedSlot,
         hostName: pageQuery.data.hostName,
+        meetingUrl: booking.meetingUrl ?? null,
       });
     },
     onError: (error: Error) => {
@@ -147,6 +149,21 @@ export function PublicBookingPage({
   }
 
   const page = pageQuery.data;
+
+  if (!page.acceptingBookings) {
+    return (
+      <PublicShell>
+        <div className="max-w-md rounded-[10px] bg-white px-6 py-5 text-center shadow-lg">
+          <p className="font-semibold text-brand">{page.title}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {page.hostName} is not accepting bookings right now. Please reach
+            out directly to arrange a time.
+          </p>
+        </div>
+      </PublicShell>
+    );
+  }
+
   const canChooseLocation = page.locationType === "BOTH";
   const activeLocation: BookingLocation =
     location ?? (page.locationType === "IN_PERSON" ? "IN_PERSON" : "VIDEO");
@@ -246,7 +263,7 @@ export function PublicBookingPage({
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+        <section className="flex flex-1 flex-col p-4 sm:p-6">
           <h2 className="mb-4 text-xl font-semibold text-brand sm:text-2xl">
             {collectingDetails ? "Your Details" : "Select Date and Time"}
           </h2>
@@ -257,7 +274,7 @@ export function PublicBookingPage({
                 onSubmit={form.handleSubmit((values) =>
                   bookMutation.mutate(values)
                 )}
-                className="max-w-md space-y-4"
+                className=" space-y-4"
               >
                 <RequiredLegend className="text-sm text-[#807f7f]" />
 

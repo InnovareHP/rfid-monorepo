@@ -1,12 +1,11 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
-import { Button } from "@dashboard/ui/components/button";
+import { RecordActions } from "@/components/reusable-table/record-actions";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { User } from "better-auth";
 import { Bell, HistoryIcon, SearchIcon } from "lucide-react";
 import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
-import { RecordAvatar } from "../reusable-table/record-avatar";
 
 type ColumnType = {
   id: string;
@@ -32,7 +31,8 @@ export function generateLeadColumns(
   onOpenAnalyzeDialog: (recordId: string) => void,
   onOpenMasterListView: (recordId: string) => void,
   sortState?: SortState,
-  onSort?: (columnId: string, order: "asc" | "desc" | null) => void
+  onSort?: (columnId: string, order: "asc" | "desc" | null) => void,
+  canUseAi?: boolean
 ): ColumnDef<LeadRow>[] {
   const filteredApiColumns = columnsFromApi.filter(
     (col) => col.name !== "History" && col.type !== "TIMELINE"
@@ -113,12 +113,6 @@ export function generateLeadColumns(
           </div>
         )}
 
-        <RecordAvatar
-          name={row.original.recordName}
-          onClick={() => onOpenMasterListView(row.original.id)}
-          title="View history"
-        />
-
         <div className="min-w-0 flex-1">
           <EditableCell
             id={row.original.id}
@@ -128,22 +122,25 @@ export function generateLeadColumns(
             type="TEXT"
           />
         </div>
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          <div className="flex opacity-0 group-hover:opacity-100">
-            <Button onClick={() => onOpenAnalyzeDialog(row.original.id)}>
-              <SearchIcon /> Analyze
-            </Button>
-          </div>
-
-          <div className="flex opacity-0 group-hover:opacity-100">
-            <Button
-              variant="outline"
-              onClick={() => onOpenMasterListView(row.original.id)}
-            >
-              <HistoryIcon /> History
-            </Button>
-          </div>
-        </div>
+        <RecordActions
+          actions={[
+            {
+              label: "View history",
+              icon: HistoryIcon,
+              onSelect: () => onOpenMasterListView(row.original.id),
+            },
+            // Analyze calls an ai-gated endpoint, so plans without it lose the action.
+            ...(canUseAi
+              ? [
+                  {
+                    label: "Analyze",
+                    icon: SearchIcon,
+                    onSelect: () => onOpenAnalyzeDialog(row.original.id),
+                  },
+                ]
+              : []),
+          ]}
+        />
       </div>
     ),
   };

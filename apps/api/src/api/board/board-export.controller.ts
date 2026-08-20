@@ -1,0 +1,78 @@
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
+import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import type { Request, Response } from "express";
+import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
+import {
+  PermissionGuard,
+  RequirePermission,
+} from "../../guard/permission/permission.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import { clientIp } from "../../lib/http/client-ip";
+import { BoardExportService } from "./board-export.service";
+
+// Same guard stack as BoardController: an export is a read of every record the
+// caller could page through, so it must not be reachable on weaker terms.
+@Controller("boards/export")
+@UseGuards(
+  AuthGuard,
+  SubscriptionGuard,
+  PermissionGuard,
+  EntitlementGuard,
+  HipaaGuard
+)
+export class BoardExportController {
+  constructor(private readonly exportService: BoardExportService) {}
+
+  @RequirePermission({ record: ["read"] })
+  @Get("/")
+  async exportCsv(
+    @Session() session: MemberSession,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query("moduleType") moduleType?: string,
+    @Query("filter") filtersQuery?: string,
+    @Query("boardDateFrom") boardDateFrom?: string,
+    @Query("boardDateTo") boardDateTo?: string,
+    @Query("search") search?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "asc" | "desc"
+  ) {
+    try {
+      const { csv, filename } = await this.exportService.exportCsv(
+        session.session.activeOrganizationId,
+        {
+          moduleType: moduleType ?? "LEAD",
+          filter: filtersQuery ? JSON.parse(filtersQuery) : {},
+          boardDateFrom,
+          boardDateTo,
+          search,
+          sortBy,
+          sortOrder,
+        },
+        {
+          userId: session.user.id,
+          role: session.session.memberRole ?? null,
+          ip: clientIp(req),
+        }
+      );
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}"`
+      );
+      res.send(csv);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+}

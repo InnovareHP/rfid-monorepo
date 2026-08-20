@@ -1,66 +1,73 @@
+import { BillingTopBar } from "@/components/billing/billing-top-bar";
 import { authClient } from "@/lib/auth-client";
 import { getPlanCard } from "@/services/billing/billing-service";
+import {
+  isSubscriptionActive,
+  PLAN_ENTITLEMENTS,
+  PLAN_FEATURE_LABELS,
+  resolvePlan,
+  type PlanEntitlement,
+  type PlanName,
+} from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent, CardHeader } from "@dashboard/ui/components/card";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRouteContext } from "@tanstack/react-router";
-import { CheckCircle2, LogOut, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-type Plan = {
-  id: string;
-  name: string;
-  price: number;
-  interval: "month" | "year";
-  features: string[];
-  isPopular?: boolean;
-};
+// Order is cheapest first, which is also what decides upgrade versus downgrade.
+const PLAN_ORDER: PlanName[] = ["essentials", "growth", "scale"];
 
-const PLANS: Plan[] = [
-  {
-    id: "essentials",
+// Price and marketing copy only. Seats and gated features are read from the
+// shared entitlement table so a card can never advertise what a guard refuses.
+const PLAN_COPY: Record<
+  PlanName,
+  { name: string; price: number; isPopular?: boolean; extras: string[] }
+> = {
+  essentials: {
     name: "Essentials",
     price: 20,
-    interval: "month",
-    features: [
-      "Up to 10 team members",
+    extras: [
       "Lead & referral management",
       "Expense & mileage tracking",
       "Core analytics dashboard",
       "Email support",
     ],
   },
-  {
-    id: "growth",
+  growth: {
     name: "Growth",
     price: 49,
-    interval: "month",
     isPopular: true,
-    features: [
-      "Up to 25 team members",
-      "Everything in Essentials",
-      "AI insights & lead analysis",
-      "CSV import & export",
-      "Advanced analytics & reporting",
-      "Priority email support (24h response)",
-    ],
+    extras: [],
   },
-  {
-    id: "scale",
+  scale: {
     name: "Scale",
     price: 79,
-    interval: "month",
-    features: [
-      "Up to 50 team members",
-      "Everything in Growth",
-      "Custom reporting & dashboards",
-      "Priority support",
-      "Monthly performance reports",
-    ],
+    extras: ["Monthly performance reports"],
   },
-];
+};
+
+const planFeatures = (plan: PlanName, index: number) => {
+  const entitlement = PLAN_ENTITLEMENTS[plan] as PlanEntitlement;
+  const previousPlan = index > 0 ? PLAN_ORDER[index - 1] : null;
+  const inherited = previousPlan
+    ? (PLAN_ENTITLEMENTS[previousPlan] as PlanEntitlement).features
+    : [];
+
+  const gained = entitlement.features.filter(
+    (feature) => !inherited.includes(feature)
+  );
+
+  return [
+    `Up to ${entitlement.seats} team members`,
+    ...(previousPlan ? [`Everything in ${PLAN_COPY[previousPlan].name}`] : []),
+    ...gained.map((feature) => PLAN_FEATURE_LABELS[feature]),
+    ...PLAN_COPY[plan].extras,
+  ];
+};
 
 export function PlansPage({
   className,
@@ -85,7 +92,7 @@ export function PlansPage({
 
   const seatCount = planCard?.seats ?? 1;
 
-  const { data: subscriptionStatus = "none", isLoading } = useQuery({
+  const { data: currentPlan = null, isLoading } = useQuery({
     queryKey: ["subscription-status", activeOrganizationId],
     enabled: !!activeOrganizationId,
     queryFn: async () => {
@@ -95,11 +102,11 @@ export function PlansPage({
         },
       });
 
-      const activeSubscription = subscriptions?.find(
-        (sub: any) => sub.status === "active" || sub.status === "trialing"
+      const activeSubscription = subscriptions?.find((sub: any) =>
+        isSubscriptionActive(sub.status)
       );
 
-      return activeSubscription ? "active" : "none";
+      return activeSubscription ? resolvePlan(activeSubscription.plan) : null;
     },
   });
 
@@ -125,70 +132,66 @@ export function PlansPage({
 
   return (
     <div className={cn("w-full min-h-screen", className)} {...props}>
-      {propContext === "/billing" && (
-        <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">Billing & Plans</h2>
-            </div>
-            <Button variant="ghost" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </nav>
-      )}
+      {propContext === "/billing" && <BillingTopBar onLogout={handleLogout} />}
 
       <div className="w-full max-w-7xl mx-auto p-6 space-y-8">
-        <div className="text-center space-y-2 mb-12">
-          <h1 className="text-4xl font-bold tracking-tight page-title">
-            Choose Your Plan
+        <div className="mb-12 space-y-2 text-center">
+          <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
+            Choose your plan
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select the perfect plan for your team. All plans include our core
-            features with flexible options to scale.
+          <p className="text-muted-foreground mx-auto max-w-2xl text-base">
+            Every plan carries lead and referral management. Pick the seat count
+            and the extras your team needs.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {PLANS.map((plan) => {
-            const isSubscribed = subscriptionStatus === "active";
+          {PLAN_ORDER.map((planId, index) => {
+            const plan = PLAN_COPY[planId];
+            const features = planFeatures(planId, index);
+            const isCurrent = currentPlan === planId;
+            const isUpgrade =
+              !currentPlan || index > PLAN_ORDER.indexOf(currentPlan);
 
             return (
               <Card
-                key={plan.id}
-                className={cn(plan.isPopular && "border-primary shadow-lg")}
+                key={planId}
+                className={cn(
+                  plan.isPopular && "border-primary ring-primary/20 shadow-lg ring-1"
+                )}
               >
                 <CardHeader className="pb-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-bold">{plan.name}</h3>
+                      <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
 
                       {plan.isPopular && (
-                        <Badge className="bg-primary text-primary-foreground flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
+                        <Badge>
+                          <Sparkles className="h-3 w-3" />
                           Popular
                         </Badge>
                       )}
                     </div>
 
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">${plan.price}</span>
+                      <span className="font-display text-4xl font-bold text-brand">
+                        ${plan.price}
+                      </span>
                       <span className="text-muted-foreground">
-                        per seat/{plan.interval}
+                        per seat/month
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {seatCount} {seatCount === 1 ? "seat" : "seats"} today ={" "}
-                      <strong>${plan.price * seatCount}</strong>/{plan.interval}
+                      <strong>${plan.price * seatCount}</strong>/month
                     </p>
                   </div>
                 </CardHeader>
 
                 <CardContent className="flex-1 flex flex-col space-y-6">
                   <ul className="space-y-3 flex-1">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-3 text-sm">
+                    {features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-3 text-sm">
                         <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                         <span className="text-muted-foreground">{feature}</span>
                       </li>
@@ -204,22 +207,22 @@ export function PlansPage({
                     >
                       Checking subscription...
                     </Button>
-                  ) : isSubscribed ? (
+                  ) : isCurrent ? (
                     <Button
                       variant="outline"
                       size="lg"
                       className="w-full"
                       disabled
                     >
-                      You are already subscribed
+                      Your current plan
                     </Button>
                   ) : (
                     <Button
                       size="lg"
                       className="w-full"
-                      onClick={() => SubscribePlan(plan.id)}
+                      onClick={() => SubscribePlan(planId)}
                     >
-                      Upgrade to {plan.name}
+                      {isUpgrade ? "Upgrade" : "Downgrade"} to {plan.name}
                     </Button>
                   )}
                 </CardContent>

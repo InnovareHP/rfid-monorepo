@@ -126,19 +126,19 @@ export function AnalyzeLeadDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* Custom Header with Gradient */}
-        <div className="px-6 pt-6 pb-5 border-b bg-primary/10">
+        <div className="border-b bg-table-header px-6 pb-5 pt-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 rounded-xl bg-primary shadow-lg">
-                  <BarChart3 className="h-5 w-5 text-primary-foreground" />
+                <div className="rounded-lg bg-primary p-2.5">
+                  <BarChart3 className="size-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <DialogTitle className="text-xl font-bold text-foreground">
+                  <DialogTitle className="text-xl font-semibold text-foreground">
                     Organization Analysis
                   </DialogTitle>
                   {data && (
-                    <p className="text-sm text-muted-foreground mt-0.5 font-medium">
+                    <p className="mt-0.5 text-sm text-muted-foreground">
                       {data.recordName || data.recordId}
                     </p>
                   )}
@@ -176,10 +176,10 @@ export function AnalyzeLeadDialog({
             <>
               {!hasSufficientData(data) ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="p-6 rounded-2xl bg-muted mb-4">
-                    <ClipboardList className="h-12 w-12 text-muted-foreground" />
+                  <div className="mb-4 rounded-full bg-muted p-6">
+                    <ClipboardList className="size-10 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
                     Insufficient Data
                   </h3>
                   <p className="text-sm text-muted-foreground max-w-md">
@@ -192,10 +192,10 @@ export function AnalyzeLeadDialog({
                   {/* Top Stats Row with Enhanced Design */}
                   <div className="grid grid-cols-3 gap-4">
                     {/* Engagement Level */}
-                    <Card className="border-2 hover:shadow-lg transition-shadow bg-card">
+                    <Card className="bg-card">
                       <CardContent className="p-5">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Engagement
                           </p>
                           {(() => {
@@ -227,16 +227,16 @@ export function AnalyzeLeadDialog({
                     </Card>
 
                     {/* Total Interactions */}
-                    <Card className="border-2 hover:shadow-lg transition-shadow bg-gradient-to-br from-card to-primary/10">
+                    <Card className="bg-card">
                       <CardContent className="p-5">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           Total Interactions
                         </p>
                         <div className="flex items-baseline gap-2">
-                          <p className="text-3xl font-bold text-primary">
+                          <p className="text-3xl font-semibold text-primary">
                             {data.summary.totalInteractions}
                           </p>
-                          <span className="text-xs text-muted-foreground font-medium">
+                          <span className="text-xs text-muted-foreground">
                             events
                           </span>
                         </div>
@@ -244,16 +244,16 @@ export function AnalyzeLeadDialog({
                     </Card>
 
                     {/* Assigned To */}
-                    <Card className="border-2 hover:shadow-lg transition-shadow bg-gradient-to-br from-card to-primary/10">
+                    <Card className="bg-card">
                       <CardContent className="p-5">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           Assigned To
                         </p>
                         <div className="flex items-center gap-2.5">
-                          <div className="p-1.5 rounded-lg bg-primary/10">
-                            <UserCheck className="h-4 w-4 text-primary" />
+                          <div className="rounded-md bg-primary/10 p-1.5">
+                            <UserCheck className="size-4 text-primary" />
                           </div>
-                          <span className="text-sm font-bold text-foreground truncate">
+                          <span className="truncate text-sm font-medium text-foreground">
                             {data.assignedTo}
                           </span>
                         </div>
@@ -262,17 +262,17 @@ export function AnalyzeLeadDialog({
                   </div>
 
                   {/* Executive Summary with Enhanced Design */}
-                  <Card className="border-l-4 border-l-primary shadow-md hover:shadow-xl transition-shadow bg-primary/5">
+                  <Card className="border-l-4 border-l-primary bg-primary/5">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-bold flex items-center gap-2.5 text-foreground">
-                        <div className="p-2 rounded-lg bg-primary/15">
-                          <MessageSquare className="h-4 w-4 text-primary" />
+                      <CardTitle className="flex items-center gap-2.5 text-base font-semibold text-foreground">
+                        <div className="rounded-md bg-primary/10 p-2">
+                          <MessageSquare className="size-4 text-primary" />
                         </div>
                         Executive Summary
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm leading-relaxed text-foreground font-medium">
+                      <p className="text-sm leading-relaxed text-foreground">
                         {data.summary.narrative}
                       </p>
                     </CardContent>
@@ -283,13 +283,13 @@ export function AnalyzeLeadDialog({
                   {/* Detailed Metrics Grid with Enhanced Cards */}
                   <div className="grid gap-6 md:grid-cols-2">
                     {/* Touchpoints */}
-                    <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
+                    <Card>
                       <CardHeader className="pb-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="p-2 rounded-xl bg-primary shadow-md">
-                            <BarChart3 className="h-4 w-4 text-primary-foreground" />
+                          <div className="rounded-md bg-primary p-2">
+                            <BarChart3 className="size-4 text-primary-foreground" />
                           </div>
-                          <h4 className="text-base font-bold text-foreground">
+                          <h4 className="text-base font-semibold text-foreground">
                             Touchpoints
                           </h4>
                         </div>
@@ -302,18 +302,18 @@ export function AnalyzeLeadDialog({
                               return (
                                 <div
                                   key={tp.type}
-                                  className="flex items-center justify-between p-3.5 rounded-xl border-2 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/10 transition-all group"
+                                  className="group flex items-center justify-between rounded-lg border p-3 transition-colors hover:border-primary/40 hover:bg-primary/5"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-primary/15 group-hover:bg-primary/25 transition-colors">
-                                      <Icon className="h-4 w-4 text-primary" />
+                                    <div className="rounded-md bg-primary/10 p-2 transition-colors group-hover:bg-primary/20">
+                                      <Icon className="size-4 text-primary" />
                                     </div>
-                                    <span className="text-sm font-semibold text-foreground capitalize">
+                                    <span className="text-sm font-medium capitalize text-foreground">
                                       {tp.type.replace(/_/g, " ")}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xl font-bold text-primary">
+                                    <span className="text-xl font-semibold text-primary">
                                       {tp.count}
                                     </span>
                                   </div>
@@ -323,10 +323,10 @@ export function AnalyzeLeadDialog({
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center py-8 text-center">
-                            <div className="p-3 rounded-full bg-muted mb-2">
-                              <MessageSquare className="h-6 w-6 text-muted-foreground" />
+                            <div className="mb-2 rounded-full bg-muted p-3">
+                              <MessageSquare className="size-6 text-muted-foreground" />
                             </div>
-                            <p className="text-sm text-muted-foreground font-medium">
+                            <p className="text-sm text-muted-foreground">
                               No touchpoints recorded
                             </p>
                           </div>
@@ -335,39 +335,39 @@ export function AnalyzeLeadDialog({
                     </Card>
 
                     {/* Facilities & People */}
-                    <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6 space-y-6">
+                    <Card>
+                      <CardContent className="space-y-6 p-6">
                         {/* Facilities */}
                         <div>
                           <div className="flex items-center gap-2.5 mb-4">
-                            <div className="p-2 rounded-xl bg-primary shadow-md">
-                              <Building2 className="h-4 w-4 text-primary-foreground" />
+                            <div className="rounded-md bg-primary p-2">
+                              <Building2 className="size-4 text-primary-foreground" />
                             </div>
-                            <h4 className="text-base font-bold text-foreground">
+                            <h4 className="text-base font-semibold text-foreground">
                               Facilities Covered
                             </h4>
                             <Badge
                               variant="outline"
-                              className="ml-auto bg-primary/10 text-primary border-primary/40 font-bold px-2.5 py-1"
+                              className="ml-auto border-primary/40 bg-primary/10 px-2.5 py-1 font-semibold text-primary"
                             >
                               {data.summary.facilitiesCovered.length}
                             </Badge>
                           </div>
-                          <div className="flex flex-wrap gap-2 p-4 bg-primary/10 rounded-xl min-h-[4rem] border-2 border-primary/15">
+                          <div className="flex min-h-16 flex-wrap gap-2 rounded-lg border bg-muted p-4">
                             {data.summary.facilitiesCovered.length > 0 ? (
                               data.summary.facilitiesCovered.map((facility) => (
                                 <Badge
                                   key={facility}
                                   variant="secondary"
-                                  className="bg-card border-2 border-primary/30 font-semibold text-primary px-3 py-1.5 hover:bg-primary/15 transition-colors"
+                                  className="border-primary/30 bg-card px-3 py-1.5 font-medium text-primary transition-colors hover:bg-primary/10"
                                 >
                                   {facility}
                                 </Badge>
                               ))
                             ) : (
                               <div className="w-full flex flex-col items-center justify-center py-4">
-                                <Building2 className="h-6 w-6 text-primary/40 mb-1" />
-                                <span className="text-xs text-primary font-medium">
+                                <Building2 className="mb-1 size-6 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
                                   No facilities recorded
                                 </span>
                               </div>
@@ -380,29 +380,29 @@ export function AnalyzeLeadDialog({
                         {/* People Contacted */}
                         <div>
                           <div className="flex items-center gap-2.5 mb-4">
-                            <div className="p-2 rounded-xl bg-primary shadow-md">
-                              <Users className="h-4 w-4 text-primary-foreground" />
+                            <div className="rounded-md bg-primary p-2">
+                              <Users className="size-4 text-primary-foreground" />
                             </div>
-                            <h4 className="text-base font-bold text-foreground">
+                            <h4 className="text-base font-semibold text-foreground">
                               Stakeholders
                             </h4>
                             <Badge
                               variant="outline"
-                              className="ml-auto bg-primary/10 text-primary border-primary/30 font-bold px-2.5 py-1"
+                              className="ml-auto border-primary/30 bg-primary/10 px-2.5 py-1 font-semibold text-primary"
                             >
                               {data.summary.peopleContacted.length}
                             </Badge>
                           </div>
-                          <div className="p-4 bg-primary/10 rounded-xl min-h-[4rem] border-2 border-primary/30">
+                          <div className="min-h-16 rounded-lg border bg-muted p-4">
                             {data.summary.peopleContacted.length > 0 ? (
                               <ul className="space-y-2.5">
                                 {data.summary.peopleContacted.map((person) => (
                                   <li
                                     key={person}
-                                    className="flex items-center gap-3 text-sm bg-card rounded-lg p-2.5 border border-primary/30 hover:border-primary/30 transition-colors"
+                                    className="flex items-center gap-3 rounded-md border bg-card p-2.5 text-sm"
                                   >
-                                    <div className="h-2.5 w-2.5 rounded-full bg-primary" />
-                                    <span className="font-semibold text-foreground">
+                                    <div className="size-2 rounded-full bg-primary" />
+                                    <span className="font-medium text-foreground">
                                       {person}
                                     </span>
                                   </li>
@@ -410,8 +410,8 @@ export function AnalyzeLeadDialog({
                               </ul>
                             ) : (
                               <div className="w-full flex flex-col items-center justify-center py-4">
-                                <Users className="h-6 w-6 text-primary mb-1" />
-                                <span className="text-xs text-primary font-medium">
+                                <Users className="mb-1 size-6 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
                                   No stakeholders recorded
                                 </span>
                               </div>

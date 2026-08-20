@@ -34,6 +34,30 @@ export const getLeads = async (filters: any) => {
   return response.data;
 };
 
+// Server assembles the csv so the export lands as one auditable event rather
+// than as a burst of page reads indistinguishable from browsing.
+export const exportBoardCsv = async (
+  filters: any,
+  moduleType: "LEAD" | "REFERRAL" = "LEAD"
+) => {
+  const response = await axiosClient.get("/api/boards/export", {
+    params: {
+      ...filters,
+      filter: JSON.stringify(filters.filter ?? {}),
+      moduleType,
+    },
+    responseType: "blob",
+  });
+
+  const disposition: string = response.headers["content-disposition"] ?? "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+
+  return {
+    blob: response.data as Blob,
+    filename: match?.[1] ?? `${moduleType.toLowerCase()}-export.csv`,
+  };
+};
+
 export const getBoardStats = async (
   moduleType: string = "LEAD"
 ): Promise<BoardStats> => {

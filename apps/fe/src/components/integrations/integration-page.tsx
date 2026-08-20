@@ -1,11 +1,11 @@
+import axios from "axios";
+import { IntegrationCard } from "@/components/integrations/integration-card";
+import { ProviderLogo } from "@/components/integrations/provider-logo";
+import { PageHeader } from "@/components/page-header";
 import {
-  disconnectGmail,
-  disconnectOutlook,
-  getGmailAuthUrl,
-  getGmailStatus,
-  getOutlookAuthUrl,
-  getOutlookStatus,
-} from "@/services/lead/lead-service";
+  SegmentedTabsList,
+  SegmentedTabsTrigger,
+} from "@/components/segmented-tabs";
 import {
   disconnectGoogleCalendar,
   disconnectOutlookCalendar,
@@ -19,43 +19,47 @@ import {
   disconnectFaxIntegration,
   getFaxIntegrationStatus,
 } from "@/services/fax/fax-service";
-import { Badge } from "@dashboard/ui/components/badge";
+import {
+  disconnectGmail,
+  disconnectOutlook,
+  getGmailAuthUrl,
+  getGmailStatus,
+  getOutlookAuthUrl,
+  getOutlookStatus,
+} from "@/services/lead/lead-service";
 import { Button } from "@dashboard/ui/components/button";
+import { Card } from "@dashboard/ui/components/card";
 import { Input } from "@dashboard/ui/components/input";
+import { Label } from "@dashboard/ui/components/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
-import { Separator } from "@dashboard/ui/components/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
+  Tabs,
+  TabsContent,
+} from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearch } from "@tanstack/react-router";
-import {
-  Calendar,
-  Copy,
-  Inbox,
-  Link,
-  Loader2,
-  Mail,
-  PlugZap,
-  Printer,
-  Unlink,
-} from "lucide-react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import type { IntegrationTab } from "@/components/integrations/integration-tabs";
+import { Calendar, Copy, Inbox, Mail, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+// The single-calendar rule is enforced server-side, so its message has to reach
+// the toast rather than being swallowed by a generic failure string.
+const errorMessage = (error: unknown, fallback: string) =>
+  (axios.isAxiosError<{ message?: string }>(error)
+    ? error.response?.data?.message
+    : null) ?? fallback;
+
 export default function IntegrationPage() {
   const queryClient = useQueryClient();
-  const search = useSearch({ strict: false }) as Record<string, string>;
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/_team/$team/integrations" });
 
   // Inbound ingest is optional infrastructure: the card only exists once it is set up.
   const ingestAddressQuery = useQuery({
     queryKey: ["email-ingest-address"],
     queryFn: getEmailIngestAddress,
     retry: false,
+    staleTime: 1000 * 60 * 60,
   });
 
   const ingestAddress = ingestAddressQuery.data?.address ?? null;
@@ -125,8 +129,10 @@ export default function IntegrationPage() {
     onSuccess: (data) => {
       window.location.href = data.url;
     },
-    onError: () => {
-      toast.error("Failed to start Google Calendar connection");
+    onError: (error) => {
+      toast.error(
+        errorMessage(error, "Failed to start Google Calendar connection")
+      );
     },
   });
 
@@ -147,8 +153,10 @@ export default function IntegrationPage() {
     onSuccess: (data) => {
       window.location.href = data.url;
     },
-    onError: () => {
-      toast.error("Failed to start Outlook Calendar connection");
+    onError: (error) => {
+      toast.error(
+        errorMessage(error, "Failed to start Outlook Calendar connection")
+      );
     },
   });
 
@@ -205,486 +213,242 @@ export default function IntegrationPage() {
       toast.success("Gmail connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["gmail-status"] });
     } else if (search?.gmail === "error") {
-      toast.error(search?.message || "Failed to connect Gmail");
+      toast.error("Failed to connect Gmail");
     }
-  }, [queryClient, search?.gmail, search?.message]);
+  }, [queryClient, search?.gmail]);
 
   useEffect(() => {
     if (search?.outlook === "connected") {
       toast.success("Outlook connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["outlook-status"] });
     } else if (search?.outlook === "error") {
-      toast.error(search?.message || "Failed to connect Outlook");
+      toast.error("Failed to connect Outlook");
     }
-  }, [queryClient, search?.outlook, search?.message]);
+  }, [queryClient, search?.outlook]);
 
   useEffect(() => {
     if (search?.google_calendar === "connected") {
       toast.success("Google Calendar connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
     } else if (search?.google_calendar === "error") {
-      toast.error(search?.message || "Failed to connect Google Calendar");
+      toast.error("Failed to connect Google Calendar");
     }
-  }, [queryClient, search?.google_calendar, search?.message]);
+  }, [queryClient, search?.google_calendar]);
 
   useEffect(() => {
     if (search?.outlook_calendar === "connected") {
       toast.success("Outlook Calendar connected successfully!");
       queryClient.invalidateQueries({ queryKey: ["calendar-status"] });
     } else if (search?.outlook_calendar === "error") {
-      toast.error(search?.message || "Failed to connect Outlook Calendar");
+      toast.error("Failed to connect Outlook Calendar");
     }
-  }, [queryClient, search?.outlook_calendar, search?.message]);
+  }, [queryClient, search?.outlook_calendar]);
+
+  // A provider redirect names itself but not the tab it belongs to, so an absent
+  // tab resolves to the one the returning provider lives on: connecting a
+  // calendar should land on Calendar rather than bouncing back to Email.
+  const activeTab: IntegrationTab =
+    search.tab ??
+    (search.google_calendar || search.outlook_calendar ? "calendar" : "email");
+
+  const faxKeyReady = faxApiKey.trim().length >= 10;
+
+  // Bookings write to one calendar, so the other provider stays unavailable
+  // until this one is disconnected.
+  const googleCalendarConnected = Boolean(
+    calendarStatusQuery.data?.google.connected
+  );
+  const outlookCalendarConnected = Boolean(
+    calendarStatusQuery.data?.outlook.connected
+  );
 
   return (
     <div className="page-style w-full">
-      <div className="sticky top-0 z-50 border-b-2 border-primary/30 bg-white shadow-md">
-        <div className="mx-auto max-w-7xl p-6 sm:p-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary shadow-lg">
-              <PlugZap className="h-6 w-6 text-white" />
+      <div>
+        <PageHeader
+          title="Integrations"
+          description="Connect your external tools and accounts."
+        />
+
+        {/* Tab lives in the url so a provider redirect can land on the right one
+            and a shared link opens where it was left. replace keeps switching
+            tabs out of the back button. */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(tab) =>
+            navigate({
+              to: ".",
+              search: (prev) => ({ ...prev, tab: tab as IntegrationTab }),
+              replace: true,
+            })
+          }
+          className="space-y-6"
+        >
+          <SegmentedTabsList>
+            <SegmentedTabsTrigger value="email">Email</SegmentedTabsTrigger>
+            <SegmentedTabsTrigger value="calendar">
+              Calendar
+            </SegmentedTabsTrigger>
+            <SegmentedTabsTrigger value="fax">Fax</SegmentedTabsTrigger>
+          </SegmentedTabsList>
+
+          <TabsContent value="email" className="mt-0 space-y-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <IntegrationCard
+                name="Google Mail"
+                description="Send activity emails from your Gmail account."
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/gmail.png"
+                    alt="Gmail"
+                    fallback={<Mail className="size-8 text-primary" />}
+                  />
+                }
+                connected={Boolean(gmailStatusQuery.data?.connected)}
+                connectedDetail={`Sending as ${gmailStatusQuery.data?.email ?? ""}`}
+                onConnect={() => connectGmailMutation.mutate()}
+                onDisconnect={() => disconnectGmailMutation.mutate()}
+                isConnecting={connectGmailMutation.isPending}
+                isDisconnecting={disconnectGmailMutation.isPending}
+                disabled={gmailStatusQuery.isLoading}
+              />
+
+              <IntegrationCard
+                name="Microsoft Outlook"
+                description="Send activity emails from your Outlook account."
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/outlook.png"
+                    alt="Outlook"
+                    fallback={<Mail className="size-8 text-primary" />}
+                  />
+                }
+                connected={Boolean(outlookStatusQuery.data?.connected)}
+                connectedDetail={`Sending as ${outlookStatusQuery.data?.email ?? ""}`}
+                onConnect={() => connectOutlookMutation.mutate()}
+                onDisconnect={() => disconnectOutlookMutation.mutate()}
+                isConnecting={connectOutlookMutation.isPending}
+                isDisconnecting={disconnectOutlookMutation.isPending}
+                disabled={outlookStatusQuery.isLoading}
+              />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight page-title">
-                Integrations
-              </h1>
-              <p className="mt-0.5 text-sm text-gray-600">
-                Connect your external tools and accounts
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl p-6 sm:p-8">
-        <Tabs defaultValue="email" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 md:w-[480px]">
-            <TabsTrigger value="email">Email</TabsTrigger>
-            <TabsTrigger value="calendar">Calendar</TabsTrigger>
-            <TabsTrigger value="fax">Fax</TabsTrigger>
-          </TabsList>
-
-          {/* ---- Email Tab ---- */}
-          <TabsContent value="email" className="mt-0">
-            <Card className="border-2 border-gray-300 shadow-sm">
-              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
-                <div className="flex items-center gap-2">
-                  <Link className="h-5 w-5 text-primary" />
-                  <div>
-                    <CardTitle className="text-foreground">Connected Accounts</CardTitle>
-                    <CardDescription>
-                      Connect external email accounts to enhance your workflow
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-red-200 bg-red-50">
-                      <Mail className="h-6 w-6 text-red-500" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">Gmail</p>
-                      {gmailStatusQuery.data?.connected ? (
-                        <p className="text-sm text-gray-600">
-                          Connected as{" "}
-                          <span className="font-medium text-primary">
-                            {gmailStatusQuery.data.email}
-                          </span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Send activity emails from your Gmail account
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {gmailStatusQuery.data?.connected && (
-                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
-                        Connected
-                      </Badge>
-                    )}
-
-                    {gmailStatusQuery.data?.connected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                        onClick={() => disconnectGmailMutation.mutate()}
-                        disabled={disconnectGmailMutation.isPending}
-                      >
-                        {disconnectGmailMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Unlink className="mr-1 h-4 w-4" />
-                        )}
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/40 hover:bg-primary/10"
-                        onClick={() => connectGmailMutation.mutate()}
-                        disabled={connectGmailMutation.isPending || gmailStatusQuery.isLoading}
-                      >
-                        {connectGmailMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Link className="mr-1 h-4 w-4" />
-                        )}
-                        Connect Gmail
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <Separator className="bg-gray-300" />
-
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-primary/30 bg-primary/10">
-                      <Mail className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">Outlook</p>
-                      {outlookStatusQuery.data?.connected ? (
-                        <p className="text-sm text-gray-600">
-                          Connected as{" "}
-                          <span className="font-medium text-primary">
-                            {outlookStatusQuery.data.email}
-                          </span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Send activity emails from your Outlook account
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {outlookStatusQuery.data?.connected && (
-                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
-                        Connected
-                      </Badge>
-                    )}
-
-                    {outlookStatusQuery.data?.connected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                        onClick={() => disconnectOutlookMutation.mutate()}
-                        disabled={disconnectOutlookMutation.isPending}
-                      >
-                        {disconnectOutlookMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Unlink className="mr-1 h-4 w-4" />
-                        )}
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/40 hover:bg-primary/10"
-                        onClick={() => connectOutlookMutation.mutate()}
-                        disabled={
-                          connectOutlookMutation.isPending || outlookStatusQuery.isLoading
-                        }
-                      >
-                        {connectOutlookMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Link className="mr-1 h-4 w-4" />
-                        )}
-                        Connect Outlook
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {ingestAddress && (
-              <Card className="mt-6 border-2 border-gray-300 shadow-sm">
-                <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
-                  <div className="flex items-center gap-2">
-                    <Inbox className="h-5 w-5 text-primary" />
-                    <div>
-                      <CardTitle className="text-foreground">
-                        Reply Logging
-                      </CardTitle>
-                      <CardDescription>
-                        BCC or forward mail to this address to log the thread on
-                        its record
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
+              <Card className="gap-3 rounded-xl p-8 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Inbox className="size-5 text-primary" />
+                  <h2 className="text-xl font-semibold text-primary">
+                    Reply Logging
+                  </h2>
+                </div>
 
-                <CardContent className="space-y-3 p-6">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Input
-                      readOnly
-                      value={ingestAddress}
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-primary/40 hover:bg-primary/10"
-                      onClick={() => {
-                        navigator.clipboard.writeText(ingestAddress);
-                        toast.success("Ingest address copied");
-                      }}
-                    >
-                      <Copy className="mr-1 h-4 w-4" />
-                      Copy
-                    </Button>
-                  </div>
+                <p className="text-sm text-muted-foreground">
+                  BCC or forward mail to this address to log the thread on its
+                  record. Only mail sent here is stored; replies that match a
+                  record are logged on its timeline, everything else is
+                  discarded.
+                </p>
 
-                  <p className="text-sm text-gray-500">
-                    Only mail sent to this address is stored. Replies that match
-                    a record are logged on its timeline, everything else is
-                    discarded.
-                  </p>
-                </CardContent>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    readOnly
+                    value={ingestAddress}
+                    className="font-mono text-sm sm:max-w-md"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(ingestAddress);
+                      toast.success("Ingest address copied");
+                    }}
+                  >
+                    <Copy className="size-4" />
+                    Copy
+                  </Button>
+                </div>
               </Card>
             )}
           </TabsContent>
 
-          {/* ---- Calendar Tab ---- */}
           <TabsContent value="calendar" className="mt-0">
-            <Card className="border-2 border-gray-300 shadow-sm">
-              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <div>
-                    <CardTitle className="text-foreground">
-                      Calendar Integrations
-                    </CardTitle>
-                    <CardDescription>
-                      Connect calendar accounts to view and manage events from your dashboard
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6">
-                {/* Google Calendar */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-primary/30 bg-primary/10">
-                      <Calendar className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">Google Calendar</p>
-                      {calendarStatusQuery.data?.google.connected ? (
-                        <p className="text-sm text-gray-600">
-                          Connected as{" "}
-                          <span className="font-medium text-primary">
-                            {calendarStatusQuery.data.google.email}
-                          </span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Sync appointments and follow-up schedules
-                        </p>
-                      )}
-                    </div>
-                  </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <IntegrationCard
+                name="Google Calendar"
+                description="View and manage Google events from your dashboard."
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/google-calendar.png"
+                    alt="Google Calendar"
+                    fallback={<Calendar className="size-8 text-primary" />}
+                  />
+                }
+                connected={googleCalendarConnected}
+                connectedDetail={`Synced with ${calendarStatusQuery.data?.google.email ?? ""}`}
+                onConnect={() => connectGoogleCalendarMutation.mutate()}
+                onDisconnect={() => disconnectGoogleCalendarMutation.mutate()}
+                isConnecting={connectGoogleCalendarMutation.isPending}
+                isDisconnecting={disconnectGoogleCalendarMutation.isPending}
+                disabled={calendarStatusQuery.isLoading || outlookCalendarConnected}
+                disabledHint={
+                  outlookCalendarConnected
+                    ? "Disconnect Outlook Calendar first — only one calendar can be connected."
+                    : undefined
+                }
+              />
 
-                  <div className="flex items-center gap-2">
-                    {calendarStatusQuery.data?.google.connected && (
-                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
-                        Connected
-                      </Badge>
-                    )}
-
-                    {calendarStatusQuery.data?.google.connected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                        onClick={() => disconnectGoogleCalendarMutation.mutate()}
-                        disabled={disconnectGoogleCalendarMutation.isPending}
-                      >
-                        {disconnectGoogleCalendarMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Unlink className="mr-1 h-4 w-4" />
-                        )}
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/40 hover:bg-primary/10"
-                        onClick={() => connectGoogleCalendarMutation.mutate()}
-                        disabled={
-                          connectGoogleCalendarMutation.isPending ||
-                          calendarStatusQuery.isLoading
-                        }
-                      >
-                        {connectGoogleCalendarMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Link className="mr-1 h-4 w-4" />
-                        )}
-                        Connect Google
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <Separator className="bg-gray-300" />
-
-                {/* Outlook Calendar */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-primary/30 bg-primary/10">
-                      <Calendar className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">Outlook Calendar</p>
-                      {calendarStatusQuery.data?.outlook.connected ? (
-                        <p className="text-sm text-gray-600">
-                          Connected as{" "}
-                          <span className="font-medium text-primary">
-                            {calendarStatusQuery.data.outlook.email}
-                          </span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Manage schedule sync across Microsoft accounts
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {calendarStatusQuery.data?.outlook.connected && (
-                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
-                        Connected
-                      </Badge>
-                    )}
-
-                    {calendarStatusQuery.data?.outlook.connected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                        onClick={() => disconnectOutlookCalendarMutation.mutate()}
-                        disabled={disconnectOutlookCalendarMutation.isPending}
-                      >
-                        {disconnectOutlookCalendarMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Unlink className="mr-1 h-4 w-4" />
-                        )}
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/40 hover:bg-primary/10"
-                        onClick={() => connectOutlookCalendarMutation.mutate()}
-                        disabled={
-                          connectOutlookCalendarMutation.isPending ||
-                          calendarStatusQuery.isLoading
-                        }
-                      >
-                        {connectOutlookCalendarMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Link className="mr-1 h-4 w-4" />
-                        )}
-                        Connect Outlook
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <IntegrationCard
+                name="Outlook Calendar"
+                description="View and manage Outlook events from your dashboard."
+                // Microsoft ships no separate calendar mark, so Outlook's own
+                // icon stands for both its mail and its calendar.
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/outlook.png"
+                    alt="Outlook Calendar"
+                    fallback={<Calendar className="size-8 text-primary" />}
+                  />
+                }
+                connected={outlookCalendarConnected}
+                connectedDetail={`Synced with ${calendarStatusQuery.data?.outlook.email ?? ""}`}
+                onConnect={() => connectOutlookCalendarMutation.mutate()}
+                onDisconnect={() => disconnectOutlookCalendarMutation.mutate()}
+                isConnecting={connectOutlookCalendarMutation.isPending}
+                isDisconnecting={disconnectOutlookCalendarMutation.isPending}
+                disabled={calendarStatusQuery.isLoading || googleCalendarConnected}
+                disabledHint={
+                  googleCalendarConnected
+                    ? "Disconnect Google Calendar first — only one calendar can be connected."
+                    : undefined
+                }
+              />
+            </div>
           </TabsContent>
 
-          {/* ---- Fax Tab ---- */}
           <TabsContent value="fax" className="mt-0">
-            <Card className="border-2 border-gray-300 shadow-sm">
-              <CardHeader className="border-b-2 border-gray-300 bg-primary/10">
-                <div className="flex items-center gap-2">
-                  <Printer className="h-5 w-5 text-primary" />
-                  <div>
-                    <CardTitle className="text-foreground">Eldon Fax</CardTitle>
-                    <CardDescription>
-                      Send documents as faxes directly from record activities
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-teal-200 bg-teal-50">
-                      <Printer className="h-6 w-6 text-teal-600" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">Eldon Fax</p>
-                      {faxStatusQuery.data?.connected ? (
-                        <p className="text-sm text-gray-600">
-                          Connected with key ending in{" "}
-                          <span className="font-medium text-primary">
-                            …{faxStatusQuery.data.apiKeyLast4}
-                          </span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Paste an organization API key with faxes:read and
-                          faxes:write scopes (owner only)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {faxStatusQuery.data?.connected && (
-                      <Badge className="border-2 border-green-300 bg-green-100 font-semibold text-green-700">
-                        Connected
-                      </Badge>
-                    )}
-
-                    {faxStatusQuery.data?.connected && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                        onClick={() => disconnectFaxMutation.mutate()}
-                        disabled={disconnectFaxMutation.isPending}
-                      >
-                        {disconnectFaxMutation.isPending ? (
-                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Unlink className="mr-1 h-4 w-4" />
-                        )}
-                        Disconnect
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <Separator className="bg-gray-300" />
-
-                <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <IntegrationCard
+                name="Eldon Fax"
+                description="Send documents as faxes directly from record activities. Paste an organization API key with faxes:read and faxes:write scopes (owner only)."
+                logo={
+                  <ProviderLogo
+                    src="/branding/Integrations/eldonfax.png"
+                    alt="Eldon Fax"
+                    fallback={<Printer className="size-8 text-primary" />}
+                  />
+                }
+                connected={Boolean(faxStatusQuery.data?.connected)}
+                connectedDetail={`Connected with key ending in …${faxStatusQuery.data?.apiKeyLast4 ?? ""}`}
+                connectLabel="Connect"
+                onConnect={() => connectFaxMutation.mutate(faxApiKey.trim())}
+                onDisconnect={() => disconnectFaxMutation.mutate()}
+                isConnecting={connectFaxMutation.isPending}
+                isDisconnecting={disconnectFaxMutation.isPending}
+                disabled={!faxKeyReady}
+              >
+                <div className="mt-4 space-y-1.5">
+                  <Label htmlFor="fax-api-key">API key</Label>
                   <Input
+                    id="fax-api-key"
                     type="password"
                     placeholder={
                       faxStatusQuery.data?.connected
@@ -692,28 +456,24 @@ export default function IntegrationPage() {
                         : "sk_live_..."
                     }
                     value={faxApiKey}
-                    onChange={(e) => setFaxApiKey(e.target.value)}
-                    className="sm:max-w-md"
+                    onChange={(event) => setFaxApiKey(event.target.value)}
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-primary/40 hover:bg-primary/10 sm:h-9"
-                    onClick={() => connectFaxMutation.mutate(faxApiKey.trim())}
-                    disabled={
-                      connectFaxMutation.isPending || faxApiKey.trim().length < 10
-                    }
-                  >
-                    {connectFaxMutation.isPending ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Link className="mr-1 h-4 w-4" />
-                    )}
-                    {faxStatusQuery.data?.connected ? "Rotate Key" : "Connect"}
-                  </Button>
+                  {faxStatusQuery.data?.connected && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() =>
+                        connectFaxMutation.mutate(faxApiKey.trim())
+                      }
+                      disabled={!faxKeyReady || connectFaxMutation.isPending}
+                    >
+                      Rotate key
+                    </Button>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </IntegrationCard>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

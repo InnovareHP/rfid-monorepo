@@ -1,0 +1,63 @@
+---
+import LegalSection from "../components/LegalSection.astro";
+import { EFFECTIVE_DATE, SUPPORT_EMAIL } from "../config";
+import LegalLayout from "../layouts/LegalLayout.astro";
+
+const SECTIONS = [
+  {
+    heading: "HIPAA and Business Associate Agreements",
+    body: [
+      "Where a customer is a covered entity or business associate and Refidly handles protected health information on its behalf, Refidly acts as a business associate and will execute a Business Associate Agreement. The BAA governs PHI handling and prevails over any conflicting term in the Customer Agreement.",
+      "Until a BAA is in place, do not configure workspace fields to hold protected health information. Request one from the address below and we will send the current form.",
+    ],
+  },
+  {
+    heading: "Safeguards",
+    items: [
+      "Each workspace is isolated. Records belonging to one organization are not reachable from another, including through search, export, analytics, and AI features.",
+      "Access is role-based and enforced on the server for every request. Owners control who is invited and what each member can do.",
+      "Protected health information is encrypted at rest, and all traffic between your browser and Refidly is encrypted in transit.",
+      "Sessions are short-lived and expire after inactivity. Signing out revokes access immediately.",
+    ],
+  },
+  {
+    heading: "Audit history",
+    body: [
+      "Changes to records are written to an audit trail that captures who changed what and when. Field-level history is visible inside the application, and a deleted record can be restored within the retention window. Audit entries are retained longer than the records themselves, because their purpose is to answer questions after the fact.",
+    ],
+  },
+  {
+    heading: "How your data is used",
+    body: [
+      "Customer records stay the customer's. We do not sell, rent, or broker referral records, facility lists, or contact data, and workspace content is never used to train AI models.",
+      "AI features run only when a user triggers them, stay inside that organization's scope, and produce decision support that a person should review before acting on it.",
+    ],
+  },
+  {
+    heading: "Reporting a vulnerability",
+    body: [
+      "If you believe you have found a security issue, tell us before telling anyone else. Send the affected URL or endpoint, what you observed, and the steps to reproduce. We acknowledge reports within two business days and will keep you updated until the issue is resolved.",
+      "Please test only against your own account or a trial workspace. Do not access another organization's data, do not run automated scans or load tests against production, and do not exfiltrate, alter, or destroy data. We will not pursue action against researchers who follow these rules and report in good faith.",
+    ],
+  },
+];
+---
+
+<LegalLayout
+  title="Security and HIPAA — Refidly"
+  description="How Refidly handles HIPAA and Business Associate Agreements, protects health information, audits changes, and receives vulnerability reports."
+  heading="Security at Refidly"
+  lead="Referral records are among the most sensitive data a healthcare organization keeps. Here is how the platform handles them."
+  updated={EFFECTIVE_DATE}
+>
+  {SECTIONS.map((section) => <LegalSection {...section} />)}
+
+  <LegalSection heading="Security questions">
+    <p class="legal-body">
+      Reach the team at <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
+        >{SUPPORT_EMAIL}</a
+      > for vulnerability reports, BAA requests, security questionnaires, and procurement
+      reviews. Put "Security" in the subject line so it reaches the right team first.
+    </p>
+  </LegalSection>
+</LegalLayout>

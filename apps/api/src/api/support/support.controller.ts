@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { Priority, TicketCategory, TicketStatus } from "@prisma/client";
 import { AuthGuard, Roles, Session } from "@thallesp/nestjs-better-auth";
+import { SupportHipaaGuard } from "../../guard/hipaa/support-hipaa.guard";
 import {
   AssignTicketDto,
   CreateLiveChatAttachmentDto,
@@ -27,7 +28,7 @@ import {
 import { SupportService } from "./support.service";
 
 @Controller("support")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, SupportHipaaGuard)
 export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 

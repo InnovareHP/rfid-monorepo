@@ -1,0 +1,41 @@
+---
+import Footer from "../components/Footer.astro";
+import Nav from "../components/Nav.astro";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+  lead: string;
+  updated?: string;
+}
+
+const { title, description, heading, lead, updated } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <Nav />
+  <main>
+    <section class="border-b border-border bg-muted/50 py-14 lg:py-20">
+      <div class="mx-auto w-full max-w-3xl px-6">
+        <h1 class="text-3xl font-extrabold sm:text-4xl">{heading}</h1>
+        <p class="mt-4 text-lg text-muted-foreground">{lead}</p>
+        {
+          updated && (
+            <p class="mt-6 text-[13px] font-semibold tracking-wider uppercase text-muted-foreground">
+              Last updated · {updated}
+            </p>
+          )
+        }
+      </div>
+    </section>
+
+    <div
+      class="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-14 lg:py-20"
+    >
+      <slot />
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

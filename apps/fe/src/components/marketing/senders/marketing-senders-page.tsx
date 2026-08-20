@@ -8,7 +8,7 @@ import {
 import { Button } from "@dashboard/ui/components/button";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AtSign, Building2, Globe, Plus, Trash2 } from "lucide-react";
+import { AtSign, Globe, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { StatusPill, type StatusTone } from "../../reusable-table/status-pill";
@@ -31,7 +31,6 @@ const STATUS_LABELS: Record<SenderIdentity["status"], string> = {
 
 const KIND_ICONS = {
   PERSONAL: AtSign,
-  MANAGED_DOMAIN: Building2,
   CUSTOM_DOMAIN: Globe,
 } as const;
 
@@ -59,11 +58,24 @@ export const MarketingSendersPage = () => {
 
   const deleteMutation = useMutation({
     mutationFn: (sender: SenderIdentity) => deleteSender(sender.id),
-    onSuccess: () => {
+    onMutate: async (sender: SenderIdentity) => {
+      await queryClient.cancelQueries({ queryKey: SENDERS_KEY });
+      const previous = queryClient.getQueryData<SenderIdentity[]>(SENDERS_KEY);
+
+      queryClient.setQueryData<SenderIdentity[]>(SENDERS_KEY, (current = []) =>
+        current.filter((row) => row.id !== sender.id)
+      );
+
+      return { previous };
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SENDERS_KEY });
+    },
+    onSuccess: () => {
       toast.success("Sender removed");
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, _sender, context) => {
+      queryClient.setQueryData(SENDERS_KEY, context?.previous);
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message ?? "Failed to remove sender";

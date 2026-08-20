@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
 import { authClient } from "@/lib/auth-client";
+import { getComplianceStatus } from "@/services/compliance/compliance-service";
 import { isOrgAdmin } from "@dashboard/shared";
 import { Input } from "@dashboard/ui/components/input";
 import {
@@ -16,7 +17,6 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "./analytics/charts/kpi-stat-tile";
-import { BrandingCard } from "./team/branding-card";
 import { EditRoleDialog } from "./team/edit-role-dialog";
 import {
   InviteMemberDialog,
@@ -44,6 +44,15 @@ const tabTriggerClass =
 
 const TeamPage = () => {
   const { data: organizationData } = authClient.useActiveOrganization();
+
+  // HIPAA mode limits membership to work email, and the invite form says so
+  // before the API refuses the send. Every role may read this.
+  const { data: compliance } = useQuery({
+    queryKey: ["compliance-status", organizationData?.id],
+    enabled: !!organizationData?.id,
+    queryFn: getComplianceStatus,
+    staleTime: 5 * 60 * 1000,
+  });
   const queryClient = useQueryClient();
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
@@ -120,7 +129,11 @@ const TeamPage = () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
       toast.success("Invitation sent successfully");
     } catch (error) {
-      toast.error("Failed to send invitation");
+      // The API refuses consumer mailboxes in HIPAA mode and states why, so the
+      // reason has to reach the owner rather than a generic failure.
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send invitation"
+      );
     }
   };
 
@@ -134,7 +147,9 @@ const TeamPage = () => {
       });
       toast.success("Invitation sent successfully");
     } catch (error) {
-      toast.error("Failed to send invitation");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send invitation"
+      );
     }
   };
 
@@ -202,13 +217,14 @@ const TeamPage = () => {
       <div className="space-y-8">
         <div className="flex flex-wrap space-y-4 items-center justify-between">
           <PageHeader
-        title="Team Management"
-        description="Manage who has access to your organization and what they can see."
-      />
+            title="Team Management"
+            description="Manage who has access to your organization and what they can see."
+          />
           {canManageTeam && (
             <InviteMemberDialog
               open={isInviteDialogOpen}
               onOpenChange={setIsInviteDialogOpen}
+              workEmailOnly={compliance?.hipaaEnabled ?? false}
               organizationName={organizationData?.name}
               onInvite={handleInvite}
             />
@@ -223,12 +239,12 @@ const TeamPage = () => {
           canEdit={canManageTeam}
         />
 
-        {canManageTeam && (
+        {/* {canManageTeam && (
           <BrandingCard
             organizationId={organizationData?.id}
             metadata={organizationData?.metadata}
           />
-        )}
+        )} */}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <KpiStatTile

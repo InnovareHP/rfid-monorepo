@@ -4,11 +4,24 @@
 export const PLAN_FEATURES = [
   "ai",
   "export",
+  "advanced_analytics",
+  "custom_reporting",
   "priority_support",
   "hipaa",
 ] as const;
 
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
+
+// What a gated feature is called wherever it is shown or refused, so the plans
+// page cannot advertise something the guards do not grant.
+export const PLAN_FEATURE_LABELS: Record<PlanFeature, string> = {
+  ai: "AI insights, lead analysis & Smart Scan",
+  export: "CSV import & export",
+  advanced_analytics: "Advanced analytics & reporting",
+  custom_reporting: "Custom reports & dashboards",
+  priority_support: "Priority support",
+  hipaa: "HIPAA mode & BAA",
+};
 
 export type PlanEntitlement = {
   seats: number;
@@ -17,10 +30,17 @@ export type PlanEntitlement = {
 
 export const PLAN_ENTITLEMENTS = {
   essentials: { seats: 10, features: [] },
-  growth: { seats: 25, features: ["ai", "export"] },
+  growth: { seats: 25, features: ["ai", "export", "advanced_analytics"] },
   scale: {
     seats: 50,
-    features: ["ai", "export", "priority_support", "hipaa"],
+    features: [
+      "ai",
+      "export",
+      "advanced_analytics",
+      "custom_reporting",
+      "priority_support",
+      "hipaa",
+    ],
   },
 } as const satisfies Record<string, PlanEntitlement>;
 

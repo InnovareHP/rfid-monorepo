@@ -1,11 +1,10 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
 import type { CrmModuleType } from "@/services/board/board-module-service";
-import { CRM_QUERY_KEYS } from "@/services/board/board-module-service";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { type ColumnDef } from "@tanstack/react-table";
 import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
-import { RecordAvatar } from "../reusable-table/record-avatar";
 import { RelatedRecords } from "./related-records";
 
 type ColumnType = {
@@ -17,6 +16,8 @@ type ColumnType = {
 export type CrmRow = {
   id: string;
   recordName: string;
+  // Returned by getAllBoards on every flat row; the export range filters on it.
+  createdAt?: string;
   [key: string]: any;
 };
 
@@ -98,7 +99,6 @@ export function generateCrmColumns(
     minSize: 150,
     cell: ({ row }) => (
       <div className="group flex items-center gap-2 w-full min-w-0">
-        <RecordAvatar name={row.original.recordName} title={nameLabel} />
         <div className="min-w-0 flex-1">
           <EditableCell
             moduleType={moduleType}
@@ -120,7 +120,7 @@ export function generateCrmColumns(
     header: () => (
       <CreateColumnModal
         moduleType={moduleType}
-        queryKey={CRM_QUERY_KEYS[moduleType]}
+        queryKey={boardQueryKey(moduleType)}
       />
     ),
     accessorKey: "create_column",

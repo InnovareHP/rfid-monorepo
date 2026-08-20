@@ -13,6 +13,10 @@ export const appConfigSchema = z.object({
   SES_FROM_EMAIL: z.string().min(1),
   BEDROCK_MODEL_ID: z.string().min(1).default("amazon.nova-micro-v1:0"),
   BEDROCK_VISION_MODEL_ID: z.string().min(1).default("amazon.nova-lite-v1:0"),
+  BEDROCK_EMBED_MODEL_ID: z
+    .string()
+    .min(1)
+    .default("amazon.titan-embed-text-v2:0"),
 
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   LOG_SERVICE: z.string().default("auth"),
@@ -51,16 +55,25 @@ export const appConfigSchema = z.object({
   ENCRYPTION_KEY: z
     .string()
     .min(1, "ENCRYPTION_KEY required (base64 of 32 random bytes)"),
+  // Separate from ENCRYPTION_KEY on purpose: audit integrity has to outlive a
+  // rotation of the confidentiality key. Sharing one key means the re-key that
+  // follows an incident is also what makes every changeHash unverifiable.
+  AUDIT_HMAC_KEY: z
+    .string()
+    .min(1, "AUDIT_HMAC_KEY required (base64 of 32 random bytes)"),
   AI_SCRUB_PHI: z
     .string()
     .default("true")
     .transform((v) => v.toLowerCase() !== "false"),
+  // Off by default: the job reports what it would remove until someone has read
+  // the counts against real data and opted in.
+  RETENTION_PURGE_ENABLED: z
+    .string()
+    .default("false")
+    .transform((v) => v.toLowerCase() === "true"),
   ELDONFAX_API_KEY: z.string().min(1).optional(),
   ELDONFAX_BASE_URL: z.url().default("https://api.eldonfax.com"),
   SES_CONFIGURATION_SET: z.string().min(1),
-  // Parent of every managed sending subdomain, e.g. mail.refidly.com. Unset
-  // means the managed option is unavailable, not that it silently degrades.
-  SES_MANAGED_DOMAIN: z.string().min(1).optional(),
   EMAIL_INGEST_DOMAIN: z.string().min(1).optional(),
   SES_INBOUND_BUCKET: z.string().min(1).optional(),
   SES_INBOUND_TOPIC_ARN: z.string().min(1).optional(),

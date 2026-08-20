@@ -1,10 +1,11 @@
+import type { AdminRole } from "@/lib/auth-client";
 import { DASHBOARD_URL, ROLES } from "@/lib/contant";
 import {
   banUser,
   getUser,
   impersonateUser,
   removeUser,
-  revokeSession,
+  revokeUserSessions,
   setUserPassword,
   setUserRole,
   unbanUser,
@@ -75,12 +76,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { BanUserDialog } from "./BanUserDialog";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
+import { ImpersonateUserDialog } from "./ImpersonateUserDialog";
 
-const ROLE_LABELS = {
+const ROLE_LABELS: Record<AdminRole, string> = {
   [ROLES.USER]: "User",
   [ROLES.SUPPORT]: "Support",
   [ROLES.SUPER_ADMIN]: "Super Admin",
-} as const;
+};
+
+const ADMIN_ROLES = Object.keys(ROLE_LABELS) as AdminRole[];
 
 const MEMBER_ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
@@ -116,6 +120,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
   const [banOpen, setBanOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [impersonateOpen, setImpersonateOpen] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["admin-user", userId],
@@ -153,7 +158,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
   });
 
   const roleMutation = useMutation({
-    mutationFn: (role: string) => setUserRole(userId, role),
+    mutationFn: (role: AdminRole) => setUserRole(userId, role),
     onSuccess: () => {
       toast.success("Role updated");
       invalidate();
@@ -171,7 +176,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
   });
 
   const impersonateMutation = useMutation({
-    mutationFn: () => impersonateUser(userId),
+    mutationFn: (reason: string) => impersonateUser(userId, reason),
     onSuccess: () => {
       toast.success("Now impersonating user");
       window.location.href = DASHBOARD_URL;
@@ -180,7 +185,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
   });
 
   const revokeSessionMutation = useMutation({
-    mutationFn: () => revokeSession(userId),
+    mutationFn: () => revokeUserSessions(userId),
     onSuccess: () => {
       toast.success("Sessions revoked");
       invalidate();
@@ -227,7 +232,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
             </Link>
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="page-title text-2xl font-bold tracking-tight">
               User Details
             </h1>
           </div>
@@ -236,7 +241,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
             onBan={() => setBanOpen(true)}
             onUnban={() => unbanMutation.mutate()}
             onRemove={() => setRemoveOpen(true)}
-            onImpersonate={() => impersonateMutation.mutate()}
+            onImpersonate={() => setImpersonateOpen(true)}
             onRevokeSession={() => revokeSessionMutation.mutate()}
             onChangePassword={() => setPasswordOpen(true)}
             onRoleChange={(role) => roleMutation.mutate(role)}
@@ -286,9 +291,9 @@ export function UserDetailPage({ userId }: { userId: string }) {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     {user.emailVerified ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                      <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
                     ) : (
-                      <XCircle className="h-4 w-4 shrink-0 text-amber-500" />
+                      <XCircle className="text-warning h-4 w-4 shrink-0" />
                     )}
                     <span>
                       Email {user.emailVerified ? "verified" : "not verified"}
@@ -398,6 +403,15 @@ export function UserDetailPage({ userId }: { userId: string }) {
         }
       />
 
+      {/* Impersonation dialog */}
+      <ImpersonateUserDialog
+        open={impersonateOpen}
+        onOpenChange={setImpersonateOpen}
+        userName={user.name}
+        isPending={impersonateMutation.isPending}
+        onConfirm={(reason) => impersonateMutation.mutate(reason)}
+      />
+
       {/* Change password dialog */}
       <ChangePasswordDialog
         open={passwordOpen}
@@ -450,7 +464,7 @@ function ActionsDropdown({
   onImpersonate: () => void;
   onRevokeSession: () => void;
   onChangePassword: () => void;
-  onRoleChange: (role: string) => void;
+  onRoleChange: (role: AdminRole) => void;
   isPending: boolean;
 }) {
   return (
@@ -481,13 +495,13 @@ function ActionsDropdown({
             Set role
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            {Object.entries(ROLE_LABELS).map(([value, label]) => (
+            {ADMIN_ROLES.map((value) => (
               <DropdownMenuItem
                 key={value}
                 disabled={user.role === value}
                 onClick={() => onRoleChange(value)}
               >
-                {label}
+                {ROLE_LABELS[value]}
               </DropdownMenuItem>
             ))}
           </DropdownMenuSubContent>

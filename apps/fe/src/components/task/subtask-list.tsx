@@ -5,6 +5,7 @@ import { Input } from "@dashboard/ui/components/input";
 import { cn } from "@dashboard/ui/lib/utils";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { TaskSection } from "./task-section";
 
 type SubtaskListProps = {
   subtasks: TaskListItemDto[];
@@ -30,17 +31,13 @@ export const SubtaskList = ({
   };
 
   return (
-    <div className="space-y-3">
-      <h4 className="text-sm font-semibold text-gray-900">Subtasks</h4>
-
-      {subtasks.length === 0 ? (
-        <p className="text-sm text-gray-400">No subtasks</p>
-      ) : (
+    <TaskSection title="Subtasks">
+      {subtasks.length > 0 && (
         <div className="space-y-1">
           {subtasks.map((subtask) => (
             <div
               key={subtask.id}
-              className="flex items-center gap-2 py-1 px-1 rounded hover:bg-gray-50 cursor-pointer"
+              className="flex cursor-pointer items-center gap-3 rounded px-1 py-1 hover:bg-muted"
               onClick={() => onOpen(subtask)}
             >
               <div onClick={(event) => event.stopPropagation()}>
@@ -50,19 +47,19 @@ export const SubtaskList = ({
                   onCheckedChange={() => onToggleComplete(subtask)}
                 />
               </div>
-              <span className="text-xs font-mono text-gray-400">
+              <span className="font-mono text-xs text-muted-foreground">
                 #{subtask.taskNumber}
               </span>
               <span
                 className={cn(
-                  "flex-1 text-sm text-gray-800 truncate",
-                  subtask.completedAt && "line-through text-gray-400"
+                  "flex-1 truncate text-sm text-foreground",
+                  subtask.completedAt && "text-muted-foreground line-through"
                 )}
               >
                 {subtask.name}
               </span>
               <span
-                className="px-2 py-0.5 rounded-full text-[10px] font-medium text-white shrink-0"
+                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
                 style={{ backgroundColor: subtask.status.color }}
               >
                 {subtask.status.name}
@@ -72,25 +69,27 @@ export const SubtaskList = ({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <Checkbox checked={false} disabled aria-hidden />
         <Input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="Add subtask"
-          className="h-8"
+          placeholder="Add Subtask"
+          className="flex-1"
           onKeyDown={(event) => {
             if (event.key === "Enter") handleAdd();
           }}
         />
         <Button
-          variant="outline"
-          size="sm"
+          variant="ghost"
+          size="icon"
           onClick={handleAdd}
           disabled={disabled || !name.trim()}
+          aria-label="Add subtask"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
         </Button>
       </div>
-    </div>
+    </TaskSection>
   );
 };

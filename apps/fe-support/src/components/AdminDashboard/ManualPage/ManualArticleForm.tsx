@@ -55,6 +55,8 @@ const articleSchema = z.object({
   summary: z.string().min(1, "Summary is required"),
   categoryId: z.string().min(1, "Category is required"),
   published: z.boolean(),
+  featured: z.boolean(),
+  readMinutes: z.number().int().min(1, "Must be at least 1 minute"),
   steps: z.array(stepSchema).min(1, "At least one step is required"),
 });
 
@@ -90,6 +92,8 @@ export function ManualArticleForm({
       summary: "",
       categoryId: categories[0]?.id ?? "",
       published: false,
+      featured: false,
+      readMinutes: 3,
       steps: [{ title: "", content: "", imageUrl: "" }],
     },
   });
@@ -109,6 +113,8 @@ export function ManualArticleForm({
         summary: data.summary,
         categoryId: data.categoryId,
         published: data.published,
+        featured: data.featured,
+        readMinutes: data.readMinutes,
         steps:
           data.steps && data.steps.length > 0
             ? data.steps.map((s) => ({
@@ -125,6 +131,8 @@ export function ManualArticleForm({
         summary: "",
         categoryId: categories[0]?.id ?? "",
         published: false,
+        featured: false,
+        readMinutes: 3,
         steps: [{ title: "", content: "", imageUrl: "" }],
       });
     }
@@ -153,6 +161,8 @@ export function ManualArticleForm({
         summary: values.summary,
         categoryId: values.categoryId,
         published: values.published,
+        featured: values.featured,
+        readMinutes: values.readMinutes,
         steps: values.steps.map((s, i) => ({
           title: s.title || undefined,
           content: s.content,
@@ -275,6 +285,27 @@ export function ManualArticleForm({
               />
               <FormField
                 control={form.control}
+                name="readMinutes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Read time (min)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        className="w-[120px]"
+                        value={field.value}
+                        onChange={(event) =>
+                          field.onChange(event.target.valueAsNumber)
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="published"
                 render={({ field }) => (
                   <FormItem className="flex items-center gap-2 pt-6">
@@ -285,6 +316,21 @@ export function ManualArticleForm({
                       />
                     </FormControl>
                     <FormLabel className="!mt-0">Published</FormLabel>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="featured"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 pt-6">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">Popular</FormLabel>
                   </FormItem>
                 )}
               />

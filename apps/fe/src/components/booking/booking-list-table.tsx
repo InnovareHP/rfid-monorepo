@@ -1,3 +1,4 @@
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import {
   cancelBooking,
   getOwnBookings,
@@ -26,10 +27,15 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Loader2,
+  Video,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+const BOOKING_SKELETON_ROWS = Array.from(
+  { length: 5 },
+  (_, index) => `booking-skeleton-${index}`
+);
 
 const TABS = [
   { key: "all", label: "All Bookings" },
@@ -123,11 +129,13 @@ export function BookingListTable() {
           </TableHeader>
           <TableBody>
             {bookingsQuery.isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center">
-                  <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-                </TableCell>
-              </TableRow>
+              BOOKING_SKELETON_ROWS.map((key) => (
+                <TableRow key={key}>
+                  <TableCell colSpan={5}>
+                    <Skeleton className="h-8 w-full" />
+                  </TableCell>
+                </TableRow>
+              ))
             ) : visible.length === 0 ? (
               <TableRow>
                 <TableCell
@@ -164,16 +172,30 @@ export function BookingListTable() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={
-                          status !== "Upcoming" || cancelMutation.isPending
-                        }
-                        onClick={() => cancelMutation.mutate(booking.id)}
-                      >
-                        Cancel
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        {booking.meetingUrl && status === "Upcoming" && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a
+                              href={booking.meetingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Video className="h-4 w-4" />
+                              Join
+                            </a>
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={
+                            status !== "Upcoming" || cancelMutation.isPending
+                          }
+                          onClick={() => cancelMutation.mutate(booking.id)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

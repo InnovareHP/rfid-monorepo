@@ -21,8 +21,12 @@ export interface AuditEntry {
   metadata?: Record<string, unknown> | null;
 }
 
-function signEntry(entry: AuditEntry): string {
-  const canonical = JSON.stringify([
+// Marks which key signed the row. Unprefixed hashes predate the split and were
+// signed with ENCRYPTION_KEY, so they stay verifiable without a rewrite.
+const HASH_PREFIX = "v2:";
+
+function canonicalize(entry: AuditEntry): string {
+  return JSON.stringify([
     entry.actorUserId ?? null,
     entry.actorOrgId ?? null,
     entry.actorRole ?? null,
@@ -35,9 +39,14 @@ function signEntry(entry: AuditEntry): string {
     entry.statusCode ?? null,
     entry.requestId ?? null,
   ]);
-  return createHmac("sha256", appConfig.ENCRYPTION_KEY)
-    .update(canonical)
-    .digest("hex");
+}
+
+function hmac(entry: AuditEntry, key: string): string {
+  return createHmac("sha256", key).update(canonicalize(entry)).digest("hex");
+}
+
+function signEntry(entry: AuditEntry): string {
+  return HASH_PREFIX + hmac(entry, appConfig.AUDIT_HMAC_KEY);
 }
 
 @Injectable()
@@ -76,6 +85,16 @@ export class AuditService {
   }
 
   verify(entry: AuditEntry, changeHash: string | null): boolean {
-    return changeHash === signEntry(entry);
+    if (!changeHash) return false;
+
+    if (changeHash.startsWith(HASH_PREFIX)) {
+      return (
+        changeHash.slice(HASH_PREFIX.length) ===
+        hmac(entry, appConfig.AUDIT_HMAC_KEY)
+      );
+    }
+
+    // Signed before the integrity key was split off the PHI key.
+    return changeHash === hmac(entry, appConfig.ENCRYPTION_KEY);
   }
 }

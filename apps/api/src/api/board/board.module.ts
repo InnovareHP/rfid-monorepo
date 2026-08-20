@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { EmailModule } from "../email/email.module";
 import { FaxModule } from "../fax/fax.module";
+import { LiaisonModule } from "../liaison/liaison.module";
+import { BoardNotifyModule } from "./board-notify.module";
 import { BoardOAuthCallbackController } from "./board-oauth-callback.controller";
 import { BoardController } from "./board.controller";
 import { BoardGateway } from "./board.gateway";
@@ -12,7 +14,7 @@ import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
 @Module({
-  imports: [FaxModule, EmailModule],
+  imports: [FaxModule, EmailModule, BoardNotifyModule, LiaisonModule],
   controllers: [BoardOAuthCallbackController, BoardController],
   providers: [
     BoardService,

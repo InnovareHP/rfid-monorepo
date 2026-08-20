@@ -5,11 +5,13 @@
 
 export * from "./lib/baa";
 export * from "./lib/constant";
+export * from "./lib/email-domain";
 export * from "./lib/entitlement";
 export * from "./lib/helper";
 export * from "./lib/notification";
 export * from "./lib/nums";
 export * from "./lib/permission";
+export * from "./lib/rich-text";
 export * from "./lib/task";
 export * from "./lib/types";
 

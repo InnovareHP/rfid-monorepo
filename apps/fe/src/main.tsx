@@ -2,7 +2,6 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 
-import Loader from "@/components/loader";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
@@ -19,9 +18,6 @@ const router = createRouter({
   defaultStructuralSharing: true,
   // Zero made every hover-preload stale on arrival, so beforeLoad ran twice per navigation.
   defaultPreloadStaleTime: 30_000,
-  defaultPendingComponent: () => <Loader isLoading />,
-  defaultPendingMs: 300,
-  defaultPendingMinMs: 200,
 });
 
 // Register the router instance for type safety

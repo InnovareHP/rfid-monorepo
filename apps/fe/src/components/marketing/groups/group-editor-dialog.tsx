@@ -34,15 +34,20 @@ import { Loader2, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useModules } from "@/hooks/use-modules";
 import { GroupAudienceFilter } from "./group-audience-filter";
 import { GroupMembersTable } from "./group-members-table";
 
-const MODULE_TYPES = ["LEAD", "REFERRAL", "CONTACT", "COMPANY"] as const;
+const AUDIENCE_TYPES = [
+  { value: "BOARD", label: "CRM records" },
+  { value: "SUBSCRIBER", label: "Newsletter subscribers" },
+] as const;
 
 const groupFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   moduleType: z.string().min(1),
+  audienceType: z.enum(["BOARD", "SUBSCRIBER"]),
   filter: z.object({
     filter: z.record(z.string(), z.string()),
     search: z.string().optional(),
@@ -57,6 +62,7 @@ const emptyValues: GroupFormValues = {
   name: "",
   description: "",
   moduleType: "LEAD",
+  audienceType: "BOARD",
   filter: { filter: {} },
 };
 
@@ -73,6 +79,8 @@ export function GroupEditorDialog({
 }: GroupEditorDialogProps) {
   const queryClient = useQueryClient();
 
+  const { data: modules = [] } = useModules();
+
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupFormSchema),
     values: group
@@ -80,19 +88,26 @@ export function GroupEditorDialog({
           name: group.name,
           description: group.description ?? "",
           moduleType: group.moduleType,
+          audienceType: group.audienceType,
           filter: group.filter,
         }
       : emptyValues,
   });
 
   const moduleType = form.watch("moduleType");
+  const audienceType = form.watch("audienceType");
   const filter = form.watch("filter");
+  // A subscriber group has no module or filter to describe - it is the list.
+  const isSubscriberAudience = audienceType === "SUBSCRIBER";
 
   // Recipients are shown while the filter is built, not only after saving.
   const { data: preview, isFetching } = useQuery({
-    queryKey: ["marketing-group-preview", moduleType, filter],
+    queryKey: ["marketing-group-preview", moduleType, audienceType, filter],
     queryFn: () =>
-      previewGroupMembers({ moduleType, filter }, { page: 1, limit: 25 }),
+      previewGroupMembers(
+        { moduleType, audienceType, filter },
+        { page: 1, limit: 25 }
+      ),
     enabled: open,
     placeholderData: keepPreviousData,
   });
@@ -103,6 +118,7 @@ export function GroupEditorDialog({
         name: values.name.trim(),
         description: values.description?.trim() || undefined,
         moduleType: values.moduleType,
+        audienceType: values.audienceType,
         filter: values.filter,
       };
       return group ? updateGroup(group.id, payload) : createGroup(payload);
@@ -169,6 +185,38 @@ export function GroupEditorDialog({
 
               <FormField
                 control={form.control}
+                name="audienceType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Audience</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {AUDIENCE_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {isSubscriberAudience ? (
+                <p className="rounded-lg border border-info/40 bg-table-header p-3 text-sm text-foreground">
+                  This group is everyone on the newsletter list who has not
+                  unsubscribed. There is nothing to filter.
+                </p>
+              ) : (
+                <>
+              <FormField
+                control={form.control}
                 name="moduleType"
                 render={({ field }) => (
                   <FormItem>
@@ -187,9 +235,9 @@ export function GroupEditorDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {MODULE_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
+                        {modules.map((module) => (
+                          <SelectItem key={module.id} value={module.key}>
+                            {module.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -212,6 +260,8 @@ export function GroupEditorDialog({
                   </FormItem>
                 )}
               />
+                </>
+              )}
             </div>
 
             <div className="space-y-3">

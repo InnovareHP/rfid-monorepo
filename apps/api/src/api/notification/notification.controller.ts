@@ -9,12 +9,17 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import type { NotificationCategoryValue } from "@dashboard/shared";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
+import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
 import { MarkReadDto } from "./dto/notification.schema";
 import { NotificationService } from "./notification.service";
 
+// Titles and bodies quote the records they came from, so these routes carry PHI
+// and answer to the same compliance gate as the records themselves.
 @Controller("notification")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, SubscriptionGuard, HipaaGuard)
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
@@ -22,6 +27,8 @@ export class NotificationController {
   async getNotifications(
     @Session() session: MemberSession,
     @Query("unreadOnly") unreadOnly?: string,
+    @Query("category") category?: NotificationCategoryValue,
+    @Query("search") search?: string,
     @Query("page") page: number = 1,
     @Query("limit") limit: number = 20
   ) {
@@ -31,9 +38,23 @@ export class NotificationController {
         session.session.memberId,
         {
           unreadOnly: unreadOnly === "true",
+          category: category ?? "all",
+          search: search?.trim() ?? "",
           page: Number(page),
           limit: Number(limit),
         }
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get("stats")
+  async getStats(@Session() session: MemberSession) {
+    try {
+      return await this.notificationService.getStats(
+        session.session.activeOrganizationId,
+        session.session.memberId
       );
     } catch (error) {
       throw new BadRequestException(error.message);

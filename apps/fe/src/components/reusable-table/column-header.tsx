@@ -20,6 +20,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowDownAZ, ArrowUpAZ, ChevronsUpDown, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
 
 type ColumnHeaderProps = {
@@ -62,7 +63,7 @@ export function ColumnHeader({
       await deleteColumnField(columnId, moduleType);
       toast.success(`Column "${columnName}" deleted`);
       queryClient.invalidateQueries({
-        queryKey: [moduleType === "REFERRAL" ? "referrals" : "leads"],
+        queryKey: boardQueryKey(moduleType ?? "LEAD"),
       });
     } catch {
       toast.error("Failed to delete column");

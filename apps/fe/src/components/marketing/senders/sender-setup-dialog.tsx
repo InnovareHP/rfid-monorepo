@@ -1,3 +1,4 @@
+import { getGmailStatus, getOutlookStatus } from "@/services/lead/lead-service";
 import {
   createSender,
   verifySender,
@@ -20,19 +21,11 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { getGmailStatus, getOutlookStatus } from "@/services/lead/lead-service";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import {
-  AtSign,
-  Building2,
-  Globe,
-  Loader2,
-  MailCheck,
-  Plug,
-} from "lucide-react";
+import { AtSign, Globe, Loader2, MailCheck, Plug } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -52,12 +45,6 @@ const KIND_OPTIONS: {
     icon: AtSign,
   },
   {
-    kind: "MANAGED_DOMAIN",
-    title: "A domain we host",
-    blurb: "Sends as a subdomain of ours, not yours. No DNS work on your side.",
-    icon: Building2,
-  },
-  {
     kind: "CUSTOM_DOMAIN",
     title: "My own domain",
     blurb: "Sends as your domain. You publish three DNS records to verify it.",
@@ -67,22 +54,14 @@ const KIND_OPTIONS: {
 
 const senderFormSchema = z
   .object({
-    kind: z.enum(["PERSONAL", "MANAGED_DOMAIN", "CUSTOM_DOMAIN"]),
+    kind: z.enum(["PERSONAL", "CUSTOM_DOMAIN"]),
     label: z.string().min(1, "Name this sender"),
     fromName: z.string().optional(),
-    subdomain: z.string().optional(),
     domain: z.string().optional(),
     mailbox: z.string().optional(),
     replyTo: z.string().optional(),
   })
   .superRefine((values, ctx) => {
-    if (values.kind === "MANAGED_DOMAIN" && !values.subdomain?.trim()) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["subdomain"],
-        message: "Pick a subdomain",
-      });
-    }
     if (values.kind === "CUSTOM_DOMAIN" && !values.domain?.trim()) {
       ctx.addIssue({
         code: "custom",
@@ -133,7 +112,6 @@ export function SenderSetupDialog({
       kind: "PERSONAL",
       label: "",
       fromName: "",
-      subdomain: "",
       domain: "",
       mailbox: "hello",
       replyTo: "",
@@ -154,15 +132,6 @@ export function SenderSetupDialog({
       }
       const replyTo = values.replyTo?.trim() || undefined;
 
-      if (values.kind === "MANAGED_DOMAIN") {
-        return createSender({
-          kind: "MANAGED_DOMAIN",
-          ...shared,
-          subdomain: values.subdomain!.trim(),
-          mailbox: values.mailbox?.trim() || undefined,
-          replyTo,
-        });
-      }
       return createSender({
         kind: "CUSTOM_DOMAIN",
         ...shared,
@@ -240,7 +209,7 @@ export function SenderSetupDialog({
                 name="kind"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {KIND_OPTIONS.map((option) => {
                         const Icon = option.icon;
                         const selected = field.value === option.kind;
@@ -310,43 +279,6 @@ export function SenderSetupDialog({
                 />
               </div>
 
-              {kind === "MANAGED_DOMAIN" && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="mailbox"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mailbox</FormLabel>
-                        <FormControl>
-                          <Input placeholder="hello" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="subdomain"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Subdomain <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="acme" {...field} />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          A name only, no dots. Use "My own domain" to send as
-                          a domain you already have.
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-
               {kind === "CUSTOM_DOMAIN" && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
@@ -388,10 +320,7 @@ export function SenderSetupDialog({
                     <FormItem>
                       <FormLabel>Replies Go To</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="you@acme-health.com"
-                          {...field}
-                        />
+                        <Input placeholder="you@acme-health.com" {...field} />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
                         A sending domain has no inbox. Leave blank to use your

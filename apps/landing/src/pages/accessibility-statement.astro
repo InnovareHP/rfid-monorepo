@@ -1,0 +1,67 @@
+---
+import LegalSection from "../components/LegalSection.astro";
+import { EFFECTIVE_DATE, SUPPORT_EMAIL } from "../config";
+import LegalLayout from "../layouts/LegalLayout.astro";
+
+const SECTIONS = [
+  {
+    heading: "Our standard",
+    body: [
+      "Liaisons, admission managers, and marketing directors should be able to run their referral operation in Refidly regardless of how they navigate a screen. We work toward conformance with the Web Content Accessibility Guidelines 2.1 at Level AA across both refidly.com and the application.",
+      "This is an ongoing effort rather than a finished state. We are describing what is in place today and what we are still working on, because a statement that claims full conformance without qualification is rarely accurate.",
+    ],
+  },
+  {
+    heading: "What we do",
+    items: [
+      "Keyboard operation across navigation, forms, dialogs, and the referral tables, with a visible focus indicator on every interactive element.",
+      "Semantic headings, landmarks, and labelled navigation so screen reader users can move through a page by structure.",
+      "Form fields tied to their labels, with validation errors announced as text rather than signalled by color alone.",
+      "Text and interface colors chosen from a token palette checked against WCAG AA contrast, in both light and dark themes.",
+      "Motion respected: animated reveals and floating elements stop when the operating system requests reduced motion.",
+      "Layouts that reflow without horizontal scrolling down to a narrow viewport, and that survive browser zoom to 200 percent.",
+      "Meaningful alternative text on informative images, and decorative graphics hidden from assistive technology.",
+    ],
+  },
+  {
+    heading: "Known limitations",
+    items: [
+      "The referral and facility tables carry many dynamic columns. Keyboard navigation works, but announcement of cell context during inline editing is still being improved.",
+      "Analytics charts convey trends visually. Underlying figures are available through CSV export, and text alternatives for each chart are in progress.",
+      "The calendar view uses a third-party component whose keyboard behaviour we do not fully control. We are tracking its accessibility fixes upstream.",
+      "Some PDF and CSV exports are generated for print layout and are not tagged for screen readers.",
+    ],
+  },
+  {
+    heading: "How we test",
+    body: [
+      "We test with current versions of Chrome, Edge, Firefox, and Safari, using NVDA on Windows and VoiceOver on macOS and iOS, alongside keyboard-only navigation and automated checks in our review process.",
+    ],
+  },
+  {
+    heading: "Feedback",
+    body: [
+      "If you hit a barrier in Refidly, tell us what you were trying to do, the page or feature, and the assistive technology and browser you were using. We acknowledge accessibility reports within two business days and prioritize anything that blocks a core task such as creating a referral, editing a record, or exporting a report.",
+      "If a Refidly feature is unusable for you, we will find another way to get you the information or the action while we fix the underlying problem.",
+    ],
+  },
+];
+---
+
+<LegalLayout
+  title="Accessibility Statement — Refidly"
+  description="Refidly works toward WCAG 2.1 Level AA. What is in place today, known limitations, how we test, and how to report a barrier."
+  heading="Accessibility Statement"
+  lead="Where Refidly stands against WCAG 2.1 Level AA, what still falls short, and how to tell us when something blocks you."
+  updated={EFFECTIVE_DATE}
+>
+  {SECTIONS.map((section) => <LegalSection {...section} />)}
+
+  <LegalSection heading="Accessibility feedback">
+    <p class="legal-body">
+      Reach the team at <a href={`mailto:${SUPPORT_EMAIL}`} class="legal-link"
+        >{SUPPORT_EMAIL}</a
+      > with "Accessibility" in the subject line.
+    </p>
+  </LegalSection>
+</LegalLayout>

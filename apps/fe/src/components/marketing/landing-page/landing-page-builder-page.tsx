@@ -1,3 +1,4 @@
+import { BuilderPageSkeleton } from "@/components/skeletons/builder-page-skeleton";
 import {
   landingPageFormSchema,
   type LandingPageFormValues,
@@ -212,7 +213,7 @@ export const LandingPageBuilderPage = () => {
   };
 
   if (isLoading || !page) {
-    return <div className="p-8 text-sm text-gray-400">Loading...</div>;
+    return <BuilderPageSkeleton />;
   }
 
   return (

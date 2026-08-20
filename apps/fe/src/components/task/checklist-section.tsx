@@ -6,6 +6,7 @@ import { Progress } from "@dashboard/ui/components/progress";
 import { cn } from "@dashboard/ui/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { TaskSection } from "./task-section";
 
 type ChecklistSectionProps = {
   items: TaskChecklistItemDto[];
@@ -32,16 +33,16 @@ export const ChecklistSection = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-900">Checklist</h4>
-        {items.length > 0 && (
-          <span className="text-xs text-gray-500">
+    <TaskSection
+      title="Checklist"
+      action={
+        items.length > 0 && (
+          <span className="text-sm text-muted-foreground">
             {done}/{items.length}
           </span>
-        )}
-      </div>
-
+        )
+      }
+    >
       {items.length > 0 && (
         <Progress value={(done / items.length) * 100} className="h-1.5" />
       )}
@@ -50,56 +51,56 @@ export const ChecklistSection = ({
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-2 group py-1 px-1 rounded hover:bg-gray-50"
+            className="group flex items-center gap-3 rounded px-1 py-1 hover:bg-muted"
           >
             <Checkbox
               checked={item.isDone}
               disabled={disabled}
-              onCheckedChange={(checked) =>
-                onToggle(item.id, Boolean(checked))
-              }
+              onCheckedChange={(checked) => onToggle(item.id, Boolean(checked))}
             />
             <span
               className={cn(
-                "flex-1 text-sm text-gray-800",
-                item.isDone && "line-through text-gray-400"
+                "flex-1 text-sm text-foreground",
+                item.isDone && "text-muted-foreground line-through"
               )}
             >
               {item.title}
             </span>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               disabled={disabled}
               onClick={() => onDelete(item.id)}
-              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600"
+              className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
               aria-label="Delete checklist item"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="size-3.5" />
             </Button>
           </div>
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <Checkbox checked={false} disabled aria-hidden />
         <Input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Add checklist item"
-          className="h-8"
+          placeholder="Add Checklist Item"
+          className="flex-1"
           onKeyDown={(event) => {
             if (event.key === "Enter") handleAdd();
           }}
         />
         <Button
-          variant="outline"
-          size="sm"
+          variant="ghost"
+          size="icon"
           onClick={handleAdd}
           disabled={disabled || !title.trim()}
+          aria-label="Add checklist item"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
         </Button>
       </div>
-    </div>
+    </TaskSection>
   );
 };

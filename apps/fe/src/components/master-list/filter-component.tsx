@@ -49,8 +49,7 @@ export function FilterComponent({
     queryKey: ["dropdown-options", col.id],
     queryFn: () => getDropdownOptions(col.id),
     enabled: hasOptions,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 30,
   });
 
   const isLinkType =
@@ -72,8 +71,7 @@ export function FilterComponent({
         ? getLeadRecords(1, 500)
         : getLinkCandidates(linkTargetModule, 1, 500),
     enabled: isLinkType,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 30,
   });
 
   switch (col.type) {

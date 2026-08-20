@@ -1,3 +1,4 @@
+import { PublicPageSkeleton } from "@/components/skeletons/page-skeletons";
 import { LandingPagePreview } from "@/components/marketing/landing-page/landing-page-preview";
 import { getPublicLandingPage } from "@/services/marketing/landing-page-service";
 import { useQuery } from "@tanstack/react-query";
@@ -21,11 +22,7 @@ export const PublicLandingPage = () => {
   }, [page?.seoTitle]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
-        Loading...
-      </div>
-    );
+    return <PublicPageSkeleton />;
   }
 
   if (isError || !page) {

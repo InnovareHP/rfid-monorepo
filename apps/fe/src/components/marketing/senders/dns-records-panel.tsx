@@ -39,35 +39,22 @@ function CopyCell({ value }: { value: string }) {
   );
 }
 
-// Managed domains sit in our own zone, so the records are an ops task rather
-// than something the customer has to publish.
 export function DnsRecordsPanel({
   sender,
   isVerifying,
   onVerify,
 }: DnsRecordsPanelProps) {
   const records = sender.dnsRecords ?? [];
-  const isManaged = sender.kind === "MANAGED_DOMAIN";
 
   if (!sender.domain) return null;
 
   return (
     <div className="space-y-3">
       <div className="rounded-lg border border-blue-200 bg-[#F4F9FF] p-4 text-sm text-gray-700">
-        {isManaged ? (
-          <>
-            <strong className="font-semibold">{sender.domain}</strong> is a
-            subdomain we run. Support publishes these records in our zone — you
-            do not need to change any DNS.
-          </>
-        ) : (
-          <>
-            Add these {records.length} CNAME records to the DNS for{" "}
-            <strong className="font-semibold">{sender.domain}</strong>, then
-            check verification. Nothing else is required. Propagation usually
-            takes minutes but can take up to 72 hours.
-          </>
-        )}
+        Add these {records.length} CNAME records to the DNS for{" "}
+        <strong className="font-semibold">{sender.domain}</strong>, then check
+        verification. Nothing else is required. Propagation usually takes
+        minutes but can take up to 72 hours.
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200">

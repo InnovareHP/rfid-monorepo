@@ -1,3 +1,6 @@
+import { moduleIcon } from "@/lib/helper/module-icons";
+import { useModules } from "@/hooks/use-modules";
+import { modulePath } from "@/lib/helper/module-route";
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
@@ -13,7 +16,6 @@ import { Link } from "@tanstack/react-router";
 import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
-  Building2,
   CalendarClock,
   CircuitBoard,
   ClipboardList,
@@ -21,13 +23,13 @@ import {
   CreditCard,
   DollarSign,
   FileText,
-  Folder,
   HistoryIcon,
   LayoutTemplate,
-  Megaphone,
   MailCheck,
   MailPlus,
+  Mailbox,
   MapPin,
+  Megaphone,
   Route,
   Settings,
   ShieldCheck,
@@ -35,12 +37,16 @@ import {
   SquareTerminal,
   Target,
   Upload,
+  Plus,
+  FileBarChart,
   Users,
 } from "lucide-react";
 import * as React from "react";
 
 const BRAND_WORDMARK =
   "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
+
+
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   activeOrganizationId: string;
@@ -57,7 +63,13 @@ export function AppSidebar({
 }: AppSidebarProps) {
   // HIPAA mode and the BAA are a Scale feature, so the tab is hidden rather
   // than shown leading to an upsell the plan cannot act on.
-  const canUseHipaa = useEntitlement(activeOrganizationId).has("hipaa");
+  const entitlement = useEntitlement(activeOrganizationId);
+  const canUseHipaa = entitlement.has("hipaa");
+  const canExport = entitlement.has("export");
+  const canUseCustomReporting = entitlement.has("custom_reporting");
+  const canUseAdvancedAnalytics = entitlement.has("advanced_analytics");
+
+  const { data: modules = [] } = useModules();
 
   const data = React.useMemo(
     () => ({
@@ -65,56 +77,45 @@ export function AppSidebar({
         {
           title: "Overview",
           icon: SquareTerminal,
-          isActive: true,
-          items: [
-            {
-              title: "Referral Analytics",
-              url: `/${activeOrganizationId}`,
-              icon: FileText,
-            },
-            {
-              title: "Master Marketing List Analytics",
-              url: `/${activeOrganizationId}/master-list-analytics`,
-              icon: Users,
-            },
-          ],
+          // Analytics is a paid feature, so the entries are hidden rather than
+          // leading to a lock screen.
+          items: canUseAdvancedAnalytics
+            ? [
+                {
+                  title: "Referral Analytics",
+                  url: `/${activeOrganizationId}`,
+                  icon: FileText,
+                },
+                {
+                  title: "Master Marketing List Analytics",
+                  url: `/${activeOrganizationId}/master-list-analytics`,
+                  icon: Users,
+                },
+              ]
+            : [],
         },
         {
           title: "CRM",
           icon: Contact,
+          // New Module sits last so the group reads as the modules you have,
+          // then the way to add one.
           items: [
+            ...modules.map((module) => ({
+              title: module.label,
+              url: `/${activeOrganizationId}/${modulePath(module.key)}`,
+              icon: moduleIcon(module.icon),
+            })),
             {
-              title: "Master Marketing List",
-              url: `/${activeOrganizationId}/master-list`,
-              icon: FileText,
-            },
-            {
-              title: "Referral Logs",
-              url: `/${activeOrganizationId}/referral-list`,
-              icon: Users,
-            },
-            {
-              title: "Phonebook",
-              url: `/${activeOrganizationId}/contacts`,
-              icon: Contact,
-            },
-            {
-              title: "Companies",
-              url: `/${activeOrganizationId}/companies`,
-              icon: Building2,
+              title: "New Module",
+              url: `/${activeOrganizationId}/records/new`,
+              icon: Plus,
             },
           ],
         },
         {
-          title: "Productivity",
+          title: "Tasks",
+          url: `/${activeOrganizationId}/tasks`,
           icon: ClipboardList,
-          items: [
-            {
-              title: "Tasks",
-              url: `/${activeOrganizationId}/tasks`,
-              icon: ClipboardList,
-            },
-          ],
         },
         {
           title: "Marketing Hub",
@@ -129,21 +130,30 @@ export function AppSidebar({
               title: "Campaigns",
               url: `/${activeOrganizationId}/marketing/campaigns`,
               icon: Megaphone,
+              // Audience and sending identity are what a campaign is built from,
+              // so they hang off it instead of sitting as siblings.
+              items: [
+                {
+                  title: "Groups",
+                  url: `/${activeOrganizationId}/marketing/groups`,
+                  icon: Users,
+                },
+                {
+                  title: "Subscribers",
+                  url: `/${activeOrganizationId}/marketing/subscribers`,
+                  icon: Mailbox,
+                },
+                {
+                  title: "Senders",
+                  url: `/${activeOrganizationId}/marketing/senders`,
+                  icon: MailCheck,
+                },
+              ],
             },
             {
               title: "Blasts",
               url: `/${activeOrganizationId}/marketing/blasts`,
               icon: MailPlus,
-            },
-            {
-              title: "Groups",
-              url: `/${activeOrganizationId}/marketing/groups`,
-              icon: Users,
-            },
-            {
-              title: "Senders",
-              url: `/${activeOrganizationId}/marketing/senders`,
-              icon: MailCheck,
             },
             {
               title: "Landing Pages",
@@ -155,22 +165,18 @@ export function AppSidebar({
         ...(can(memberData?.role, { report: ["read"] })
           ? [
               {
-                title: "Records",
+                title: "History",
+                url: `/${activeOrganizationId}/history`,
                 icon: HistoryIcon,
-                items: [
-                  {
-                    title: "History Check",
-                    url: `/${activeOrganizationId}/history`,
-                    icon: HistoryIcon,
-                  },
-                ],
               },
             ]
           : []),
+        // Renamed from "Marketing": these are the field logs, and two sibling
+        // categories both called Marketing gave no way to tell them apart.
         ...(can(memberData?.role, { log: ["create"] })
           ? [
               {
-                title: "Marketing",
+                title: "Logs",
                 icon: CircuitBoard,
                 items: [
                   {
@@ -213,29 +219,35 @@ export function AppSidebar({
                     url: `/${activeOrganizationId}/report/expense`,
                     icon: DollarSign,
                   },
+                  // Scale only, so the entry is hidden rather than leading to a
+                  // refusal the plan cannot act on.
+                  ...(canUseCustomReporting
+                    ? [
+                        {
+                          title: "Custom Reports",
+                          url: `/${activeOrganizationId}/report/custom`,
+                          icon: FileBarChart,
+                        },
+                      ]
+                    : []),
                 ],
               },
             ]
           : []),
-        ...(can(memberData?.role, { record: ["import"] })
+        ...(canExport && can(memberData?.role, { record: ["import"] })
           ? [
               {
                 title: "Import",
-                icon: Folder,
-                items: [
-                  {
-                    title: "Master Marketing List",
-                    url: `/${activeOrganizationId}/import/master-list`,
-                    icon: Upload,
-                  },
-                ],
+                url: `/${activeOrganizationId}/import/master-list`,
+                icon: Upload,
               },
             ]
           : []),
         {
           title: "Settings",
-          url: `/${activeOrganizationId}/settings`,
           icon: Settings,
+          // No row for /settings itself: that route is a layout with a bare
+          // Outlet and no index child, so it renders blank.
           items: [
             {
               title: "Team",
@@ -264,14 +276,18 @@ export function AppSidebar({
             ...(can(memberData?.role, { billing: ["manage_billing"] })
               ? [
                   {
-                    title: "Plans",
-                    url: `/${activeOrganizationId}/plans`,
-                    icon: Sparkles,
-                  },
-                  {
                     title: "Billing",
                     url: `/${activeOrganizationId}/settings/billing`,
                     icon: CreditCard,
+                    // Changing plan is something you do from billing, not a
+                    // separate settings destination.
+                    items: [
+                      {
+                        title: "Plans",
+                        url: `/${activeOrganizationId}/plans`,
+                        icon: Sparkles,
+                      },
+                    ],
                   },
                 ]
               : []),
@@ -279,7 +295,15 @@ export function AppSidebar({
         },
       ],
     }),
-    [activeOrganizationId, memberData?.role, canUseHipaa]
+    [
+      activeOrganizationId,
+      memberData?.role,
+      canUseHipaa,
+      canExport,
+      canUseCustomReporting,
+      canUseAdvancedAnalytics,
+      modules,
+    ]
   );
 
   return (
@@ -298,7 +322,7 @@ export function AppSidebar({
           >
             <img
               src={BRAND_WORDMARK}
-              alt="Dashboard Logo"
+              alt="Refidly"
               className="h-auto w-[70%] max-w-full cursor-pointer object-contain object-left"
               loading="eager"
               decoding="async"

@@ -3,11 +3,13 @@ import { decryptNullable, encryptNullable } from "../crypto/crypto";
 
 type FieldMap = Record<string, readonly string[]>;
 
-const ENCRYPTED_FIELDS: FieldMap = {
-  GmailToken: ["accessToken", "refreshToken"],
-  OutlookToken: ["accessToken", "refreshToken"],
-  GoogleCalendarToken: ["accessToken", "refreshToken"],
-  OutlookCalendarToken: ["accessToken", "refreshToken"],
+export const ENCRYPTED_FIELDS: FieldMap = {
+  // The mailbox address rides along with the tokens: it identifies the account
+  // the grant belongs to and is only ever selected, never filtered on.
+  GmailToken: ["accessToken", "refreshToken", "gmailAddress"],
+  OutlookToken: ["accessToken", "refreshToken", "outlookEmail"],
+  GoogleCalendarToken: ["accessToken", "refreshToken", "email"],
+  OutlookCalendarToken: ["accessToken", "refreshToken", "email"],
   FieldPersonInformation: ["contactNumber", "email", "address"],
   TwoFactor: ["secret", "backupCodes"],
   OrgIntegration: ["apiKey"],
@@ -27,11 +29,32 @@ const ENCRYPTED_FIELDS: FieldMap = {
   TaskActivity: ["oldValue", "newValue"],
   Booking: ["inviteeName", "inviteeEmail", "inviteeNotes"],
   ContractAgreement: ["signerName", "signerEmail"],
+  // Copied off a lead's encrypted contact field, so it must not land plaintext.
+  // Safe to encrypt: the unique key is (blastId, recordId), never email.
+  BlastRecipient: ["email"],
+  // Matching goes through the plaintext emailHash column, so the address and
+  // name stay encrypted and no unique key touches ciphertext.
+  EmailSubscriber: ["email", "name"],
+  // Tenants paste record detail into tickets to explain a bug, so support text is
+  // PHI-bearing. SupportHistory.message mirrors the message verbatim.
+  SupportTicket: ["title", "subject", "description"],
+  SupportTicketMessage: ["message"],
+  SupportHistory: ["message"],
+  SupportTicketRating: ["comment"],
+  SupportLiveChat: ["message"],
+  SupportLiveChatMessage: ["message"],
+  // An IP is Safe Harbor identifier 18 and the user agent fingerprints a device.
+  // Neither is ever matched in SQL; both are write-only columns.
+  FormSubmission: ["sourceIp", "userAgent"],
+  // Built from a record name, so a notification title carries whatever the
+  // record is called. Encrypted in the service before this existed; the crypto
+  // helpers are idempotent, so listing it here is what makes it structural.
+  Notification: ["title", "body"],
 };
 
 // Relation key → model, so encrypted models are handled when nested
 // under another model's include/select or nested-write payload.
-const RELATION_MODELS: Record<string, string> = {
+export const RELATION_MODELS: Record<string, string> = {
   values: "FieldValue",
   contactValue: "FieldPersonInformation",
   fieldvalue: "FieldValue",
@@ -54,6 +77,26 @@ const RELATION_MODELS: Record<string, string> = {
   blockedTask: "Task",
   blocking: "TaskDependency",
   blockedBy: "TaskDependency",
+  recipients: "BlastRecipient",
+  SupportTicketMessage: "SupportTicketMessage",
+  SupportHistory: "SupportHistory",
+  SupportTicketRating: "SupportTicketRating",
+  supportTicket: "SupportTicket",
+  supportLiveChat: "SupportLiveChat",
+  messages: "SupportLiveChatMessage",
+  // An unmapped key is worse on write than on read: a nested create descends no
+  // further and stores the child plaintext, where a nested read only returns
+  // ciphertext someone would notice. These had no entry at all.
+  GmailToken: "GmailToken",
+  OutlookToken: "OutlookToken",
+  GoogleCalendarToken: "GoogleCalendarToken",
+  OutlookCalendarToken: "OutlookCalendarToken",
+  TwoFactor: "TwoFactor",
+  agreements: "ContractAgreement",
+  integrations: "OrgIntegration",
+  bookings: "Booking",
+  formSubmissions: "FormSubmission",
+  submissions: "FormSubmission",
 };
 
 function encryptOwnFields(model: string, data: any): any {

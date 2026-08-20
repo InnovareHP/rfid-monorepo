@@ -11,6 +11,7 @@ import { TrialEndingEmail } from "../../react-email/trial-ending-email";
 import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
 import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
+import { runWithTenant } from "../prisma/tenant-context";
 import { emailQueue } from "../queue/email-queue";
 import { getPlan, PLANS } from "./plans";
 import { claimWebhookEvent, releaseWebhookEvent } from "./webhook-idempotency";
@@ -152,6 +153,47 @@ const notifyOwners = async (
   }
 };
 
+// The ledger row is written at settlement, not on read. Idempotent by invoice id
+// because Stripe retries, and the webhook claim is released on handler failure.
+const recordInvoiceTransaction = async (
+  customerId: string,
+  invoice: Stripe.Invoice,
+  status: "COMPLETED" | "FAILED"
+) => {
+  const subscription = await prisma.subscription.findFirst({
+    where: { stripeCustomerId: customerId },
+    select: { plan: true, seats: true, referenceId: true },
+  });
+  if (!subscription || !invoice.id) return;
+
+  const planLabel = getPlan(subscription.plan)?.label ?? subscription.plan;
+  const seats = subscription.seats ?? 1;
+
+  // The webhook runs outside any request, so the tenant store is opened here or
+  // the scope extension rejects the write.
+  await runWithTenant(subscription.referenceId, async () => {
+    const existing = await prisma.transaction.findFirst({
+      where: { stripeInvoiceId: invoice.id, status },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    await prisma.transaction.create({
+      data: {
+        organizationId: subscription.referenceId,
+        type: "SUBSCRIPTION",
+        status,
+        amountCents:
+          status === "COMPLETED" ? invoice.amount_paid : invoice.amount_due,
+        currency: invoice.currency ?? "usd",
+        description: `${planLabel} — ${seats} ${seats === 1 ? "seat" : "seats"}`,
+        stripeInvoiceId: invoice.id,
+        metadata: { plan: subscription.plan, seats },
+      },
+    });
+  });
+};
+
 // The plugin owns every write to the subscription row: it reads the period off
 // items.data[0] and resolves the plan from the price. Duplicating that here is
 // how the row ends up with a hardcoded plan and a wrong period.
@@ -173,6 +215,15 @@ const handleEvent = async (event: Stripe.Event) => {
           : event.type === "invoice.payment_failed"
             ? "failed"
             : "upcoming";
+
+      // An upcoming invoice has not been charged, so it earns no ledger row.
+      if (kind !== "upcoming") {
+        await recordInvoiceTransaction(
+          customerId,
+          invoice,
+          kind === "paid" ? "COMPLETED" : "FAILED"
+        );
+      }
 
       await notifyOwners(customerId, kind, invoice);
       return;

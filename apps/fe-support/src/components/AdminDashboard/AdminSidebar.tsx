@@ -35,6 +35,8 @@ import {
   Building2,
   ChevronsUpDown,
   ClipboardList,
+  LayoutDashboard,
+  ListChecks,
   LogOut,
   Shield,
   Star,
@@ -44,8 +46,102 @@ import {
 } from "lucide-react";
 import * as React from "react";
 
-const LOGO_RFID = "/images/rfid.png";
-const LOGO_TARSIER = "/images/tarsier.png";
+const QUEUE_BOARD_URL = "/api/queues";
+
+const LOGO_WORDMARK = "/branding/Wordmark/refidly-wordmark-colored.png";
+const LOGO_ICON = "/branding/Icon/refidly-icon-colored.png";
+
+type NavItem = {
+  id: string;
+  title: string;
+  icon: React.ElementType;
+  path: string;
+  // Set on a landing page that other items nest under, so it lights up only on
+  // an exact match rather than for every child route.
+  exact?: boolean;
+};
+
+const SUPER_ADMIN_NAV: NavItem[] = [
+  {
+    id: "overview",
+    title: "Overview",
+    icon: LayoutDashboard,
+    path: "/admin",
+    exact: true,
+  },
+  {
+    id: "user-management",
+    title: "User Management",
+    icon: Users,
+    path: "/admin/users",
+  },
+  {
+    id: "organizations",
+    title: "Organizations",
+    icon: Building2,
+    path: "/admin/organizations",
+  },
+  {
+    id: "activity-log",
+    title: "Activity Log",
+    icon: ClipboardList,
+    path: "/admin/activity-log",
+  },
+  { id: "tickets", title: "Tickets", icon: Ticket, path: "/support/tickets" },
+  {
+    id: "ratings",
+    title: "CSAT Report",
+    icon: Star,
+    path: "/support/ratings",
+  },
+  {
+    id: "team-kpis",
+    title: "Team KPIs",
+    icon: BarChart3,
+    path: "/support/kpi/team",
+  },
+  {
+    id: "manual",
+    title: "User Manual",
+    icon: BookOpen,
+    path: "/support/manual",
+  },
+];
+
+const SUPPORT_NAV: NavItem[] = [
+  {
+    id: "dashboard",
+    title: "Support Dashboard",
+    icon: Shield,
+    path: "/support",
+    exact: true,
+  },
+  { id: "tickets", title: "Tickets", icon: Ticket, path: "/support/tickets" },
+  {
+    id: "ratings",
+    title: "CSAT Report",
+    icon: Star,
+    path: "/support/ratings",
+  },
+  {
+    id: "my-kpis",
+    title: "My KPIs",
+    icon: BarChart3,
+    path: "/support/kpi/my",
+  },
+  {
+    id: "manual",
+    title: "User Manual",
+    icon: BookOpen,
+    path: "/support/manual",
+  },
+];
+
+const navFor = (role: string | undefined): NavItem[] => {
+  if (role === ROLES.SUPER_ADMIN) return SUPER_ADMIN_NAV;
+  if (role === ROLES.SUPPORT) return SUPPORT_NAV;
+  return [];
+};
 
 export function AdminSidebar() {
   const { pathname } = useLocation();
@@ -67,17 +163,17 @@ export function AdminSidebar() {
   }, [queryClient, router]);
 
   React.useEffect(() => {
-    const rfidImage = new Image();
-    rfidImage.src = LOGO_RFID;
-    const tarsierImage = new Image();
-    tarsierImage.src = LOGO_TARSIER;
+    const wordmarkImage = new Image();
+    wordmarkImage.src = LOGO_WORDMARK;
+    const iconImage = new Image();
+    iconImage.src = LOGO_ICON;
     return () => {
-      rfidImage.src = "";
-      tarsierImage.src = "";
+      wordmarkImage.src = "";
+      iconImage.src = "";
     };
   }, []);
 
-  const logoSrc = state === "collapsed" ? LOGO_TARSIER : LOGO_RFID;
+  const logoSrc = state === "collapsed" ? LOGO_ICON : LOGO_WORDMARK;
 
   const logoClassName = cn(
     "cursor-pointer transition-all duration-300 object-contain object-center",
@@ -89,12 +185,12 @@ export function AdminSidebar() {
       <SidebarHeader>
         <div className="mb-2 w-full overflow-hidden flex items-center justify-center">
           <Link
-            to="/support"
+            to={role === ROLES.SUPER_ADMIN ? "/admin" : "/support"}
             className="cursor-pointer flex w-full h-full items-center justify-center"
           >
             <img
               src={logoSrc}
-              alt="Admin Dashboard"
+              alt="Refidly"
               className={logoClassName}
               loading="eager"
               decoding="async"
@@ -106,124 +202,52 @@ export function AdminSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Admin</SidebarGroupLabel>
           <SidebarMenu>
-            {(() => {
-              // Role-based navigation:
-              // - SUPER_ADMIN: only Admin Dashboard (/admin)
-              // - SUPPORT: support dashboard + tickets + portal
-              // - others: no items for now
-              const items =
-                role === ROLES.SUPER_ADMIN
-                  ? [
-                      {
-                        id: "user-management",
-                        title: "User Management",
-                        icon: Users,
-                        path: "/admin/users",
-                      },
-                      {
-                        id: "organizations",
-                        title: "Organizations",
-                        icon: Building2,
-                        path: "/admin/organizations",
-                      },
-                      {
-                        id: "activity-log",
-                        title: "Activity Log",
-                        icon: ClipboardList,
-                        path: "/admin/activity-log",
-                      },
-                      {
-                        id: "tickets",
-                        title: "Tickets",
-                        icon: Ticket,
-                        path: "/support/tickets",
-                      },
-                      {
-                        id: "team-kpis",
-                        title: "Team KPIs",
-                        icon: BarChart3,
-                        path: "/support/kpi/team",
-                      },
-                      {
-                        id: "manual",
-                        title: "User Manual",
-                        icon: BookOpen,
-                        path: "/support/manual",
-                      },
-                    ]
-                  : role === ROLES.SUPPORT
-                    ? [
-                        {
-                          id: "dashboard",
-                          title: "Support Dashboard",
-                          icon: Shield,
-                          path: "/support",
-                        },
-                        {
-                          id: "tickets",
-                          title: "Tickets",
-                          icon: Ticket,
-                          path: "/support/tickets",
-                        },
-                        {
-                          id: "ratings",
-                          title: "CSAT Report",
-                          icon: Star,
-                          path: "/support/ratings",
-                        },
-                        {
-                          id: "my-kpis",
-                          title: "My KPIs",
-                          icon: BarChart3,
-                          path: "/support/kpi/my",
-                        },
-                        {
-                          id: "manual",
-                          title: "User Manual",
-                          icon: BookOpen,
-                          path: "/support/manual",
-                        },
-                      ]
-                    : [];
+            {navFor(role).map((item) => {
+              const Icon = item.icon;
+              const isActive = item.exact
+                ? pathname === item.path
+                : pathname === item.path ||
+                  pathname.startsWith(item.path + "/");
 
-              return items.map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  item.path === "/support"
-                    ? pathname === "/support"
-                    : item.path === "/admin"
-                      ? pathname === "/admin" || pathname.startsWith("/admin/")
-                      : pathname === item.path ||
-                        pathname.startsWith(item.path + "/");
-
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      tooltip={item.title}
-                      isActive={isActive}
-                      asChild
+              return (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={isActive}
+                    asChild
+                  >
+                    <Link
+                      to={item.path}
+                      preload={
+                        item.id === "my-kpis" || item.id === "team-kpis"
+                          ? "intent"
+                          : false
+                      }
                     >
-                      <Link
-                        to={item.path}
-                        preload={
-                          item.id === "my-kpis" || item.id === "team-kpis"
-                            ? "intent"
-                            : false
-                        }
-                      >
-                        <Icon className="size-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              });
-            })()}
+                      <Icon className="size-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          {/* Served by the API rather than the router, so it is a plain anchor
+              instead of a nav item. Gated to super_admin and support upstream. */}
+          {(role === ROLES.SUPER_ADMIN || role === ROLES.SUPPORT) && (
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Job Queues" asChild>
+                <a href={QUEUE_BOARD_URL} target="_blank" rel="noreferrer">
+                  <ListChecks className="size-4" />
+                  <span>Job Queues</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -33,6 +33,7 @@ import {
   EyeOff,
   FolderPlus,
   Plus,
+  Star,
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
@@ -90,6 +91,16 @@ export function ManualManagementPage() {
     onError: () => toast.error("Failed to delete article"),
   });
 
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: ({ id, featured }: { id: string; featured: boolean }) =>
+      updateArticle(id, { featured }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manual-articles"] });
+      toast.success("Article updated");
+    },
+    onError: () => toast.error("Failed to update article"),
+  });
+
   const togglePublishMutation = useMutation({
     mutationFn: ({ id, published }: { id: string; published: boolean }) =>
       updateArticle(id, { published }),
@@ -109,7 +120,9 @@ export function ManualManagementPage() {
     <div className="space-y-6 p-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">User Manual</h1>
+          <h1 className="page-title text-2xl font-bold tracking-tight">
+            User Manual
+          </h1>
           <p className="text-sm text-muted-foreground">
             Manage help articles and categories displayed on the dashboard help
             page.
@@ -197,7 +210,7 @@ export function ManualManagementPage() {
       {/* Articles */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start space-y-4">
             <div>
               <CardTitle>Articles</CardTitle>
               <CardDescription>
@@ -205,7 +218,7 @@ export function ManualManagementPage() {
               </CardDescription>
             </div>
             {categoriesQuery.data && categoriesQuery.data.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex-1 space-y-4 space-x-4">
                 <Button
                   variant={categoryFilter === "" ? "default" : "outline"}
                   size="sm"
@@ -256,18 +269,46 @@ export function ManualManagementPage() {
                             {article.category.name}
                           </Badge>
                         )}
+                        {article.featured && (
+                          <Badge variant="outline">Popular</Badge>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {article.summary}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {article._count?.steps ?? 0} steps
+                        {article._count?.steps ?? 0} steps ·{" "}
+                        {article.readMinutes} min read
                         {article.createdByUser &&
                           ` · by ${article.createdByUser.name}`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() =>
+                        toggleFeaturedMutation.mutate({
+                          id: article.id,
+                          featured: !article.featured,
+                        })
+                      }
+                      title={
+                        article.featured
+                          ? "Remove from popular articles"
+                          : "Mark as popular article"
+                      }
+                    >
+                      <Star
+                        className={
+                          article.featured
+                            ? "h-4 w-4 fill-current text-primary"
+                            : "h-4 w-4"
+                        }
+                      />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

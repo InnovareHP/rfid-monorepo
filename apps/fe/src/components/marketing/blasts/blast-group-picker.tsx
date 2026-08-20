@@ -1,3 +1,4 @@
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { getGroups } from "@/services/marketing/group-service";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { cn } from "@dashboard/ui/lib/utils";
@@ -32,7 +33,13 @@ export function BlastGroupPicker({
   };
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading groups...</p>;
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-3/4" />
+      </div>
+    );
   }
 
   if (groups.length === 0) {

@@ -1,19 +1,21 @@
 ---
 import { buttonVariants } from "@dashboard/ui/components/button";
-import { APP_URL, SUPPORT_EMAIL } from "../config";
+import { APP_URL, LEGAL_LINKS, SUPPORT_EMAIL } from "../config";
 
 const YEAR = new Date().getFullYear();
 
 const PRODUCT_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: APP_URL, label: "Sign in" },
+  { href: "/#features", label: "Features" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/security", label: "Security & HIPAA" },
+  { href: APP_URL, label: "Sign In" },
 ];
 
 const COMPANY_LINKS = [
-  { href: "#why", label: "Why Refidly" },
-  { href: `mailto:${SUPPORT_EMAIL}`, label: "Contact support" },
-  { href: `mailto:${SUPPORT_EMAIL}`, label: "Request a demo" },
+  { href: "/about", label: "About Us" },
+  { href: "/#why", label: "Why Refidly" },
+  { href: `mailto:${SUPPORT_EMAIL}`, label: "Contact Support" },
+  { href: `mailto:${SUPPORT_EMAIL}`, label: "Request a Demo" },
 ];
 ---
 
@@ -27,7 +29,7 @@ const COMPANY_LINKS = [
         class="flex items-center gap-2.5"
         aria-label="Refidly home"
       >
-        <img src="/tarsier.png" alt="" width="34" height="34" loading="lazy" />
+        <img src="/refidly-mascot.png" alt="" width="34" height="34" loading="lazy" />
         <span class="flex flex-col leading-tight">
           <strong class="text-lg font-extrabold text-brand-strong">
             Refidly
@@ -35,12 +37,12 @@ const COMPANY_LINKS = [
           <small
             class="text-[0.6rem] font-semibold tracking-[0.09em] uppercase text-muted-foreground"
           >
-            Referral Intelligence Platform
+            Refidly
           </small>
         </span>
       </a>
       <p class="mt-4 max-w-[300px] text-sm text-muted-foreground">
-        Referral intelligence for healthcare marketing and liaison teams. Track
+        Refidly is built for healthcare marketing and liaison teams. Track
         facilities, referrals, and field activity in one place.
       </p>
     </div>
@@ -99,10 +101,27 @@ const COMPANY_LINKS = [
     </div>
   </div>
 
-  <div
-    class="mx-auto flex w-full max-w-6xl flex-wrap justify-between gap-2 border-t border-border px-6 py-5 text-[13px] text-muted-foreground"
-  >
-    <span>© {YEAR} Refidly. All rights reserved.</span>
-    <span>Built for the teams who bring the referrals in.</span>
+  <div class="mx-auto w-full max-w-6xl border-t border-border px-6 py-5">
+    <nav
+      class="flex flex-wrap justify-center gap-x-5 gap-y-2.5 text-[13px]"
+      aria-label="Legal links"
+    >
+      {
+        LEGAL_LINKS.map((link) => (
+          <a
+            href={link.href}
+            class="text-muted-foreground transition-colors hover:text-brand-strong"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div
+      class="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-center text-[13px] text-muted-foreground"
+    >
+      <span>© {YEAR} Refidly. All rights reserved.</span>
+    </div>
   </div>
 </footer>

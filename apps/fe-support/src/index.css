@@ -8,28 +8,54 @@
 body {
   @apply m-0 bg-background text-foreground;
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    "Manrope",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Primary tracks the brand navy in light and lifts to the brand mid blue in dark. */
+@utility page-title {
+  font-family: var(--font-display);
+  color: var(--color-primary);
 }
 
 :root {
   --radius: 0.65rem;
   --brand: #0d3185;
   --brand-foreground: #ffffff;
-  --success: oklch(0.48 0.12 163.225);
-  --warning: oklch(0.48 0.13 70.08);
-  --warning-foreground: oklch(0.98 0.01 70.08);
-  --info: oklch(0.48 0.15 250);
+  --table-header: #f4f9ff;
+  /* Fixed brand artwork surface and its body ink, theme-independent by design. */
+  --brand-surface: #f4f9ff;
+  --brand-ink: #202020;
+  /* Lighter brand blue for selected segmented controls, filled solid in both themes. */
+  --brand-accent: #005cb1;
+  --brand-accent-foreground: #ffffff;
+  /* The brand rail gradient is fixed artwork in both themes, so are its stops and ink. */
+  --brand-rail-from: #01184d;
+  --brand-rail-mid: #0d3185;
+  --brand-rail-via: #2c86d9;
+  --brand-rail-to: #64d1f4;
+  --brand-rail-foreground: #ffffff;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.623 0.214 259.815);
-  --primary-foreground: oklch(0.97 0.014 254.604);
+  /* Primary is the brand navy: one accent for the whole app, not a second blue. */
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
@@ -37,24 +63,61 @@ body {
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Equal lightness band, sized for small text on a /10 tint of themselves. */
+  --success: oklch(0.48 0.12 163.225);
+  --warning: oklch(0.48 0.13 70.08);
+  --warning-foreground: oklch(0.98 0.01 70.08);
+  --info: oklch(0.48 0.15 250);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
+  --ring: var(--brand);
+
+  /* Avatar identity colors, theme-independent so a person keeps one color. */
+  --avatar-foreground: #ffffff;
+  --avatar-1: #e8637b;
+  --avatar-2: #eb6834;
+  --avatar-3: #eda100;
+  --avatar-4: #1baf7a;
+  --avatar-5: #12a8a0;
+  --avatar-6: #2c86d9;
+  --avatar-7: #5a6ee0;
+  --avatar-8: #8b5cf6;
+
+  /* Categorical - identity. Fixed slot order, never cycled. */
+  --chart-1: #2c86d9;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+
+  /* Sequential - magnitude. Brand ramp, light to dark, monotonic lightness. */
+  --chart-seq-1: #64d1f4;
+  --chart-seq-2: #2c86d9;
+  --chart-seq-3: #0d3185;
+  --chart-seq-4: #01184d;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: var(--brand);
 }
 
 .dark {
-  --success: oklch(0.75 0.16 162.48);
-  --warning: oklch(0.82 0.17 84.429);
-  --warning-foreground: oklch(0.24 0.06 84.429);
-  --info: oklch(0.74 0.15 254);
+  --table-header: oklch(0.26 0.035 262);
+  --brand-accent: #2c6da8;
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.546 0.245 262.881);
-  --primary-foreground: oklch(0.379 0.146 265.522);
+  /* The navy is unreadable on a dark surface, so dark lifts it into the same
+     brand family: the mid blue of the brand gradient. */
+  --primary: #64a9ea;
+  --primary-foreground: #06183f;
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
@@ -62,18 +125,46 @@ body {
   --accent: oklch(0.274 0.006 286.033);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.75 0.16 162.48);
+  --warning: oklch(0.82 0.17 84.429);
+  --warning-foreground: oklch(0.24 0.06 84.429);
+  --info: oklch(0.74 0.15 254);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
+  --ring: #64a9ea;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: #64a9ea;
+  --sidebar-primary-foreground: #06183f;
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #64a9ea;
 }
 
 @theme inline {
+  --font-sans:
+    "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:
+    "Red Hat Display", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
   --color-brand: var(--brand);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-info: var(--info);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
+  --color-brand-rail-from: var(--brand-rail-from);
+  --color-brand-rail-mid: var(--brand-rail-mid);
+  --color-brand-rail-via: var(--brand-rail-via);
+  --color-brand-rail-to: var(--brand-rail-to);
+  --color-brand-rail-foreground: var(--brand-rail-foreground);
+  --color-table-header: var(--table-header);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -89,17 +180,90 @@ body {
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-avatar-foreground: var(--avatar-foreground);
+  --color-avatar-1: var(--avatar-1);
+  --color-avatar-2: var(--avatar-2);
+  --color-avatar-3: var(--avatar-3);
+  --color-avatar-4: var(--avatar-4);
+  --color-avatar-5: var(--avatar-5);
+  --color-avatar-6: var(--avatar-6);
+  --color-avatar-7: var(--avatar-7);
+  --color-avatar-8: var(--avatar-8);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-seq-1: var(--chart-seq-1);
+  --color-chart-seq-2: var(--chart-seq-2);
+  --color-chart-seq-3: var(--chart-seq-3);
+  --color-chart-seq-4: var(--chart-seq-4);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /* Tailwind v4 preflight drops the pointer on interactive controls. */
+  button:not(:disabled),
+  summary,
+  label[for],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  /* The brand rail gradient. It lives here because a four-stop gradient has no
+     Tailwind color utility, keeping its stops as tokens rather than hex in JSX. */
+  .bg-brand-rail {
+    background-image: linear-gradient(
+      to bottom,
+      var(--brand-rail-from) 0%,
+      var(--brand-rail-mid) 38%,
+      var(--brand-rail-via) 78%,
+      var(--brand-rail-to) 100%
+    );
+  }
+
+  .bg-brand-rail-horizontal {
+    background-image: linear-gradient(
+      to right,
+      var(--brand-rail-from) 0%,
+      var(--brand-rail-mid) 38%,
+      var(--brand-rail-via) 78%,
+      var(--brand-rail-to) 100%
+    );
   }
 }

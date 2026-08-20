@@ -1,4 +1,3 @@
-import { ModuleType } from "@prisma/client";
 import { z } from "zod";
 
 export const FieldMappingSchema = z.object({
@@ -10,7 +9,7 @@ export const FieldMappingSchema = z.object({
 export const CreateFormSchema = z.object({
   name: z.string().min(1),
   campaignId: z.string().optional(),
-  moduleType: z.enum(ModuleType).default(ModuleType.LEAD),
+  moduleType: z.string().default("LEAD"),
   fieldMappings: z.array(FieldMappingSchema).min(1),
   submitButtonText: z.string().default("Submit"),
   redirectUrl: z.url({ protocol: /^https?$/ }).optional(),

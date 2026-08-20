@@ -1,0 +1,168 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "apps/fe/**"
+      - "apps/fe-support/**"
+      - "apps/landing/**"
+      - "packages/shared/**"
+      - "packages/ui/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-2
+  ECS_CLUSTER: dashboard-prod-cluster
+  LANDING_BUCKET: dashboard-prod-landing-986584956039
+  LANDING_DISTRIBUTION_ID: E2LB2AK4KQ6XU2
+
+jobs:
+  changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      fe: ${{ steps.filter.outputs.fe }}
+      fe-support: ${{ steps.filter.outputs['fe-support'] }}
+      landing: ${{ steps.filter.outputs.landing }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared: &shared
+              - "packages/shared/**"
+              - "packages/ui/**"
+              - "pnpm-lock.yaml"
+            api:
+              - *shared
+              - "apps/api/**"
+            fe:
+              - *shared
+              - "apps/fe/**"
+            fe-support:
+              - *shared
+              - "apps/fe-support/**"
+            landing:
+              - *shared
+              - "apps/landing/**"
+
+  deploy:
+    name: Deploy ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs[matrix.service] == 'true'
+    strategy:
+      matrix:
+        service: [api, fe, fe-support]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::986584956039:role/gha-ecs-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - name: Build and push image
+        id: build
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          ECR_REPOSITORY: dashboard-prod-${{ matrix.service }}
+          IMAGE_TAG: ${{ github.sha }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_AWS_REGION: ${{ vars.VITE_AWS_REGION }}
+          VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
+          VITE_DASHBOARD_URL: ${{ vars.VITE_DASHBOARD_URL }}
+        run: |
+          BUILD_ARGS=()
+          case "${{ matrix.service }}" in
+            fe)
+              BUILD_ARGS=(
+                --build-arg "VITE_API_URL=$VITE_API_URL"
+                --build-arg "VITE_AWS_REGION=$VITE_AWS_REGION"
+                --build-arg "VITE_AWS_LOCATION_API_KEY=$VITE_AWS_LOCATION_API_KEY"
+              )
+              ;;
+            fe-support)
+              BUILD_ARGS=(
+                --build-arg "VITE_API_URL=$VITE_API_URL"
+                --build-arg "VITE_DASHBOARD_URL=$VITE_DASHBOARD_URL"
+              )
+              ;;
+          esac
+
+          docker build \
+            -f apps/${{ matrix.service }}/Dockerfile \
+            "${BUILD_ARGS[@]}" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            .
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch current task definition
+        env:
+          FAMILY: dashboard-prod-${{ matrix.service }}
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$FAMILY" \
+            --query 'taskDefinition' \
+            > task-def.json
+
+      - name: Render new task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def.json
+          container-name: ${{ matrix.service }}
+          image: ${{ steps.build.outputs.image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: dashboard-prod-${{ matrix.service }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  deploy-landing:
+    name: Deploy landing
+    needs: changes
+    if: needs.changes.outputs.landing == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter landing build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::986584956039:role/gha-ecs-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3 and invalidate CloudFront
+        run: |
+          aws s3 sync apps/landing/dist "s3://$LANDING_BUCKET" --delete
+          aws cloudfront create-invalidation \
+            --distribution-id "$LANDING_DISTRIBUTION_ID" \
+            --paths "/*"

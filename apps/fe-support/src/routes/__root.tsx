@@ -1,5 +1,6 @@
 import { ImpersonationBanner } from "@/components/AdminDashboard/UserManagementPage/ImpersonationBanner";
 import { getSession } from "@/lib/auth-client";
+import { LOGO_ALT_TEXT } from "@dashboard/shared";
 import { Toaster } from "@dashboard/ui/components/sonner";
 import {
   QueryClient,
@@ -51,10 +52,15 @@ function RootErrorComponent({ error }: { error: Error }) {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="text-xl font-semibold text-gray-900">
+      <img
+        src="/branding/Full/refidly-full-colored.png"
+        alt={LOGO_ALT_TEXT}
+        className="h-10 w-auto object-contain"
+      />
+      <h1 className="page-title text-xl font-semibold">
         {isNetworkError ? "Unable to connect" : "Something went wrong"}
       </h1>
-      <p className="max-w-sm text-sm text-gray-600">
+      <p className="max-w-sm text-sm text-muted-foreground">
         {isNetworkError
           ? "The server may be unavailable. Check that the API is running and try again."
           : (error?.message ?? "An unexpected error occurred.")}

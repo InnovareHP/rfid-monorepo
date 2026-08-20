@@ -34,6 +34,7 @@ const categorySchema = z.object({
   slug: z.string().optional(),
   description: z.string().optional(),
   icon: z.string().optional(),
+  order: z.number().int().min(0),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
@@ -51,7 +52,7 @@ export function CategoryDialog({
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: "", slug: "", description: "", icon: "" },
+    defaultValues: { name: "", slug: "", description: "", icon: "", order: 0 },
   });
 
   useEffect(() => {
@@ -63,8 +64,9 @@ export function CategoryDialog({
               slug: category.slug,
               description: category.description ?? "",
               icon: category.icon ?? "",
+              order: category.order,
             }
-          : { name: "", slug: "", description: "", icon: "" }
+          : { name: "", slug: "", description: "", icon: "", order: 0 }
       );
     }
   }, [category, open, form]);
@@ -77,6 +79,7 @@ export function CategoryDialog({
           values.slug || values.name.toLowerCase().replace(/\s+/g, "-"),
         description: values.description || undefined,
         icon: values.icon || undefined,
+        order: values.order,
       };
       return category
         ? updateCategory(category.id, data)
@@ -164,6 +167,26 @@ export function CategoryDialog({
                     <Input
                       placeholder="e.g. BookOpen (lucide icon name)"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="order"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Order</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={field.value}
+                      onChange={(event) =>
+                        field.onChange(event.target.valueAsNumber)
+                      }
                     />
                   </FormControl>
                   <FormMessage />

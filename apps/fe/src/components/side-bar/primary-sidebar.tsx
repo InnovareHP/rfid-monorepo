@@ -1,9 +1,5 @@
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@dashboard/ui/components/tooltip";
+import { RailNavItem } from "@/components/side-bar/rail-nav-item";
+import { TooltipProvider } from "@dashboard/ui/components/tooltip";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Calendar, CircleHelp, Home, PlugZap } from "lucide-react";
 import * as React from "react";
@@ -20,12 +16,6 @@ type NavItem = {
 };
 
 const BRAND_LOGO = "/branding/Icon/Refidly%20%5BIcon%5D%20-%20White%20No%20Bg.png";
-
-const BRAND_GRADIENT =
-  "bg-[linear-gradient(to_bottom,#01184D_0%,#0D3185_38%,#2C86D9_78%,#64D1F4_100%)]";
-
-const TOOLTIP_BRAND =
-  "bg-[#0D3185] text-white [&_svg]:bg-[#0D3185] [&_svg]:fill-[#0D3185]";
 
 function useNavItems(activeOrganizationId: string) {
   return React.useMemo<NavItem[]>(
@@ -85,13 +75,10 @@ export function PrimarySidebar({ activeOrganizationId }: PrimarySidebarProps) {
   const homeHref = `/${activeOrganizationId}`;
   const helpHref = `/${activeOrganizationId}/help`;
   const pathname = useLocation().pathname;
-  const isHelpActive = pathname.startsWith(helpHref);
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside
-        className={`sticky top-0 hidden h-screen md:flex flex-col items-center w-16 shrink-0 ${BRAND_GRADIENT} text-sidebar-primary-foreground py-4 gap-1 z-50 `}
-      >
+      <aside className="bg-brand-rail sticky top-0 z-50 hidden h-screen w-16 shrink-0 flex-col items-center gap-1 py-4 md:flex">
         <Link to={homeHref} preload={false} className="mb-3">
           <img
             src={BRAND_LOGO}
@@ -99,63 +86,28 @@ export function PrimarySidebar({ activeOrganizationId }: PrimarySidebarProps) {
             className="size-9 object-contain"
           />
         </Link>
-        <div className="flex-1 flex flex-col items-center gap-1 w-full">
-          {navItems.map((item) => {
-            const active = isActive(item);
-            return (
-              <Tooltip key={item.label}>
-                <TooltipTrigger asChild>
-                  <Link
-                    to={item.href}
-                    preload={false}
-                    className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-                      active
-                        ? "bg-white/20 text-sidebar-primary-foreground ring-1 ring-white/35 shadow-sm"
-                        : "text-sidebar-primary-foreground/75 hover:bg-white/10 hover:text-sidebar-primary-foreground"
-                    }`}
-                  >
-                    <item.icon className="size-5" />
-                    <span className="mt-1 w-full truncate px-0.5 text-center text-[10px] leading-none font-medium">
-                      {item.label}
-                    </span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="right"
-                  sideOffset={8}
-                  className={TOOLTIP_BRAND}
-                >
-                  {item.label}
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              to={helpHref}
-              preload={false}
-              className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-                isHelpActive
-                  ? "bg-white/20 text-sidebar-primary-foreground ring-1 ring-white/35 shadow-sm"
-                  : "text-sidebar-primary-foreground/75 hover:bg-white/10 hover:text-sidebar-primary-foreground"
-              }`}
-            >
-              <CircleHelp className="size-5" />
-              <span className="mt-1 w-full truncate px-0.5 text-center text-[10px] leading-none font-medium">
-                Help
-              </span>
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent
-            side="right"
-            sideOffset={8}
-            className={TOOLTIP_BRAND}
-          >
-            Help
-          </TooltipContent>
-        </Tooltip>
+
+        <nav
+          aria-label="Primary"
+          className="flex w-full flex-1 flex-col items-center gap-1"
+        >
+          {navItems.map((item) => (
+            <RailNavItem
+              key={item.label}
+              icon={item.icon}
+              label={item.label}
+              href={item.href}
+              active={isActive(item)}
+            />
+          ))}
+        </nav>
+
+        <RailNavItem
+          icon={CircleHelp}
+          label="Help"
+          href={helpHref}
+          active={pathname.startsWith(helpHref)}
+        />
       </aside>
     </TooltipProvider>
   );
@@ -168,27 +120,20 @@ export function PrimaryBottomBar({
   const isActive = useIsActive(navItems, activeOrganizationId);
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-[linear-gradient(to_right,#01184D_0%,#0D3185_38%,#2C86D9_78%,#64D1F4_100%)] text-sidebar-primary-foreground h-14 px-2">
-      {navItems.map((item) => {
-        const active = isActive(item);
-        return (
-          <Link
-            key={item.label}
-            to={item.href}
-            preload={false}
-            className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-              active
-                ? "text-sidebar-primary-foreground"
-                : "text-sidebar-primary-foreground/70 hover:text-sidebar-primary-foreground"
-            }`}
-          >
-            <item.icon className="size-5" />
-            <span className="mt-1 w-full truncate px-0.5 text-center text-[10px] leading-none font-medium">
-              {item.label}
-            </span>
-          </Link>
-        );
-      })}
+    <nav
+      aria-label="Primary"
+      className="bg-brand-rail-horizontal fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-around px-2 md:hidden"
+    >
+      {navItems.map((item) => (
+        <RailNavItem
+          key={item.label}
+          icon={item.icon}
+          label={item.label}
+          href={item.href}
+          surface="bar"
+          active={isActive(item)}
+        />
+      ))}
     </nav>
   );
 }

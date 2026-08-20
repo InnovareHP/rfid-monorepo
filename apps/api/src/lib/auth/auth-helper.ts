@@ -1,15 +1,24 @@
-import { formatCapitalize, resolveEntitlement } from "@dashboard/shared";
+import {
+  formatCapitalize,
+  isConsumerEmailDomain,
+  resolveEntitlement,
+  WORK_EMAIL_REQUIRED_MESSAGE,
+} from "@dashboard/shared";
+import { Logger } from "@nestjs/common";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
 import { InvitationEmail } from "../../react-email/invitation-email";
 import { InvitationResponseEmail } from "../../react-email/invitation-response-email";
 import { MemberWelcomeEmail } from "../../react-email/member-welcome-email";
+import { PasswordChangedEmail } from "../../react-email/password-changed-email";
 import { ResetPasswordEmail } from "../../react-email/reset-password-email";
 import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
 import { OnboardingSeeding } from "./onboarding";
+
+const logger = new Logger("org-hook");
 
 export const beforeSessionCreate = async (session: {
   userId: string;
@@ -192,15 +201,23 @@ export const sendResetPassword = async ({
   });
 };
 
+// Fires after the reset lands, so this is the notice that tells a user their
+// password changed when it was not them who changed it.
 export const onPasswordReset = async ({
   user,
 }: {
-  user: { email: string };
+  user: { email: string; name?: string };
 }) => {
+  const html = await renderEmailHtml(
+    PasswordChangedEmail({
+      resetUrl: `${appConfig.WEBSITE_URL}/reset-password`,
+      name: user.name,
+    })
+  );
   await emailQueue.add("send", {
     to: user.email,
-    subject: "Reset your password",
-    html: "password reset",
+    subject: `Your ${appConfig.APP_NAME} password was changed`,
+    html,
     from: `${appConfig.APP_EMAIL}`,
   });
 };
@@ -296,6 +313,26 @@ export const afterDeleteOrganization = async ({}: {
 
 // ─── Member lifecycle hooks ────────────────────────────────────────
 
+// HIPAA mode is the signal, not the plan name: it is only reachable with the
+// hipaa entitlement and an executed BAA, and it is the point from which PHI
+// protections are promised. An organization that has not turned it on keeps
+// whatever addresses it likes.
+const assertWorkEmailIfHipaa = async (
+  organizationId: string,
+  email: string | null | undefined
+) => {
+  if (!email || !isConsumerEmailDomain(email)) return;
+
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { hipaaEnabled: true },
+  });
+
+  if (organization?.hipaaEnabled) {
+    throw new Error(WORK_EMAIL_REQUIRED_MESSAGE);
+  }
+};
+
 export const beforeAddMember = async ({
   member,
   organization,
@@ -303,7 +340,7 @@ export const beforeAddMember = async ({
   member: any;
   organization: { id: string };
 }) => {
-  const [memberCount, subscription] = await Promise.all([
+  const [memberCount, subscription, user] = await Promise.all([
     prisma.member.count({
       where: { organizationId: organization.id },
     }),
@@ -316,7 +353,13 @@ export const beforeAddMember = async ({
         customLimits: true,
       },
     }),
+    prisma.user.findUnique({
+      where: { id: member.userId },
+      select: { email: true },
+    }),
   ]);
+
+  await assertWorkEmailIfHipaa(organization.id, user?.email);
 
   // Seats bill per member, so subscription.seats tracks the current head count
   // and can never be the ceiling. The resolved entitlement is — a negotiated
@@ -394,9 +437,9 @@ export const afterRemoveMember = async ({
     data: { isActive: false },
   });
 
-  console.log(
-    `[org-hook] Member ${user.email} removed from ${organization.name}`
-  );
+  // Ids only: the actor and the affected member are already on the audit row,
+  // and stdout is not a place to put a workforce member's address.
+  logger.log(`Member ${user.id} removed from organization ${organization.id}`);
 };
 
 export const beforeUpdateMemberRole = async ({
@@ -428,17 +471,13 @@ export const beforeUpdateMemberRole = async ({
 export const afterUpdateMemberRole = async ({
   member,
   previousRole,
-  user,
-  organization,
 }: {
   member: { role: string };
   previousRole: string;
   user: { email: string };
   organization: { name: string };
 }) => {
-  console.log(
-    `[org-hook] ${user.email} role changed from ${previousRole} to ${member.role} in ${organization.name}`
-  );
+  logger.log(`Member role changed from ${previousRole} to ${member.role}`);
 };
 
 // ─── Invitation lifecycle hooks ────────────────────────────────────
@@ -471,6 +510,8 @@ export const beforeCreateInvitation = async ({
       },
     }),
   ]);
+
+  await assertWorkEmailIfHipaa(organization.id, invitation.email);
 
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount + pendingInvitations >= maxSeats) {
@@ -597,9 +638,7 @@ export const afterCancelInvitation = async ({
   invitation: { id: string };
   cancelledBy: { id: string };
 }) => {
-  console.log(
-    `[org-hook] Invitation ${invitation.id} cancelled by ${cancelledBy.id}`
-  );
+  logger.log(`Invitation ${invitation.id} cancelled by ${cancelledBy.id}`);
 };
 
 // ─── Team lifecycle hooks ──────────────────────────────────────────

@@ -406,3 +406,809 @@ Applied frame `530:1556` to the forms list, matching the landing pages rework.
 - Search placeholder reads "Search forms...." — the frame says "Search campaigns....", which is a copy-paste leftover from the campaigns screen.
 
 Verified: `pnpm build:fe` and `pnpm build:api` both pass. No runtime pass.
+
+## Help center — Figma Dashboard - Help (2026-08-09)
+
+Applied frames `647:8223` (help landing) and `652:8835` (category detail) onto the existing manual/knowledge-base system rather than a new module.
+
+- Schema: `ManualArticle` gained `featured` (drives "Popular Articles") and `readMinutes` (the "3 min read" line). Hand-written migration in `prisma/migrations/add_manual_article_help_center_fields/`. `seed-manual.ts` now features the first published article of each category.
+- API: `GET /manual/featured`, `GET /manual/categories/published` (published-article counts), `GET /manual/categories/slug/:slug`, plus a `search` param on `GET /manual/published`. Create/update article DTOs carry `featured` and `readMinutes`.
+- FE routes: `help.tsx` split into `help/index.tsx`, `help/$categorySlug/index.tsx`, `help/$categorySlug/$articleSlug.tsx`. The sidebar href `/{org}/help` is unchanged.
+- FE components in `components/help/`: hero (Figma-exported mascot + background under `public/branding/`), category cards, popular articles, contact-support CTA, category table with `TablePagination`, article rows. `help-page.tsx` deleted; `manual-article-detail.tsx` kept, its raw gray palette swapped for tokens.
+- Superadmin (`fe-support` /support/manual): article form gained Read time and Popular; the list shows read time, a Popular badge, and a star toggle. Category dialog gained Order, which drives card order on the help landing.
+- Contact Support links to `VITE_SUPPORT_URL/en/request`.
+
+Design mapping notes: the design's hero and CTA panels are fixed brand artwork, so they use `brand`/`brand-surface`/`brand-ink`; everything on normal surfaces uses `primary`/`foreground`/`muted-foreground` so dark mode holds. Popular topics are the first four categories by order. The category footer replaces the design's "0 of 100 row(s) selected" with an article count since these rows are not selectable.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `pnpm --filter fe-support build` all pass; eslint clean on the touched files. Migration not applied and no browser pass.
+
+### Help center seed refresh (2026-08-09)
+
+`prisma/seed-manual.ts` brought up to the current system: 16 categories, 66 articles.
+
+- Every existing article gained `readMinutes` (derived from its step count) and `featured`.
+- Nine articles are featured, matching the design's Popular Articles list: Importing Leads from CSV, Creating Referrals, Setting Up Your Booking Page, How to Assign Tasks, Managing Team Members, Viewing Reports, Connecting Google Calendar and Outlook Calendar, Managing Your Subscription, Connecting Gmail and Outlook Email.
+- New categories with articles for modules that postdate the original seed: Tasks & Projects (3), Marketing (3), Contacts & Companies (2), Booking (2), Notifications (1), plus passkey sign-in and HIPAA mode/BAA under Account & Security.
+- "Using the Help Center" rewritten for the new hero/category/article layout. "Checking Integration Status on the Help Page" retargeted to the Integrations page, since integration health no longer lives on the help page.
+
+Run with `pnpm --filter api prisma:seed-manual` after the migration is applied. It wipes and re-creates all manual rows and needs at least one super_admin or support user for `createdBy`.
+
+Verified: seed file typechecks, no duplicate slugs, no per-category `order` collisions. Seed not executed.
+
+## Page skeletons and query cache tuning (2026-08-10)
+
+Replaced spinner-and-text loading states with skeletons shaped like the page they stand in, and stopped the cache dropping data between navigations.
+
+Skeleton primitives, both new files:
+
+- `components/skeletons/page-skeletons.tsx` — `PageHeaderSkeleton`, `KpiStripSkeleton`, `TableSkeleton`, `ListPageSkeleton`, `SettingsCardSkeleton`, `SettingsPageSkeleton`, `DetailPageSkeleton`, `CardGridSkeleton`, `ListRowsSkeleton`, `PublicPageSkeleton`, `FormFieldsSkeleton`, `RoutePendingSkeleton`. Mirrors `PageHeader`, `KpiStatTile` and `page-style` so nothing shifts on load.
+- `components/skeletons/builder-page-skeleton.tsx` — `BuilderPageSkeleton` (top bar, canvas card, `lg:w-80` right panel) and `StepFormPageSkeleton` (blast editor's stepped form).
+- `components/side-bar/sidebar-skeleton.tsx` — holds the w-16 rail and w-64 panel while the org list loads.
+
+Wired into: blast editor, form builder, landing-page builder, public landing page, help center/category/article, pipeline settings dialog, blast group picker, related records popover, booking settings, booking list table, calendar page, record create.
+
+Router: `defaultPendingComponent` was a full-screen overlay spinner that blanked the tree on every navigation; it is now `RoutePendingSkeleton`. `_team.tsx` had the same overlay gating on `orgLoading` while its own comment said page content renders without the org list — replaced with `SidebarSkeleton` in place of the sidebars. `components/loader.tsx` deleted; nothing else imported it.
+
+Cache: the global client set `staleTime: 5m` but no `gcTime`, so TanStack's 5m default evicted data as soon as it went stale and every return trip refetched. Global `gcTime` is now 30m. Per-query bumps for data that rarely changes: published help content 1h (`MANUAL_STALE_TIME` in `manual-service.ts`), email ingest address 1h, counties and liaisons 30m, dropdown/status/assigned-to options and link-record lists 30m. Left short on purpose: notifications and blast send progress (polling), OAuth connection statuses, board rows, analytics and reports.
+
+Not done: no route `loader` + `ensureQueryData`, so `defaultPreload: "intent"` still only prefetches the JS chunk, not the data.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint reports 0 errors on every touched file. The 8 rules-of-hooks errors in `reusable-table/editable-cell.tsx` are pre-existing conditional hooks; that file's diff is two `staleTime` lines. No browser pass.
+
+### Nav rail rebuilt on tokens and variants (2026-08-10)
+
+`primary-sidebar.tsx` was the one nav surface not on convention: a hand-rolled `<aside>` with a four-stop gradient as a `bg-[linear-gradient(...)]` arbitrary value, a `bg-[#0D3185]` tooltip override, and the same active/inactive class string written out three times (rail item, Help item, bottom bar).
+
+- Tokens in `apps/fe/src/styles.css`: `--brand-rail-from/mid/via/to` and `--brand-rail-foreground`, mapped under `@theme inline`. Deliberately absent from `.dark` - the gradient is fixed brand artwork, and the rail previously painted `text-sidebar-primary-foreground` on it, which resolves to `#06183f` in dark and made the labels near-invisible against the dark end of the gradient.
+- `.bg-brand-rail` and `.bg-brand-rail-horizontal` in `@layer utilities`. A four-stop gradient has no Tailwind color utility, so this is the one place it lives, with its stops as tokens.
+- New `components/side-bar/rail-nav-item.tsx`: a `cva` component with `surface` (rail | bar) and `active` variants, consumed by the rail, the Help item, and the bottom bar. Replaces the three duplicated class strings.
+- Dropped the `TOOLTIP_BRAND` hex override; the default shadcn `TooltipContent` is `bg-primary text-primary-foreground`, identical in light and correctly themed in dark.
+- Labels are now solid `text-brand-rail-foreground` at every state, with hierarchy carried by the background. They were `/75` and `/70`, which is below AA for 10px text.
+- Added `aria-label="Primary"` on both nav landmarks and `aria-current="page"` on the active item.
+- `sidebar-skeleton.tsx`'s rail now matches: same gradient, same 3 items plus a footer slot.
+
+Routing, active-state logic and `useNavItems`/`useIsActive` are unchanged.
+
+Not done: the rail is a plain `<aside>`, not a shadcn `<Sidebar>`. `SidebarProvider` holds a single `state`, so a second `Sidebar` inside it would expand and collapse in lockstep with the main panel.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors and 0 warnings across `components/side-bar` except two pre-existing ones in files not touched. Confirmed `bg-brand-rail`, `bg-brand-rail-horizontal`, `text-brand-rail-foreground`, `bg-brand-rail-foreground/20`, `ring-brand-rail-foreground/35` and `hover:bg-brand-rail-foreground/10` are all present in the emitted CSS. No browser pass, so the dark-mode fix is reasoned from the token values, not observed.
+
+### Sidebar information architecture (2026-08-10)
+
+`NavMain` already supported both shapes - an item with `items` renders as a `Collapsible`, one without renders as a plain link - but the data in `app-sidebar.tsx` never used the second, so three categories were collapsibles wrapping a single link, and only one group ever opened.
+
+Tree changes:
+
+- Direct links, promoted out of collapsibles: Master Marketing List, Referral Logs, Tasks (was Productivity), History (was Records > History Check), Import (was Import > Master Marketing List).
+- CRM shrank to its remaining two entries and is now Contacts (Phonebook, Companies).
+- The second `Marketing` category is now `Logs`. Two sibling categories both called Marketing, one for email and one for field logs, could not be told apart.
+- Overview, Marketing Hub, Logs, Reports and Settings keep their sub-navigation.
+
+Open state, in `nav-main.tsx`:
+
+- `isActive: true` was hardcoded on Overview and nowhere else, so Overview always opened and every other group stayed shut even while you were inside it. Removed from the data and the type.
+- A group is open when the route is inside it. Only explicit user toggles are stored: `open = openOverrides[title] ?? hasActiveChild`. Derived during render, so no effect and no state mirroring, and collapsing a group you are inside sticks rather than springing back open on the next navigation.
+- Active matching moved from `subItem.url === pathname` to a `matchesPath` helper: a url owns its subtree, so Blasts stays lit on `/marketing/blasts/:id`. The org root is exact-match only, or it would light up on every page. The trailing slash in the prefix test keeps `/master-list` from matching `/master-list-analytics`.
+- The collapsed icon rail's hover dropdown now marks its trigger active when a child is active; previously the collapsed sidebar gave no indication of where you were.
+
+The Settings entry carried both `url` and `items`, and `NavMain` silently drops the url of a group. That url pointed at `/settings`, which is a layout route holding a bare `Outlet` with no index child, so it renders blank. Removed the phantom url rather than adding a nav row to an empty page. Giving `/settings` a real General page is a separate piece of work.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/side-bar` (2 pre-existing warnings in `nav-user.tsx` and `team-switcher.tsx`, both untouched). No browser pass, so the open/active behaviour is reasoned from the routes, not clicked through.
+
+### Third nav level (2026-08-10)
+
+`NavMain` gained a third level, rendered as a dropdown off the sub row rather than a deeper indent. At 256px the sidebar has no room for another rail, and the parent row has to stay a link to its own page.
+
+- `NavSubItem` gained optional `items`. A sub row with children keeps its `Link` and gains a `SidebarMenuAction` chevron that opens a `DropdownMenu` of its children, so Blasts is still one click while Groups and Senders are two.
+- `subItemIsActive` marks a row active when its own url matches or any child's does, so Blasts stays lit while you are on Senders, and the parent group still auto-opens.
+- The collapsed icon rail has no row to hang a nested dropdown off, so its hover menu indents the third level inside the existing one with `pl-6`. Without this, Groups, Senders and Plans were unreachable with the sidebar collapsed.
+
+Tree: Marketing Hub is now Forms, Campaigns, Blasts (Groups, Senders), Landing Pages. Settings is Team, Counties, Booking, Compliance, Billing (Plans).
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/side-bar`. No browser pass; the chevron sits on `SidebarMenuAction`, whose `peer-*` rules target a menu-button that `SidebarMenuSubButton` does not carry, so its vertical alignment inside the 28px sub row is worth an eye.
+
+### Collapsed sidebar menu opens on click (2026-08-10)
+
+The collapsed icon rail's group menu was hover-only: `<DropdownMenu open={hoveredMenu === item.title}>` with pointer-enter and pointer-leave handlers and a 120ms close timer. Because `open` was controlled entirely from hover state, the trigger's own click did nothing, so the menu could not be opened by click, keyboard, or touch.
+
+Now a plain uncontrolled `<DropdownMenu modal={false}>`. Radix handles click to toggle, Escape and outside-click to close, arrow-key navigation, and focus return. This deletes `hoveredMenu`, `closeTimerRef`, `openHoverMenu`, `closeHoverMenu` and the cleanup effect - the only `useEffect` left in the file. Hover styling on the items is unchanged; only hover-to-open went away.
+
+Both dropdowns in the sidebar are click-driven now: this one and the third-level chevron added earlier.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint clean on `nav-main.tsx`. No browser pass.
+
+### Nav: inline third level, CRM group back, no parent highlight (2026-08-10)
+
+Three follow-ups after the IA pass.
+
+- CRM restored as a group holding the four board modules, since organizations will be able to create their own. Its rows map over a `CRM_MODULES` list in `app-sidebar.tsx` so a new module is one entry, and that list becomes an API response when user-created modules land. Master Marketing List and Referral Logs came back out of the top level; Tasks stays a direct link.
+- The third level now expands in place instead of opening a portalled `DropdownMenu`. A sub row with children keeps its `Link` and its `SidebarMenuAction` chevron drives a nested `Collapsible` rendering a `SidebarMenuSub` of `size="sm"` rows. Same derived-open rule as the groups, keyed `parent/child` so sub and group overrides cannot collide. The collapsed icon rail keeps its dropdown - icon-only, there is nowhere to expand into.
+- Parent rows no longer show the active highlight. The group trigger dropped `isActive` entirely, and a parent sub row now lights only for its own url rather than standing in for a child. `subItemIsActive` is still what decides auto-open, so a group still expands when the route is inside it; only the highlight moved to the current page's row. The collapsed rail's trigger keeps its highlight, since nothing else there can show location.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/side-bar`. No browser pass.
+
+## Pipeline becomes Kanban, grouped by status (2026-08-10)
+
+Deal Value is gone, the Kanban groups by each module's own status field, and the whole feature is renamed from pipeline to kanban across API and frontend.
+
+Decisions taken, all confirmed except where noted:
+
+- Full rename including the API, so `GET /api/pipeline` is now `GET /api/kanban`. Frontend and API must deploy together; a cached client calling the old path gets a 404.
+- The stage field is always the module's first STATUS field by `fieldOrder`. Both marker columns are dropped, so there is nothing to configure and nothing to keep in sync. An organization that adds its own CRM module gets a working Kanban the moment the module has a status field.
+- Assumed, since it was not answered: LEAD's "Pipeline Stage" field is renamed to "Status" rather than replaced, so every stage option, colour and recorded value survives. "Deal Value" is soft-deleted rather than dropped, so its `FieldValue` rows stay recoverable. Stage probabilities are kept and now drive a count-weighted forecast.
+
+API:
+
+- `api/pipeline/` renamed to `api/kanban/`; controller, module, service and both dto files follow. `PipelineModule` to `KanbanModule` in `api.module.ts`.
+- `Field.isPipelineStage` and `Field.isPipelineAmount` removed from `prisma/models/board.prisma`, with `prisma/migrations/drop_pipeline_field_markers/migration.sql` to drop the columns.
+- `kanban.service.ts`: no amount anywhere. `stage.value`, `totals.*.value` and `parseAmount` are gone; `forecast` is now `count * probability / 100` and `weightedForecast` is `open.forecast + won.count`, both counts of expected wins rather than money. `resolvePipelineFields` became `findStageField` / `resolveStageField`, reading the first STATUS field.
+- `PATCH /config` and `setConfig` deleted along with `SetPipelineConfigDto`: with the field auto-derived and no amount, there was nothing left to set. `PATCH /stages` still owns order, outcome and probability.
+- `onboarding.ts`: `LEAD_PIPELINE_STAGE_FIELD` and `LEAD_PIPELINE_AMOUNT_FIELD` collapse into `LEAD_STATUS_FIELD = "Status"`. The Deal Value field and its 25000/18000/32000 samples are gone from the lead seed, and `configureLeadPipeline` is now `configureLeadKanban` with no marker-setting transaction.
+- `prisma/scripts/seed-lead-pipeline.ts` replaced by `seed-lead-kanban.ts`, registered as `pnpm --filter api seed:lead-kanban`. It is the data migration: renames "Pipeline Stage" to "Status", seeds default stages on any lead module lacking a STATUS field, and soft-deletes "Deal Value".
+
+Frontend:
+
+- `services/pipeline/pipeline-service.ts` moved to `services/kanban/kanban-service.ts`. Types renamed, `amountField`, `amountFieldId`, `amountCandidates`, `stageCandidates` and every `value` field removed, `setPipelineConfig` deleted.
+- `pipeline-settings-dialog.tsx` became `kanban-settings-dialog.tsx`. Both field pickers are gone; it now names the field it groups by and edits outcome, probability and order. It also handles a module with no status field instead of rendering an empty form.
+- `kanban-view.tsx`: the four currency tiles are counts now (Open, Expected wins, Won, Win rate), the per-card Deal Value line is gone, and stage headers read "N records". Its raw gray palette went to tokens while the file was being rewritten, and `SummaryTile` moved out to `kanban-summary-tile.tsx`.
+- Query keys `["pipeline", ...]` and `["pipeline-cards", ...]` are now `["kanban", ...]` and `["kanban-cards", ...]`. `["referral-pipeline-analytics"]` is a different feature and was left alone.
+
+Verified: `pnpm build:api` and `pnpm build:fe` both pass, `tsc --noEmit` clean on the frontend, eslint 0 errors on the touched files, `pnpm prisma:generate` succeeded, and a grep confirms no `isPipeline*`, `Deal Value`, `Pipeline Stage` or `/api/pipeline` references remain outside the migration script's legacy constants.
+
+NOT run, and order matters: `pnpm --filter api seed:lead-kanban` first, then `pnpm prisma:migrate`. Running the migration first drops the columns before the rename happens, which is harmless here only because the script never reads them. No browser pass.
+
+### Kanban tiles trimmed, referral status stages (2026-08-10)
+
+- `kanban-view.tsx` keeps only the Open tile; Expected wins, Won and Win rate are gone. The API still computes `weightedForecast`, `totals.won`, `totals.lost` and `winRate`, and `GET /api/kanban/win-loss` still exists - nothing on the frontend reads them now.
+- Referral Status options were seeded with no `stageType`, so every column defaulted to OPEN and the referral Kanban could never register a win or a loss. `statusOptionsMap` in `onboarding.ts` now carries stage metadata through a `ReferralStatusOption` type: Pending OPEN at 50%, Admitted WON, Rejected LOST, with explicit `optionOrder`.
+
+Both LEAD and REFERRAL now seed a Status field with real Kanban stages. LEAD gets them from `seedLeadKanban`, REFERRAL inline with its field options.
+
+Known gap, not addressed: there is no way to reach a referral Kanban in the UI. `referral-list-page.tsx` has no view toggle, and `KanbanView` fetches its cards through `getLeads`, which hardcodes `moduleType: "LEAD"` (`lead-service.ts:30`) and ignores the `moduleType` prop. Making the Kanban work for any module means routing card fetches through a module-aware service call first.
+
+Verified: `pnpm build:api` and `pnpm build:fe` pass, `tsc --noEmit` clean, eslint 0 errors on touched files. No browser pass.
+
+### CSV export date range (2026-08-10)
+
+`ExportCsvButton` was a plain button calling `onExport()`. It is now a `Popover` with From and To date inputs and an Export action, so all five surfaces get the same control from one component. `onExport` takes an `ExportRange` of `{ from?, to? }`; both empty exports everything, and From after To is blocked with a message rather than silently returning nothing. The entitlement gate is unchanged.
+
+Filtering is on the record's own created date, and where it happens differs by surface:
+
+- Master list and referral list already page through `/api/boards` to build the export, and that endpoint already accepted `boardDateFrom` / `boardDateTo` filtering `Board.createdAt` (`board.controller.ts:85`, `board.service.ts:118`). Both now pass the range straight through, so the server does the filtering and no extra rows cross the wire.
+- Marketing and mileage reports fold the range into their existing filter keys, `marketingDateFrom`/`marketingDateTo` and `mileageDateFrom`/`mileageDateTo`, so an explicit range overrides whatever the on-page filter had.
+- The CRM list exports the rows already in hand rather than re-fetching, so it narrows them in memory through a new `filterByCreatedAt` in `lib/helper/helper.ts`. An inclusive "to" needs the whole of that day, so the upper bound is the following midnight. It reports "No records in that date range" instead of downloading an empty file.
+
+`CrmRow` gained `createdAt?: string`. `getAllBoards` returns it on every flat row but the type never declared it, so the helper's generic could not accept `CrmRow[]`.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across the six touched files. No browser pass, and no export was actually downloaded.
+
+Also tidied: the comment explaining why Groups and Senders are nested moved from Blasts to Campaigns, following the hand edit that reparented them.
+
+### Referral Kanban made reachable (2026-08-10)
+
+The referral stage data was seeded but nothing could show it. Two blockers, both fixed.
+
+- `KanbanView` took a `moduleType` prop but fetched its cards through `getLeads`, which hardcodes `moduleType: "LEAD"` (`lead-service.ts:30`), so any module other than LEAD would have rendered lead cards under referral column headings. Added `getKanbanCards(moduleType, stageFieldId, stageName, limit)` to `kanban-service.ts` - one module-aware call that stringifies the stage filter the way `/api/boards` expects. `updateLead` already took a `moduleType`, so the drag-to-move path needed nothing.
+- `onSuccess` invalidated `["leads"]` unconditionally, so moving a referral card left the referral table stale. A `LIST_QUERY_KEYS` map now picks leads / referrals / contacts / companies from the module.
+- `referral-list-page.tsx` gained the table/Kanban toggle, the Kanban Settings button behind `can(role, { field: ["configure"] })`, and renders `KanbanView` with `moduleType="REFERRAL"` in place of the table. `ColumnFilter` is hidden in Kanban view, where it does nothing.
+
+The three Kanban components moved from `components/master-list/` to `components/kanban/`, since two feature folders consume them now.
+
+Verified: `pnpm build:fe` passes, `tsc --noEmit` clean, eslint 0 errors across `components/kanban`, `components/referral-list`, `master-list-page.tsx` and `services/kanban`. No browser pass: the drag-and-drop path and the referral board are unexercised.
+
+### Terraform stack for AWS (2026-08-12)
+
+There was no `terraform/` here at all - `docs/aws-uploads-and-location-infra.md`
+and `docs/email-ingest-setup.md` both said so and described hand-applied
+resources. Ported the fax app's stack (16 modules, ~5k lines) and adapted it to
+this repo's shape, with the cost analysis from the Obsidian note
+`2026-08-12-terraform-cost-and-prod-db` applied from the start rather than as a
+later trim.
+
+Shape differences from the fax app: four apps instead of four services, BullMQ
+in-process in the API rather than a separate worker, socket.io on the API, an
+uploads bucket with `public/` and `private/` prefixes instead of a PHI document
+store, SES outbound plus optional reply ingest instead of email-to-fax, and
+Bedrock plus geo-places on the task role.
+
+- `landing` is static Astro (no SSR adapter), so it is S3 + CloudFront with an
+  index-rewrite function, not a Fargate service. Removes a service, a target
+  group and a log group.
+- Postgres moved in-account: private RDS, no public endpoint, `rds.force_ssl`,
+  and a `t4g.nano` SSM forwarder so a laptop still gets a plain connection URL
+  through a localhost port-forward. `DATABASE_URL` and `REDIS_URL` are
+  generated into their own Secrets Manager entries and injected from there, so
+  neither is a hand-populated key.
+- Levers taken as defaults: one NAT, app logs 30d against audit logs 7y, WAF
+  logs to S3, Spot with an on-demand base on both frontends, Container Insights
+  off. ARM64 and a Savings Plan are wired or documented but not on.
+- Added `apps/api/src/api/health/` - the ALB target group needs a health path
+  and the API had none.
+
+Verified: `terraform fmt -check` clean, `terraform validate` passes,
+`pnpm build:api` exits 0, eslint clean on the health module. Nothing applied
+against AWS - no `terraform plan` was run, since that needs credentials and a
+state bucket. The open items list in `docs/terraform-infrastructure.md` is real:
+both Vite apps still ship the dev server in their production image.
+
+## Email builder — Figma Blast Editor (2026-08-12)
+
+Applied the new blast editor from Figma (`Refidly`, nodes `703:17585` drag and
+drop, `698:16372` classic, `703:17266` review and send, `689:10505` new blast).
+A blast now picks its editor at creation and keeps it.
+
+Storage: `Blast` gained `bodyJson` and `editorType` (`BlastEditorType`, default
+`DRAG_DROP`). `bodyHtml` stays the only thing the send path reads — for drag and
+drop blasts the API renders it from the blocks on every write, so a client can
+never compose the outgoing HTML. Migration
+`blast_editor_type_and_body_json` backfills existing rows to `CLASSIC`.
+
+- Drag and drop editor mirrors the landing page builder: dnd-kit sortable canvas,
+  `Content` / `Email Settings` tabs, block types Headline, Text, Image,
+  Separator, Button, each with font, size, text color, background color,
+  background image, plus Duplicate and Delete.
+- Classic editor keeps the numbered step cards and swaps the bare `Textarea` for
+  a contentEditable toolbar (marks, alignment, lists, font, color, undo/redo,
+  Substitute Variables). No editor dependency was added.
+- `sanitizeRichText` and `applyMergeVariables` live in `packages/shared` so the
+  builder preview and the send path agree on the allowed tag set. The send
+  processor resolves `{{recordName}}`, `{{email}}` and `{{organizationName}}`
+  per recipient, and the Activity row records the resolved body.
+- New `POST /marketing/blasts/:id/test-send` sends the blast to one address
+  without creating recipient rows or moving the status.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `tsc --noEmit` on apps/fe all exit
+0, eslint clean (0 errors) on the blast feature. No migration was applied to a
+database and no email was sent — neither was run. The 8 eslint errors in
+`import/referral-list-import-page.tsx` are pre-existing and untouched.
+
+Left out: the design's footer address line (`Organization` has no address
+column) and a real unsubscribe link (no unsubscribe route exists), so the footer
+renders the org name and the unsubscribe line as text.
+
+## Unsubscribe and newsletter subscribers (2026-08-13)
+
+Closed the dead unsubscribe line left by the email builder and added the
+subscriber list behind it. Consent is org-wide: one opt-out silences every
+group and every module that shares the address.
+
+Model: `EmailSubscriber` in `marketing_schema` is both the newsletter list and
+the suppression list. `email` and `name` are encrypted, so matching goes
+through `emailHash`, an HMAC blind index built with
+`derivePurposeKey("marketing-email-index")` — the same construction as the
+open-tracking ip hash, and the reason the unique key is `(organizationId,
+emailHash)` rather than the ciphertext.
+
+- The unsubscribe link carries a signed claim (`organizationId` + `emailHash` +
+  HMAC), not a stored key. Mailing someone therefore creates no row, so the
+  Subscribers page stays a list of real subscribers and real opt-outs instead
+  of filling with every lead that was ever emailed. The address is never in the
+  URL, so no inbox lands in a server log.
+- Suppression is applied in `resolveForGroups`, so audience counts, group
+  previews and the send all report the same number.
+- `RecipientGroup.audienceType` (`BOARD` | `SUBSCRIBER`) lets a group target
+  the newsletter list, so subscribers are mailable without inventing CRM rows.
+  `BlastRecipient.recordId` became nullable with a `subscriberId` sibling;
+  a subscriber send writes no `Activity` because there is no record timeline.
+- `Form.subscribesToNewsletter` opts a public form's submitter onto the list,
+  resolved from the module's `EMAIL` field. Off by default.
+- Classic bodies are stored without the email shell, so `wrapClassicHtml`
+  applies the footer at send time; drag and drop bodies already carry it.
+  `{{unsubscribeUrl}}` resolves per recipient.
+- Public routes follow the `@CrossTenant() @AllowAnonymous()` pattern with
+  `@Throttle` on writes and `toPublicError`, and never 401 — the frontend's
+  auth interceptor would otherwise bounce the reader to /login.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `tsc --noEmit` on apps/fe all exit
+0; eslint 0 errors on the marketing and crypto code. Not run: the migration
+against a database, and no email was sent. The pre-existing unused `appConfig`
+eslint error in `sender/sender.service.ts` is untouched.
+
+Not built: double opt-in (single opt-in by design), SES bounce and complaint
+suppression, and a `List-Unsubscribe` header. Custom user-defined CRM modules
+were deferred — `ModuleType` is a Prisma enum wired into group resolution,
+permissions, the sidebar and the route tree, so it is its own piece of work.
+
+## Footer becomes a block; forms drop the newsletter opt-in (2026-08-13)
+
+The unsubscribe footer was hardcoded into the rendered document, so an author
+could not move or restyle it. It is now a `FOOTER` block like any other -
+draggable, editable (text, unsubscribe label, colors, background), removable.
+New drag and drop blasts seed with a headline and a footer.
+
+Removing it changes the layout, never the opt-out: `renderBlastHtml` appends a
+fallback footer row when no `FOOTER` block is present, and `wrapClassicHtml`
+does the same for classic bodies. The builder preview mirrors that fallback, so
+what the author sees matches what sends. Commercial email needs a working
+unsubscribe, so this is deliberately not configurable away.
+
+The footer can also carry a **subscribe** action, off by default: a link or a
+button for whoever received the mail as a forward and is not on the list. Its
+href is a `{{subscribeUrl}}` merge token resolved from the sending org, landing
+on a public `/s/$token` page. The token signs only the organization id, so the
+raw id never rides in a forwarded URL, and the reader types their own address
+rather than the link carrying anyone else's.
+
+Also this session:
+
+- The newsletter opt-in was removed from marketing forms at the user's request.
+  `Form.subscribesToNewsletter` / `newsletterLabel`, the submit `subscribe`
+  flag, the renderer checkbox and the builder toggle are all gone; the form
+  files are byte-identical to their pre-change state. Subscribers still arrive
+  through the Subscribers page and the public subscribe endpoint, and
+  `SubscriberSource.FORM` stays in the enum for a future signup surface.
+- Subscribers added to the sidebar under Marketing Hub > Campaigns, beside
+  Groups, since both are audience sources.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `tsc --noEmit` on apps/fe exit 0;
+eslint clean on the touched code apart from the pre-existing unused `appConfig`
+in `sender/sender.service.ts`. No migration was applied and no email was sent.
+
+Also wrote `docs/custom-crm-modules-plan.md`: a scoped plan for user-defined CRM
+modules. Nothing built. Correction captured there — permissions are
+module-agnostic (`record` / `field` resources), so they need no per-module work,
+contrary to an earlier note.
+
+## Custom CRM modules — open decisions settled (2026-08-13)
+
+Design discussion only, no code written. The four open questions at the bottom
+of `docs/custom-crm-modules-plan.md` are now answered in that doc, plus a fifth
+the conversation surfaced.
+
+- Delete allowed while `isSystem === false && recordCount === 0`, archive after.
+  Count checked inside the delete transaction; `isArchived`, not `deletedAt`.
+- Custom analytics are auto-derived from field types — count, created-over-time,
+  group-by on the module's own `STATUS` / `DROPDOWN` fields. Lead and referral
+  dashboards stay `isSystem`-only.
+- No cross-module linking in v1, and `REFERRAL_LINK` is not widened. A generic
+  `RECORD_LINK` is the intended successor and stays purely additive as long as
+  `REFERRAL_LINK` is left alone. Checked: `BoardRelation` is source/target plus
+  a `RelationType` enum, already generic enough to carry it.
+- Cap 10, counting custom modules only, as one `MAX_CUSTOM_MODULES` constant in
+  the module service. `EntitlementGuard` not wired on day one.
+- The four current modules are seeded defaults, not clone templates. Custom
+  modules start blank; sidebar renders them below a divider.
+
+## Custom CRM modules — phase 1 built (2026-08-13)
+
+`Module` table plus dual-write. No read path changed and `moduleType` is
+untouched, so the app behaves identically. The migration has NOT been applied.
+
+- `prisma/models/board.prisma` — new `Module` model, nullable `moduleId` on
+  `Field` and `Board` with an index each. `marketing.prisma` — nullable
+  `moduleId` on `RecipientGroup` and `Form`. `auth.prisma` — `modules` relation.
+- `prisma/migrations/add_module_table/migration.sql` — creates the table, seeds
+  the four system modules per existing org, adds the columns, backfills
+  `moduleId` from `moduleType` + `organizationId`, then adds the FKs. Written to
+  be re-runnable.
+- Seed labels come from the current sidebar strings ("Master Marketing List",
+  "Referral Logs", "Phonebook", "Companies") and lucide icon names, so the
+  data-driven sidebar in phase 3 renders the same words it does now.
+- FK behaviour differs on purpose: `Field` and `Board` cascade because they are
+  the module's contents, `RecipientGroup` and `Form` restrict because they are
+  references and should block a delete rather than vanish with it.
+- `src/lib/module/system-modules.ts` — `SYSTEM_MODULES`, `seedSystemModules`,
+  `resolveModuleId`. `resolveModuleId` throws rather than writing null, since a
+  miss means the seed did not run.
+- Dual-write added at all 12 create sites: `board.service.ts` (2 board creates,
+  1 field create), `csv-import.processor.ts`, `form.service.ts`,
+  `group.service.ts`, `onboarding.ts` (6, now seeding modules first).
+
+Verified: `pnpm prisma:generate` and `pnpm build:api` exit 0, eslint clean on
+the new file. The pre-existing errors in `board.service.ts` (unused `Logger`,
+`previousValue`, `resolveRecordName`) and `csv-import.processor.ts`
+(`no-base-to-string`, one floating promise) are untouched and unrelated.
+
+Not done: migration not applied, no read path moved to `moduleId`, nothing
+user-visible. Phase 2 is the next step.
+
+## Custom CRM modules — phase 2 built (2026-08-13)
+
+Read paths move to `moduleId`. The migration from phase 1 is still unapplied, so
+this code must not deploy before it runs — `moduleId` is NULL until the backfill,
+and every converted query would return nothing.
+
+Decision taken this session: `moduleType` stays non-null and custom-module rows
+will carry the default `LEAD`. The column is therefore knowingly wrong for custom
+modules, so every read that turned a record into a module string moved onto the
+`module.key` relation instead.
+
+- `api/module/` — new `ModuleService`, `ModuleController`, `ModulesModule`,
+  `GET /api/module`. Registered in `api.module.ts`. Read-only; create, archive
+  and delete are phase 4.
+- `apps/fe/src/services/module/module-service.ts` and `hooks/use-modules.ts`.
+  `useModules()` drops archived modules by default.
+- `marketing-forms-list-page.tsx` and `group-editor-dialog.tsx` fetch instead of
+  a hardcoded array. Both now render `module.label`, so the pickers read
+  "Master Marketing List" rather than "LEAD". Values are still module keys, so
+  the wire contract is unchanged. This is the one user-visible change in phase 2.
+- `board.service.ts` — 21 where clauses moved to `moduleId`, resolved once per
+  method through `resolveModuleId`. Six reads that fed a module string into cache
+  keys, socket events or related-record payloads now select
+  `module: { select: { key: true } }` and fall back to the legacy column only
+  while the backfill is incomplete. The three create sites keep both columns.
+- Also converted: `kanban.service.ts` (3, `boardWhere` became async),
+  `bulk-email.processor.ts` (2), `csv-import.processor.ts` (1),
+  `group.service.ts` audience resolver (3), `email-ingest.service.ts` (1).
+- Deliberately left on the enum: `analytics.service.ts`, `liaison.service.ts`,
+  `options.service.ts` and `onboarding.ts`. These encode lead and referral
+  semantics or seed the system modules by literal key, which decision 2 keeps
+  `isSystem`-only.
+
+Verified: `pnpm build:api`, `pnpm build:fe` and `tsc --noEmit` on both apps exit
+0; eslint clean on every touched file. The two `board.tenant-isolation.spec.ts`
+errors are pre-existing constructor-arity failures in a file this change never
+touched, and `nest build` excludes specs.
+
+Not done, on purpose:
+
+- `hooks/use-board-sync.ts` `MODULE_QUERY_KEYS` still maps four modules to four
+  query keys. Rewriting it to `["records", moduleKey]` means changing every
+  consumer key at once, which is the phase 3 routing change. Until then a custom
+  module's socket events would patch the leads table, so this must land before
+  phase 4 ships custom modules.
+- `getGroupMembers` passes `group.moduleType` rather than the group's module key.
+  Correct until a group can point at a custom module, which is phase 4.
+- Migration still unapplied. No read path has been exercised against real data.
+
+### Phase 2 follow-up — checking the two deferred items (2026-08-13)
+
+Checking them turned up a third problem that was a genuine regression, not a
+deferral.
+
+- **`updateGroup` and `updateForm` wrote `moduleType` without `moduleId`.** Once
+  reads moved to `moduleId`, changing a group's or form's module through the UI
+  would have saved the new value and kept resolving the old module. Both now set
+  both columns. This was introduced by the phase 2 read change and would not
+  have shown up until someone edited a group.
+- **`getFormFields` still filtered on `form.moduleType`.** The sweep missed it
+  because it reads the module off a stored row rather than a request parameter,
+  so it did not match the pattern the other 21 sites shared. Now filters on
+  `form.moduleId`.
+- **`getGroupMembers` and `resolveForGroups`** read the group's module from the
+  relation key instead of the enum column. `resolveAudience`, `resolveMembers`
+  and `previewMembers` now take `moduleType: string` rather than `ModuleType`,
+  since a module key is free text once organizations create their own.
+- **`use-board-sync.ts`** keeps its four-entry map, but an unknown module now
+  falls through to `["records", moduleType]` rather than `"leads"`. A module the
+  map does not cover misses a live patch instead of writing another module's
+  rows into the leads table. The full rewrite still belongs to phase 3.
+
+Verified: `pnpm build:api` and `tsc --noEmit` on both apps exit 0. eslint clean
+on the changed files; `use-board-sync.ts` keeps 24 pre-existing `any` warnings
+that this change did not touch.
+
+## Custom CRM modules — phase 3 built (2026-08-13)
+
+Routing and the sidebar stop being written out module by module.
+
+- `lib/helper/board-query-key.ts` — `boardQueryKey(moduleKey)` returns
+  `["records", moduleKey]`. This replaced **five** separate module-to-name maps
+  (`use-board-sync`, `kanban-view`, `board-module-service`,
+  `history-report-page`, plus four ad-hoc `isReferral ? "referrals" : "leads"`
+  ternaries in `column-header`, `create-column`, `editable-cell` and
+  `activity-tab`). Every one of them had to be edited by hand for a new module.
+  Roughly 25 call sites moved across 13 files.
+- `CrmModuleType` widened from `"CONTACT" | "COMPANY"` to `string`, and
+  `create-column`'s `queryKey` prop from `string` to `string[]`.
+- `lib/helper/module-route.ts` — `modulePath(key)`. The four seeded modules keep
+  their shipped paths so no saved link breaks; anything else resolves to
+  `records/<key>`.
+- `routes/_team/$team/records/$moduleKey/{index,create}.tsx`, both with an
+  `errorComponent`. They render `ModuleListRoute` / `ModuleCreateRoute` from
+  `components/crm-list/module-list-route.tsx`, which owns the module lookup and
+  the not-found branch so it is not written twice in `routes/`.
+- `app-sidebar.tsx` — the CRM group maps over `useModules()` instead of a static
+  array. Icons are stored as lucide names and resolved through `MODULE_ICONS`,
+  falling back to `Table2` rather than rendering nothing.
+
+Verified: `pnpm build:fe` exits 0 (`tsc` then `vite build`), eslint clean on the
+touched files apart from pre-existing warnings.
+
+Gotcha worth remembering: `apps/fe`'s build script is `tsc && vite build`, so a
+newly added route file fails typecheck until `vite build` has run once to
+regenerate `routeTree.gen.ts`. Run `pnpm exec vite build` first when adding
+routes.
+
+Not done:
+
+- `/records/$moduleKey/$recordId`. The plan lists it, but no generic record
+  detail component exists — contacts and companies have no detail route either,
+  only list and create. Building one is new functionality rather than a route
+  rewrite, so it belongs with phase 4 or its own change.
+- The sidebar does not yet split custom modules below a divider (decision 5).
+  Nothing renders there until modules can be created, so it lands with phase 4.
+
+## Custom CRM modules — phase 4, create path (2026-08-14)
+
+The wizard, reached from "New Module" as the last item in the sidebar CRM group.
+
+- `POST /api/module` behind `field: ["configure"]`, so owner and admission
+  manager can shape the schema and liason cannot. `MAX_CUSTOM_MODULES = 10` is a
+  single exported constant checked in one place, counting `isSystem: false` rows
+  only. Key is derived server-side with `toSlug`, uppercased, underscored, and
+  rejected if it collides with an existing module in the org.
+- Module and its fields are created in one nested write, so a module never
+  exists without columns.
+- `components/module-setup/` — three-step wizard (Name it, Columns, Review) on
+  one react-hook-form, with `step` the only `useState`. Templates are fixed
+  People / Organizations / Custom field sets, never a copy of another module.
+- The derived key is shown on step 1 as the future `/records/<KEY>` address,
+  with a note that it cannot be changed. The preview calls the same `toSlug`
+  from `@dashboard/shared` the server uses, so the two cannot drift.
+- `lib/helper/module-icons.ts` — icon name to component in one place, shared by
+  the wizard picker and the sidebar.
+
+Verified: `pnpm build:api` and `pnpm build:fe` exit 0, eslint clean on the new
+files.
+
+Still missing from phase 4: archive, rename, reorder, delete-when-empty and the
+module management screen. Creation works end to end; nothing can be removed yet
+except by hand.
+
+### Module wizard — choices, icons and a real preview (2026-08-14)
+
+The first cut created DROPDOWN and STATUS columns with no options, which is a
+broken column rather than an empty one: the picker has nothing to pick, and
+Kanban groups by the first STATUS field, so the module would also open a board
+with no columns.
+
+- `CreateModuleSchema` fields carry `options: string[]`, capped at 20. The
+  service creates `FieldOption` rows for select types only, reusing the existing
+  `isSelectType` helper rather than testing the type inline.
+- The wizard shows a Choices input on DROPDOWN and STATUS rows, and step 2
+  refuses to advance while a select column has none.
+- The People and Organizations templates ship real status choices
+  (New/Active/Inactive, Prospect/Active/Inactive), matching what onboarding
+  seeds for the system modules.
+- Icon picker renders the icon rather than the string that names it.
+- Review renders the table the module will produce — the name column plus every
+  field as a header, with a sample row — instead of a list of column names.
+- Templates are `as const`, so `templateFields()` copies them into mutable rows
+  before the field array takes them.
+
+Verified: `pnpm build:api` and `pnpm build:fe` exit 0, eslint clean.
+
+### Calendar restyled from Figma (2026-08-14)
+
+Applied the Refidly Figma calendar frames (`Calendar - Monthly` 711:3223,
+`Calendar - Week` 718:6186, `Calendar - Day` 720:6579) to the calendar page.
+
+- Page header is now `PageHeader` (title plus provider legend and a
+  `Badge variant="success"` Connected chip) with a flat primary New Event
+  button, replacing the hand-rolled icon box and gradient buttons.
+- `calendar-toolbar.tsx` owns what FullCalendar's own toolbar used to render:
+  outlined prev/next icon buttons, centered period title, and a Month/Week/Day
+  segmented control. `headerToolbar={false}`; title and active view mirror the
+  calendar API through `datesSet`.
+- The segmented control class string moved out of `integration-page.tsx` into
+  `components/segmented-tabs.tsx`, now used by both screens.
+- Day headers render through `dayHeaderContent`: uppercase brand weekday, plus
+  a m/d line in week view and the full weekday name in day view.
+- `styles.css` `.fc` block rewritten to the design: `--table-header` header row,
+  hairline `--border` rules, flat cells, `--calendar-weekend` and
+  `--calendar-today` tints, out-of-month on `--muted`, solid 6px event pills.
+  Provider colors are now `--google` and `--outlook` tokens, so the Google red
+  and Outlook blue live in one place instead of three.
+- All the gradients, alternating row tints, white-on-primary column headers and
+  pill-shaped day numbers are gone.
+
+Verified: `pnpm build:fe` and `tsc --noEmit` exit 0; eslint on the touched files
+reports no new problems. Not rendered in a browser — the page needs a connected
+Google or Outlook calendar to reach its populated state.
+
+### Task detail restyled from Figma (2026-08-14)
+
+Applied the `Task Expanded` frame (708:2566) to the task detail screen. Styling
+and layout only — every mutation, query and handler is unchanged.
+
+- Header is a square outline back button next to `PageHeader` with the
+  `Task #N` title, and Duplicate / Archive / Delete as equal outline buttons.
+  Delete lost its raw red classes; the confirm dialog still carries the
+  destructive variant.
+- First card: tinted `bg-table-header` band holding the complete checkbox and
+  the task name, then a padded body. Field labels are the shadcn `Label` with
+  `RequiredMark` on Status, Priority and Assignee/s, replacing the uppercase
+  gray captions. Priority options now show their dot from `PRIORITY_CONFIG`,
+  matching what Status already did.
+- Second card: the tab bar uses the shared `SegmentedTabs*` (added with the
+  calendar work), so Details/Comments/Activity match the design's pill.
+- `task-section.tsx` (new) gives every section its heading plus a rule. The five
+  section components use it and the `<Separator />` rows between them are gone.
+  Add rows are now a leading checkbox, a full-width field, and the add control.
+- Section internals moved off raw gray/red/amber palette classes onto tokens, so
+  the screen holds up in dark mode. `Loader2` spinners replaced by `Spinner`.
+- `LabelPicker` chips carry an x to remove a label, and its trigger reads
+  "Add Tag" per the design.
+
+Corrections after reading the frame's design context rather than its screenshot:
+the task name uses the display font at semibold, the Status and Priority swatches
+are rounded squares rather than dots, Assign and Add Tag carry a dashed border as
+add-affordances, and label chips are full-radius pills. Label chips keep their
+per-label color from the API instead of the frame's single light blue, since the
+design does not model per-label colors.
+
+Deviations from the frame, both deliberate:
+- Add rows keep a trailing `+` button where the design draws an x. An x-only row
+  leaves no mouse path to add an item.
+- Dates stay native `type="date"` inputs rather than the design's formatted
+  "August 1, 2026" picker, which would need a new component.
+
+Verified: `pnpm build:fe` and `tsc --noEmit` exit 0. eslint on the touched files
+reports one carried-over warning (`text-white` on the API-colored subtask status
+pill, same as `task-row.tsx`). Not rendered in a browser.
+
+## Plan claims made real — custom reporting (2026-08-14)
+
+The Growth and Scale cards advertised three things the product did not do. The
+feature vocabulary was ai / export / priority_support / hipaa, and the report
+pages were gated by role, so an Essentials org saw exactly what a Scale org saw.
+
+Decision taken: gate only new features. Existing analytics pages stay open to
+every plan, so no current customer loses anything at deploy.
+
+- `advanced_analytics` (growth and up) and `custom_reporting` (scale) added to
+  `PLAN_ENTITLEMENTS` and `PLAN_FEATURE_LABELS`. Both now render on the plans
+  page from the entitlement table, so the two duplicate strings came out of
+  `PLAN_COPY.extras`.
+- `SavedReport` model plus `add_saved_report/migration.sql`. A report stores
+  `rangeDays`, not dates, so "last 90 days" keeps meaning that rather than
+  freezing to the window it was built in.
+- `api/report/` — CRUD plus `GET /:id/run`, the whole controller behind
+  `@RequireFeature("custom_reporting")`. Filtering runs in the app layer because
+  `FieldValue.value` is encrypted at rest, so SQL equality would match
+  ciphertext.
+- `components/custom-report/` — saved report list, builder dialog (module,
+  columns, range, one optional equals filter) and the run view with CSV export.
+  Route `/report/custom`, sidebar entry hidden unless entitled rather than
+  leading to a refusal the plan cannot act on.
+- `lib/monthly-report/` — `upsertJobScheduler` on `10 7 1 * *` following
+  `audit-retention.processor.ts`. Sends owners a per-module added/total summary.
+  Counts only: no record names or field values leave the org, so the email
+  carries nothing that would be PHI.
+
+Verified: `pnpm build:api`, `pnpm build:fe` and `tsc --noEmit` on both apps exit
+0; eslint clean on every new file.
+
+Not verified: neither migration has been applied, so no report has been saved or
+run, and the monthly job has never fired. The cron only registers on boot, so
+the first real check is that the scheduler appears in Redis after an API start.
+
+### Optimistic deletes (2026-08-14)
+
+`apps/fe` had 132 mutations, 90 without `onMutate`, so the convention in
+`frontend-conventions.md` was aspirational. Rather than convert all 90, this
+covers the class where it changes what a user sees: removing a row from a list
+that is already on screen.
+
+- `custom-report-page.tsx` — `deleteReport`. The run view belongs to the row, so
+  it closes with it and comes back if the delete fails.
+- `marketing-blasts-list-page.tsx` and `marketing-senders-page.tsx` — plain
+  arrays, same shape as the delete already in `marketing-forms-list-page.tsx`.
+- `expense-log.tsx` and `market-log.tsx` — the cache is `{ data, total }` keyed
+  with `filterMeta`, so these use `setQueriesData` across the prefix and adjust
+  `total`. Rollback restores every page entry captured by `getQueriesData`.
+
+Creates were deliberately left alone: `createReport` and `createModule` both
+leave the surface on success, so an optimistic insert would need a placeholder
+id that the refetch immediately replaces.
+
+Still without optimistic handling, and untouched here: `integration-page.tsx`
+(ten connect/disconnect mutations), `lead-option.tsx`, booking cancellation, and
+the publish/verify toggles across marketing. These are pre-existing.
+
+Verified: `pnpm build:fe` exits 0, eslint clean on the five touched files.
+
+### advanced_analytics is now enforced (2026-08-14)
+
+The feature was added to the entitlement table but gated nothing: it rendered on
+the Growth and Scale cards as "Advanced analytics & reporting" and granted
+nothing. Same defect this work set out to fix.
+
+This reverses the earlier "only gate new features" decision at the user's
+request. **Essentials organizations lose the analytics pages they use today**,
+so it needs a release note.
+
+- `analytics.controller.ts` carries `@RequireFeature("advanced_analytics")` at
+  class level. `@Get("summary")` keeps its method-level `ai` requirement, which
+  overrides the class one; Growth holds both, so nothing regresses.
+- Sidebar hides both Overview analytics entries when unentitled.
+- `components/feature-locked.tsx` — a shared lock panel with the reason and a
+  link to plans. Used by `analytics-page.tsx` and `marketing-list-page.tsx`.
+
+The lock screen was not optional here: `/$team/` renders the analytics dashboard,
+so it is the page an organization lands on after login. Gating the API alone
+would have dropped every Essentials user onto a failed request at sign-in. The
+queries are also disabled when unentitled, so no 403 is fired to render it.
+
+Both lock returns sit after every hook; eslint react-hooks/rules-of-hooks is
+clean on both files.
+
+Verified: `pnpm build:api` and `pnpm build:fe` exit 0, eslint clean.
+
+## fe-support rebranded to Refidly (2026-08-15)
+
+`apps/fe-support` was still carrying the pre-Refidly identity: a hardcoded
+`#004aad` header, `rfid.png` / `tarsier.png` logos, "Innovare HP RFID" product
+copy, no brand tokens, and ~330 raw Tailwind palette classes that ignore
+`.dark`.
+
+- `src/index.css` now mirrors `apps/fe`'s token set: brand navy `#0d3185`,
+  `--primary` aliased to it, brand rail gradient stops, table-header,
+  success/warning/info, avatar 1-8, chart 1-5 and the sequential brand ramp,
+  sidebar tokens, Manrope body and Red Hat Display for `page-title`.
+  `page-title` resolves to `var(--color-primary)`, not `var(--color-brand)` as
+  in `apps/fe` — brand navy is unreadable on the dark surface, and primary is
+  already lifted to the brand mid blue under `.dark`.
+- `index.html` — Refidly title, description, OG tags, Google Fonts, theme-color
+  `#0d3185`, apple-touch-icon on the Refidly mark.
+- `public/branding/` — Refidly Full / Icon / Wordmark / Mascot copied from
+  `apps/fe/public/branding` under kebab-case names (the source filenames carry
+  spaces and brackets). `public/images/` deleted.
+- Header uses `bg-brand-rail-horizontal` with `text-brand-rail-foreground`;
+  sidebars swap wordmark (expanded) and icon (collapsed); the AI chat avatar is
+  the brand mascot.
+- `packages/shared/src/lib/constant.ts` — product copy rewritten from RFID
+  readers and call quality to the actual Refidly surfaces (leads, referrals,
+  analytics, integrations, billing). `statusConfig` / `priorityConfig` and the
+  knowledge-base tiles now carry tokens instead of palette classes; `titleColor`
+  is gone, titles are `text-foreground` because the avatar hues sit far above
+  the lightness needed for small text.
+- The palette sweep is mechanical: neutrals to muted/foreground/border, blues to
+  primary, greens to success, amber/yellow/orange to warning, reds to
+  destructive. `text-white` survives only on `bg-black/*` scrims, matching
+  `apps/fe`.
+- Dead `components/support-portal-page.tsx` removed — an unmaintained duplicate
+  of `components/SupportPortalPage/`, imported by nothing.
+
+Verified: `pnpm build:shared`, `pnpm --filter fe-support build` (tsc + vite) and
+`pnpm build:fe` exit 0. `pnpm --filter fe-support lint` reports 0 errors; the 14
+warnings are pre-existing `any` usages plus the four scrim `text-white` icons.
+Not verified: no browser pass, so the light and dark renders are unconfirmed.
+
+## Support KPI pages wired to real data (2026-08-15)
+
+Both KPI pages under `/support/kpi` were hardcoded mockups — `value={64}`,
+"Admin A/B/C", and two dashed placeholder boxes. The branding sweep retokened
+them but left fabricated numbers on screen, which is worse than an empty state.
+
+`GET /api/support/stats` did not carry what the pages need, so `getStats` grew:
+
+- `total`, `createdToday`, `solvedToday`, `overdue`, `atRisk`, and `workload`.
+- `overdue` is unresolved past `SLA_FIRST_REPLY_HOURS` with no agent message;
+  `atRisk` is answered but unresolved past `SLA_RESOLUTION_HOURS`. Both
+  thresholds moved to `packages/shared` so the ticket-table badges and the KPI
+  counts cannot drift apart — `SupportDashboardTickets` had them inline as 24
+  and 72.
+- `solvedToday` counts tickets, not history rows, so a resolve-then-close on the
+  same day is one.
+- `workload` is a `groupBy` on `assignedTo` over non-terminal tickets, joined to
+  user names in a second query.
+- The hand-rolled role branch was replaced with the existing `ticketScope(user)`
+  helper, so scoping matches every other read on this service.
+
+`unassigned` is gone from `TicketStats`. `SupportTicket.assignedTo` is
+non-nullable, so no ticket can ever be unassigned — the field counted every
+ticket in scope and the Support Dashboard rendered that under an "Unassigned"
+label. That card now shows `overdue`, which is the number it was trying to be.
+
+Frontend: `KpiCard` takes `loading` / `suffix` / nullable `value` and lost its
+`trendDirection` prop — the trends were invented, and the API has no
+period-over-period data to replace them with. New siblings `KpiPanel`,
+`StatusBreakdown`, and `WorkloadList` in the same feature folder. Both pages
+share the `["support-stats"]` query key with the two admin dashboards, so the
+same payload is fetched once; `AdminStatsDashboard` was still on
+`["admin-ticket-stats"]` for the identical request.
+
+Verified: `pnpm build:shared`, `pnpm build:api`, `pnpm --filter fe-support build`
+exit 0; `pnpm --filter fe-support lint` 0 errors (same 14 pre-existing warnings).
+`pnpm --filter api lint` fails on 63 pre-existing errors, none in
+`support.service.ts`. Not verified: no browser pass and no request against a
+live database, so the new counts are unconfirmed against real rows.
+
+## 2026-08-18 docker compose dev infra
+
+- Compose split: postgres and redis run by default, app containers moved behind `--profile apps`, stripe-cli webhook forwarder behind `--profile stripe`.
+- fe-support VITE_API_URL moved from a build arg (no matching ARG in its Dockerfile, so it was dropped) to a runtime env var, which is what vite loadEnv reads.
+- S3, SES, SNS, Bedrock and AWS Location have no local substitute: the clients in `src/lib` build with no endpoint override, so dev points at a real AWS account.
+- Root scripts added: `infra:up`, `infra:down`, `infra:logs`, `infra:stripe`, `stack:up`. `docker compose down` tears down profiled containers too, so no separate stack:down.

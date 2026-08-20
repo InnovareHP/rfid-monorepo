@@ -21,6 +21,15 @@ COPY packages/shared/ ./packages/shared/
 COPY packages/ui/ ./packages/ui/
 COPY apps/fe/ ./apps/fe/
 
+# Vite statically replaces import.meta.env.VITE_* at build time, so these
+# have to be real env vars before vite build runs, not just runtime env.
+ARG VITE_API_URL
+ARG VITE_AWS_REGION
+ARG VITE_AWS_LOCATION_API_KEY
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_AWS_REGION=$VITE_AWS_REGION \
+    VITE_AWS_LOCATION_API_KEY=$VITE_AWS_LOCATION_API_KEY
+
 # Build shared (required dependency), then vite build only (skip tsc)
 RUN pnpm --filter @dashboard/shared build \
     && cd apps/fe && npx vite build

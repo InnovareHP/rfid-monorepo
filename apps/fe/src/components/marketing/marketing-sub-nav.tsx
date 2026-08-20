@@ -4,9 +4,10 @@ import { Link, useParams } from "@tanstack/react-router";
 const TABS = [
   { label: "Blasts", to: "/$team/marketing/blasts" },
   { label: "Groups", to: "/$team/marketing/groups" },
+  { label: "Subscribers", to: "/$team/marketing/subscribers" },
 ] as const;
 
-export function MarketingSubNav({ active }: { active: "blasts" | "groups" }) {
+export function MarketingSubNav({ active }: { active: "blasts" | "groups" | "subscribers" }) {
   const { team } = useParams({ strict: false }) as { team: string };
 
   return (

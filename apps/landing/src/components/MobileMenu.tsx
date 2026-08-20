@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { APP_URL } from "../config";
 
 const LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#why", label: "Why Refidly" },
-  { href: "#how-it-works", label: "How It Works" },
+  { href: "/#features", label: "Features" },
+  { href: "/#why", label: "Why Refidly" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/security", label: "Security" },
 ];
 
 export default function MobileMenu() {

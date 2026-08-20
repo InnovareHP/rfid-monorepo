@@ -1,4 +1,5 @@
 import { OptionalTag, RequiredLegend, RequiredMark } from "@/components/field-marks";
+import { placeholderFor } from "@/lib/helper/field-placeholder";
 import LocationCell from "@/components/reusable-table/location-cell";
 import type {
   PublicForm,
@@ -25,10 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
+import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleCheckBig, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+// One control height so inputs, selects, and pickers line up down the form
+const CONTROL_CLASS = "h-10 w-full";
 
 const INPUT_TYPE_BY_FIELD_TYPE: Record<string, string> = {
   EMAIL: "email",
@@ -96,7 +101,14 @@ const FieldControl = ({
   disabled,
 }: FieldControlProps) => {
   if (mapping.fieldType === "DATE") {
-    return <DatePicker value={value} onChange={onChange} disabled={disabled} />;
+    return (
+      <DatePicker
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className={CONTROL_CLASS}
+      />
+    );
   }
 
   if (mapping.fieldType === "LOCATION") {
@@ -108,7 +120,10 @@ const FieldControl = ({
         onChange={onChange}
         disabled={disabled}
         placeholder="Start typing an address"
-        className="h-9 w-full rounded-md border-input bg-transparent text-sm shadow-xs"
+        className={cn(
+          CONTROL_CLASS,
+          "rounded-md border-input bg-transparent text-sm shadow-xs"
+        )}
         {...endpoints}
       />
     );
@@ -125,7 +140,7 @@ const FieldControl = ({
         onValueChange={(next) => onChange(next.join(","))}
         placeholder="Select options"
         disabled={disabled || mapping.options.length === 0}
-        className="w-full"
+        className="min-h-10 w-full"
       />
     );
   }
@@ -137,7 +152,7 @@ const FieldControl = ({
         onValueChange={onChange}
         disabled={disabled || mapping.options.length === 0}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full data-[size=default]:h-10">
           <SelectValue
             placeholder={
               mapping.options.length === 0 ? "No options" : "Select an option"
@@ -160,7 +175,9 @@ const FieldControl = ({
       type={INPUT_TYPE_BY_FIELD_TYPE[mapping.fieldType] ?? "text"}
       value={value}
       onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholderFor(mapping.label, mapping.fieldType)}
       disabled={disabled}
+      className={CONTROL_CLASS}
     />
   );
 };
@@ -222,7 +239,7 @@ export const FormRenderer = ({
                 name={mapping.fieldId}
                 render={({ field }) =>
                   mapping.fieldType === "CHECKBOX" ? (
-                    <FormItem className="flex items-center gap-2.5 rounded-md border border-input px-3 py-2.5">
+                    <FormItem className="flex h-10 items-center gap-2.5 rounded-md border border-input px-3">
                       <FormControl>
                         <Checkbox
                           checked={field.value === "true"}

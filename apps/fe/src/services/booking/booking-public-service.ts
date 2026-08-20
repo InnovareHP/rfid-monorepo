@@ -3,6 +3,9 @@ import { axiosClient } from "@/lib/axios-client";
 export type BookingLocation = "VIDEO" | "IN_PERSON";
 
 export interface PublicBookingPage {
+  // False when the host has no calendar connected: slots stay empty and the
+  // booking endpoint rejects.
+  acceptingBookings: boolean;
   title: string;
   description: string | null;
   durationMinutes: number;
@@ -43,7 +46,13 @@ export const createPublicBooking = async (
     locationType?: BookingLocation;
     boardId?: string;
   }
-) => {
+): Promise<{
+  id: string;
+  startTime: string;
+  endTime: string;
+  status: "CONFIRMED" | "CANCELLED";
+  meetingUrl: string | null;
+}> => {
   const response = await axiosClient.post(
     `/api/booking/public/${slug}/bookings`,
     data

@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth-client";
+import { authClient, type AdminRole } from "@/lib/auth-client";
 import { axiosClient } from "@/lib/axios-client";
 
 // ─── User Types ─────────────────────────────────────────────────────
@@ -48,6 +48,7 @@ export type ActivityLogEntry = {
   action: string;
   details: string | null;
   targetOrgId: string | null;
+  ipAddress: string | null;
   admin: {
     id: string;
     name: string;
@@ -69,6 +70,7 @@ export type ActivityLogParams = {
   page?: number;
   take?: number;
   actionFilter?: string;
+  adminId?: string;
   startDate?: string;
   endDate?: string;
 };
@@ -85,6 +87,56 @@ export type AdminOrganization = {
   memberCount: number;
   subscriptionStatus: string | null;
   subscriptionPlan: string | null;
+  entitlementLabel: string;
+  hipaaEnabled: boolean;
+  baaAcceptedAt: string | null;
+};
+
+export type AdminOrganizationCompliance = {
+  hipaaEnabled: boolean;
+  baaAcceptedAt: string | null;
+  baaVersion: string | null;
+  retentionDays: number;
+  planSupportsHipaa: boolean;
+  agreement: {
+    termsVersion: string;
+    signedAt: string;
+    signerName: string;
+    signerTitle: string;
+    signerEmail: string;
+    companyLegalName: string;
+    acceptanceMethod: string;
+    ipAddress: string | null;
+    hasDocument: boolean;
+  } | null;
+};
+
+export type AdminOrganizationEntitlement = {
+  label: string;
+  seats: number;
+  features: string[];
+  isCustom: boolean;
+};
+
+export type AdminMetrics = {
+  users: {
+    total: number;
+    banned: number;
+    superAdmins: number;
+    onboarded: number;
+    newLast30Days: number;
+  };
+  organizations: {
+    total: number;
+    hipaaEnabled: number;
+    baaSigned: number;
+    newLast30Days: number;
+  };
+  subscriptions: {
+    byStatus: { status: string; count: number }[];
+    customContracts: number;
+    trialsExpiringIn7Days: number;
+  };
 };
 
 export type AdminOrganizationMember = {
@@ -120,6 +172,9 @@ export type AdminOrganizationDetail = {
   logo: string | null;
   createdAt: string;
   metadata: string | null;
+  stripeCustomerId: string | null;
+  compliance: AdminOrganizationCompliance;
+  entitlement: AdminOrganizationEntitlement;
   members: AdminOrganizationMember[];
   subscription: AdminOrganizationSubscription | null;
 };
@@ -128,6 +183,7 @@ export type ListOrganizationsParams = {
   page?: number;
   take?: number;
   search?: string;
+  hipaaOnly?: boolean;
 };
 
 export type ListOrganizationsResponse = {
@@ -151,57 +207,54 @@ export async function getUser(userId: string): Promise<AdminUser> {
   return data;
 }
 
-// ─── Admin Actions (routed through backend for audit logging) ───────
+// ─── Admin Actions ──────────────────────────────────────────────────
+// Every call below is audited by the after hook in the API's Better Auth
+// config, so there is nothing for the client to log.
 
 export async function banUser(
   userId: string,
   banReason?: string,
   banExpiresIn?: number
 ) {
-  const { data } = await axiosClient.post("/api/user/admin/ban", {
+  const { data, error } = await authClient.admin.banUser({
     userId,
     banReason,
     banExpiresIn,
   });
+  if (error) throw error;
   return data;
 }
 
 export async function unbanUser(userId: string) {
-  const { data } = await axiosClient.post("/api/user/admin/unban", {
-    userId,
-  });
+  const { data, error } = await authClient.admin.unbanUser({ userId });
+  if (error) throw error;
   return data;
 }
 
-export async function setUserRole(userId: string, role: string) {
-  const { data } = await axiosClient.post("/api/user/admin/set-role", {
-    userId,
-    role,
-  });
+export async function setUserRole(userId: string, role: AdminRole) {
+  const { data, error } = await authClient.admin.setRole({ userId, role });
+  if (error) throw error;
   return data;
 }
 
 export async function removeUser(userId: string) {
-  const { data } = await axiosClient.post("/api/user/admin/remove", {
-    userId,
-  });
+  const { data, error } = await authClient.admin.removeUser({ userId });
+  if (error) throw error;
   return data;
 }
 
 export async function verifyEmail(userId: string) {
-  const { data } = await authClient.admin.updateUser({
+  const { data, error } = await authClient.admin.updateUser({
     userId,
     data: {
       emailVerified: true,
     },
   });
+  if (error) throw error;
   return data;
 }
 
-export async function setUserPassword(
-  userId: string,
-  newPassword: string
-) {
+export async function setUserPassword(userId: string, newPassword: string) {
   const { data, error } = await authClient.admin.setUserPassword({
     userId,
     newPassword,
@@ -211,18 +264,21 @@ export async function setUserPassword(
   return data;
 }
 
-export async function revokeSession(sessionId: string) {
+export async function revokeUserSessions(userId: string) {
   const { data, error } = await authClient.admin.revokeUserSessions({
-    userId: sessionId,
+    userId,
   });
   if (error) throw error;
   return data;
 }
 
-export async function impersonateUser(userId: string) {
-  const { data, error } = await authClient.admin.impersonateUser({
-    userId,
-  });
+// The reason travels as a header because the admin plugin strips body keys it
+// does not declare, and the API rejects the call without it.
+export async function impersonateUser(userId: string, reason: string) {
+  const { data, error } = await authClient.admin.impersonateUser(
+    { userId },
+    { headers: { "x-impersonation-reason": reason } }
+  );
   if (error) throw error;
   return data;
 }
@@ -258,4 +314,42 @@ export async function getOrganization(
     `/api/user/admin/organizations/${orgId}`
   );
   return data;
+}
+
+export type EntitlementContract = {
+  label: string;
+  seats: number;
+  features: string[];
+};
+
+// Null clears the contract and hands the org back to its plan tier.
+export async function setOrganizationEntitlement(
+  orgId: string,
+  contract: EntitlementContract | null
+): Promise<AdminOrganizationEntitlement> {
+  const { data } = await axiosClient.patch(
+    `/api/user/admin/organizations/${orgId}/entitlement`,
+    { contract }
+  );
+  return data;
+}
+
+export async function getMetrics(): Promise<AdminMetrics> {
+  const { data } = await axiosClient.get("/api/user/admin/metrics");
+  return data;
+}
+
+// Streams the executed BAA straight to a download; the bytes never enter state.
+export async function downloadOrganizationBaa(orgId: string, orgName: string) {
+  const { data } = await axiosClient.get(
+    `/api/user/admin/organizations/${orgId}/baa`,
+    { responseType: "blob" }
+  );
+
+  const url = URL.createObjectURL(data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `baa-${orgName}.pdf`;
+  link.click();
+  URL.revokeObjectURL(url);
 }

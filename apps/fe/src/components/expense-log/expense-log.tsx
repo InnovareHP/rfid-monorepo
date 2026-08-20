@@ -98,12 +98,35 @@ const ExpenseLogPage = () => {
 
   const deleteExpenseMutation = useMutation({
     mutationFn: async (id: string) => await deleteExpenseLog(id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["expense-logs"] });
+      const previous = queryClient.getQueriesData({ queryKey: ["expense-logs"] });
+
+      // Every page cached under the prefix is patched, since the key carries
+      // the filter and the row can sit in any of them.
+      queryClient.setQueriesData({ queryKey: ["expense-logs"] }, (old: any) => {
+        if (!Array.isArray(old?.data)) return old;
+
+        return {
+          ...old,
+          data: old.data.filter((row: { id: string }) => row.id !== id),
+          total: Math.max(0, (old.total ?? 0) - 1),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (error, _id, context) => {
+      for (const [key, data] of context?.previous ?? []) {
+        queryClient.setQueryData(key, data);
+      }
+      toast.error(error.message);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expense-logs"] });
       toast.success("Expense log deleted successfully!");
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["expense-logs"] });
     },
   });
 

@@ -1,3 +1,4 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { FACILITY_FORM_SECTIONS } from "@/components/master-list/facility-form-sections";
 import RecordCreatePage, {
   type CreatedRecord,
@@ -40,7 +41,7 @@ function RouteComponent() {
     },
     onSuccess: () => {
       toast.success("Facilities created successfully");
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
       goBack();
     },

@@ -1,0 +1,59 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import LegalSection from "../components/LegalSection.astro";
+import { APP_URL, SUPPORT_EMAIL } from "../config";
+import LegalLayout from "../layouts/LegalLayout.astro";
+
+const SECTIONS = [
+  {
+    heading: "Why Refidly",
+    body: [
+      "Healthcare referral teams run on relationships, and for years those relationships have lived in spreadsheets, inbox threads, and a notebook in a liaison's car. When a marketer leaves, the territory knowledge leaves with them. When leadership asks why census dipped, nobody can point to the referral source that went quiet six weeks ago.",
+      "Refidly exists to make that operation visible. One shared record of every facility, every referral, and every field visit, current for the whole team at the same moment, with the history to show what changed and who changed it.",
+    ],
+  },
+  {
+    heading: "Our mission",
+    body: [
+      "Give every referral team a single, current picture of its market, so decisions about where to spend the next visit are based on evidence instead of memory.",
+      "That means the record has to be shared, the history has to be intact, and the analysis has to arrive in plain language for the people doing the work, not only for the person building the quarterly deck.",
+    ],
+  },
+  {
+    heading: "Our vision",
+    body: [
+      "Referral development becomes a measured discipline. A liaison knows which facility has gone quiet before census reflects it, a manager sees which territories are under-covered, and an organization can trace every admission back to the relationship that produced it.",
+      "We are building toward the system of record for that work, one where the intelligence compounds with every visit logged rather than leaving with the person who logged it.",
+    ],
+  },
+  {
+    heading: "Who Refidly is for",
+    body: [
+      "We build for community liaisons, admission managers, and marketing directors at post-acute and behavioral health providers, skilled nursing networks, home health agencies, and the referral development teams that support them.",
+      "These teams cover counties rather than accounts, and they are measured on admissions rather than deal stages. Generic sales CRMs make them translate their work into a vocabulary that does not fit. Refidly does not.",
+    ],
+  },
+];
+---
+
+<LegalLayout
+  title="About Refidly — Software for Healthcare Referral Teams"
+  description="Why Refidly exists, our mission and vision, and the healthcare marketing, liaison, and admission teams we build for."
+  heading="About Refidly"
+  lead="Refidly is for the healthcare marketing and liaison teams who bring the referrals in."
+>
+  {SECTIONS.map((section) => <LegalSection {...section} />)}
+
+  <LegalSection heading="Talk to us">
+    <p class="legal-body">
+      Questions about whether Refidly fits your team, or want a walkthrough with
+      your own facility list? Email <a
+        href={`mailto:${SUPPORT_EMAIL}`}
+        class="legal-link">{SUPPORT_EMAIL}</a
+      > and a person answers.
+    </p>
+    <a href={APP_URL} class={buttonVariants({ className: "mt-6" })}>
+      Start free trial
+    </a>
+  </LegalSection>
+</LegalLayout>

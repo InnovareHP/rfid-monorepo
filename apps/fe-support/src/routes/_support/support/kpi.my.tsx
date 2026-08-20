@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_support/support/kpi/my")({
 
 function RouteComponent() {
   return (
-    <React.Suspense fallback={<div className="p-6 text-sm text-slate-500" />}>
+    <React.Suspense fallback={<div className="p-6 text-sm text-muted-foreground" />}>
       <MyKpiPage />
     </React.Suspense>
   );

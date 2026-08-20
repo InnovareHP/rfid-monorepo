@@ -44,14 +44,38 @@ code {
   --brand: #0d3185;
   --brand-foreground: #ffffff;
   --table-header: #f4f9ff;
+  /* Fixed brand artwork panel and its body ink. Deliberately absent from
+     .dark: the error illustrations bake this panel into the PNG. */
+  --brand-surface: #f4f9ff;
+  --brand-ink: #202020;
+  /* Lighter brand blue used for selected segmented controls. Both themes fill
+     it solid, so its foreground is fixed white rather than a themed token. */
+  --brand-accent: #005cb1;
+  --brand-accent-foreground: #ffffff;
+  /* The nav rail is fixed brand artwork in both themes, so its stops and its ink
+     are theme-independent. Absent from .dark on purpose: pairing this gradient
+     with a themed foreground turned the rail labels near-black in dark mode. */
+  --brand-rail-from: #01184d;
+  --brand-rail-mid: #0d3185;
+  --brand-rail-via: #2c86d9;
+  --brand-rail-to: #64d1f4;
+  --brand-rail-foreground: #ffffff;
+  /* Calendar grid surfaces: a weekend/gutter tint and the current-day cell. */
+  --calendar-weekend: #f9fcff;
+  --calendar-today: #eff6ff;
+  /* Third-party brand colors for calendar provider events. Theme-independent
+     because Google red and Outlook blue are fixed, and their pills are solid. */
+  --google: #ea4335;
+  --outlook: #0078d4;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.623 0.214 259.815);
-  --primary-foreground: oklch(0.97 0.014 254.604);
+  /* Primary is the brand navy: one accent for the whole app, not a second blue. */
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
@@ -66,7 +90,7 @@ code {
   --info: oklch(0.48 0.15 250);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
+  --ring: var(--brand);
 
   /* Avatar identity colors. Deliberately theme-independent so a person keeps
      the same color in light and dark. Cycled by name hash. The foreground is
@@ -97,23 +121,29 @@ code {
   --chart-seq-4: #01184d;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
   --sidebar-accent: oklch(0.967 0.001 286.375);
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  --sidebar-ring: var(--brand);
 }
 
 .dark {
+  --table-header: oklch(0.26 0.035 262);
+  --brand-accent: #2c6da8;
+  --calendar-weekend: oklch(0.24 0.012 286);
+  --calendar-today: oklch(0.3 0.045 262);
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.546 0.245 262.881);
-  --primary-foreground: oklch(0.379 0.146 265.522);
+  /* The navy is unreadable on a dark surface, so dark lifts it into the same
+     brand family: the mid blue of the brand gradient. */
+  --primary: #64a9ea;
+  --primary-foreground: #06183f;
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
@@ -127,7 +157,7 @@ code {
   --info: oklch(0.74 0.15 254);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
+  --ring: #64a9ea;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -135,12 +165,12 @@ code {
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.379 0.146 265.522);
+  --sidebar-primary: #64a9ea;
+  --sidebar-primary-foreground: #06183f;
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  --sidebar-ring: #64a9ea;
 }
 
 @theme inline {
@@ -151,7 +181,18 @@ code {
     sans-serif;
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
+  --color-brand-rail-from: var(--brand-rail-from);
+  --color-brand-rail-mid: var(--brand-rail-mid);
+  --color-brand-rail-via: var(--brand-rail-via);
+  --color-brand-rail-to: var(--brand-rail-to);
+  --color-brand-rail-foreground: var(--brand-rail-foreground);
   --color-table-header: var(--table-header);
+  --color-google: var(--google);
+  --color-outlook: var(--outlook);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -240,106 +281,92 @@ code {
 /* FullCalendar theme overrides */
 
 .fc {
-  --fc-border-color: #e2e8f0;
-  --fc-button-bg-color: var(--primary);
-  --fc-button-border-color: var(--primary);
-  --fc-button-hover-bg-color: color-mix(in oklch, var(--primary), black 15%);
-  --fc-button-hover-border-color: color-mix(
-    in oklch,
-    var(--primary),
-    black 15%
-  );
-  --fc-button-active-bg-color: color-mix(in oklch, var(--primary), black 25%);
-  --fc-button-active-border-color: color-mix(
-    in oklch,
-    var(--primary),
-    black 25%
-  );
-  --fc-today-bg-color: transparent;
-  --fc-neutral-bg-color: #f1f5f9;
+  --fc-border-color: var(--border);
+  --fc-today-bg-color: var(--calendar-today);
+  --fc-neutral-bg-color: var(--muted);
   --fc-page-bg-color: transparent;
   --fc-event-border-color: transparent;
   font-size: 0.875rem;
 }
 
-.fc .fc-button {
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  padding: 0.4rem 0.875rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  text-transform: capitalize;
-}
-
-.fc .fc-button:focus {
-  box-shadow: 0 0 0 3px rgba(128, 176, 255, 0.3);
-}
-
-.fc .fc-toolbar {
-  padding: 0.75rem 1rem;
-}
-
-.fc .fc-toolbar-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-/* Column headers - primary color with white text */
+/* Column headers - brand day names on the table header tint */
 .fc .fc-col-header-cell {
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #ffffff;
-  padding: 0.625rem 0;
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--primary), white 20%),
-    var(--primary)
-  );
-  border-bottom: none;
-}
-
-.fc .fc-col-header-cell a {
-  color: #ffffff !important;
-}
-
-.fc .fc-daygrid-day-number {
-  font-size: 0.8125rem;
+  background-color: var(--table-header);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0;
   font-weight: 700;
-  padding: 0.2rem 0.45rem;
-  color: #1e293b !important;
-  border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.85);
-  margin: 0.2rem 0.2rem 0 0;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: var(--brand);
+  padding: 0;
+}
+
+.fc .fc-daygrid-day-frame {
+  padding: 0.75rem;
 }
 
 .fc .fc-daygrid-day-top {
-  display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
-/* Event pill styling */
+.fc .fc-daygrid-day-number {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 400;
+  padding: 0;
+}
+
+/* Month grid - flat cells, hairline rules, tinted weekends */
+.fc .fc-daygrid-day {
+  background-color: var(--card);
+}
+
+.fc .fc-daygrid-day.fc-day-sat,
+.fc .fc-daygrid-day.fc-day-sun {
+  background-color: var(--calendar-weekend);
+}
+
+.fc .fc-daygrid-day.fc-day-other {
+  background-color: var(--muted);
+}
+
+.fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+  opacity: 0.5;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: var(--calendar-today);
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.fc .fc-daygrid-day:hover {
+  background-color: var(--calendar-today);
+  transition: background-color 0.2s;
+}
+
+/* Event pills */
 .fc .fc-event {
   border-radius: 6px;
-  font-size: 0.75rem;
   padding: 2px 8px;
-  cursor: pointer;
-  color: #ffffff !important;
-  font-weight: 600;
+  font-size: 0.625rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition:
     transform 0.12s,
     box-shadow 0.12s;
-  border-left-width: 3px;
-  border-left-style: solid;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .fc .fc-event-title,
 .fc .fc-event-time {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .fc .fc-event:hover {
@@ -347,119 +374,53 @@ code {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Google events - warm red */
 .fc .fc-event-google {
-  background-color: #ea4335 !important;
-  border-left-color: #b31412 !important;
+  background-color: var(--google);
 }
 
-/* Outlook events - cool blue */
 .fc .fc-event-outlook {
-  background-color: #0078d4 !important;
-  border-left-color: #004e8c !important;
+  background-color: var(--outlook);
 }
 
-/* Month view: cool alternating row tints */
-.fc .fc-daygrid-body tr:nth-child(odd) .fc-daygrid-day {
-  background-color: #ffffff;
-}
-
-.fc .fc-daygrid-body tr:nth-child(even) .fc-daygrid-day {
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--primary), white 92%) 0%,
-    color-mix(in oklch, var(--primary), white 90%) 50%,
-    color-mix(in oklch, var(--primary), white 85%) 100%
-  );
-}
-
-/* Today cell - distinct primary glow */
-.fc .fc-daygrid-day.fc-day-today {
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--primary), white 82%) 0%,
-    color-mix(in oklch, var(--primary), white 85%) 100%
-  ) !important;
-  position: relative;
-}
-
-.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-  color: var(--primary) !important;
-  font-weight: 700;
-  background-color: color-mix(in oklch, var(--primary), white 80%);
-}
-
-/* Weekend columns - subtle primary tint */
-.fc .fc-day-sat:not(.fc-day-today),
-.fc .fc-day-sun:not(.fc-day-today) {
-  background-color: color-mix(in oklch, var(--primary), white 90%) !important;
-}
-
-/* Override weekend + striped row combo */
-.fc .fc-daygrid-body tr:nth-child(even) .fc-day-sat:not(.fc-day-today),
-.fc .fc-daygrid-body tr:nth-child(even) .fc-day-sun:not(.fc-day-today) {
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--primary), white 85%) 0%,
-    color-mix(in oklch, var(--primary), white 90%) 100%
-  ) !important;
-}
-
-/* Timegrid (week/day) - cool alternating hour bands */
-.fc .fc-timegrid-slot {
-  height: 2.5rem;
-}
-
-.fc .fc-timegrid-slot:nth-child(4n + 1),
-.fc .fc-timegrid-slot:nth-child(4n + 2) {
-  background: linear-gradient(
-    90deg,
-    #f8fafc,
-    color-mix(in oklch, var(--primary), white 92%)
-  );
-}
-
-.fc .fc-timegrid-slot:nth-child(4n + 3),
-.fc .fc-timegrid-slot:nth-child(4n + 4) {
-  background-color: #ffffff;
-}
-
-/* Timegrid axis & day headers */
-.fc .fc-timegrid-axis {
-  background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+.fc .fc-timegrid-event {
+  padding: 4px 8px;
 }
 
 /* More-events link */
 .fc .fc-daygrid-more-link {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--brand);
   padding: 1px 4px;
   border-radius: 4px;
-  transition: background 0.15s;
 }
 
 .fc .fc-daygrid-more-link:hover {
-  background: color-mix(in oklch, var(--primary), white 92%);
+  background-color: var(--calendar-today);
 }
 
-/* Timegrid events */
-.fc .fc-timegrid-event {
-  border-radius: 6px;
-  padding: 3px 6px;
-  border-left-width: 4px;
-  border-left-style: solid;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+/* Timegrid (week/day) - plain columns, brand hour labels */
+.fc .fc-timegrid-slot {
+  height: 2.75rem;
 }
 
-/* Day cell hover */
-.fc .fc-daygrid-day:hover {
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--primary), white 92%) 0%,
-    color-mix(in oklch, var(--primary), white 90%) 100%
-  ) !important;
-  transition: background 0.2s;
+.fc .fc-timegrid-slot-label-cushion {
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.fc .fc-timegrid-col.fc-day-today {
+  background-color: var(--calendar-today);
+}
+
+.fc .fc-timegrid-axis,
+.fc .fc-timegrid-col {
+  background-color: var(--card);
+}
+
+.fc .fc-scrollgrid-section-header .fc-timegrid-axis {
+  background-color: var(--table-header);
 }
 
 /* Scrollbar styling inside calendar */
@@ -468,16 +429,16 @@ code {
 }
 
 .fc .fc-scroller::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--muted);
 }
 
 .fc .fc-scroller::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border);
   border-radius: 3px;
 }
 
 .fc .fc-scroller::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--muted-foreground);
 }
 
 @property --primary-rgb-angle {
@@ -493,6 +454,29 @@ code {
 }
 
 @layer utilities {
+  /* The nav rail's gradient. It lives here rather than in JSX because a four-stop
+     gradient has no Tailwind color utility, and here it stays in one place with
+     its stops as tokens instead of hex literals repeated across components. */
+  .bg-brand-rail {
+    background-image: linear-gradient(
+      to bottom,
+      var(--brand-rail-from) 0%,
+      var(--brand-rail-mid) 38%,
+      var(--brand-rail-via) 78%,
+      var(--brand-rail-to) 100%
+    );
+  }
+
+  .bg-brand-rail-horizontal {
+    background-image: linear-gradient(
+      to right,
+      var(--brand-rail-from) 0%,
+      var(--brand-rail-mid) 38%,
+      var(--brand-rail-via) 78%,
+      var(--brand-rail-to) 100%
+    );
+  }
+
   .primary-active-border {
     position: relative;
     isolation: isolate;

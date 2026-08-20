@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { BoardNotifyModule } from "../board/board-notify.module";
 import { EmailIngestController } from "./email-ingest.controller";
 import { EmailIngestProcessor } from "./email-ingest.processor";
 import { EmailIngestService } from "./email-ingest.service";
@@ -9,6 +10,7 @@ import { EmailProcessor } from "./email.processor";
 import { EmailService } from "./email.service";
 
 @Module({
+  imports: [BoardNotifyModule],
   controllers: [
     EmailTrackingController,
     EmailIngestController,

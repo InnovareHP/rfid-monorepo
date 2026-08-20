@@ -10,12 +10,11 @@ import {
   Patch,
   Post,
   UseGuards,
+  UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import {
-  EntitlementGuard,
-  RequireFeature,
-} from "../../../guard/entitlement/entitlement.guard";
+import { ZodValidationPipe } from "nestjs-zod";
+import { EntitlementGuard } from "../../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../../guard/hipaa/hipaa.guard";
 import { SubscriptionGuard } from "../../../guard/subscription/subscription.guard";
 import { Queue } from "bullmq";
@@ -25,7 +24,12 @@ import {
 } from "../../../guard/permission/permission.guard";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
 import { BlastService } from "./blast.service";
-import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
+import {
+  CreateBlastDto,
+  SendBlastDto,
+  TestSendBlastDto,
+  UpdateBlastDto,
+} from "./dto/blast.dto";
 
 @Controller("marketing/blasts")
 @UseGuards(
@@ -35,6 +39,7 @@ import { CreateBlastDto, SendBlastDto, UpdateBlastDto } from "./dto/blast.dto";
   EntitlementGuard,
   HipaaGuard
 )
+@UsePipes(ZodValidationPipe)
 export class BlastController {
   constructor(
     private readonly blastService: BlastService,
@@ -162,6 +167,26 @@ export class BlastController {
         id,
         session.session.activeOrganizationId,
         session.user.id,
+        dto.sendVia
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post("/:id/test-send")
+  @RequirePermission({ outreach: ["send"] })
+  async testSendBlast(
+    @Param("id") id: string,
+    @Body() dto: TestSendBlastDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.blastService.sendTest(
+        id,
+        session.session.activeOrganizationId,
+        session.user.id,
+        dto.to,
         dto.sendVia
       );
     } catch (error) {

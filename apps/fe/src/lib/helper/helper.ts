@@ -70,3 +70,24 @@ export const getApiErrorMessage = (
   const response = (error as { response?: { data?: unknown } })?.response;
   return unwrap(response?.data) ?? unwrap(error) ?? fallback;
 };
+
+// Scopes an export to a date range on the record's own created date. The report
+// endpoints filter server side; the CRM list exports rows already in hand, so it
+// narrows them here. An inclusive "to" needs the whole day, hence the < next day.
+export const filterByCreatedAt = <T extends { createdAt?: string | Date }>(
+  rows: T[],
+  range: { from?: string; to?: string }
+): T[] => {
+  if (!range.from && !range.to) return rows;
+
+  const from = range.from ? new Date(range.from).getTime() : null;
+  const to = range.to ? new Date(range.to).getTime() + 86_400_000 : null;
+
+  return rows.filter((row) => {
+    if (!row.createdAt) return false;
+    const created = new Date(row.createdAt).getTime();
+    if (from !== null && created < from) return false;
+    if (to !== null && created >= to) return false;
+    return true;
+  });
+};

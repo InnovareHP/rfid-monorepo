@@ -1,17 +1,22 @@
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import {
-  CRM_QUERY_KEYS,
   deleteModuleRecords,
   getModuleRecords,
   type CrmModuleType,
 } from "@/services/board/board-module-service";
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { filterByCreatedAt } from "@/lib/helper/helper";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouteContext, useSearch } from "@tanstack/react-router";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { Download, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ColumnFilter from "../master-list/column-filter";
@@ -41,7 +46,7 @@ export default function CrmListPage({
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const activeOrganizationId = ctx?.activeOrganizationId ?? "";
   const queryClient = useQueryClient();
-  const queryKey = CRM_QUERY_KEYS[moduleType];
+  const queryKey = boardQueryKey(moduleType);
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
@@ -63,7 +68,7 @@ export default function CrmListPage({
   }
 
   const { data, isFetching } = useQuery({
-    queryKey: [queryKey, filterMeta],
+    queryKey: [...queryKey, filterMeta],
     queryFn: () => getModuleRecords(moduleType, filterMeta),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -140,9 +145,9 @@ export default function CrmListPage({
   const deleteMutation = useMutation({
     mutationFn: (ids: string[]) => deleteModuleRecords(moduleType, ids),
     onMutate: async (ids: string[]) => {
-      await queryClient.cancelQueries({ queryKey: [queryKey] });
-      const previous = queryClient.getQueriesData({ queryKey: [queryKey] });
-      queryClient.setQueriesData({ queryKey: [queryKey] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueriesData({ queryKey });
+      queryClient.setQueriesData({ queryKey }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,
@@ -158,17 +163,24 @@ export default function CrmListPage({
       toast.error("Failed to delete records.");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [queryKey] });
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 
-  const handleExportCSV = () => {
+  const handleExportCSV = (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No records available to export.");
       return;
     }
+
+    const scoped = filterByCreatedAt(rows, range);
+    if (scoped.length === 0) {
+      toast.error("No records in that date range.");
+      return;
+    }
+
     const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(rows, data?.columns ?? [], `${title}_${timestamp}`, [], true);
+    exportToCSV(scoped, data?.columns ?? [], `${title}_${timestamp}`, [], true);
     toast.success("CSV download started.");
   };
 
@@ -198,14 +210,11 @@ export default function CrmListPage({
     <div className="page-style">
       <div className="space-y-6">
         <PageHeader title={title} description={description}>
-          <Button
+          <ExportCsvButton
             variant="outline"
-            onClick={handleExportCSV}
+            onExport={handleExportCSV}
             className="flex items-center gap-2 hover:text-primary transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
+          />
           <ColumnFilter tableColumns={tableColumns as any} />
           <Link to={createPath} params={{ team: activeOrganizationId }}>
             <Button className="flex items-center gap-2 shadow-sm">

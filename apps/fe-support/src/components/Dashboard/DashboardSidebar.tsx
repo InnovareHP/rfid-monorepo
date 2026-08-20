@@ -1,4 +1,9 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@dashboard/ui/components/avatar";
+import { authClient, useSession } from "@/lib/auth-client";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@dashboard/ui/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +26,23 @@ import {
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
 import { cn } from "@dashboard/ui/lib/utils";
-import { authClient, useSession } from "@/lib/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation, useParams, useRouter } from "@tanstack/react-router";
-import { ChevronsUpDown, HelpCircle, LogOut, SquareTerminal } from "lucide-react";
+import {
+  Link,
+  useLocation,
+  useParams,
+  useRouter,
+} from "@tanstack/react-router";
+import {
+  ChevronsUpDown,
+  HelpCircle,
+  LogOut,
+  SquareTerminal,
+} from "lucide-react";
 import * as React from "react";
 
-const LOGO_RFID_PATH = "/images/rfid.png";
-const LOGO_TARSIER_PATH = "/images/tarsier.png";
+const LOGO_WORDMARK_PATH = "/branding/Wordmark/refidly-wordmark-colored.png";
+const LOGO_ICON_PATH = "/branding/Icon/refidly-icon-colored.png";
 
 const navItems = [
   { title: "Dashboard", icon: SquareTerminal, path: "dashboard" },
@@ -58,18 +72,18 @@ export function DashboardSidebar() {
 
   // Preload both logo images for smooth switching when sidebar collapses/expands
   React.useEffect(() => {
-    const rfidImage = new Image();
-    rfidImage.src = LOGO_RFID_PATH;
-    const tarsierImage = new Image();
-    tarsierImage.src = LOGO_TARSIER_PATH;
+    const wordmarkImage = new Image();
+    wordmarkImage.src = LOGO_WORDMARK_PATH;
+    const iconImage = new Image();
+    iconImage.src = LOGO_ICON_PATH;
     return () => {
-      rfidImage.src = "";
-      tarsierImage.src = "";
+      wordmarkImage.src = "";
+      iconImage.src = "";
     };
   }, []);
 
   const logoSrc = React.useMemo(
-    () => (state === "collapsed" ? LOGO_TARSIER_PATH : LOGO_RFID_PATH),
+    () => (state === "collapsed" ? LOGO_ICON_PATH : LOGO_WORDMARK_PATH),
     [state]
   );
 
@@ -88,7 +102,7 @@ export function DashboardSidebar() {
           >
             <img
               src={logoSrc}
-              alt="Innovare HP Referral Intelligence Dashboard"
+              alt="Refidly"
               className={logoClassName}
               loading="eager"
               decoding="async"
@@ -111,7 +125,11 @@ export function DashboardSidebar() {
               const Icon = item.icon;
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton tooltip={item.title} isActive={isActive} asChild>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={isActive}
+                    asChild
+                  >
                     <Link to={to} params={{ lang }} preload={false}>
                       <Icon className="size-4" />
                       <span>{item.title}</span>

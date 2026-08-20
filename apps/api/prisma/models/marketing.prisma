@@ -17,11 +17,19 @@ enum BlastStatus {
   @@schema("marketing_schema")
 }
 
+// Which editor authored the body. DRAG_DROP keeps blocks in Blast.bodyJson and
+// renders bodyHtml from them; CLASSIC edits bodyHtml directly.
+enum BlastEditorType {
+  DRAG_DROP
+  CLASSIC
+
+  @@schema("marketing_schema")
+}
+
 // How a campaign's mail leaves the building. PERSONAL reuses the sender's
 // connected mailbox; both domain kinds send through SES as the org's own domain.
 enum SenderKind {
   PERSONAL
-  MANAGED_DOMAIN
   CUSTOM_DOMAIN
 
   @@schema("marketing_schema")
@@ -38,6 +46,33 @@ enum SenderStatus {
 enum PageStatus {
   DRAFT
   PUBLISHED
+
+  @@schema("marketing_schema")
+}
+
+// Consent is org-wide: an address that opts out goes quiet for every group and
+// every module, never just the blast it clicked through from.
+enum SubscriberStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+
+  @@schema("marketing_schema")
+}
+
+enum SubscriberSource {
+  FORM
+  MANUAL
+  IMPORT
+  BLAST
+
+  @@schema("marketing_schema")
+}
+
+// Where a group reads its recipients from. BOARD walks CRM records, SUBSCRIBER
+// reads the newsletter list.
+enum AudienceType {
+  BOARD
+  SUBSCRIBER
 
   @@schema("marketing_schema")
 }
@@ -110,6 +145,9 @@ model Blast {
   name           String
   subject        String
   bodyHtml       String
+  // Block list for the drag and drop editor; null for classic blasts.
+  bodyJson       Json?
+  editorType     BlastEditorType @default(DRAG_DROP)
   status         BlastStatus @default(DRAFT)
   scheduledAt    DateTime?   @db.Timestamptz(3)
   sentAt         DateTime?   @db.Timestamptz(3)
@@ -136,13 +174,16 @@ model RecipientGroup {
   id          String     @id @default(uuid())
   createdAt   DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
-  name        String
-  description String?
-  moduleType  ModuleType @default(LEAD)
-  filter      Json
+  name         String
+  description  String?
+  moduleType   ModuleType   @default(LEAD)
+  moduleId     String?
+  audienceType AudienceType @default(BOARD)
+  filter       Json
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module         Module?      @relation(fields: [moduleId], references: [id], onDelete: Restrict)
 
   createdBy String?
   creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
@@ -150,6 +191,40 @@ model RecipientGroup {
   blasts BlastGroup[]
 
   @@index([organizationId, moduleType])
+  @@schema("marketing_schema")
+}
+
+// The newsletter list, and the org's suppression list in the same table: a CRM
+// record that unsubscribes lands here too, so one lookup covers both.
+model EmailSubscriber {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // email is encrypted at rest, so matching goes through emailHash - a keyed
+  // HMAC of the normalized address. Never put the unique key on the ciphertext.
+  email     String
+  emailHash String
+  name      String?
+
+  status SubscriberStatus @default(SUBSCRIBED)
+  source SubscriberSource @default(MANUAL)
+
+  subscribedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  unsubscribedAt DateTime? @db.Timestamptz(3)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Set once a subscriber is promoted to a CRM record, or when the row was
+  // created by a record unsubscribing.
+  recordId String?
+  record   Board?  @relation(fields: [recordId], references: [id], onDelete: SetNull)
+
+  recipients BlastRecipient[]
+
+  @@unique([organizationId, emailHash])
+  @@index([organizationId, status])
   @@schema("marketing_schema")
 }
 
@@ -179,10 +254,23 @@ model BlastRecipient {
   blastId String
   blast   Blast  @relation(fields: [blastId], references: [id], onDelete: Cascade)
 
-  recordId String
-  record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  // Exactly one of these is set: a CRM record, or a newsletter subscriber.
+  // Postgres treats NULLs as distinct, so the two unique keys do not collide.
+  recordId String?
+  record   Board?  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  subscriberId String?
+  subscriber   EmailSubscriber? @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  // Carried so the tenant extension can scope this model: SCOPED_MODELS is
+  // derived from the presence of this column, and reaching a recipient only
+  // through blastId left no guard against a query keyed on id alone.
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([blastId, recordId])
+  @@unique([blastId, subscriberId])
+  @@index([organizationId])
   @@schema("marketing_schema")
 }
 
@@ -194,12 +282,14 @@ model Form {
   slug             String     @unique
   status           PageStatus @default(DRAFT)
   moduleType       ModuleType @default(LEAD)
+  moduleId         String?
   fieldMappings    Json
   submitButtonText String     @default("Submit")
   redirectUrl      String?
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module         Module?      @relation(fields: [moduleId], references: [id], onDelete: Restrict)
 
   campaignId String?
   campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
@@ -226,7 +316,13 @@ model FormSubmission {
   recordId String
   record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
+  // Same reason as BlastRecipient: without this column the submission row sits
+  // outside every tenant guard the extension applies.
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@index([formId])
+  @@index([organizationId])
   @@schema("marketing_schema")
 }
 

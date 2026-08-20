@@ -4,6 +4,7 @@ import {
   RequiredMark,
 } from "@/components/field-marks";
 import { PageHeader } from "@/components/page-header";
+import { SettingsPageSkeleton } from "@/components/skeletons/page-skeletons";
 import {
   getOwnAvailability,
   getOwnBookingPage,
@@ -39,7 +40,14 @@ import { Switch } from "@dashboard/ui/components/switch";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Eye, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Link, useParams } from "@tanstack/react-router";
+import {
+  AlertCircle,
+  Copy,
+  Eye,
+  Link as LinkIcon,
+  Loader2,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -63,6 +71,7 @@ const pageFormSchema = z.object({
   description: z.string().optional(),
   locationType: z.enum(["VIDEO", "IN_PERSON", "BOTH"]),
   locationLabel: z.string().optional(),
+  preferredProvider: z.enum(["GOOGLE", "OUTLOOK"]),
   durationMinutes: numberField(5, 480),
   timezone: z.string().min(1, "Timezone is required"),
   bufferBeforeMinutes: numberField(0, 120),
@@ -110,6 +119,7 @@ function dayRowsFromRules(
 }
 
 export function BookingSettingsPage() {
+  const { team } = useParams({ strict: false }) as { team: string };
   const queryClient = useQueryClient();
   const [days, setDays] = useState<DayRow[]>(defaultDayRows());
 
@@ -149,6 +159,12 @@ export function BookingSettingsPage() {
           description: pageQuery.data.description ?? "",
           locationType: pageQuery.data.locationType,
           locationLabel: pageQuery.data.locationLabel ?? "",
+          preferredProvider:
+            pageQuery.data.preferredProvider ??
+            (pageQuery.data.calendars.outlook &&
+            !pageQuery.data.calendars.google
+              ? "OUTLOOK"
+              : "GOOGLE"),
           durationMinutes: String(pageQuery.data.durationMinutes),
           timezone: pageQuery.data.timezone,
           bufferBeforeMinutes: String(pageQuery.data.bufferBeforeMinutes),
@@ -204,6 +220,11 @@ export function BookingSettingsPage() {
     availabilityMutation.mutate(rules);
   };
 
+  const calendars = pageQuery.data?.calendars;
+  const calendarConnected = Boolean(calendars?.google || calendars?.outlook);
+  // The choice only means something when writing to either is possible.
+  const canChooseProvider = Boolean(calendars?.google && calendars?.outlook);
+
   const visitorZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const handleCopyLink = () => {
@@ -213,11 +234,7 @@ export function BookingSettingsPage() {
   };
 
   if (pageQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
+    return <SettingsPageSkeleton cards={3} className="mx-auto space-y-6 p-6" />;
   }
 
   return (
@@ -227,11 +244,37 @@ export function BookingSettingsPage() {
         description="Configure your public scheduling link and availability."
       />
 
+      {pageQuery.data && !calendarConnected && (
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium text-destructive">
+              Your booking link is not taking bookings
+            </p>
+            <p className="text-muted-foreground">
+              Bookings are written to your calendar, so a connected calendar is
+              required. Until then your page shows no available times.
+            </p>
+            <Link
+              to="/$team/integrations"
+              params={{ team }}
+              className="inline-block font-medium text-destructive underline"
+            >
+              Connect a calendar
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           {
             label: "Link Status",
-            value: pageQuery.data?.isActive ? "Active" : "Inactive",
+            value: !calendarConnected
+              ? "No calendar"
+              : pageQuery.data?.isActive
+                ? "Active"
+                : "Inactive",
           },
           { label: "Upcoming Bookings", value: String(upcomingCount) },
           { label: "Available Hours/Week", value: String(weeklyHours) },
@@ -382,6 +425,40 @@ export function BookingSettingsPage() {
                   )}
                 />
 
+                {canChooseProvider && (
+                  <FormField
+                    control={form.control}
+                    name="preferredProvider"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Meeting Link
+                          <RequiredMark />
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="GOOGLE">
+                              Google Meet (Google Calendar)
+                            </SelectItem>
+                            <SelectItem value="OUTLOOK">
+                              Microsoft Teams (Outlook Calendar)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -503,7 +580,7 @@ export function BookingSettingsPage() {
                 key={dayOfWeek}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2"
               >
-                <div className="flex w-24 shrink-0 items-center gap-2">
+                <div className="flex w-18 shrink-0 items-center gap-2">
                   <Switch
                     checked={row.enabled}
                     onCheckedChange={(checked) =>

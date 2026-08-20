@@ -2,8 +2,10 @@ import { Injectable, Logger } from "@nestjs/common";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
 
+// /organizations, not /common: common admits personal Microsoft accounts, and a
+// consumer mailbox is outside any BAA. Work and school accounts only.
 const MICROSOFT_AUTH_URL =
-  "https://login.microsoftonline.com/common/oauth2/v2.0";
+  "https://login.microsoftonline.com/organizations/oauth2/v2.0";
 const GRAPH_API_URL = "https://graph.microsoft.com/v1.0";
 const SCOPES = ["Calendars.ReadWrite", "User.Read", "offline_access"];
 
@@ -28,6 +30,9 @@ export class OutlookCalendarService {
       throw new Error("Microsoft OAuth is not configured");
     }
 
+    // prompt=consent forces the scopes to be re-granted, which is what keeps a
+    // refresh token coming back on a reconnect; a tenant that only lets an admin
+    // consent will show the admin-approval screen until that consent is granted.
     const params = new URLSearchParams({
       client_id: this.clientId,
       response_type: "code",
@@ -215,6 +220,7 @@ export class OutlookCalendarService {
       allDay?: boolean;
       location?: string;
       attendees?: string[];
+      createConference?: boolean;
     }
   ) {
     const token = await prisma.outlookCalendarToken.findUnique({
@@ -262,6 +268,13 @@ export class OutlookCalendarService {
       }));
     }
 
+    // No onlineMeetingProvider: Graph picks the one the account actually has,
+    // which is Teams on a work account and Skype on a personal one. Naming
+    // teamsForBusiness outright makes personal accounts reject the event.
+    if (eventData.createConference) {
+      event.isOnlineMeeting = true;
+    }
+
     const response = await fetch(`${GRAPH_API_URL}/me/events`, {
       method: "POST",
       headers: {
@@ -284,8 +297,37 @@ export class OutlookCalendarService {
       start: created.start?.dateTime,
       end: created.end?.dateTime,
       htmlLink: created.webLink,
+      meetingUrl: created.onlineMeeting?.joinUrl ?? null,
       provider: "outlook",
     };
+  }
+
+  async getMeetingUrl(userId: string, eventId: string): Promise<string | null> {
+    const token = await prisma.outlookCalendarToken.findUnique({
+      where: { userId },
+    });
+
+    if (!token) return null;
+
+    let accessToken = token.accessToken;
+    if (new Date() >= token.tokenExpiry) {
+      accessToken = await this.refreshAccessToken(userId, token.refreshToken);
+    }
+
+    const response = await fetch(
+      `${GRAPH_API_URL}/me/events/${eventId}?$select=onlineMeeting`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!response.ok) {
+      this.logger.warn(
+        `Failed to read Teams link for event ${eventId}: ${response.status}`
+      );
+      return null;
+    }
+
+    const event = await response.json();
+    return event.onlineMeeting?.joinUrl ?? null;
   }
 
   async deleteEvent(userId: string, eventId: string): Promise<void> {

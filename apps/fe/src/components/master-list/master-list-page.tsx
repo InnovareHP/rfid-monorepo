@@ -1,11 +1,19 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import { authClient } from "@/lib/auth-client";
-import { exportToCSV } from "@/lib/fe-helpers";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { can } from "@/lib/permissions";
-import { deleteLead, getLeads } from "@/services/lead/lead-service";
-import { type LeadRow, type OptionsResponse } from "@dashboard/shared";
+import {
+  deleteLead,
+  exportBoardCsv,
+  getLeads,
+} from "@/services/lead/lead-service";
+import { type LeadRow } from "@dashboard/shared";
 import type { Member } from "better-auth/plugins/organization";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
@@ -16,21 +24,20 @@ import {
   type Header,
 } from "@tanstack/react-table";
 import {
-  Download,
   KanbanSquare,
   ScanLine,
   Settings,
   TableProperties,
 } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { useSearch } from "@tanstack/react-router";
+import { useRouteContext, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { AnalyzeLeadDialog } from "./analyze-cell";
 import ColumnFilter from "./column-filter";
-import KanbanView from "./kanban-view";
+import KanbanView from "@/components/kanban/kanban-view";
 import { MasterListFilters } from "./master-list-filter";
-import { PipelineSettingsDialog } from "./pipeline-settings-dialog";
+import { KanbanSettingsDialog } from "@/components/kanban/kanban-settings-dialog";
 import { BoardStatsStrip } from "./board-stats-strip";
 import { MasterListView } from "./master-list-view";
 import { SmartScanDialog } from "./smart-scan-dialog";
@@ -42,18 +49,23 @@ export default function MasterListPage() {
   const [openMasterListView, setOpenMasterListView] = useState(false);
   const [openSmartScan, setOpenSmartScan] = useState(false);
   const [view, setView] = useState<"table" | "kanban">("table");
-  const [openPipelineSettings, setOpenPipelineSettings] = useState(false);
+  const [openKanbanSettings, setOpenKanbanSettings] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: organizationData } = authClient.useActiveOrganization();
+  // The org id already rides in the route context, so this avoids a per-mount
+  // auth fetch and the undefined first render that flickered role-gated UI.
+  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+    activeOrganizationId: string;
+  };
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
-    organizationData?.id,
+    activeOrganizationId,
   ]);
-  const canConfigurePipeline = can(memberData?.role, {
+  const canConfigureKanban = can(memberData?.role, {
     field: ["configure"],
   });
-  const entitlement = useEntitlement(organizationData?.id ?? "");
+  const entitlement = useEntitlement(activeOrganizationId);
+  const canUseAi = entitlement.has("ai");
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
@@ -82,7 +94,7 @@ export default function MasterListPage() {
   }
 
   const { data, refetch, isLoading } = useQuery({
-    queryKey: ["leads", filterMeta],
+    queryKey: [...boardQueryKey("LEAD"), filterMeta],
     queryFn: () => getLeads(filterMeta),
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
@@ -111,9 +123,10 @@ export default function MasterListPage() {
           setOpenMasterListView(true);
         },
         { sortBy: filterMeta.sortBy, sortOrder: filterMeta.sortOrder },
-        handleSort
+        handleSort,
+        canUseAi
       ),
-    [data?.columns, filterMeta.sortBy, filterMeta.sortOrder]
+    [data?.columns, filterMeta.sortBy, filterMeta.sortOrder, canUseAi]
   ) as {
     id: string;
     name: string;
@@ -177,9 +190,9 @@ export default function MasterListPage() {
   const deleteLeadMutation = useMutation({
     mutationFn: (data: any) => deleteLead(data, "LEAD"),
     onMutate: async (ids: string[]) => {
-      await queryClient.cancelQueries({ queryKey: ["leads"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["leads"] });
-      queryClient.setQueriesData({ queryKey: ["leads"] }, (old: any) => {
+      await queryClient.cancelQueries({ queryKey: boardQueryKey("LEAD") });
+      const previous = queryClient.getQueriesData({ queryKey: boardQueryKey("LEAD") });
+      queryClient.setQueriesData({ queryKey: boardQueryKey("LEAD") }, (old: any) => {
         if (!old?.data) return old;
         return {
           ...old,
@@ -203,40 +216,18 @@ export default function MasterListPage() {
     deleteLeadMutation.mutate(columnIds);
   };
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No leads available to export.");
       return;
     }
 
-    const limit = 100;
-    let offset = 0;
-    let allData: LeadRow[] = [];
+    const { blob, filename } = await exportBoardCsv(
+      { ...filterMeta, boardDateFrom: range.from, boardDateTo: range.to },
+      "LEAD"
+    );
 
-    let total = 0;
-    let columns: any[] = [];
-    const users: OptionsResponse[] =
-      queryClient.getQueryData(["assigned-to-users"]) ?? [];
-
-    do {
-      const res = await getLeads({
-        ...filterMeta,
-        limit,
-        offset,
-      });
-
-      if (offset === 0) {
-        total = res.pagination.count;
-        columns = res.columns;
-      }
-
-      columns = res.columns;
-      allData = [...allData, ...res.data];
-      offset += res.data.length;
-    } while (offset < total);
-
-    const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(allData, columns, `Master_Leads_${timestamp}`, users);
+    downloadCSVBlob(blob, filename);
     toast.success("CSV download started.");
   };
 
@@ -302,17 +293,20 @@ export default function MasterListPage() {
     <div className="page-style">
       <div className="space-y-6">
         {/* Header Section */}
-        <AnalyzeLeadDialog
-          recordId={selectedRecordId}
-          open={openAnalyzeDialog}
-          setOpen={setOpenAnalyzeDialog}
-        />
+        {canUseAi && (
+          <>
+            <AnalyzeLeadDialog
+              recordId={selectedRecordId}
+              open={openAnalyzeDialog}
+              setOpen={setOpenAnalyzeDialog}
+            />
+            <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
+          </>
+        )}
 
-        <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
-
-        <PipelineSettingsDialog
-          open={openPipelineSettings}
-          setOpen={setOpenPipelineSettings}
+        <KanbanSettingsDialog
+          open={openKanbanSettings}
+          setOpen={setOpenKanbanSettings}
         />
 
         <MasterListView
@@ -342,47 +336,34 @@ export default function MasterListPage() {
             ) : (
               <TableProperties className="h-4 w-4" />
             )}
-            {view === "table" ? "Pipeline" : "Table"}
+            {view === "table" ? "Kanban" : "Table"}
           </Button>
-          {view === "kanban" && canConfigurePipeline && (
+          {view === "kanban" && canConfigureKanban && (
             <Button
               variant="outline"
-              onClick={() => setOpenPipelineSettings(true)}
+              onClick={() => setOpenKanbanSettings(true)}
               className="flex items-center gap-2"
             >
               <Settings className="h-4 w-4" />
-              Pipeline Settings
+              Kanban Settings
             </Button>
           )}
 
           <ColumnFilter tableColumns={tableColumns as any} />
 
-          <Button
-            onClick={handleExportCSV}
-            disabled={!entitlement.has("export")}
-            title={
-              entitlement.has("export")
-                ? undefined
-                : "Upgrade your plan to export data"
-            }
+          <ExportCsvButton
+            onExport={handleExportCSV}
             className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button
-            onClick={() => setOpenSmartScan(true)}
-            disabled={!entitlement.has("ai")}
-            title={
-              entitlement.has("ai")
-                ? undefined
-                : "Upgrade your plan to use Smart Scan"
-            }
-            className="flex items-center gap-2"
-          >
-            <ScanLine className="h-4 w-4" />
-            Smart Scan
-          </Button>
+          />
+          {canUseAi && (
+            <Button
+              onClick={() => setOpenSmartScan(true)}
+              className="flex items-center gap-2"
+            >
+              <ScanLine className="h-4 w-4" />
+              Smart Scan
+            </Button>
+          )}
         </PageHeader>
 
         {view === "table" && <BoardStatsStrip />}

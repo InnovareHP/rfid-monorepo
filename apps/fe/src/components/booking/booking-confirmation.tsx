@@ -10,12 +10,14 @@ type BookingConfirmationProps = {
   title: string;
   startTime: string;
   hostName: string;
+  meetingUrl?: string | null;
 };
 
 export function BookingConfirmation({
   title,
   startTime,
   hostName,
+  meetingUrl,
 }: BookingConfirmationProps) {
   return (
     <Card className="max-w-md mx-auto">
@@ -32,6 +34,16 @@ export function BookingConfirmation({
           })}
         </p>
         <p className="text-sm text-muted-foreground">with {hostName}</p>
+        {meetingUrl && (
+          <a
+            href={meetingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block break-all pt-2 text-sm font-medium text-primary underline"
+          >
+            Join the meeting
+          </a>
+        )}
         <p className="text-sm text-muted-foreground pt-2">
           A confirmation email is on its way.
         </p>

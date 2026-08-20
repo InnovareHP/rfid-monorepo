@@ -1,3 +1,9 @@
+import { RequiredMark } from "@/components/field-marks";
+import { PageHeader } from "@/components/page-header";
+import {
+  SegmentedTabsList,
+  SegmentedTabsTrigger,
+} from "@/components/segmented-tabs";
 import { useSession } from "@/hooks/auth-query";
 import {
   useRunningTimer,
@@ -16,6 +22,7 @@ import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { Input } from "@dashboard/ui/components/input";
+import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -23,17 +30,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
-import { Separator } from "@dashboard/ui/components/separator";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@dashboard/ui/components/tabs";
+import { Spinner } from "@dashboard/ui/components/spinner";
+import { Tabs, TabsContent } from "@dashboard/ui/components/tabs";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Archive, Copy, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Archive, Copy, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "../confirmation-dialog";
@@ -44,6 +46,7 @@ import { ChecklistSection } from "./checklist-section";
 import { CommentsSection } from "./comments-section";
 import { DependenciesSection } from "./dependencies-section";
 import { LabelPicker } from "./label-picker";
+import { PRIORITY_CONFIG } from "./task-priority";
 import { SubtaskList } from "./subtask-list";
 import { TimeTrackingSection } from "./time-tracking-section";
 
@@ -87,14 +90,16 @@ const TaskDetail = () => {
   if (taskQuery.isLoading) {
     return (
       <div className="flex justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Spinner />
       </div>
     );
   }
 
   if (!task) {
     return (
-      <div className="text-center py-24 text-gray-500">Task not found</div>
+      <div className="py-24 text-center text-muted-foreground">
+        Task not found
+      </div>
     );
   }
 
@@ -104,8 +109,7 @@ const TaskDetail = () => {
       ?.member?.id ?? null;
   const isCompleted = Boolean(task.completedAt);
 
-  const goBack = () =>
-    navigate({ to: "/$team/tasks", params: { team } });
+  const goBack = () => navigate({ to: "/$team/tasks", params: { team } });
 
   const handleUpload = async (file: File) => {
     setUploading(true);
@@ -130,69 +134,63 @@ const TaskDetail = () => {
 
   return (
     <div className="page-style">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="ghost" size="sm" onClick={goBack}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Tasks
-          </Button>
-          <span className="text-sm font-mono text-gray-400">
-            #{task.taskNumber}
-          </span>
-          <div className="flex-1" />
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex items-start gap-4">
           <Button
             variant="outline"
-            size="sm"
-            onClick={() => duplicateTaskMutation.mutate(task.id)}
-            disabled={duplicateTaskMutation.isPending}
+            size="icon"
+            className="mt-1 size-9"
+            onClick={goBack}
+            aria-label="Back to tasks"
           >
-            <Copy className="h-4 w-4 mr-1" />
-            Duplicate
+            <ArrowLeft className="size-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              updateTaskMutation.mutate({
-                id: task.id,
-                data: { isArchived: !task.isArchived },
-              })
-            }
-          >
-            <Archive className="h-4 w-4 mr-1" />
-            {task.isArchived ? "Unarchive" : "Archive"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:bg-red-50"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Delete
-          </Button>
+          <PageHeader className="flex-1" title={`Task #${task.taskNumber}`}>
+            <Button
+              variant="outline"
+              onClick={() => duplicateTaskMutation.mutate(task.id)}
+              disabled={duplicateTaskMutation.isPending}
+            >
+              <Copy className="size-4" />
+              Duplicate
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                updateTaskMutation.mutate({
+                  id: task.id,
+                  data: { isArchived: !task.isArchived },
+                })
+              }
+            >
+              <Archive className="size-4" />
+              {task.isArchived ? "Unarchive" : "Archive"}
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </PageHeader>
         </div>
 
-        <Card className="p-6 space-y-5">
-          <div className="flex items-start gap-3">
-            <div className="mt-2">
-              <Checkbox
-                checked={isCompleted}
-                onCheckedChange={() =>
-                  completeTaskMutation.mutate({
-                    id: task.id,
-                    completed: isCompleted,
-                  })
-                }
-                aria-label={isCompleted ? "Mark incomplete" : "Mark complete"}
-              />
-            </div>
+        <Card className="gap-0 overflow-hidden p-0">
+          <div className="flex items-center gap-3 border-b bg-table-header px-6 py-4">
+            <Checkbox
+              checked={isCompleted}
+              onCheckedChange={() =>
+                completeTaskMutation.mutate({
+                  id: task.id,
+                  completed: isCompleted,
+                })
+              }
+              aria-label={isCompleted ? "Mark incomplete" : "Mark complete"}
+            />
             <Input
               key={`name-${task.updatedAt}`}
               defaultValue={task.name}
               className={cn(
-                "text-lg font-semibold border-transparent hover:border-gray-200 focus:border-gray-300",
-                isCompleted && "line-through text-gray-400"
+                "border-transparent bg-transparent font-display text-base font-semibold shadow-none dark:bg-transparent",
+                isCompleted && "text-muted-foreground line-through"
               )}
               onBlur={(event) => {
                 const value = event.target.value.trim();
@@ -206,199 +204,200 @@ const TaskDetail = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Status
-              </p>
-              <Select
-                value={task.statusId}
-                onValueChange={(statusId) =>
-                  updateTaskMutation.mutate({
-                    id: task.id,
-                    data: { statusId },
-                  })
-                }
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statuses.map((status) => (
-                    <SelectItem key={status.id} value={status.id}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: status.color }}
-                        />
-                        {status.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-5 p-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label>
+                  Status <RequiredMark />
+                </Label>
+                <Select
+                  value={task.statusId}
+                  onValueChange={(statusId) =>
+                    updateTaskMutation.mutate({
+                      id: task.id,
+                      data: { statusId },
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((status) => (
+                      <SelectItem key={status.id} value={status.id}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-2.5 rounded-sm"
+                            style={{ backgroundColor: status.color }}
+                          />
+                          {status.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Priority <RequiredMark />
+                </Label>
+                <Select
+                  value={task.priority}
+                  onValueChange={(priority) =>
+                    updateTaskMutation.mutate({
+                      id: task.id,
+                      data: {
+                        priority: priority as keyof typeof TASK_PRIORITY,
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(TASK_PRIORITY).map((priority) => (
+                      <SelectItem key={priority} value={priority}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "size-2.5 rounded-sm",
+                              PRIORITY_CONFIG[priority].dotClassName
+                            )}
+                          />
+                          {PRIORITY_CONFIG[priority].label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input
+                  key={`start-${task.updatedAt}`}
+                  type="date"
+                  defaultValue={toDateInputValue(task.startDate)}
+                  onBlur={(event) =>
+                    updateTaskMutation.mutate({
+                      id: task.id,
+                      data: {
+                        startDate: event.target.value
+                          ? new Date(event.target.value).toISOString()
+                          : null,
+                      },
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input
+                  key={`due-${task.updatedAt}`}
+                  type="date"
+                  defaultValue={toDateInputValue(task.dueDate)}
+                  onBlur={(event) =>
+                    updateTaskMutation.mutate({
+                      id: task.id,
+                      data: {
+                        dueDate: event.target.value
+                          ? new Date(event.target.value).toISOString()
+                          : null,
+                      },
+                    })
+                  }
+                />
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Priority
-              </p>
-              <Select
-                value={task.priority}
-                onValueChange={(priority) =>
-                  updateTaskMutation.mutate({
-                    id: task.id,
-                    data: {
-                      priority: priority as keyof typeof TASK_PRIORITY,
-                    },
-                  })
-                }
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(TASK_PRIORITY).map((priority) => (
-                    <SelectItem key={priority} value={priority}>
-                      {priority.charAt(0) + priority.slice(1).toLowerCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>
+                  Assignee/s <RequiredMark />
+                </Label>
+                <AssigneePicker
+                  label="Assign"
+                  selected={task.assignees}
+                  onChange={(memberIds) =>
+                    detailMutations.setAssigneesMutation.mutate(memberIds)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Label/s</Label>
+                <LabelPicker
+                  selected={task.labels}
+                  onChange={(labelIds) =>
+                    detailMutations.setLabelsMutation.mutate(labelIds)
+                  }
+                />
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Start Date
-              </p>
-              <Input
-                key={`start-${task.updatedAt}`}
-                type="date"
-                className="h-8"
-                defaultValue={toDateInputValue(task.startDate)}
-                onBlur={(event) =>
-                  updateTaskMutation.mutate({
-                    id: task.id,
-                    data: {
-                      startDate: event.target.value
-                        ? new Date(event.target.value).toISOString()
-                        : null,
-                    },
-                  })
-                }
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                key={`description-${task.updatedAt}`}
+                defaultValue={task.description ?? ""}
+                rows={4}
+                placeholder="Description"
+                onBlur={(event) => {
+                  const value = event.target.value;
+                  if (value !== (task.description ?? "")) {
+                    updateTaskMutation.mutate({
+                      id: task.id,
+                      data: { description: value || null },
+                    });
+                  }
+                }}
               />
             </div>
-
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Due Date
-              </p>
-              <Input
-                key={`due-${task.updatedAt}`}
-                type="date"
-                className="h-8"
-                defaultValue={toDateInputValue(task.dueDate)}
-                onBlur={(event) =>
-                  updateTaskMutation.mutate({
-                    id: task.id,
-                    data: {
-                      dueDate: event.target.value
-                        ? new Date(event.target.value).toISOString()
-                        : null,
-                    },
-                  })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Assignees
-              </p>
-              <AssigneePicker
-                label="Assign"
-                selected={task.assignees}
-                onChange={(memberIds) =>
-                  detailMutations.setAssigneesMutation.mutate(memberIds)
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Labels
-              </p>
-              <LabelPicker
-                selected={task.labels}
-                onChange={(labelIds) =>
-                  detailMutations.setLabelsMutation.mutate(labelIds)
-                }
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
-              Description
-            </p>
-            <Textarea
-              key={`description-${task.updatedAt}`}
-              defaultValue={task.description ?? ""}
-              rows={3}
-              placeholder="Add a description..."
-              onBlur={(event) => {
-                const value = event.target.value;
-                if (value !== (task.description ?? "")) {
-                  updateTaskMutation.mutate({
-                    id: task.id,
-                    data: { description: value || null },
-                  });
-                }
-              }}
-            />
           </div>
         </Card>
 
         <Card className="p-6">
           <Tabs defaultValue="details">
-            <TabsList>
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
-            </TabsList>
+            <SegmentedTabsList>
+              <SegmentedTabsTrigger value="details">Details</SegmentedTabsTrigger>
+              <SegmentedTabsTrigger value="comments">
+                Comments
+              </SegmentedTabsTrigger>
+              <SegmentedTabsTrigger value="activity">
+                Activity
+              </SegmentedTabsTrigger>
+            </SegmentedTabsList>
 
-            <TabsContent value="details" className="space-y-6 pt-4">
+            <TabsContent value="details" className="space-y-8 pt-4">
               {!task.parentTaskId && (
-                <>
-                  <SubtaskList
-                    subtasks={task.subtasks}
-                    disabled={createTaskMutation.isPending}
-                    onAdd={(name) =>
-                      createTaskMutation.mutate({
-                        name,
-                        projectId: task.projectId,
-                        listId: task.listId,
-                        parentTaskId: task.id,
-                      })
-                    }
-                    onToggleComplete={(subtask) => {
-                      if (subtask.id.startsWith("temp-")) return;
-                      completeTaskMutation.mutate({
-                        id: subtask.id,
-                        completed: Boolean(subtask.completedAt),
-                      });
-                    }}
-                    onOpen={(subtask) => {
-                      if (subtask.id.startsWith("temp-")) return;
-                      navigate({
-                        to: "/$team/tasks/$task",
-                        params: { team, task: subtask.id },
-                      });
-                    }}
-                  />
-                  <Separator />
-                </>
+                <SubtaskList
+                  subtasks={task.subtasks}
+                  disabled={createTaskMutation.isPending}
+                  onAdd={(name) =>
+                    createTaskMutation.mutate({
+                      name,
+                      projectId: task.projectId,
+                      listId: task.listId,
+                      parentTaskId: task.id,
+                    })
+                  }
+                  onToggleComplete={(subtask) => {
+                    if (subtask.id.startsWith("temp-")) return;
+                    completeTaskMutation.mutate({
+                      id: subtask.id,
+                      completed: Boolean(subtask.completedAt),
+                    });
+                  }}
+                  onOpen={(subtask) => {
+                    if (subtask.id.startsWith("temp-")) return;
+                    navigate({
+                      to: "/$team/tasks/$task",
+                      params: { team, task: subtask.id },
+                    });
+                  }}
+                />
               )}
 
               <ChecklistSection
@@ -417,8 +416,6 @@ const TaskDetail = () => {
                 }
               />
 
-              <Separator />
-
               <DependenciesSection
                 task={task}
                 candidateTasks={candidateTasksQuery.data?.data ?? []}
@@ -430,8 +427,6 @@ const TaskDetail = () => {
                 }
               />
 
-              <Separator />
-
               <AttachmentsSection
                 attachments={task.attachments}
                 uploading={uploading}
@@ -441,15 +436,11 @@ const TaskDetail = () => {
                 }
               />
 
-              <Separator />
-
               <TimeTrackingSection
                 task={task}
                 entries={timeEntriesQuery.data ?? []}
                 runningTimer={runningTimerQuery.data}
-                onStartTimer={() =>
-                  detailMutations.startTimerMutation.mutate()
-                }
+                onStartTimer={() => detailMutations.startTimerMutation.mutate()}
                 onStopTimer={() => detailMutations.stopTimerMutation.mutate()}
                 onAddManual={(durationMinutes, note) =>
                   detailMutations.addTimeEntryMutation.mutate({
@@ -469,9 +460,7 @@ const TaskDetail = () => {
                 ownMemberId={ownMemberId}
                 isLoading={commentsQuery.isLoading}
                 submitting={detailMutations.addCommentMutation.isPending}
-                onAdd={(body) =>
-                  detailMutations.addCommentMutation.mutate(body)
-                }
+                onAdd={(body) => detailMutations.addCommentMutation.mutate(body)}
                 onEdit={(commentId, body) =>
                   detailMutations.updateCommentMutation.mutate({
                     commentId,

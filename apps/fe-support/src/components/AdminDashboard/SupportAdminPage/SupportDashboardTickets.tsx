@@ -1,3 +1,5 @@
+import { cn } from "@dashboard/ui/lib/utils";
+import { SlaBadge } from "./SlaBadge";
 import { exportToCsv } from "@/lib/export-csv";
 import {
   deleteSupportTicket,
@@ -9,6 +11,8 @@ import {
   formatDateTime,
   getStatusLabel,
   Priority,
+  SLA_FIRST_REPLY_HOURS,
+  SLA_RESOLUTION_HOURS,
   statusConfig,
   TicketCategory,
   TicketStatus,
@@ -141,8 +145,8 @@ export function SupportDashboardTickets() {
 
   const handleView = (row: TicketRow) => {
     navigate({
-      to: "/support/tickets/$ticketId" as any,
-      params: { ticketId: row.id } as any,
+      to: "/support/tickets/$ticketNumber",
+      params: { ticketNumber: row.ticketNumber },
     });
   };
 
@@ -160,8 +164,8 @@ export function SupportDashboardTickets() {
       header: "Ticket",
       render: (row: TicketRow) => (
         <Link
-          to={"/support/tickets/$ticketNumber" as any}
-          params={{ ticketNumber: row.ticketNumber } as any}
+          to="/support/tickets/$ticketNumber"
+          params={{ ticketNumber: row.ticketNumber }}
           className="flex items-center gap-2"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -182,30 +186,23 @@ export function SupportDashboardTickets() {
         const isTerminal = row.status === "CLOSED" || row.status === "RESOLVED";
         const age = ticketAgeHours(row.createdAt);
         const awaitingReply = !row.hasAgentReply && !isTerminal;
-        const isOverdue = awaitingReply && age > 24;
-        const isSlaAtRisk = row.hasAgentReply && !isTerminal && age > 72;
+        const isOverdue = awaitingReply && age > SLA_FIRST_REPLY_HOURS;
+        const isSlaAtRisk = row.hasAgentReply && !isTerminal && age > SLA_RESOLUTION_HOURS;
 
         return (
           <div className="flex flex-col gap-1">
             <span className="text-sm text-foreground">{row.subject}</span>
             {isOverdue && (
-              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950/40 dark:text-red-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+              <SlaBadge tone="overdue" pulse>
                 Overdue — no reply
-              </span>
+              </SlaBadge>
             )}
             {!isOverdue && awaitingReply && (
-              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-950/40 dark:text-orange-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+              <SlaBadge tone="awaiting" pulse>
                 Awaiting reply
-              </span>
+              </SlaBadge>
             )}
-            {isSlaAtRisk && (
-              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
-                SLA at risk
-              </span>
-            )}
+            {isSlaAtRisk && <SlaBadge tone="atRisk">SLA at risk</SlaBadge>}
           </div>
         );
       },
@@ -309,7 +306,10 @@ export function SupportDashboardTickets() {
                     onClick={() => handleStatusChange(row, s)}
                   >
                     <span
-                      className={`mr-2 inline-block h-2 w-2 rounded-full ${statusConfig[s]?.dot ?? "bg-gray-400"}`}
+                      className={cn(
+                        "mr-2 inline-block h-2 w-2 rounded-full",
+                        statusConfig[s]?.dot ?? "bg-muted-foreground"
+                      )}
                     />
                     {getStatusLabel(s)}
                   </DropdownMenuItem>
@@ -351,7 +351,7 @@ export function SupportDashboardTickets() {
     <div className="flex flex-1 flex-col">
       <div className="w-full flex-1 space-y-6 px-4 py-6 sm:px-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
             Support Tickets
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

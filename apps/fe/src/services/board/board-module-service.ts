@@ -1,11 +1,7 @@
 import { axiosClient } from "@/lib/axios-client";
 
-export type CrmModuleType = "CONTACT" | "COMPANY";
-
-export const CRM_QUERY_KEYS: Record<CrmModuleType, string> = {
-  CONTACT: "contacts",
-  COMPANY: "companies",
-};
+// A module key is free text once organizations create their own.
+export type CrmModuleType = string;
 
 export const getModuleRecords = async (
   moduleType: CrmModuleType,
@@ -18,12 +14,14 @@ export const getModuleRecords = async (
   return response.data;
 };
 
+export type ModuleColumn = { id: string; name: string; type: string };
+
 export const getModuleColumns = async (moduleType: CrmModuleType) => {
   const response = await axiosClient.get("/api/boards/column", {
     params: { moduleType },
   });
 
-  return response.data;
+  return response.data as ModuleColumn[];
 };
 
 export const createModuleRecords = async (

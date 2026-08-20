@@ -110,12 +110,11 @@ export function CompliancePage() {
             HIPAA mode
           </CardTitle>
           <CardDescription>
-            Enforces the network allowlist, a signed Business Associate
-            Agreement, and a second factor on every route that carries patient
-            data.
+            Enforces a signed Business Associate Agreement and a second factor
+            on every route that carries patient data.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <Label htmlFor="hipaa-mode" className="flex items-center gap-2">
@@ -141,26 +140,6 @@ export function CompliancePage() {
               onCheckedChange={() => enableHipaa.mutate()}
             />
           </div>
-
-          <dl className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border p-4">
-              <dt className="text-sm text-muted-foreground">Record retention</dt>
-              <dd className="mt-1 font-medium">
-                {Math.round(status.retentionDays / 365)} years
-                <span className="ml-1 text-sm font-normal text-muted-foreground">
-                  ({status.retentionDays} days)
-                </span>
-              </dd>
-            </div>
-            <div className="rounded-lg border p-4">
-              <dt className="text-sm text-muted-foreground">Network allowlist</dt>
-              <dd className="mt-1 font-medium">
-                {status.ipAllowlist.length
-                  ? `${status.ipAllowlist.length} ${status.ipAllowlist.length === 1 ? "entry" : "entries"}`
-                  : "Open to any network"}
-              </dd>
-            </div>
-          </dl>
         </CardContent>
       </Card>
 

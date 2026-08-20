@@ -1,6 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { stripe } from "@better-auth/stripe";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import {
   admin,
@@ -40,7 +41,10 @@ import {
   beforeUpdateOrganization,
   beforeUpdateTeam,
   customSessionHandler,
+  onPasswordReset,
   sendInvitationEmail,
+  sendResetPassword,
+  sendVerificationEmail,
   stripeAuthorizeReference,
   subscriptionAuthorizeReference,
 } from "./auth-helper";
@@ -58,6 +62,10 @@ import {
   super_admin,
   support,
 } from "./permission";
+import {
+  auditAdminActions,
+  requireImpersonationReason,
+} from "./admin-audit-hook";
 import { blockSessionGrantingEmailPaths } from "./session-path-guard";
 
 // Local dev runs over http, so secure and cross-subdomain cookies must be off.
@@ -121,7 +129,10 @@ export const auth = betterAuth({
     },
   },
   hooks: {
-    before: blockSessionGrantingEmailPaths,
+    before: createAuthMiddleware(async (ctx) => {
+      requireImpersonationReason(ctx);
+    }),
+    after: auditAdminActions,
   },
   databaseHooks: {
     session: {
@@ -157,6 +168,9 @@ export const auth = betterAuth({
   },
   account: {
     modelName: "UserAccount",
+    // Keyed by BETTER_AUTH_SECRET, not ENCRYPTION_KEY, so the prisma encryption
+    // extension must never also list UserAccount or tokens double-encrypt.
+    encryptOAuthTokens: true,
     fields: {
       id: "id",
       accountId: "accountId",
@@ -198,22 +212,29 @@ export const auth = betterAuth({
     },
   },
   // socialProviders,
-  // Passkey signup marks the address verified at creation, and an emailed
-  // verification link that auto-signs-in is a mailbox-to-session path.
-  // emailVerification: {
-  //   sendOnSignUp: true,
-  //   autoSignInAfterVerification: true,
-  //   expiresIn: 1000 * 60 * 10, // 10 minutes
-  //   sendVerificationEmail,
-  // },
-  // emailAndPassword: {
-  //   enabled: true,
-  //   requireEmailVerification: true,
-  //   expiresIn: 1000 * 60 * 10, // 10 minutes
-  //   sendResetPassword,
-  //   onPasswordReset,
-  //   sendMagicLink,
-  // },
+  // Passkey signup marks the address verified at creation, so this mostly serves
+  // accounts that predate it. autoSignInAfterVerification stays off deliberately:
+  // a link that turns a mailbox into a session is weaker than what it guards.
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    expiresIn: 60 * 10,
+    sendVerificationEmail,
+  },
+  // Password sign-in runs alongside passkeys. Sign-up stays closed here because
+  // accounts are still created by the OTP plus passkey flow; a reset is how an
+  // existing user sets a first password.
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: true,
+    requireEmailVerification: true,
+    minPasswordLength: 12,
+    autoSignIn: true,
+    resetPasswordTokenExpiresIn: 60 * 10,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword,
+    onPasswordReset,
+  },
   plugins: [
     passkey({
       rpID: appConfig.PASSKEY_RP_ID,

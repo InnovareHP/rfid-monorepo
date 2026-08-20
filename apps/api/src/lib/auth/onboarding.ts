@@ -4,13 +4,23 @@ import {
   StageType,
   TaskStatusCategory,
 } from "@prisma/client";
+import {
+  resolveModuleId,
+  seedSystemModules,
+} from "src/lib/module/system-modules";
 import { prisma } from "src/lib/prisma/prisma";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 
-export const LEAD_PIPELINE_STAGE_FIELD = "Pipeline Stage";
-export const LEAD_PIPELINE_AMOUNT_FIELD = "Deal Value";
+export const LEAD_STATUS_FIELD = "Status";
 
-export const DEFAULT_LEAD_PIPELINE_STAGES = [
+type ReferralStatusOption = {
+  name: string;
+  color: string;
+  stageType: StageType;
+  probability: number | null;
+};
+
+export const DEFAULT_LEAD_KANBAN_STAGES = [
   { name: "New", color: "#3b82f6", stageType: StageType.OPEN, probability: 10 },
   {
     name: "Contacted",
@@ -89,31 +99,21 @@ export const DEFAULT_TASK_STATUSES = [
   },
 ];
 
-// Seeds the default stages and points the pipeline at the lead stage and value fields
-export const configureLeadPipeline = async (organizationId: string) =>
-  runWithTenant(organizationId, () => seedLeadPipeline(organizationId));
+// Seeds the default stages on the lead Status field the Kanban groups by
+export const configureLeadKanban = async (organizationId: string) =>
+  runWithTenant(organizationId, () => seedLeadKanban(organizationId));
 
-const seedLeadPipeline = async (organizationId: string) => {
-  const [stageField, amountField] = await Promise.all([
-    prisma.field.findFirst({
-      where: {
-        organizationId,
-        moduleType: "LEAD",
-        fieldName: LEAD_PIPELINE_STAGE_FIELD,
-        isDeleted: false,
-      },
-    }),
-    prisma.field.findFirst({
-      where: {
-        organizationId,
-        moduleType: "LEAD",
-        fieldName: LEAD_PIPELINE_AMOUNT_FIELD,
-        isDeleted: false,
-      },
-    }),
-  ]);
+const seedLeadKanban = async (organizationId: string) => {
+  const stageField = await prisma.field.findFirst({
+    where: {
+      organizationId,
+      moduleType: "LEAD",
+      fieldName: LEAD_STATUS_FIELD,
+      isDeleted: false,
+    },
+  });
 
-  if (!stageField || !amountField) return null;
+  if (!stageField) return null;
 
   const existingOptions = await prisma.fieldOption.count({
     where: { fieldId: stageField.id, isDeleted: false },
@@ -121,7 +121,7 @@ const seedLeadPipeline = async (organizationId: string) => {
 
   if (!existingOptions) {
     await prisma.fieldOption.createMany({
-      data: DEFAULT_LEAD_PIPELINE_STAGES.map((stage, index) => ({
+      data: DEFAULT_LEAD_KANBAN_STAGES.map((stage, index) => ({
         fieldId: stageField.id,
         optionName: stage.name,
         color: stage.color,
@@ -132,18 +132,7 @@ const seedLeadPipeline = async (organizationId: string) => {
     });
   }
 
-  await prisma.$transaction([
-    prisma.field.update({
-      where: { id: stageField.id },
-      data: { isPipelineStage: true },
-    }),
-    prisma.field.update({
-      where: { id: amountField.id },
-      data: { isPipelineAmount: true },
-    }),
-  ]);
-
-  return { stageFieldId: stageField.id, amountFieldId: amountField.id };
+  return { stageFieldId: stageField.id };
 };
 
 // Runs while the creator's session still points at their previous organization.
@@ -153,16 +142,37 @@ export const OnboardingSeeding = async (organizationId: string) =>
 const seedOrganization = async (organizationId: string) => {
   console.log("🌱 Seeding start");
 
+  await seedSystemModules(organizationId);
+
+  const [leadModuleId, referralModuleId, contactModuleId, companyModuleId] =
+    await Promise.all([
+      resolveModuleId("LEAD"),
+      resolveModuleId("REFERRAL"),
+      resolveModuleId("CONTACT"),
+      resolveModuleId("COMPANY"),
+    ]);
+
   //
   // ✅ Seed referral records
   //
   await prisma.board.createMany({
     data: [
-      { recordName: "John Doe", moduleType: "REFERRAL", organizationId },
-      { recordName: "Jane Smith", moduleType: "REFERRAL", organizationId },
+      {
+        recordName: "John Doe",
+        moduleType: "REFERRAL",
+        moduleId: referralModuleId,
+        organizationId,
+      },
+      {
+        recordName: "Jane Smith",
+        moduleType: "REFERRAL",
+        moduleId: referralModuleId,
+        organizationId,
+      },
       {
         recordName: "Alice Johnson",
         moduleType: "REFERRAL",
+        moduleId: referralModuleId,
         organizationId,
       },
     ],
@@ -201,6 +211,7 @@ const seedOrganization = async (organizationId: string) => {
     fieldOrder: index + 1,
     organizationId,
     moduleType: "REFERRAL",
+    moduleId: referralModuleId,
   }));
 
   await prisma.field.createMany({
@@ -221,11 +232,28 @@ const seedOrganization = async (organizationId: string) => {
     "Admission Type": ["Emergency", "Routine", "Transfer"],
   };
 
-  const statusOptionsMap: Record<string, { name: string; color: string }[]> = {
+  // Carries stage metadata so the referral Kanban has real outcomes: without a
+  // stageType every column defaults to OPEN and win rate can never move.
+  const statusOptionsMap: Record<string, ReferralStatusOption[]> = {
     Status: [
-      { name: "Pending", color: "#eab308" },
-      { name: "Admitted", color: "#22c55e" },
-      { name: "Rejected", color: "#ef4444" },
+      {
+        name: "Pending",
+        color: "#eab308",
+        stageType: StageType.OPEN,
+        probability: 50,
+      },
+      {
+        name: "Admitted",
+        color: "#22c55e",
+        stageType: StageType.WON,
+        probability: null,
+      },
+      {
+        name: "Rejected",
+        color: "#ef4444",
+        stageType: StageType.LOST,
+        probability: null,
+      },
     ],
   };
 
@@ -238,10 +266,13 @@ const seedOrganization = async (organizationId: string) => {
     .flatMap((field) => {
       if (field.fieldType === BoardFieldType.STATUS) {
         return (
-          statusOptionsMap[field.fieldName]?.map((opt) => ({
+          statusOptionsMap[field.fieldName]?.map((opt, index) => ({
             fieldId: field.id,
             optionName: opt.name,
             color: opt.color,
+            optionOrder: index,
+            stageType: opt.stageType,
+            probability: opt.probability,
           })) ?? []
         );
       }
@@ -386,14 +417,14 @@ const seedOrganization = async (organizationId: string) => {
     ["Admissions/Marketing", BoardFieldType.CONTACT_LINK, 14],
     ["Psychiatric Services", BoardFieldType.TEXT, 15],
     ["Notes", BoardFieldType.TEXT, 16],
-    [LEAD_PIPELINE_STAGE_FIELD, BoardFieldType.STATUS, 17],
-    [LEAD_PIPELINE_AMOUNT_FIELD, BoardFieldType.NUMBER, 18],
+    [LEAD_STATUS_FIELD, BoardFieldType.STATUS, 17],
   ].map(([name, type, order]) => ({
     fieldName: name,
     fieldType: type,
     fieldOrder: order,
     organizationId,
     moduleType: "LEAD",
+    moduleId: leadModuleId,
   }));
 
   await prisma.field.createMany({
@@ -401,7 +432,7 @@ const seedOrganization = async (organizationId: string) => {
     skipDuplicates: true,
   });
 
-  await configureLeadPipeline(organizationId);
+  await configureLeadKanban(organizationId);
 
   //
   // Seed Leads
@@ -411,14 +442,21 @@ const seedOrganization = async (organizationId: string) => {
       {
         recordName: "Sunrise Care Facility",
         moduleType: "LEAD",
+        moduleId: leadModuleId,
         organizationId,
       },
       {
         recordName: "Lakeside Health Center",
         moduleType: "LEAD",
+        moduleId: leadModuleId,
         organizationId,
       },
-      { recordName: "Maple Grove Nursing", moduleType: "LEAD", organizationId },
+      {
+        recordName: "Maple Grove Nursing",
+        moduleType: "LEAD",
+        moduleId: leadModuleId,
+        organizationId,
+      },
     ],
     skipDuplicates: true,
   });
@@ -443,7 +481,6 @@ const seedOrganization = async (organizationId: string) => {
     "Zip Code": ["62704", "45802", "50613"],
     Fax: ["(555) 201-9001", "(555) 318-9002", "(555) 476-9003"],
     "Psychiatric Services": ["Yes", "No", "Yes"],
-    [LEAD_PIPELINE_AMOUNT_FIELD]: ["25000", "18000", "32000"],
     Notes: [
       "Strong referral partner, monthly check-in",
       "New contact, intro call scheduled",
@@ -533,6 +570,7 @@ const seedOrganization = async (organizationId: string) => {
     fieldOrder: index + 1,
     organizationId,
     moduleType: "CONTACT",
+    moduleId: contactModuleId,
   }));
 
   const companyFields = [
@@ -548,6 +586,7 @@ const seedOrganization = async (organizationId: string) => {
     fieldOrder: index + 1,
     organizationId,
     moduleType: "COMPANY",
+    moduleId: companyModuleId,
   }));
 
   await prisma.field.createMany({
@@ -607,16 +646,19 @@ const seedOrganization = async (organizationId: string) => {
       ...personSamples.map((name) => ({
         recordName: name,
         moduleType: "CONTACT" as const,
+        moduleId: contactModuleId,
         organizationId,
       })),
       {
         recordName: "CarePoint Group",
         moduleType: "COMPANY" as const,
+        moduleId: companyModuleId,
         organizationId,
       },
       {
         recordName: "Harbor Health Partners",
         moduleType: "COMPANY" as const,
+        moduleId: companyModuleId,
         organizationId,
       },
     ],

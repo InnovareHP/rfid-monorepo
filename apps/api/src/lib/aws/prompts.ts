@@ -1,6 +1,6 @@
 export function analyticsPrompt(analytics: any) {
   return `
-  You are an AI analyst generating a Behavioral Referral Intelligence Report.
+  You are an AI analyst generating a Refidly referral analytics report.
 
   You MUST return your answer in EXACT JSON format with the following structure:
 
@@ -148,4 +148,49 @@ export function followUpPrompt(context: {
   Here is the record data:
   ${JSON.stringify(context)}
   `;
+}
+
+export const NO_ANSWER_TOKEN = "NO_ANSWER";
+
+export function supportAssistantSystem(
+  articles: { title: string; body: string }[]
+) {
+  const help = articles
+    .map((article) => `### ${article.title}\n${article.body}`)
+    .join("\n\n");
+
+  return `
+You are the Refidly support assistant. You answer product questions for customers of the Refidly dashboard.
+
+RULES:
+- Answer product questions only from the HELP ARTICLES below. Never use outside knowledge about the product.
+- Call list_my_tickets or get_ticket_status before stating any fact about the user's own requests. Never state a figure a tool did not return.
+- If neither the articles nor a tool covers the question, call propose_contact_form and reply with exactly ${NO_ANSWER_TOKEN} and nothing else.
+- Buttons come only from the propose tools. Never write links, URLs, app paths, HTML, or markdown buttons, and never mention the buttons in your answer.
+- Never name the infrastructure, cloud providers, or models behind the product.
+- Keep the answer under 120 words, plain prose, no headings.
+
+HELP ARTICLES:
+${help || "(none)"}
+`;
+}
+
+export function supportAssistantPrompt(context: {
+  question: string;
+  history: { role: "user" | "assistant"; content: string }[];
+}) {
+  const history = context.history
+    .map(
+      (turn) =>
+        `${turn.role === "user" ? "User" : "Assistant"}: ${turn.content}`
+    )
+    .join("\n");
+
+  return `
+CONVERSATION SO FAR:
+${history || "(none)"}
+
+USER QUESTION:
+${context.question}
+`;
 }

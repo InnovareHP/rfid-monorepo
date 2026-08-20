@@ -1,28 +1,27 @@
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError } from "better-auth/api";
 
-// Every one of these proves only that the caller can read an inbox, and every
-// one of them ends in a session. Passkeys exist to close exactly that path, so
-// they stay blocked even if a plugin re-registers the route later.
+// A link or code mailed to an inbox that lands the caller in a session proves
+// only that they can read the inbox. Password sign-in and password reset are
+// deliberately not on this list: they need the password too. These stay blocked
+// even if a plugin re-registers the route later.
+//
+// Account creation stays closed here as well. New accounts come from the OTP
+// plus passkey registration flow, so an open /sign-up/email would be a second
+// way in with weaker proof.
 const BLOCKED_PATHS = new Set([
-  "/sign-in/email",
   "/sign-up/email",
   "/sign-in/magic-link",
   "/magic-link/verify",
   "/sign-in/email-otp",
   "/email-otp/verify-email",
-  "/forget-password",
   "/forget-password/email-otp",
-  "/reset-password",
   "/email-otp/reset-password",
-  "/verify-email",
 ]);
 
-export const blockSessionGrantingEmailPaths = createAuthMiddleware(
-  async (ctx) => {
-    if (BLOCKED_PATHS.has(ctx.path)) {
-      throw new APIError("NOT_FOUND", {
-        message: "This sign-in method is disabled. Use your passkey.",
-      });
-    }
+export const blockSessionGrantingEmailPaths = (ctx: { path: string }) => {
+  if (BLOCKED_PATHS.has(ctx.path)) {
+    throw new APIError("NOT_FOUND", {
+      message: "This sign-in method is disabled. Use your passkey.",
+    });
   }
-);
+};

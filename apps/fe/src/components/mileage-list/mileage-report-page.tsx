@@ -1,11 +1,13 @@
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { getMileageLogs } from "@/services/mileage/mileage-service";
 import type { MileageLogRow } from "@dashboard/shared";
 import { formatDateTime } from "@dashboard/shared";
-import { Button } from "@dashboard/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
@@ -89,7 +91,7 @@ export default function MileageReportPage() {
   const rows: MileageLogRow[] = data?.data ?? [];
   const totals = data?.totals ?? { reimbursement: 0, miles: 0, trips: 0 };
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No mileage logs available to export.");
       return;
@@ -101,7 +103,16 @@ export default function MileageReportPage() {
     let allData: MileageLogRow[] = [];
 
     do {
-      const res = await getMileageLogs({ ...filterMeta, limit, page: exportPage });
+      const res = await getMileageLogs({
+        ...filterMeta,
+        filter: {
+          ...filterMeta.filter,
+          ...(range.from && { mileageDateFrom: range.from }),
+          ...(range.to && { mileageDateTo: range.to }),
+        },
+        limit,
+        page: exportPage,
+      });
       total = res.total ?? 0;
       allData = [...allData, ...res.data];
       exportPage += 1;
@@ -150,13 +161,10 @@ export default function MileageReportPage() {
         description="Track and manage mileage reimbursements."
       />
 
-          <Button
-            onClick={handleExportCSV}
+          <ExportCsvButton
+            onExport={handleExportCSV}
             className="bg-brand text-white hover:bg-brand/90"
-          >
-            <FileDown className="mr-1 h-4 w-4" />
-            Export CSV
-          </Button>
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

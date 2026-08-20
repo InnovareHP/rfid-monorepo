@@ -1,3 +1,4 @@
+import { Skeleton } from "@dashboard/ui/components/skeleton";
 import {
   getRelatedRecords,
   type RelatedRecord,
@@ -10,7 +11,7 @@ import {
 } from "@dashboard/ui/components/popover";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, Link2, Loader2 } from "lucide-react";
+import { ExternalLink, Link2 } from "lucide-react";
 import { useState } from "react";
 
 const MODULE_ROUTES: Record<string, string> = {
@@ -52,9 +53,10 @@ export function RelatedRecords({ recordId }: { recordId: string }) {
       </PopoverTrigger>
       <PopoverContent className="w-72 p-2" align="start">
         {isLoading ? (
-          <div className="flex items-center justify-center p-4">
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            <span className="text-sm text-gray-500">Loading...</span>
+          <div className="space-y-2 p-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-2/3" />
           </div>
         ) : related.length === 0 ? (
           <p className="p-3 text-sm text-gray-500">No related records</p>

@@ -7,12 +7,15 @@ export type AudienceFilter = {
   boardDateTo?: string;
 };
 
+export type AudienceType = "BOARD" | "SUBSCRIBER";
+
 export type RecipientGroup = {
   id: string;
   organizationId: string;
   name: string;
   description: string | null;
   moduleType: string;
+  audienceType: AudienceType;
   filter: AudienceFilter;
   createdBy: string | null;
   createdAt: string;
@@ -21,7 +24,8 @@ export type RecipientGroup = {
 };
 
 export type GroupMember = {
-  recordId: string;
+  recordId: string | null;
+  subscriberId: string | null;
   recordName: string;
   email: string | null;
 };
@@ -40,6 +44,7 @@ export type GroupInput = {
   name: string;
   description?: string;
   moduleType: string;
+  audienceType: AudienceType;
   filter: AudienceFilter;
 };
 
@@ -65,7 +70,11 @@ export const getGroupMembers = async (
 };
 
 export const previewGroupMembers = async (
-  data: { moduleType: string; filter: AudienceFilter },
+  data: {
+    moduleType: string;
+    audienceType: AudienceType;
+    filter: AudienceFilter;
+  },
   params: { page: number; limit: number }
 ): Promise<GroupMembersPage> => {
   const response = await axiosClient.post(
