@@ -77,6 +77,25 @@ resource "aws_lb_target_group" "fe_support" {
   deregistration_delay = 30
 }
 
+resource "aws_lb_target_group" "landing" {
+  name        = "${substr(var.name_prefix, 0, 21)}-land-tg"
+  port        = 3002
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc_id
+
+  health_check {
+    path                = "/"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+
+  deregistration_delay = 30
+}
+
 locals {
   # Static, plan-known. var.acm_certificate_arn is often a computed cert ARN,
   # and driving listener counts off it makes the first plan fail.
@@ -136,6 +155,23 @@ resource "aws_lb_listener_rule" "support_http" {
   condition {
     path_pattern {
       values = ["/support/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "landing_http" {
+  count        = local.https_enabled ? 0 : 1
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 80
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.landing.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/landing/*"]
     }
   }
 }
@@ -201,6 +237,25 @@ resource "aws_lb_listener_rule" "support_host" {
   condition {
     host_header {
       values = [var.support_hostname]
+    }
+  }
+}
+
+# Inactive until var.landing_hostname is set — apex/www currently serve via
+# the landing_site CloudFront module, not this ALB.
+resource "aws_lb_listener_rule" "landing_host" {
+  count        = local.https_enabled && var.landing_hostname != "" ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 40
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.landing.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.landing_hostname]
     }
   }
 }

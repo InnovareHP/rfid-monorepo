@@ -60,6 +60,7 @@ jobs:
           [ "${{ steps.filter.outputs.api }}" = "true" ] && services+=("api")
           [ "${{ steps.filter.outputs.fe }}" = "true" ] && services+=("fe")
           [ "${{ steps.filter.outputs['fe-support'] }}" = "true" ] && services+=("fe-support")
+          [ "${{ steps.filter.outputs.landing }}" = "true" ] && services+=("landing")
 
           if [ ${#services[@]} -eq 0 ]; then
             json='[]'
@@ -151,8 +152,12 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
 
+  # Old static path: S3 + CloudFront, still serving the live apex/www domain.
+  # landing also now runs as its own ECS service (see the `deploy` matrix
+  # above) but nothing routes real traffic there yet. Runs alongside this
+  # job until DNS is cut over; retire this job once it is.
   deploy-landing:
-    name: Deploy landing
+    name: Deploy landing (S3/CloudFront)
     needs: changes
     if: needs.changes.outputs.landing == 'true'
     runs-on: ubuntu-latest

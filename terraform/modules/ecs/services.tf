@@ -261,6 +261,92 @@ resource "aws_ecs_service" "fe" {
   depends_on = [aws_lb_listener.http]
 }
 
+# ── Landing ────────────────────────────────────────────────
+# Astro static build served by `serve` (no SSR adapter). Runs as a container
+# rather than the S3/CloudFront landing_site module so future dynamic routes
+# (newsletter signup, form submission) can live in the same app.
+resource "aws_ecs_task_definition" "landing" {
+  family                   = "${var.name_prefix}-landing"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.landing_cpu
+  memory                   = var.landing_memory
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = var.cpu_architecture
+  }
+
+  container_definitions = jsonencode([{
+    name      = "landing"
+    image     = "${aws_ecr_repository.this["landing"].repository_url}:${var.landing_image_tag}"
+    essential = true
+
+    portMappings = [{ containerPort = 3002, protocol = "tcp" }]
+
+    environment = [
+      { name = "NODE_ENV", value = "production" },
+      { name = "PORT", value = "3002" },
+    ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.service["landing"].name
+        awslogs-region        = var.region
+        awslogs-stream-prefix = "landing"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "landing" {
+  name            = "${var.name_prefix}-landing"
+  cluster         = aws_ecs_cluster.this.id
+  task_definition = aws_ecs_task_definition.landing.arn
+  desired_count   = var.landing_desired_count
+  launch_type     = var.frontend_spot_weight > 0 ? null : "FARGATE"
+
+  dynamic "capacity_provider_strategy" {
+    for_each = local.frontend_capacity_strategy
+    content {
+      capacity_provider = capacity_provider_strategy.value.capacity_provider
+      weight            = capacity_provider_strategy.value.weight
+      base              = capacity_provider_strategy.value.base
+    }
+  }
+
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [var.ecs_sg_id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.landing.arn
+    container_name   = "landing"
+    container_port   = 3002
+  }
+
+  health_check_grace_period_seconds = 60
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition, desired_count]
+  }
+
+  depends_on = [aws_lb_listener.http]
+}
+
 # ── FE support ───────────────────────────────────────────
 resource "aws_ecs_task_definition" "fe_support" {
   family                   = "${var.name_prefix}-fe-support"

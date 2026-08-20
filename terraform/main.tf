@@ -4,7 +4,7 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
   account_id  = data.aws_caller_identity.current.account_id
 
-  fqdn_app     = var.domain_name != "" ? "app.${var.domain_name}" : ""
+  fqdn_app     = var.domain_name != "" ? "portal.${var.domain_name}" : ""
   fqdn_api     = var.domain_name != "" ? "api.${var.domain_name}" : ""
   fqdn_support = var.domain_name != "" ? "support.${var.domain_name}" : ""
   fqdn_www     = var.domain_name != "" ? "www.${var.domain_name}" : ""
@@ -101,10 +101,10 @@ module "dns" {
   create_zone      = var.create_route53_zone
   existing_zone_id = var.existing_zone_id
 
-  # app -> fe, api -> api, support -> fe-support. Apex and www are alias
+  # portal -> fe, api -> api, support -> fe-support. Apex and www are alias
   # records on the landing CloudFront distribution and are created by the
   # landing_site module instead.
-  alb_subdomains = ["app", "api", "support"]
+  alb_subdomains = ["portal", "api", "support"]
   alb_dns_name   = module.ecs.alb_dns_name
   alb_zone_id    = module.ecs.alb_zone_id
 }
@@ -153,12 +153,16 @@ module "ecs" {
   fe_support_cpu           = var.fe_support_cpu
   fe_support_memory        = var.fe_support_memory
   fe_support_desired_count = var.fe_support_desired_count
+  landing_cpu              = var.landing_cpu
+  landing_memory           = var.landing_memory
+  landing_desired_count    = var.landing_desired_count
   frontend_spot_weight     = var.frontend_spot_weight
   cpu_architecture         = var.fargate_cpu_architecture
 
   api_image_tag        = var.api_image_tag
   fe_image_tag         = var.fe_image_tag
   fe_support_image_tag = var.fe_support_image_tag
+  landing_image_tag    = var.landing_image_tag
 
   log_retention_days         = var.app_log_retention_days
   container_insights_enabled = var.container_insights_enabled
@@ -170,6 +174,8 @@ module "ecs" {
   fe_max_count                    = var.fe_max_count
   fe_support_min_count            = var.fe_support_min_count
   fe_support_max_count            = var.fe_support_max_count
+  landing_min_count               = var.landing_min_count
+  landing_max_count               = var.landing_max_count
   autoscaling_cpu_target          = var.autoscaling_cpu_target
   autoscaling_memory_target       = var.autoscaling_memory_target
   autoscaling_requests_per_target = var.autoscaling_requests_per_target
@@ -277,6 +283,7 @@ module "ci" {
     "${local.name_prefix}-api",
     "${local.name_prefix}-fe",
     "${local.name_prefix}-fe-support",
+    "${local.name_prefix}-landing",
   ]
   ecs_execution_role_arn  = module.ecs.execution_role_arn
   ecs_task_role_arn       = module.ecs.task_role_arn
@@ -301,5 +308,6 @@ module "alerts" {
     "${local.name_prefix}-api",
     "${local.name_prefix}-fe",
     "${local.name_prefix}-fe-support",
+    "${local.name_prefix}-landing",
   ]
 }

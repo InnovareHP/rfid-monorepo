@@ -43,6 +43,8 @@ fe_cpu            = 512
 fe_memory         = 1024
 fe_support_cpu    = 256
 fe_support_memory = 512
+landing_cpu       = 256
+landing_memory    = 512
 
 # One on-demand task per frontend service, the rest on Spot.
 frontend_spot_weight = 3

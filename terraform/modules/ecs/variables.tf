@@ -25,6 +25,9 @@ variable "fe_desired_count" { type = number }
 variable "fe_support_cpu" { type = number }
 variable "fe_support_memory" { type = number }
 variable "fe_support_desired_count" { type = number }
+variable "landing_cpu" { type = number }
+variable "landing_memory" { type = number }
+variable "landing_desired_count" { type = number }
 
 variable "frontend_spot_weight" {
   type        = number
@@ -46,6 +49,7 @@ variable "image_tag_mutability" {
 variable "api_image_tag" { type = string }
 variable "fe_image_tag" { type = string }
 variable "fe_support_image_tag" { type = string }
+variable "landing_image_tag" { type = string }
 
 variable "log_retention_days" { type = number }
 variable "container_insights_enabled" { type = bool }
@@ -58,6 +62,8 @@ variable "fe_min_count" { type = number }
 variable "fe_max_count" { type = number }
 variable "fe_support_min_count" { type = number }
 variable "fe_support_max_count" { type = number }
+variable "landing_min_count" { type = number }
+variable "landing_max_count" { type = number }
 variable "autoscaling_cpu_target" { type = number }
 variable "autoscaling_memory_target" { type = number }
 variable "autoscaling_requests_per_target" { type = number }
@@ -87,6 +93,14 @@ variable "api_hostname" {
 }
 
 variable "support_hostname" {
+  type    = string
+  default = ""
+}
+
+# Empty by default: apex/www currently serve via the landing_site CloudFront
+# module. Set this once you decide this ECS service should take over that
+# traffic instead, and wire the matching DNS record yourself.
+variable "landing_hostname" {
   type    = string
   default = ""
 }

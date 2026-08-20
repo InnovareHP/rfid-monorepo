@@ -189,6 +189,21 @@ variable "fe_support_desired_count" {
   default = 1
 }
 
+variable "landing_cpu" {
+  type    = number
+  default = 256
+}
+
+variable "landing_memory" {
+  type    = number
+  default = 512
+}
+
+variable "landing_desired_count" {
+  type    = number
+  default = 1
+}
+
 # FE and support are stateless behind the ALB, Spot gives a 2-minute warning
 # and the target group drains. base = 1 keeps one on-demand task per service so
 # a Spot capacity crunch cannot empty the target group. The API stays fully
@@ -237,6 +252,11 @@ variable "fe_support_image_tag" {
   default = "latest"
 }
 
+variable "landing_image_tag" {
+  type    = string
+  default = "latest"
+}
+
 # ── Autoscaling ────────────────────────────────────────────
 variable "enable_autoscaling" {
   type    = bool
@@ -264,6 +284,14 @@ variable "fe_support_min_count" {
   default = 1
 }
 variable "fe_support_max_count" {
+  type    = number
+  default = 3
+}
+variable "landing_min_count" {
+  type    = number
+  default = 1
+}
+variable "landing_max_count" {
   type    = number
   default = 3
 }

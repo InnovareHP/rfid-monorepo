@@ -6,7 +6,7 @@ variable "domain_name" {
 variable "alb_subdomains" {
   type        = list(string)
   description = "Subdomains pointed at the ALB."
-  default     = ["app", "api", "support"]
+  default     = ["portal", "api", "support"]
 }
 
 variable "create_zone" {
