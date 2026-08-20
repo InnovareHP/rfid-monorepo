@@ -20,8 +20,6 @@ permissions:
 env:
   AWS_REGION: us-east-2
   ECS_CLUSTER: dashboard-prod-cluster
-  LANDING_BUCKET: dashboard-prod-landing-986584956039
-  LANDING_DISTRIBUTION_ID: E2LB2AK4KQ6XU2
 
 jobs:
   changes:
@@ -29,7 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.list.outputs.services }}
-      landing: ${{ steps.filter.outputs.landing }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -151,36 +148,3 @@ jobs:
           service: dashboard-prod-${{ matrix.service }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
-
-  # Old static path: S3 + CloudFront, still serving the live apex/www domain.
-  # landing also now runs as its own ECS service (see the `deploy` matrix
-  # above) but nothing routes real traffic there yet. Runs alongside this
-  # job until DNS is cut over; retire this job once it is.
-  deploy-landing:
-    name: Deploy landing (S3/CloudFront)
-    needs: changes
-    if: needs.changes.outputs.landing == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter landing build
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::986584956039:role/gha-ecs-deploy
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Sync to S3 and invalidate CloudFront
-        run: |
-          aws s3 sync apps/landing/dist "s3://$LANDING_BUCKET" --delete
-          aws cloudfront create-invalidation \
-            --distribution-id "$LANDING_DISTRIBUTION_ID" \
-            --paths "/*"
