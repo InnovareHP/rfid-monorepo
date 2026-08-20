@@ -19,10 +19,10 @@ single_nat_gateway   = true
 enable_vpc_endpoints = false
 
 # ── Domain ─────────────────────────────────────────────────
-# Leave manage_dns = false on the first apply. The ALB comes up HTTP-only,
-# the landing distribution serves on its *.cloudfront.net domain, and nothing
-# depends on a cert that does not exist yet. Flip it once the NS records from
-# the dns_name_servers output are live at the registrar.
+# Leave manage_dns = false on the first apply. The ALB comes up HTTP-only and
+# nothing depends on a cert that does not exist yet. Flip it once the NS
+# records from the dns_name_servers output are live at the registrar — that
+# also cuts refidly.com/www over to the landing ECS service.
 domain_name         = "refidly.com"
 manage_dns          = false
 create_route53_zone = true

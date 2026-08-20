@@ -102,8 +102,9 @@ locals {
   https_enabled = var.enable_https
 }
 
-# Redirect everything to HTTPS once a cert exists. Before that, forward to the
-# FE with a path rule for the API so the stack is reachable during bootstrap.
+# Redirect everything to HTTPS once a cert exists. Before that, forward to
+# landing (it's the apex/www site) with path rules for the other services so
+# the whole stack is reachable during bootstrap.
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
@@ -121,7 +122,7 @@ resource "aws_lb_listener" "http" {
       }
     }
 
-    target_group_arn = local.https_enabled ? null : aws_lb_target_group.fe.arn
+    target_group_arn = local.https_enabled ? null : aws_lb_target_group.landing.arn
   }
 }
 
@@ -159,19 +160,19 @@ resource "aws_lb_listener_rule" "support_http" {
   }
 }
 
-resource "aws_lb_listener_rule" "landing_http" {
+resource "aws_lb_listener_rule" "portal_http" {
   count        = local.https_enabled ? 0 : 1
   listener_arn = aws_lb_listener.http.arn
   priority     = 80
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.landing.arn
+    target_group_arn = aws_lb_target_group.fe.arn
   }
 
   condition {
     path_pattern {
-      values = ["/landing/*"]
+      values = ["/portal/*"]
     }
   }
 }
@@ -186,7 +187,7 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.fe.arn
+    target_group_arn = aws_lb_target_group.landing.arn
   }
 }
 
@@ -241,10 +242,10 @@ resource "aws_lb_listener_rule" "support_host" {
   }
 }
 
-# Inactive until var.landing_hostname is set — apex/www currently serve via
-# the landing_site CloudFront module, not this ALB.
+# Matches apex + www once var.landing_hostnames is set (see local.fqdn_www /
+# var.domain_name in root main.tf).
 resource "aws_lb_listener_rule" "landing_host" {
-  count        = local.https_enabled && var.landing_hostname != "" ? 1 : 0
+  count        = local.https_enabled && length(var.landing_hostnames) > 0 ? 1 : 0
   listener_arn = aws_lb_listener.https[0].arn
   priority     = 40
 
@@ -255,7 +256,7 @@ resource "aws_lb_listener_rule" "landing_host" {
 
   condition {
     host_header {
-      values = [var.landing_hostname]
+      values = var.landing_hostnames
     }
   }
 }

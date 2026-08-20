@@ -16,7 +16,8 @@
     "astro": "^5.7.0",
     "lucide-react": "^0.476.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.6",

@@ -12,8 +12,6 @@ locals {
     for name in var.ecs_service_names :
     "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:service/${var.ecs_cluster_name}/${name}"
   ]
-
-  landing_distribution_arn = "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${var.landing_distribution_id}"
 }
 
 resource "aws_iam_role" "gha_ecs_deploy" {
@@ -90,22 +88,6 @@ resource "aws_iam_role_policy" "gha_ecs_deploy" {
         Condition = {
           StringEquals = { "iam:PassedToService" = "ecs-tasks.amazonaws.com" }
         }
-      },
-      {
-        Sid = "LandingDeploy"
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:ListBucket",
-        ]
-        Resource = [var.landing_bucket_arn, "${var.landing_bucket_arn}/*"]
-      },
-      {
-        Sid      = "LandingInvalidate"
-        Effect   = "Allow"
-        Action   = "cloudfront:CreateInvalidation"
-        Resource = local.landing_distribution_arn
       },
     ]
   })

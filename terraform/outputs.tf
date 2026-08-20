@@ -63,20 +63,6 @@ output "uploads_distribution_id" {
   value = module.uploads.distribution_id
 }
 
-# ── Landing site ──────────────────────────────────────────
-output "landing_bucket" {
-  description = "Sync apps/landing/dist here, then invalidate the distribution."
-  value       = module.landing_site.bucket_name
-}
-
-output "landing_distribution_id" {
-  value = module.landing_site.distribution_id
-}
-
-output "landing_url" {
-  value = module.landing_site.url
-}
-
 # ── App secrets ───────────────────────────────────────────
 output "app_secrets_arn" {
   description = "Populate the REPLACE_ME values once, by hand or from CI."

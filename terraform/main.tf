@@ -15,12 +15,6 @@ locals {
     : "${local.name_prefix}-uploads-${local.account_id}"
   )
 
-  landing_bucket = (
-    var.landing_bucket_name != ""
-    ? var.landing_bucket_name
-    : "${local.name_prefix}-landing-${local.account_id}"
-  )
-
   # Both inputs are known at plan time, unlike the cert ARN itself which may be
   # computed. Listener counts must not depend on an unknown value.
   https_enabled = var.external_acm_certificate_arn != "" || var.manage_dns
@@ -93,35 +87,15 @@ module "dns" {
   source = "./modules/dns"
   count  = var.manage_dns ? 1 : 0
 
-  providers = {
-    aws.us_east_1 = aws.us_east_1
-  }
-
   domain_name      = var.domain_name
   create_zone      = var.create_route53_zone
   existing_zone_id = var.existing_zone_id
 
-  # portal -> fe, api -> api, support -> fe-support. Apex and www are alias
-  # records on the landing CloudFront distribution and are created by the
-  # landing_site module instead.
-  alb_subdomains = ["portal", "api", "support"]
+  # portal -> fe, api -> api, support -> fe-support, www -> landing. Apex ->
+  # landing is its own record inside the dns module (no subdomain prefix).
+  alb_subdomains = ["portal", "api", "support", "www"]
   alb_dns_name   = module.ecs.alb_dns_name
   alb_zone_id    = module.ecs.alb_zone_id
-}
-
-module "landing_site" {
-  source = "./modules/landing_site"
-
-  bucket_name   = local.landing_bucket
-  force_destroy = var.force_destroy_buckets
-  price_class   = var.landing_price_class
-
-  # Apex plus www only once DNS and the us-east-1 cert exist; before that the
-  # distribution serves on its own *.cloudfront.net domain.
-  enable_custom_domain = var.manage_dns && var.domain_name != ""
-  aliases              = var.manage_dns && var.domain_name != "" ? [var.domain_name, local.fqdn_www] : []
-  acm_certificate_arn  = var.manage_dns ? module.dns[0].cloudfront_certificate_arn : ""
-  route53_zone_id      = var.manage_dns ? module.dns[0].zone_id : ""
 }
 
 module "ecs" {
@@ -191,6 +165,7 @@ module "ecs" {
   app_hostname     = local.fqdn_app
   api_hostname     = local.fqdn_api
   support_hostname = local.fqdn_support
+  landing_hostnames = var.domain_name != "" ? [var.domain_name, local.fqdn_www] : []
 
   app_email               = var.app_email
   ses_from_email          = var.ses_from_email
@@ -285,10 +260,8 @@ module "ci" {
     "${local.name_prefix}-fe-support",
     "${local.name_prefix}-landing",
   ]
-  ecs_execution_role_arn  = module.ecs.execution_role_arn
-  ecs_task_role_arn       = module.ecs.task_role_arn
-  landing_bucket_arn      = module.landing_site.bucket_arn
-  landing_distribution_id = module.landing_site.distribution_id
+  ecs_execution_role_arn = module.ecs.execution_role_arn
+  ecs_task_role_arn      = module.ecs.task_role_arn
 }
 
 module "alerts" {

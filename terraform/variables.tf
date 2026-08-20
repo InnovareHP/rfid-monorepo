@@ -351,20 +351,6 @@ variable "replication_region" {
   default = "us-west-2"
 }
 
-# ── Landing site (static Astro) ────────────────────────────
-# apps/landing has no SSR adapter, so `astro build` emits a static tree. S3 plus
-# CloudFront is ~$1/mo against ~$9/mo for a Fargate task, and removes a service,
-# a target group and a log group.
-variable "landing_bucket_name" {
-  type    = string
-  default = ""
-}
-
-variable "landing_price_class" {
-  type    = string
-  default = "PriceClass_100"
-}
-
 # ── Backups ────────────────────────────────────────────────
 variable "backup_retention_days" {
   type        = number

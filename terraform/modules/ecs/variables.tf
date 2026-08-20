@@ -97,12 +97,11 @@ variable "support_hostname" {
   default = ""
 }
 
-# Empty by default: apex/www currently serve via the landing_site CloudFront
-# module. Set this once you decide this ECS service should take over that
-# traffic instead, and wire the matching DNS record yourself.
-variable "landing_hostname" {
-  type    = string
-  default = ""
+# Apex + www. Empty by default; the ALB has no rule for landing until this
+# is set, and the dns module owns the actual A-alias records.
+variable "landing_hostnames" {
+  type    = list(string)
+  default = []
 }
 
 # ── App config ─────────────────────────────────────────────
