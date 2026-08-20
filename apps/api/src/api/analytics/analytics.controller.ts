@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
+  Post,
   Query,
   UseGuards,
 } from "@nestjs/common";
@@ -56,9 +58,9 @@ export class AnalyticsController {
 
   @RequireFeature("ai")
   @RequirePermission({ analytics: ["read"] })
-  @Get("summary")
+  @Post("summary")
   async getGeminiAnalytics(
-    @Query("analytics") analytics: any,
+    @Body("analytics") analytics: any,
     @Query("start") start: string,
     @Query("end") end: string,
     @Query("force") force: string,
