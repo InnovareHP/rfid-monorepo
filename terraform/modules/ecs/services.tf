@@ -55,6 +55,7 @@ locals {
   )
 
   app_secret_keys = [
+    "DATABASE_URL",
     "JWT_SECRET",
     "BETTER_AUTH_SECRET",
     "ENCRYPTION_KEY",
@@ -68,14 +69,12 @@ locals {
     "STRIPE_PRICE_ESSENTIALS_SEAT",
     "STRIPE_PRICE_GROWTH_SEAT",
     "STRIPE_PRICE_SCALE_SEAT",
-    "ELDONFAX_API_KEY",
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY",
   ]
 
   api_secrets = concat(
     [
-      { name = "DATABASE_URL", valueFrom = var.database_url_secret_arn },
       { name = "REDIS_URL", valueFrom = var.redis_url_secret_arn },
     ],
     [

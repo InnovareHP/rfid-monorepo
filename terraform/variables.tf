@@ -121,59 +121,6 @@ variable "waf_body_inspection_exempt_paths" {
   ]
 }
 
-# ── RDS (Postgres) ─────────────────────────────────────────
-variable "db_instance_class" {
-  type    = string
-  default = "db.t4g.small"
-}
-
-variable "db_engine_version" {
-  type    = string
-  default = "16"
-}
-
-variable "db_allocated_storage" {
-  type    = number
-  default = 50
-}
-
-variable "db_max_allocated_storage" {
-  type        = number
-  description = "Storage autoscaling ceiling. No manual resize below this."
-  default     = 500
-}
-
-variable "db_multi_az" {
-  type        = bool
-  description = "Standby in the second AZ. ~$24/mo more, removes the restore window on AZ loss."
-  default     = true
-}
-
-variable "db_backup_retention_period" {
-  type    = number
-  default = 35
-}
-
-# The instance carries PHI. Public means a Postgres port on the internet whose
-# only defence is an IP allowlist that drifts the moment someone works from a
-# cafe. Reach it through the SSM tunnel instead — see enable_db_tunnel.
-variable "db_publicly_accessible" {
-  type        = bool
-  description = "Expose the RDS endpoint to the internet. Staging only, never for PHI."
-  default     = false
-}
-
-variable "enable_db_tunnel" {
-  type        = bool
-  description = "t4g.nano SSM forwarder (~$4/mo) so a laptop can port-forward to the private RDS endpoint and use a plain connection URL."
-  default     = true
-}
-
-variable "db_tunnel_instance_type" {
-  type    = string
-  default = "t4g.nano"
-}
-
 # ── Redis ──────────────────────────────────────────────────
 variable "redis_version" {
   type    = string

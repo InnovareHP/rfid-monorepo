@@ -13,7 +13,6 @@ variable "uploads_bucket" { type = string }
 variable "uploads_bucket_arn" { type = string }
 variable "uploads_public_cdn_url" { type = string }
 
-variable "database_url_secret_arn" { type = string }
 variable "redis_url_secret_arn" { type = string }
 
 # ── Sizing ─────────────────────────────────────────────────

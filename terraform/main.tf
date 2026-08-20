@@ -21,8 +21,6 @@ locals {
     : "${local.name_prefix}-landing-${local.account_id}"
   )
 
-  db_backup_bucket = "${local.name_prefix}-db-backups-${local.account_id}"
-
   # Both inputs are known at plan time, unlike the cert ARN itself which may be
   # computed. Listener counts must not depend on an unknown value.
   https_enabled = var.external_acm_certificate_arn != "" || var.manage_dns
@@ -76,40 +74,6 @@ module "s3_replication" {
   source_bucket_arn  = module.uploads.bucket_arn
   replica_region     = var.replication_region
   force_destroy      = var.force_destroy_buckets
-}
-
-module "db_backup" {
-  source = "./modules/db_backup"
-
-  bucket_name             = local.db_backup_bucket
-  kms_key_arn             = module.kms.s3_key_arn
-  retention_days          = var.backup_retention_days
-  cold_storage_after_days = var.backup_cold_storage_after_days
-  force_destroy           = var.force_destroy_buckets
-}
-
-module "rds" {
-  source = "./modules/rds"
-
-  name_prefix              = local.name_prefix
-  vpc_id                   = module.vpc.vpc_id
-  private_subnet_ids       = module.vpc.private_subnet_ids
-  db_sg_id                 = module.security.db_sg_id
-  kms_key_arn              = module.kms.db_key_arn
-  secrets_kms_key_arn      = module.kms.secrets_key_arn
-  instance_class           = var.db_instance_class
-  engine_version           = var.db_engine_version
-  allocated_storage        = var.db_allocated_storage
-  max_allocated_storage    = var.db_max_allocated_storage
-  multi_az                 = var.db_multi_az
-  backup_retention_period  = var.db_backup_retention_period
-  publicly_accessible      = var.db_publicly_accessible
-  log_retention_days       = var.app_log_retention_days
-  logs_kms_key_arn         = module.kms.logs_key_arn
-  enable_tunnel            = var.enable_db_tunnel
-  tunnel_instance_type     = var.db_tunnel_instance_type
-  tunnel_subnet_id         = module.vpc.private_subnet_ids[0]
-  tunnel_security_group_id = module.security.db_tunnel_sg_id
 }
 
 module "redis" {
@@ -177,12 +141,8 @@ module "ecs" {
   uploads_bucket         = module.uploads.bucket_name
   uploads_bucket_arn     = module.uploads.bucket_arn
   uploads_public_cdn_url = module.uploads.public_cdn_url
-  db_backup_bucket       = module.db_backup.bucket_name
-  db_backup_bucket_arn   = module.db_backup.bucket_arn
-  s3_kms_key_arn         = module.kms.s3_key_arn
 
-  database_url_secret_arn = module.rds.database_url_secret_arn
-  redis_url_secret_arn    = module.redis.url_secret_arn
+  redis_url_secret_arn = module.redis.url_secret_arn
 
   api_cpu                  = var.api_cpu
   api_memory               = var.api_memory
@@ -334,8 +294,6 @@ module "alerts" {
 
   source_bucket_name  = var.enable_s3_replication ? module.uploads.bucket_name : ""
   replication_rule_id = "uploads-crr"
-
-  db_instance_id = module.rds.instance_id
 
   container_insights_enabled = var.container_insights_enabled
   ecs_cluster_name           = module.ecs.cluster_name

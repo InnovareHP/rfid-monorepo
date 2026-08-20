@@ -29,15 +29,8 @@ create_route53_zone = true
 alb_cloudflare_only = false
 
 # ── Database ───────────────────────────────────────────────
-# Private, no public endpoint. Reach it with the command in the
-# db_tunnel_command output, which gives a localhost connection URL.
-db_instance_class          = "db.t4g.small"
-db_multi_az                = true
-db_allocated_storage       = 50
-db_max_allocated_storage   = 500
-db_backup_retention_period = 35
-db_publicly_accessible     = false
-enable_db_tunnel           = true
+# Postgres is Neon, not managed here. Set DATABASE_URL in the app_secrets_arn
+# secret's JSON via console/CLI after apply, same as JWT_SECRET etc.
 
 # ── Redis ──────────────────────────────────────────────────
 redis_node_type               = "cache.t4g.micro"
