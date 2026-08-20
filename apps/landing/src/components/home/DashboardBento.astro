@@ -66,8 +66,9 @@ const CARD = {
   class="bg-gradient-to-b from-background to-brand-fade py-16 lg:py-[51px]"
 >
   <div class="site-shell">
-    <div data-reveal>
+    <div>
       <h2
+        data-split
         class="text-center text-[26px] leading-tight font-semibold sm:text-[34px] lg:text-[45px] lg:leading-[66px]"
       >
         The whole referral operation, one <span class="text-brand">
@@ -75,6 +76,7 @@ const CARD = {
         </span>
       </h2>
       <p
+        data-reveal
         class="mx-auto mt-4 max-w-[807px] text-center text-base leading-relaxed text-foreground sm:text-lg lg:text-xl lg:leading-[30px]"
       >
         Generic CRMs make you translate your workflow into their language.
@@ -89,6 +91,7 @@ const CARD = {
       <div class="lg:row-span-2" data-reveal>
         <Image
           {...CARD.schedulingTasks}
+          data-tilt
           quality={90}
           loading="lazy"
           class="h-full w-full rounded-[20px] object-cover"
@@ -97,6 +100,7 @@ const CARD = {
       <div data-reveal>
         <Image
           {...CARD.outreachCampaigns}
+          data-tilt
           quality={90}
           loading="lazy"
           class="w-full rounded-[20px]"
@@ -106,7 +110,8 @@ const CARD = {
         <div class="h-full" data-reveal>
           <Image
             {...CARD.fieldActivityLogs}
-            quality={90}
+            data-tilt
+          quality={90}
             loading="lazy"
             class="h-full w-full rounded-[20px] object-cover"
           />
@@ -114,7 +119,8 @@ const CARD = {
         <div class="h-full" data-reveal>
           <Image
             {...CARD.masterFacilityList}
-            quality={90}
+            data-tilt
+          quality={90}
             loading="lazy"
             class="h-full w-full rounded-[20px] object-cover"
           />
@@ -128,6 +134,7 @@ const CARD = {
       <div class="h-full" data-reveal>
         <Image
           {...CARD.pipelineTracking}
+          data-tilt
           quality={90}
           loading="lazy"
           class="h-full w-full rounded-[20px] object-cover"
@@ -136,6 +143,7 @@ const CARD = {
       <div class="h-full" data-reveal>
         <Image
           {...CARD.analyticsAi}
+          data-tilt
           quality={90}
           loading="lazy"
           class="h-full w-full rounded-[20px] object-cover"

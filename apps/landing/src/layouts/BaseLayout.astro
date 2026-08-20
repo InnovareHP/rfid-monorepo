@@ -34,24 +34,23 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Red+Hat+Display:wght@500;600;700&display=swap"
     />
+    <script is:inline>
+      // Runs before first paint so revealed content never flashes in then hides.
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("js-motion");
+        // If the motion bundle never runs, hand the page back its content.
+        setTimeout(() => {
+          if (!document.documentElement.dataset.motionReady) {
+            document.documentElement.classList.remove("js-motion");
+          }
+        }, 3000);
+      }
+    </script>
   </head>
   <body>
     <slot />
     <script>
-      const observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("is-visible");
-              observer.unobserve(entry.target);
-            }
-          }
-        },
-        { threshold: 0.12 }
-      );
-      document
-        .querySelectorAll(".reveal")
-        .forEach((el) => observer.observe(el));
+      import "../scripts/motion";
     </script>
   </body>
 </html>
