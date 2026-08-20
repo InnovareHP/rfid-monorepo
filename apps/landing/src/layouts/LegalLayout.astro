@@ -19,11 +19,11 @@ const { title, description, heading, lead, updated } = Astro.props;
   <main>
     <section class="border-b border-border bg-muted/50 py-14 lg:py-20">
       <div class="mx-auto w-full max-w-3xl px-6">
-        <h1 class="text-3xl font-extrabold sm:text-4xl">{heading}</h1>
-        <p class="mt-4 text-lg text-muted-foreground">{lead}</p>
+        <h1 data-split class="text-3xl font-extrabold sm:text-4xl">{heading}</h1>
+        <p data-reveal class="mt-4 text-lg text-muted-foreground">{lead}</p>
         {
           updated && (
-            <p class="mt-6 text-[13px] font-semibold tracking-wider uppercase text-muted-foreground">
+            <p data-reveal class="mt-6 text-[13px] font-semibold tracking-wider uppercase text-muted-foreground">
               Last updated · {updated}
             </p>
           )

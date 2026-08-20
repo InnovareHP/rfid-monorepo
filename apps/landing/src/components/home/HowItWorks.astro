@@ -34,19 +34,22 @@ const STEPS = [
   class="relative overflow-hidden bg-surface-mist py-16 lg:py-[71px]"
 >
   <div
+    data-parallax="8"
     class="absolute top-[199px] left-1/2 size-[560px] -translate-x-1/2 rounded-full bg-brand-fade/70 blur-3xl lg:size-[921px]"
     aria-hidden="true"
   >
   </div>
 
   <div class="site-shell relative">
-    <div data-reveal>
+    <div>
       <h2
+        data-split
         class="text-center text-[26px] leading-tight font-semibold sm:text-[34px] lg:text-[45px] lg:leading-[50px]"
       >
         <span class="text-brand">Live in an afternoon,</span> not a quarter.
       </h2>
       <p
+        data-reveal
         class="mx-auto mt-4 max-w-[573px] text-center text-base leading-relaxed sm:text-lg lg:text-xl lg:leading-[30px]"
       >
         No implementation consultants. No data migration project. Four steps and
@@ -56,17 +59,21 @@ const STEPS = [
 
     <div
       class="mt-10 grid items-center gap-10 sm:grid-cols-2 lg:mt-[48px] lg:grid-cols-[330fr_305fr_335fr] lg:gap-x-[65px]"
+      data-motion="steps"
     >
       <div class="flex flex-col gap-10 lg:gap-[97px]">
-        <div data-reveal>
+        <div data-step>
           <StepCard {...STEPS[0]} />
         </div>
-        <div data-reveal>
+        <div data-step>
           <StepCard {...STEPS[1]} />
         </div>
       </div>
 
-      <div class="order-last sm:col-span-2 lg:order-none lg:col-span-1" data-reveal>
+      <div
+        class="order-last sm:col-span-2 lg:order-none lg:col-span-1"
+        data-step-phone
+      >
         <Image
           src={phone}
           alt="The Refidly mobile dashboard showing referral totals, conversions, and payer source mix"
@@ -81,10 +88,10 @@ const STEPS = [
       </div>
 
       <div class="flex flex-col gap-10 lg:gap-[97px]">
-        <div data-reveal>
+        <div data-step>
           <StepCard {...STEPS[2]} />
         </div>
-        <div data-reveal>
+        <div data-step>
           <StepCard {...STEPS[3]} />
         </div>
       </div>

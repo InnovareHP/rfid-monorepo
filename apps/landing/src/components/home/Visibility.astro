@@ -17,17 +17,20 @@ import VisibilityCard from "./VisibilityCard.astro";
     sizes="100vw"
     quality={80}
     loading="lazy"
-    class="absolute inset-0 -z-10 size-full rotate-180 object-cover"
+    data-parallax="6"
+    class="absolute inset-0 -z-10 size-full scale-115 rotate-180 object-cover"
   />
 
   <div class="site-shell text-brand-foreground">
-    <div data-reveal>
+    <div>
       <h2
+        data-split
         class="text-center text-[26px] leading-tight font-semibold sm:text-[34px] lg:text-[45px] lg:leading-[50px]"
       >
         Less chasing. More visibility.
       </h2>
       <p
+        data-reveal
         class="mt-4 text-center text-base leading-relaxed sm:text-lg lg:text-xl lg:leading-[30px]"
       >
         Stay on top of your referrals, territories, team activity, and

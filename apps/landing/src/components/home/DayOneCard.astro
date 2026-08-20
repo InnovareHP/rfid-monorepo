@@ -16,6 +16,7 @@ const SHAPE =
 ---
 
 <article
+  data-tilt
   class:list={[
     "relative min-h-[300px] rounded-[20px] lg:min-h-[340px] lg:rounded-none",
     brand ? "brand-gradient lg:bg-none" : "bg-brand-fade lg:bg-transparent",
@@ -66,8 +67,9 @@ const SHAPE =
     </span>
 
     <span
+      data-count={value}
       class:list={[
-        "mt-4 text-[64px] leading-none font-extrabold lg:text-[96px] lg:leading-[100px]",
+        "mt-4 inline-block text-[64px] leading-none font-extrabold lg:text-[96px] lg:leading-[100px]",
         brand ? "text-brand-foreground" : "text-brand",
       ]}
     >
