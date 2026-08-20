@@ -191,6 +191,26 @@ resource "aws_lb_listener" "https" {
   }
 }
 
+# fe and fe-support call their own API with same-origin relative paths
+# (/api/...), so /api/* must win over every host-based rule below regardless
+# of which app's hostname the browser is actually on.
+resource "aws_lb_listener_rule" "api_path_https" {
+  count        = local.https_enabled ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 5
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+}
+
 resource "aws_lb_listener_rule" "api_host" {
   count        = local.https_enabled && var.api_hostname != "" ? 1 : 0
   listener_arn = aws_lb_listener.https[0].arn

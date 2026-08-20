@@ -40,4 +40,7 @@ WORKDIR /app
 COPY --from=build /app/ ./
 
 EXPOSE 3000
-CMD ["pnpm", "--filter", "fe", "start"]
+# `start` runs the Vite dev server, which keeps per-instance module/dep-cache
+# state — broken behind a multi-replica load balancer. Serve the build made
+# above instead.
+CMD ["pnpm", "--filter", "fe", "exec", "vite", "preview", "--host", "--port", "3000"]
