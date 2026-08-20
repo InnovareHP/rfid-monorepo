@@ -60,7 +60,12 @@ jobs:
           [ "${{ steps.filter.outputs.api }}" = "true" ] && services+=("api")
           [ "${{ steps.filter.outputs.fe }}" = "true" ] && services+=("fe")
           [ "${{ steps.filter.outputs['fe-support'] }}" = "true" ] && services+=("fe-support")
-          json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)
+
+          if [ ${#services[@]} -eq 0 ]; then
+            json='[]'
+          else
+            json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)
+          fi
           echo "services=$json" >> "$GITHUB_OUTPUT"
 
   deploy:
