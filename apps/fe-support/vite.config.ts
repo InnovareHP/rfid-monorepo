@@ -17,10 +17,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port: 3001,
-      allowedHosts: [
-        "support-frontend-production.up.railway.app",
-        "support.innovarehp.com",
-      ],
+      allowedHosts: ["support.refidly.com"],
       proxy: {
         "/api": {
           target: env.VITE_API_URL,
