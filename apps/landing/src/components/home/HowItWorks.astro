@@ -1,0 +1,104 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { Image } from "astro:assets";
+import phone from "../../assets/home/how-it-works-phone.png";
+import { APP_URL } from "../../config";
+import StepCard from "./StepCard.astro";
+
+const STEPS = [
+  {
+    step: "1",
+    title: "Create your workspace.",
+    body: "Set up your organization and invite your team.",
+  },
+  {
+    step: "2",
+    title: "Bring your lists in.",
+    body: "Import facilities and referrals from CSV—or use Smart Scan to capture information.",
+  },
+  {
+    step: "3",
+    title: "Work the pipeline.",
+    body: "Track referrals, update statuses, log activity, and manage follow-ups.",
+  },
+  {
+    step: "4",
+    title: "Act on the insight.",
+    body: "Review analytics and AI insights to see what needs attention.",
+  },
+];
+---
+
+<section
+  id="how-it-works"
+  class="relative overflow-hidden bg-surface-mist py-16 lg:py-[71px]"
+>
+  <div
+    class="absolute top-[199px] left-1/2 size-[560px] -translate-x-1/2 rounded-full bg-brand-fade/70 blur-3xl lg:size-[921px]"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div class="site-shell relative">
+    <div data-reveal>
+      <h2
+        class="text-center text-[26px] leading-tight font-semibold sm:text-[34px] lg:text-[45px] lg:leading-[50px]"
+      >
+        <span class="text-brand">Live in an afternoon,</span> not a quarter.
+      </h2>
+      <p
+        class="mx-auto mt-4 max-w-[573px] text-center text-base leading-relaxed sm:text-lg lg:text-xl lg:leading-[30px]"
+      >
+        No implementation consultants. No data migration project. Four steps and
+        your team is working out of Refidly.
+      </p>
+    </div>
+
+    <div
+      class="mt-10 grid items-center gap-10 sm:grid-cols-2 lg:mt-[48px] lg:grid-cols-[330fr_305fr_335fr] lg:gap-x-[65px]"
+    >
+      <div class="flex flex-col gap-10 lg:gap-[97px]">
+        <div data-reveal>
+          <StepCard {...STEPS[0]} />
+        </div>
+        <div data-reveal>
+          <StepCard {...STEPS[1]} />
+        </div>
+      </div>
+
+      <div class="order-last sm:col-span-2 lg:order-none lg:col-span-1" data-reveal>
+        <Image
+          src={phone}
+          alt="The Refidly mobile dashboard showing referral totals, conversions, and payer source mix"
+          width={305}
+          height={616}
+          widths={[305, 610]}
+          sizes="305px"
+          quality={92}
+          loading="lazy"
+          class="mx-auto h-auto w-[305px]"
+        />
+      </div>
+
+      <div class="flex flex-col gap-10 lg:gap-[97px]">
+        <div data-reveal>
+          <StepCard {...STEPS[2]} />
+        </div>
+        <div data-reveal>
+          <StepCard {...STEPS[3]} />
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-10 flex justify-center lg:mt-[60px]" data-reveal>
+      <a
+        href={APP_URL}
+        class={buttonVariants({
+          className: "h-[38px] w-[186px] text-base font-bold shadow-xs",
+        })}
+      >
+        See How It Works
+      </a>
+    </div>
+  </div>
+</section>

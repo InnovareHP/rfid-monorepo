@@ -1,0 +1,53 @@
+---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  icon: string;
+  title: string;
+  body: string;
+  image?: ImageMetadata;
+  imageAlt?: string;
+}
+
+const { icon, title, body, image, imageAlt } = Astro.props;
+---
+
+<article
+  class="flex h-full gap-6 rounded-[20px] bg-background p-6 sm:p-[38px]"
+>
+  <div class="flex-1 lg:max-w-[275px]">
+    <span
+      class="grid size-[50px] place-items-center rounded-xl border border-brand-accent/15 bg-gradient-to-br from-background to-brand-fade"
+      aria-hidden="true"
+    >
+      <img src={icon} alt="" width="24" height="24" loading="lazy" />
+    </span>
+    <h3
+      class="mt-3 font-sans text-xl leading-tight font-semibold text-foreground sm:text-2xl lg:leading-[35px]"
+    >
+      {title}
+    </h3>
+    <p
+      class="mt-2 text-base leading-relaxed text-foreground sm:text-lg lg:text-xl lg:leading-[30px]"
+    >
+      {body}
+    </p>
+  </div>
+
+  {
+    image && (
+      <Image
+        src={image}
+        alt={imageAlt ?? ""}
+        width={286}
+        height={245}
+        widths={[286, 572]}
+        sizes="286px"
+        quality={90}
+        loading="lazy"
+        class="hidden h-auto w-[286px] shrink-0 self-start lg:block"
+      />
+    )
+  }
+</article>

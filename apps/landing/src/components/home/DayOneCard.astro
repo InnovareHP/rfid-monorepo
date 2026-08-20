@@ -1,0 +1,95 @@
+---
+interface Props {
+  value: string;
+  title: string;
+  body: string;
+  icon: string;
+  variant?: "light" | "brand";
+}
+
+const { value, title, body, icon, variant = "light" } = Astro.props;
+const brand = variant === "brand";
+
+// The card silhouette is notched at the top-right and bottom-left corners.
+const SHAPE =
+  "M0 15C0 6.71573 6.71573 0 15 0H169H247.051C251.168 0 255.104 1.69205 257.937 4.6796L297.113 46L333.353 80.5676C336.321 83.3983 338 87.3206 338 91.4218V170V325C338 333.284 331.284 340 323 340H169H90.5968C86.6875 340 82.9328 338.474 80.132 335.747L40.3419 297L4.18201 259.354C1.49859 256.56 0 252.837 0 248.963V170V15Z";
+---
+
+<article
+  class:list={[
+    "relative min-h-[300px] rounded-[20px] lg:min-h-[340px] lg:rounded-none",
+    brand ? "brand-gradient lg:bg-none" : "bg-brand-fade lg:bg-transparent",
+  ]}
+>
+  <svg
+    class="absolute inset-0 hidden size-full lg:block"
+    viewBox="0 0 338 340"
+    preserveAspectRatio="none"
+    aria-hidden="true"
+  >
+    {
+      brand && (
+        <defs>
+          <radialGradient
+            id="day-one-brand"
+            cx="0"
+            cy="0"
+            r="1"
+            gradientUnits="userSpaceOnUse"
+            gradientTransform="translate(117 224) rotate(-61.7221) scale(254.355 285.978)"
+          >
+            <stop stop-color="var(--brand-night)" />
+            <stop offset="0.26793" stop-color="var(--brand)" />
+            <stop offset="0.709244" stop-color="var(--brand-accent)" />
+            <stop offset="1" stop-color="var(--brand-sky)" />
+          </radialGradient>
+        </defs>
+      )
+    }
+    <path
+      d={SHAPE}
+      fill={brand ? "url(#day-one-brand)" : "var(--brand-fade)"}
+    />
+  </svg>
+
+  <div class="relative flex h-full flex-col p-[30px]">
+    <span
+      class:list={[
+        "grid size-[50px] place-items-center rounded-xl",
+        brand
+          ? "brand-gradient"
+          : "border border-brand-accent/15 bg-gradient-to-br from-background to-brand-fade",
+      ]}
+      aria-hidden="true"
+    >
+      <img src={icon} alt="" width="28" height="28" loading="lazy" />
+    </span>
+
+    <span
+      class:list={[
+        "mt-4 text-[64px] leading-none font-extrabold lg:text-[96px] lg:leading-[100px]",
+        brand ? "text-brand-foreground" : "text-brand",
+      ]}
+    >
+      {value}
+    </span>
+
+    <h3
+      class:list={[
+        "font-sans text-2xl leading-[50px] font-semibold",
+        brand ? "text-brand-foreground" : "text-foreground",
+      ]}
+    >
+      {title}
+    </h3>
+
+    <p
+      class:list={[
+        "mt-auto max-w-[230px] text-base leading-5 lg:ml-auto lg:text-right",
+        brand ? "text-brand-fade" : "text-foreground",
+      ]}
+    >
+      {body}
+    </p>
+  </div>
+</article>
