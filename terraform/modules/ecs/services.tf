@@ -30,7 +30,6 @@ locals {
 
     { name = "S3_UPLOADS_BUCKET", value = var.uploads_bucket },
     { name = "S3_PUBLIC_BASE_URL", value = var.uploads_public_cdn_url },
-    { name = "DB_BACKUP_BUCKET", value = var.db_backup_bucket },
 
     { name = "APP_EMAIL", value = var.app_email },
     { name = "SES_FROM_EMAIL", value = var.ses_from_email },

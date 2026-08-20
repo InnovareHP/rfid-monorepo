@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="lucide/shield-lock">
+<path id="Vector" d="M20 9.807V6C20 5.73478 19.8946 5.48043 19.7071 5.29289C19.5196 5.10536 19.2652 5 19 5C17 5 14.51 3.81 12.76 2.28C12.5481 2.099 12.2786 1.99955 12 1.99955C11.7214 1.99955 11.4519 2.099 11.24 2.28C9.5 3.8 7 5 5 5C4.73478 5 4.48043 5.10536 4.29289 5.29289C4.10536 5.48043 4 5.73478 4 6V13C4 16.88 6.107 19.254 9 20.796M19 17V15C19 14.4696 18.7893 13.9609 18.4142 13.5858C18.0391 13.2107 17.5304 13 17 13C16.4696 13 15.9609 13.2107 15.5858 13.5858C15.2107 13.9609 15 14.4696 15 15V17M14 17H20C20.5523 17 21 17.4477 21 18V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V18C13 17.4477 13.4477 17 14 17Z" stroke="url(#paint0_linear_0_4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_4" x1="9.58026" y1="2.43513" x2="19.9867" y2="20.3174" gradientUnits="userSpaceOnUse">
+<stop stop-color="#0D3185"/>
+<stop offset="0.5" stop-color="#2C86D9"/>
+<stop offset="1" stop-color="#64D1F4"/>
+</linearGradient>
+</defs>
+</svg>

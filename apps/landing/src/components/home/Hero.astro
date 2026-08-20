@@ -1,0 +1,75 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { Image } from "astro:assets";
+import heroVisual from "../../assets/home/hero-referral-map.png";
+import { APP_URL } from "../../config";
+---
+
+<section class="bg-background pt-12 lg:pt-[53px]">
+  <div class="site-shell text-center">
+    <div data-reveal>
+      <p
+        class="text-sm font-semibold uppercase text-brand-accent sm:text-base lg:text-xl lg:leading-[30px]"
+      >
+        Built for healthcare referral &amp; liaison teams
+      </p>
+    </div>
+
+    <div data-reveal>
+      <h1
+        class="mx-auto mt-2 max-w-[700px] text-[32px] leading-[1.15] font-semibold sm:text-[44px] lg:mt-[5px] lg:text-[55px] lg:leading-[66px]"
+      >
+        Track every <span class="text-brand">referral.</span><br
+          class="hidden sm:inline"
+        />
+        Cover every <span class="text-brand">facility</span>.
+      </h1>
+    </div>
+
+    <div data-reveal>
+      <p
+        class="mx-auto mt-4 max-w-[696px] text-base leading-relaxed text-foreground sm:text-lg lg:text-xl lg:leading-[30px]"
+      >
+        Refidly replaces the spreadsheets, sticky notes, and guessing games with
+        one system built around how referral and liaison teams actually work.
+      </p>
+    </div>
+
+    <div data-reveal>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-[15px]">
+        <a
+          href={APP_URL}
+          class={buttonVariants({
+            className: "h-[38px] w-[150px] text-base font-bold shadow-xs",
+          })}
+        >
+          Start Free Trial
+        </a>
+        <a
+          href="#how-it-works"
+          class={buttonVariants({
+            variant: "outline",
+            className:
+              "h-[38px] w-[182px] text-base font-bold text-muted-foreground shadow-xs",
+          })}
+        >
+          See How It Works
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 px-4 sm:px-6 lg:px-0" data-reveal>
+    <Image
+      src={heroVisual}
+      alt="Refidly referral coverage map with the create-referral workspace"
+      width={889}
+      height={488}
+      widths={[445, 889, 1778]}
+      sizes="(min-width: 1024px) 889px, 100vw"
+      quality={90}
+      loading="eager"
+      class="mx-auto h-auto w-full max-w-[889px]"
+    />
+  </div>
+</section>

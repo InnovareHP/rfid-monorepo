@@ -1,0 +1,62 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { Image } from "astro:assets";
+import logo from "../../assets/brand/refidly-logo.png";
+import { APP_URL, NAV_LINKS } from "../../config";
+import MobileMenu from "./MobileMenu";
+---
+
+<header
+  class="sticky top-0 z-50 h-[var(--nav-h)] border-b border-border bg-background"
+>
+  <div class="site-shell flex h-full items-center gap-4 lg:gap-6">
+    <a href="/" class="shrink-0" aria-label="Refidly home">
+      <Image
+        src={logo}
+        alt="Refidly"
+        width={189}
+        height={60}
+        densities={[1, 2]}
+        loading="eager"
+        class="h-[46px] w-auto lg:h-[60px]"
+      />
+    </a>
+
+    <nav
+      class="mx-auto hidden shrink-0 items-center gap-8 lg:flex"
+      aria-label="Primary navigation"
+    >
+      {
+        NAV_LINKS.map((link) => (
+          <a
+            href={link.href}
+            class="text-base leading-7 font-semibold text-foreground transition-colors hover:text-brand"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="hidden shrink-0 items-center gap-9 lg:flex">
+      <a
+        href={APP_URL}
+        class="text-base leading-7 font-semibold text-foreground transition-colors hover:text-brand"
+      >
+        Sign In
+      </a>
+      <a
+        href={APP_URL}
+        class={buttonVariants({
+          className: "h-[38px] w-[150px] text-base font-bold shadow-xs",
+        })}
+      >
+        Start Free Trial
+      </a>
+    </div>
+
+    <div class="ml-auto lg:hidden">
+      <MobileMenu client:media="(max-width: 1023px)" />
+    </div>
+  </div>
+</header>

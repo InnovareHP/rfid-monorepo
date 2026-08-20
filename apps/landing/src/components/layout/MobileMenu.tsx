@@ -2,14 +2,7 @@ import { Button } from "@dashboard/ui/components/button";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { APP_URL } from "../config";
-
-const LINKS = [
-  { href: "/#features", label: "Features" },
-  { href: "/#why", label: "Why Refidly" },
-  { href: "/#how-it-works", label: "How It Works" },
-  { href: "/security", label: "Security" },
-];
+import { APP_URL, NAV_LINKS } from "../../config";
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -35,10 +28,10 @@ export default function MobileMenu() {
 
       {open && (
         <nav
-          className="fixed inset-x-0 top-[72px] bottom-0 z-60 flex flex-col gap-1 border-t border-border bg-white p-6"
+          className="fixed inset-x-0 top-[var(--nav-h)] bottom-0 z-60 flex flex-col gap-1 border-t border-border bg-background p-6"
           aria-label="Mobile navigation"
         >
-          {LINKS.map((link) => (
+          {NAV_LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -49,7 +42,7 @@ export default function MobileMenu() {
             </a>
           ))}
           <Button asChild size="lg" className="mt-4">
-            <a href={APP_URL}>Start free trial</a>
+            <a href={APP_URL}>Start Free Trial</a>
           </Button>
         </nav>
       )}

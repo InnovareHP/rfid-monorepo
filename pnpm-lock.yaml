@@ -529,6 +529,9 @@ importers:
       better-auth:
         specifier: ^1.6.25
         version: 1.6.25(@prisma/client@5.22.0(prisma@5.22.0))(mongodb@7.1.0)(prisma@5.22.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.11)(vitest@3.2.4(@types/debug@4.1.13)(@types/node@24.10.12)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0))
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
       lucide-react:
         specifier: ^0.476.0
         version: 0.476.0(react@19.2.4)

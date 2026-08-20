@@ -1,0 +1,66 @@
+---
+import { buttonVariants } from "@dashboard/ui/components/button";
+import { APP_URL } from "../../config";
+import DayOneCard from "./DayOneCard.astro";
+
+const CARDS = [
+  {
+    value: "4",
+    title: "Steps to Launch",
+    body: "Sign up, import your lists, work the pipeline, act on the insight.",
+    icon: "/icons/day-one-launch.svg",
+  },
+  {
+    value: "0",
+    title: "Data Migration",
+    body: "No consultants, no six-month rollout. Bring your CSV and go.",
+    icon: "/icons/day-one-migration.svg",
+  },
+  {
+    value: "1",
+    title: "Source of Truth",
+    body: "Facilities, contacts, referrals, and activity—all in one place.",
+    icon: "/icons/day-one-source.svg",
+    variant: "brand" as const,
+  },
+];
+---
+
+<section id="why" class="bg-surface-mist py-16 lg:py-[50px]">
+  <div class="site-shell">
+    <div data-reveal>
+      <h2
+        class="text-center text-[26px] leading-tight font-semibold sm:text-[34px] lg:text-[45px] lg:leading-[50px]"
+      >
+        Everything you need from <span class="text-brand">day one.</span>
+      </h2>
+      <p
+        class="mt-4 text-center text-base leading-relaxed text-foreground sm:text-lg lg:text-xl lg:leading-[30px]"
+      >
+        No complicated rollout. No scattered tools. Just one place to manage your
+        referral operation.
+      </p>
+    </div>
+
+    <div class="mt-10 grid gap-6 lg:mt-[48px] lg:grid-cols-3 lg:gap-[37px]">
+      {
+        CARDS.map((card, index) => (
+          <div class="h-full" data-reveal>
+            <DayOneCard {...card} />
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="mt-10 flex justify-center lg:mt-[48px]" data-reveal>
+      <a
+        href={APP_URL}
+        class={buttonVariants({
+          className: "h-[38px] w-[150px] text-base font-bold shadow-xs",
+        })}
+      >
+        Start Free Trial
+      </a>
+    </div>
+  </div>
+</section>
