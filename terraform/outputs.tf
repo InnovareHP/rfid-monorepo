@@ -15,6 +15,11 @@ output "ecr_repository_urls" {
   value       = module.ecs.ecr_repository_urls
 }
 
+output "gha_deploy_role_arn" {
+  description = "role-to-assume for the deploy.yml GitHub Actions workflow."
+  value       = module.ci.deploy_role_arn
+}
+
 # ── DNS / TLS ─────────────────────────────────────────────
 output "dns_name_servers" {
   description = "Set these as the NS records at the registrar."

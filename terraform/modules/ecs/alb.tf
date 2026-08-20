@@ -123,6 +123,23 @@ resource "aws_lb_listener_rule" "api_http" {
   }
 }
 
+resource "aws_lb_listener_rule" "support_http" {
+  count        = local.https_enabled ? 0 : 1
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 90
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.fe_support.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/support/*"]
+    }
+  }
+}
+
 resource "aws_lb_listener" "https" {
   count             = local.https_enabled ? 1 : 0
   load_balancer_arn = aws_lb.this.arn

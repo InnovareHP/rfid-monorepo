@@ -307,6 +307,23 @@ module "cloudtrail" {
   force_destroy            = var.force_destroy_buckets
 }
 
+module "ci" {
+  source = "./modules/ci"
+
+  github_repo         = "InnovareHP/rfid-monorepo"
+  ecr_repository_arns = module.ecs.ecr_repository_arns
+  ecs_cluster_name    = module.ecs.cluster_name
+  ecs_service_names = [
+    "${local.name_prefix}-api",
+    "${local.name_prefix}-fe",
+    "${local.name_prefix}-fe-support",
+  ]
+  ecs_execution_role_arn  = module.ecs.execution_role_arn
+  ecs_task_role_arn       = module.ecs.task_role_arn
+  landing_bucket_arn      = module.landing_site.bucket_arn
+  landing_distribution_id = module.landing_site.distribution_id
+}
+
 module "alerts" {
   source = "./modules/alerts"
 

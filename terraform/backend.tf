@@ -2,7 +2,7 @@
 # DynamoDB lock table and needs Terraform >= 1.10.
 terraform {
   backend "s3" {
-    bucket       = "REPLACE_ME-tfstate"
+    bucket       = "refidly-tfstate"
     key          = "dashboard/aws/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true

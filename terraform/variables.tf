@@ -11,7 +11,7 @@ variable "environment" {
 
 variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "us-east-2"
 }
 
 # ── VPC ────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ variable "vpc_cidr" {
 variable "azs" {
   type        = list(string)
   description = "Two AZs in var.region. RDS Multi-AZ and the ALB both need two."
-  default     = ["us-east-1a", "us-east-1b"]
+  default     = ["us-east-2a", "us-east-2b"]
 }
 
 # Egress from private subnets is third-party API calls only (Stripe, Google,

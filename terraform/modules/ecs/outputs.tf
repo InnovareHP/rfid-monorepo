@@ -8,3 +8,10 @@ output "app_secrets_arn" { value = aws_secretsmanager_secret.app.arn }
 output "ecr_repository_urls" {
   value = { for k, v in aws_ecr_repository.this : k => v.repository_url }
 }
+
+output "ecr_repository_arns" {
+  value = { for k, v in aws_ecr_repository.this : k => v.arn }
+}
+
+output "execution_role_arn" { value = aws_iam_role.execution.arn }
+output "task_role_arn" { value = aws_iam_role.task.arn }
