@@ -28,9 +28,7 @@ jobs:
     name: Detect changed services
     runs-on: ubuntu-latest
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      fe: ${{ steps.filter.outputs.fe }}
-      fe-support: ${{ steps.filter.outputs['fe-support'] }}
+      services: ${{ steps.list.outputs.services }}
       landing: ${{ steps.filter.outputs.landing }}
     steps:
       - uses: actions/checkout@v4
@@ -55,13 +53,23 @@ jobs:
               - *shared
               - "apps/landing/**"
 
+      - name: List changed ECS services
+        id: list
+        run: |
+          services=()
+          [ "${{ steps.filter.outputs.api }}" = "true" ] && services+=("api")
+          [ "${{ steps.filter.outputs.fe }}" = "true" ] && services+=("fe")
+          [ "${{ steps.filter.outputs['fe-support'] }}" = "true" ] && services+=("fe-support")
+          json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)
+          echo "services=$json" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy ${{ matrix.service }}
     needs: changes
-    if: needs.changes.outputs[matrix.service] == 'true'
+    if: needs.changes.outputs.services != '[]'
     strategy:
       matrix:
-        service: [api, fe, fe-support]
+        service: ${{ fromJson(needs.changes.outputs.services) }}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
