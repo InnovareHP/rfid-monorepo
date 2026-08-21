@@ -71,7 +71,7 @@ export const ChecklistSection = ({
               size="icon"
               disabled={disabled}
               onClick={() => onDelete(item.id)}
-              className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
+              className="hover-reveal text-muted-foreground hover:text-destructive"
               aria-label="Delete checklist item"
             >
               <Trash2 className="size-3.5" />

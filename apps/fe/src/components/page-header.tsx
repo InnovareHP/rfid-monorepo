@@ -34,7 +34,11 @@ export function PageHeader({
       </div>
 
       {children && (
-        <div className="flex flex-wrap items-center gap-2">{children}</div>
+        // Two columns on a phone so three or five actions land in tidy rows
+        // instead of a ragged wrap; a lone last action takes the full width.
+        <div className="grid grid-cols-2 gap-2 [&>*:nth-last-child(1):nth-child(odd)]:col-span-2 [&_button]:w-full sm:flex sm:flex-wrap sm:items-center sm:[&_button]:w-auto">
+          {children}
+        </div>
       )}
     </div>
   );

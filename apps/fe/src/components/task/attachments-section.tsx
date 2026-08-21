@@ -81,7 +81,7 @@ export const AttachmentsSection = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => setDeletingId(attachment.id)}
-                className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
+                className="hover-reveal text-muted-foreground hover:text-destructive"
                 aria-label="Delete attachment"
               >
                 <Trash2 className="size-3.5" />

@@ -50,7 +50,7 @@ export const NotificationItem = ({
       <Button
         variant="ghost"
         size="icon"
-        className="size-6 opacity-0 transition-opacity group-hover:opacity-100"
+        className="hover-reveal size-9 sm:size-6"
         onClick={() => onDelete(notification.id)}
       >
         <X className="size-3.5" />
