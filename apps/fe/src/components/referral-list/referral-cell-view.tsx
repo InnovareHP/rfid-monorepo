@@ -139,7 +139,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
             onValueChange={(v) => setActiveTab(v)}
             className="w-full"
           >
-            <div className="px-6 border-b">
+            <div className="px-4 border-b overflow-x-auto sm:px-6">
               <TabsList className="bg-transparent border-b-0">
                 <TabsTrigger
                   value="details"
@@ -160,7 +160,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
             </div>
 
             <TabsContent value="details" className="mt-0">
-              <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+              <ScrollArea className="h-[60dvh] px-4 py-4 sm:h-[calc(90vh-240px)] sm:px-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {entries.map(([key, rawValue]) => {
                     const value = serializeValue(rawValue);
@@ -192,7 +192,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
             </TabsContent>
 
             <TabsContent value="history" className="mt-0">
-              <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+              <ScrollArea className="h-[60dvh] px-4 py-4 sm:h-[calc(90vh-240px)] sm:px-6">
                 {historyLoading && (
                   <div className="space-y-3">
                     {Array.from({ length: 5 }).map((_, i) => (

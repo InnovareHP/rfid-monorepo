@@ -29,7 +29,7 @@ const ColumnFilter = ({
       onOpenChange={setHandleDropdownChange}
     >
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="ml-auto rounded-md">
+        <Button variant="outline" className="rounded-md">
           Columns <ChevronDown />
         </Button>
       </DropdownMenuTrigger>

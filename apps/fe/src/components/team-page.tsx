@@ -265,7 +265,7 @@ const TeamPage = () => {
 
         <Tabs defaultValue="members" className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <TabsList className="h-auto w-fit gap-1 rounded-lg bg-table-header p-1.5">
+            <TabsList className="h-auto w-fit max-w-full gap-1 overflow-x-auto rounded-lg bg-table-header p-1.5">
               {canManageTeam && (
                 <>
                   <TabsTrigger value="members" className={tabTriggerClass}>
@@ -281,13 +281,13 @@ const TeamPage = () => {
             </TabsList>
 
             {canManageTeam && (
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Search"
                   defaultValue={memberTableField.search}
                   onChange={(e) => debouncedSearch(e.target.value)}
-                  className="w-64 bg-white pl-9"
+                  className="w-full bg-card pl-9 sm:w-64"
                 />
               </div>
             )}

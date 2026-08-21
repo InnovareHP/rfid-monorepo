@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@dashboard/ui/components/table";
+import { useIsMobile } from "@dashboard/ui/hooks/use-mobile";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
   type ColumnDef,
@@ -80,6 +81,7 @@ const ReusableTable = <T extends { id: string }>({
   pageSize,
   onPageSizeChange,
 }: Props<T>) => {
+  const isMobile = useIsMobile();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -109,16 +111,16 @@ const ReusableTable = <T extends { id: string }>({
   return (
     <>
       {hasSelected && (
-        <div className="flex items-center gap-3 m-4 p-4 bg-primary/10 border-2 border-primary/50 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 p-3 sm:p-4 bg-primary/10 border-2 border-primary/50 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="h-8 w-8 shrink-0 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm">
               {selectedIds.length}
             </div>
-            <span className="text-sm font-semibold text-foreground">
+            <span className="truncate text-sm font-semibold whitespace-nowrap text-foreground">
               {selectedIds.length === 1 ? "item" : "items"} selected
             </span>
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex w-full items-center justify-end gap-2 sm:ml-auto sm:w-auto">
             <Button
               variant="ghost"
               size="sm"
@@ -173,7 +175,7 @@ const ReusableTable = <T extends { id: string }>({
                     className="border-b border-border bg-table-header hover:bg-table-header"
                   >
                     {headerGroup.headers.map((header, headerIndex) => {
-                      const stickyLeft = headerIndex < 2;
+                      const stickyLeft = !isMobile && headerIndex < 2;
                       const leftOffset =
                         headerIndex === 1
                           ? (headerGroup.headers[0]?.getSize() ?? 0)
@@ -290,7 +292,7 @@ const ReusableTable = <T extends { id: string }>({
                       }}
                     >
                       {cells.map((cell, cellIndex) => {
-                        const stickyLeft = cellIndex < 2;
+                        const stickyLeft = !isMobile && cellIndex < 2;
                         const leftOffset = cellIndex === 1 ? col0Width : 0;
                         return (
                         <TableCell

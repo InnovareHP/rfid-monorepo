@@ -41,12 +41,12 @@ export function TablePagination({
   const isLastPage = currentPage >= lastPage;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white border-t border-gray-200">
+    <div className="flex flex-col gap-2 px-4 py-3 bg-card border-t border-border sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
       <span className="text-sm text-muted-foreground whitespace-nowrap">
         {label ?? `${selectedCount} of ${totalCount} row(s) selected.`}
       </span>
 
-      <div className="flex flex-wrap items-center gap-4 text-sm">
+      <div className="flex items-center justify-between gap-3 text-sm sm:justify-end sm:gap-4">
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
             <span className="hidden text-muted-foreground whitespace-nowrap sm:inline">
@@ -56,7 +56,7 @@ export function TablePagination({
               value={String(pageSize ?? PAGE_SIZES[0])}
               onValueChange={(size) => onPageSizeChange(Number(size))}
             >
-              <SelectTrigger className="h-8 w-[72px] bg-white">
+              <SelectTrigger className="h-9 w-[72px] bg-card sm:h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -78,7 +78,7 @@ export function TablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="size-9 sm:size-8"
             aria-label="First page"
             disabled={isFirstPage}
             onClick={() => setCurrentPage(1)}
@@ -88,7 +88,7 @@ export function TablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="size-9 sm:size-8"
             aria-label="Previous page"
             disabled={isFirstPage}
             onClick={() => setCurrentPage(currentPage - 1)}
@@ -98,7 +98,7 @@ export function TablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="size-9 sm:size-8"
             aria-label="Next page"
             disabled={isLastPage}
             onClick={() => setCurrentPage(currentPage + 1)}
@@ -108,7 +108,7 @@ export function TablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="size-9 sm:size-8"
             aria-label="Last page"
             disabled={isLastPage}
             onClick={() => setCurrentPage(lastPage)}
