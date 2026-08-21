@@ -13,7 +13,6 @@ variable "uploads_bucket" { type = string }
 variable "uploads_bucket_arn" { type = string }
 variable "uploads_public_cdn_url" { type = string }
 
-variable "database_url_secret_arn" { type = string }
 variable "redis_url_secret_arn" { type = string }
 
 # ── Sizing ─────────────────────────────────────────────────
@@ -26,6 +25,9 @@ variable "fe_desired_count" { type = number }
 variable "fe_support_cpu" { type = number }
 variable "fe_support_memory" { type = number }
 variable "fe_support_desired_count" { type = number }
+variable "landing_cpu" { type = number }
+variable "landing_memory" { type = number }
+variable "landing_desired_count" { type = number }
 
 variable "frontend_spot_weight" {
   type        = number
@@ -47,6 +49,7 @@ variable "image_tag_mutability" {
 variable "api_image_tag" { type = string }
 variable "fe_image_tag" { type = string }
 variable "fe_support_image_tag" { type = string }
+variable "landing_image_tag" { type = string }
 
 variable "log_retention_days" { type = number }
 variable "container_insights_enabled" { type = bool }
@@ -59,6 +62,8 @@ variable "fe_min_count" { type = number }
 variable "fe_max_count" { type = number }
 variable "fe_support_min_count" { type = number }
 variable "fe_support_max_count" { type = number }
+variable "landing_min_count" { type = number }
+variable "landing_max_count" { type = number }
 variable "autoscaling_cpu_target" { type = number }
 variable "autoscaling_memory_target" { type = number }
 variable "autoscaling_requests_per_target" { type = number }
@@ -90,6 +95,13 @@ variable "api_hostname" {
 variable "support_hostname" {
   type    = string
   default = ""
+}
+
+# Apex + www. Empty by default; the ALB has no rule for landing until this
+# is set, and the dns module owns the actual A-alias records.
+variable "landing_hostnames" {
+  type    = list(string)
+  default = []
 }
 
 # ── App config ─────────────────────────────────────────────

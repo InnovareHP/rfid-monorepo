@@ -1,5 +1,5 @@
 locals {
-  ecr_repositories = ["api", "fe", "fe-support"]
+  ecr_repositories = ["api", "fe", "fe-support", "landing"]
 }
 
 resource "aws_ecr_repository" "this" {

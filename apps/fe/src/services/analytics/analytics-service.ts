@@ -21,14 +21,17 @@ export const getAnalyticsSummary = async (
   end: string | null,
   force = false
 ) => {
-  const response = await axiosClient.get(`/api/analytics/summary`, {
-    params: {
-      analytics,
-      start,
-      end,
-      ...(force ? { force: true } : {}),
-    },
-  });
+  const response = await axiosClient.post(
+    `/api/analytics/summary`,
+    { analytics },
+    {
+      params: {
+        start,
+        end,
+        ...(force ? { force: true } : {}),
+      },
+    }
+  );
 
   return response.data;
 };

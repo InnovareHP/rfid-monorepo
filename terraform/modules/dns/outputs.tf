@@ -11,10 +11,6 @@ output "alb_certificate_arn" {
   value = aws_acm_certificate_validation.alb.certificate_arn
 }
 
-output "cloudfront_certificate_arn" {
-  value = aws_acm_certificate_validation.cloudfront.certificate_arn
-}
-
 output "subdomain_fqdns" {
   value = [for r in aws_route53_record.alb_subdomain : r.fqdn]
 }

@@ -24,6 +24,12 @@ locals {
       max           = var.fe_support_max_count
       tg_arn_suffix = aws_lb_target_group.fe_support.arn_suffix
     }
+    landing = {
+      service_name  = aws_ecs_service.landing.name
+      min           = var.landing_min_count
+      max           = var.landing_max_count
+      tg_arn_suffix = aws_lb_target_group.landing.arn_suffix
+    }
   }
 }
 

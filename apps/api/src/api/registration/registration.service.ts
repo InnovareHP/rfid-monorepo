@@ -169,7 +169,7 @@ export class RegistrationService {
 
     if (existing) {
       throw new BadRequestException(
-        "An account already exists for this email. Sign in with your passkey to accept this invitation."
+        "An account already exists for this email. Sign in to accept this invitation."
       );
     }
 
