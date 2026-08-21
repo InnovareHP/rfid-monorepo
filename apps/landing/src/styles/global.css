@@ -159,37 +159,47 @@
   @apply text-brand-strong font-semibold underline underline-offset-4;
 }
 
-/* Reveals are additive: content ships visible, so no JS or CSS gap can hide it. */
-@keyframes reveal-in {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@supports (animation-timeline: view()) {
-  [data-reveal] {
-    animation: reveal-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-timeline: view();
-    animation-range: entry 0% entry 60%;
-  }
-}
-
-.reveal {
+/* Reveals stay additive: only the motion runtime may hide content, and the
+   safety timer in BaseLayout restores it if that bundle never runs. */
+.js-motion [data-reveal],
+.js-motion [data-split],
+.js-motion [data-count],
+.js-motion [data-step],
+.js-motion [data-step-phone],
+.js-motion [data-hero-item],
+.js-motion [data-hero-visual] {
   opacity: 0;
-  transform: translateY(24px);
-  transition:
-    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.reveal.is-visible {
-  opacity: 1;
-  transform: none;
+/* Masked line wipes clip at the line box, so descenders get room back. */
+.split-line {
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+/* The nav gains a lifted, blurred surface once the page scrolls past the hero.
+   The surface is a child layer because backdrop-filter on the header would make
+   it the containing block for the fixed mobile menu panel and collapse it. */
+header[data-motion="nav"] {
+  transition: box-shadow 0.3s ease;
+}
+
+header[data-motion="nav"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--background);
+  transition: background-color 0.3s ease;
+}
+
+header[data-motion="nav"].is-stuck::before {
+  background-color: color-mix(in srgb, var(--background) 84%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+header[data-motion="nav"].is-stuck {
+  box-shadow: 0 10px 30px -14px color-mix(in srgb, var(--brand) 34%, transparent);
 }
 
 .hero-grid-bg {
@@ -221,16 +231,6 @@
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-
-  [data-reveal] {
-    animation: none;
   }
 
   .animate-float {
