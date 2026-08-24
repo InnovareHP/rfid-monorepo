@@ -1,5 +1,5 @@
-import { authClient } from "@/lib/auth-client";
 import { PasswordInput } from "@/components/password-input";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Form,
@@ -12,10 +12,16 @@ import {
 import { Input } from "@dashboard/ui/components/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "@tanstack/react-router";
-import { CheckCircle, Copy, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Copy,
+  Loader2,
+  ShieldCheck,
+  ShieldOff,
+} from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -31,10 +37,21 @@ type CodeValues = z.infer<typeof codeSchema>;
 
 type Step = "idle" | "enable-password" | "verify" | "backup" | "disable-password";
 
+const messageOf = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+// Failures surface twice: a toast, and a line that stays in the form once it fades.
+const FormError = ({ message }: { message?: string }) =>
+  message ? (
+    <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{message}</span>
+    </div>
+  ) : null;
+
 export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
-  const [totpURI, setTotpURI] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
   const passwordForm = useForm<PasswordValues>({
@@ -46,52 +63,91 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
     defaultValues: { code: "" },
   });
 
+  const fail = (
+    form: UseFormReturn<PasswordValues> | UseFormReturn<CodeValues>,
+    message: string
+  ) => {
+    form.setError("root", { message });
+    toast.error(message);
+  };
+
   const reset = () => {
     passwordForm.reset();
     codeForm.reset();
-    setTotpURI("");
     setBackupCodes([]);
     setStep("idle");
   };
 
   const handleEnable = async (values: PasswordValues) => {
-    const { data, error } = await authClient.twoFactor.enable({
-      password: values.password,
-    });
-    if (error || !data) {
-      toast.error(error?.message ?? "Failed to start 2FA setup");
-      return;
+    try {
+      const { data, error } = await authClient.twoFactor.enable({
+        password: values.password,
+      });
+      if (error || !data) {
+        fail(passwordForm, error?.message ?? "Failed to start 2FA setup");
+        return;
+      }
+
+      const { error: sendError } = await authClient.twoFactor.sendOtp();
+      if (sendError) {
+        fail(
+          passwordForm,
+          sendError.message ?? "Could not email your verification code"
+        );
+        return;
+      }
+
+      setBackupCodes(data.backupCodes);
+      passwordForm.reset();
+      setStep("verify");
+      toast.success("Verification code sent to your email");
+    } catch (error) {
+      fail(passwordForm, messageOf(error, "Failed to start 2FA setup"));
     }
-    setTotpURI(data.totpURI);
-    setBackupCodes(data.backupCodes);
-    passwordForm.reset();
-    setStep("verify");
   };
 
   const handleVerify = async (values: CodeValues) => {
-    const { error } = await authClient.twoFactor.verifyTotp({
-      code: values.code,
-    });
+    try {
+      const { error } = await authClient.twoFactor.verifyOtp({
+        code: values.code,
+      });
+      if (error) {
+        fail(codeForm, error.message ?? "Invalid code, try again");
+        return;
+      }
+      codeForm.reset();
+      toast.success("Two-factor authentication enabled");
+      setStep("backup");
+    } catch (error) {
+      fail(codeForm, messageOf(error, "Could not verify the code"));
+    }
+  };
+
+  const handleResend = async () => {
+    codeForm.clearErrors("root");
+    const { error } = await authClient.twoFactor.sendOtp();
     if (error) {
-      toast.error(error.message ?? "Invalid code, try again");
+      fail(codeForm, error.message ?? "Could not email a new code");
       return;
     }
-    codeForm.reset();
-    toast.success("Two-factor authentication enabled");
-    setStep("backup");
+    toast.success("A new code is on its way");
   };
 
   const handleDisable = async (values: PasswordValues) => {
-    const { error } = await authClient.twoFactor.disable({
-      password: values.password,
-    });
-    if (error) {
-      toast.error(error.message ?? "Failed to disable 2FA");
-      return;
+    try {
+      const { error } = await authClient.twoFactor.disable({
+        password: values.password,
+      });
+      if (error) {
+        fail(passwordForm, error.message ?? "Failed to disable 2FA");
+        return;
+      }
+      toast.success("Two-factor authentication disabled");
+      reset();
+      router.invalidate();
+    } catch (error) {
+      fail(passwordForm, messageOf(error, "Failed to disable 2FA"));
     }
-    toast.success("Two-factor authentication disabled");
-    reset();
-    router.invalidate();
   };
 
   const copyBackupCodes = async () => {
@@ -106,7 +162,6 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="space-y-4">
-
       {step === "idle" && (
         <Button
           className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
@@ -134,6 +189,8 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
             )}
             className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
           >
+            <FormError message={passwordForm.formState.errors.root?.message} />
+
             <FormField
               control={passwordForm.control}
               name="password"
@@ -181,13 +238,13 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
             onSubmit={codeForm.handleSubmit(handleVerify)}
             className="space-y-4 border-2 border-primary/30 rounded-lg p-4 bg-primary/10"
           >
-            <p className="text-sm text-gray-700">
-              Scan this QR code with your authenticator app (Google
-              Authenticator, 1Password, Authy…), then enter the 6-digit code.
+            <p className="text-sm text-muted-foreground">
+              We emailed you a 6-digit code. Enter it below to finish enabling
+              two-factor authentication. It expires in 5 minutes.
             </p>
-            <div className="flex justify-center rounded-lg bg-white p-4 border border-gray-300">
-              <QRCodeSVG value={totpURI} size={168} />
-            </div>
+
+            <FormError message={codeForm.formState.errors.root?.message} />
+
             <FormField
               control={codeForm.control}
               name="code"
@@ -210,7 +267,7 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
                 </FormItem>
               )}
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="submit"
                 className="flex-1 bg-primary hover:bg-primary/90"
@@ -222,6 +279,9 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
                   "Verify & Enable"
                 )}
               </Button>
+              <Button type="button" variant="outline" onClick={handleResend}>
+                Resend code
+              </Button>
               <Button type="button" variant="outline" onClick={reset}>
                 Cancel
               </Button>
@@ -231,19 +291,18 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
       )}
 
       {step === "backup" && (
-        <div className="space-y-4 border-2 border-green-300 rounded-lg p-4 bg-green-50">
+        <div className="space-y-4 border-2 border-success/30 rounded-lg p-4 bg-success/10">
           <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            <p className="text-sm font-semibold text-green-900">
+            <CheckCircle className="w-4 h-4 text-success" />
+            <p className="text-sm font-semibold text-success">
               2FA enabled — save your backup codes
             </p>
           </div>
-          <p className="text-sm text-gray-700">
-            Each code can be used once if you lose access to your
-            authenticator. Store them somewhere safe — they will not be shown
-            again.
+          <p className="text-sm text-muted-foreground">
+            Each code can be used once if you cannot reach your email. Store
+            them somewhere safe — they will not be shown again.
           </p>
-          <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-4 border border-gray-300 font-mono text-sm">
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-card p-4 border border-border font-mono text-sm">
             {backupCodes.map((code) => (
               <span key={code}>{code}</span>
             ))}

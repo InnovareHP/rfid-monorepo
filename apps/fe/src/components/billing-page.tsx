@@ -1,3 +1,4 @@
+import { BillingAwaitingOwner } from "@/components/billing/billing-awaiting-owner";
 import { BillingTopBar } from "@/components/billing/billing-top-bar";
 import { TransactionsCard } from "@/components/billing/transactions-card";
 import { authClient } from "@/lib/auth-client";
@@ -47,17 +48,22 @@ export function BillingPage({
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const subscriptions = queryClient.getQueryData<Subscription[]>([
-    "subscription",
-    context.activeOrganizationId,
-  ]) as unknown as Subscription | null;
-
   const activeOrganizationId = propOrgId ?? context.activeOrganizationId;
 
-  const memberData = queryClient.getQueryData([
-    "member-data",
-    activeOrganizationId,
-  ]);
+  // The standalone /billing route renders outside _team, which is what seeds
+  // these caches, so the route context is the only source both paths share.
+  const subscriptions =
+    (queryClient.getQueryData([
+      "subscription",
+      activeOrganizationId,
+    ]) as Subscription | null) ??
+    context.activeSubscription ??
+    null;
+
+  const memberData =
+    (queryClient.getQueryData(["member-data", activeOrganizationId]) as
+      | Member
+      | null) ?? context.memberData;
 
   // The portal button reached every role while every billing endpoint behind it
   // requires manage_billing.
@@ -120,11 +126,17 @@ export function BillingPage({
     }
   }, [navigate]);
 
-  if (!billingInfo) {
-    return <PlansPage context={propContext} handleLogout={handleLogout} />;
-  }
-
   const standalone = propContext === "/billing";
+
+  // Every plan button calls a manage_billing endpoint, so a non-owner gets told
+  // to wait rather than a picker that would 403 on every click.
+  if (!billingInfo) {
+    return canManageBilling ? (
+      <PlansPage context={propContext} handleLogout={handleLogout} />
+    ) : (
+      <BillingAwaitingOwner standalone={standalone} onLogout={handleLogout} />
+    );
+  }
 
   return (
     <div className={cn("w-full", standalone && "min-h-screen")}>

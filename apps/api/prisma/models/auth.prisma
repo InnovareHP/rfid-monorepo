@@ -65,8 +65,9 @@ model TwoFactor {
   userId      String
 
   // Written by the better-auth two-factor plugin since 1.6.x.
-  verified                Boolean @default(false)
-  failedVerificationCount Int     @default(0)
+  verified                Boolean   @default(false)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
