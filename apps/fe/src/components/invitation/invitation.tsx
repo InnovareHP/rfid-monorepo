@@ -14,7 +14,7 @@ import {
 } from "@dashboard/ui/components/card";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import axios from "axios";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   ArrowRight,
   CheckCircle2,
@@ -48,15 +48,11 @@ type PageState =
   | { step: "rejected" }
   | { step: "error"; message: string };
 
-const extractErrorMessage = (error: unknown, fallback: string) =>
-  axios.isAxiosError<{ message?: string }>(error)
-    ? (error.response?.data?.message ?? fallback)
-    : fallback;
 
 const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   const { token, email, orgName, inviter } = useSearch({
     from: "/invitation/$action",
-  }) as any;
+  });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [state, setState] = useState<PageState>({ step: "loading" });
@@ -80,16 +76,26 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
       } else {
         setState({ step: "success", organizationId: "" });
       }
-    } catch (err: any) {
+    } catch (err) {
       setState({
         step: "error",
-        message: err.message || "Failed to accept invitation.",
+        message: getApiErrorMessage(err, "Failed to accept invitation."),
       });
     }
   };
 
   useEffect(() => {
     const init = async () => {
+      // A link without a token cannot identify an invitation, so say so rather
+      // than sending undefined to the API and surfacing its generic failure.
+      if (!token) {
+        setState({
+          step: "error",
+          message:
+            "This invitation link is incomplete. Ask your organization owner to send a new one.",
+        });
+        return;
+      }
       try {
         const { data: sessionData } = await authClient.getSession();
         if (sessionData?.user) {
@@ -132,7 +138,10 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
             context: grant.context,
           });
         } catch (grantError) {
-          const message = extractErrorMessage(
+          // The API nests its body under `message`, so this must go through
+          // getApiErrorMessage -- reading data.message directly yields an
+          // object, and calling .includes on it throws past the sign-in branch.
+          const message = getApiErrorMessage(
             grantError,
             "This invitation is no longer valid."
           );
@@ -142,7 +151,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
           }
           setState({ step: "error", message });
         }
-      } catch (err: any) {
+      } catch {
         setState({
           step: "error",
           message: "Initialization failed. Please try again.",

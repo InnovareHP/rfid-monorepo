@@ -24,6 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 
 const priorityConfig = {
   high: {
@@ -65,9 +66,9 @@ export function FollowUpSuggestions({
       queryClient.setQueryData(["follow-up-suggestions", recordId], fresh);
       toast.success("Suggestions refreshed");
     },
-    onError: (err: any) =>
+    onError: (err: unknown) =>
       toast.error(
-        err?.response?.data?.message ?? "Failed to refresh suggestions"
+        getApiErrorMessage(err, "Failed to refresh suggestions")
       ),
   });
 
@@ -77,8 +78,8 @@ export function FollowUpSuggestions({
       queryClient.invalidateQueries({ queryKey: ["activities", recordId] });
       toast.success("Activity created");
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.message ?? "Failed to create activity"),
+    onError: (err: unknown) =>
+      toast.error(getApiErrorMessage(err, "Failed to create activity")),
   });
 
   if (isLoading) {
@@ -106,8 +107,7 @@ export function FollowUpSuggestions({
             <AlertTriangle className="size-8 text-destructive" />
           </div>
           <p className="text-sm font-medium text-destructive">
-            {(error as any)?.response?.data?.message ??
-              "Failed to load suggestions"}
+            {getApiErrorMessage(error, "Failed to load suggestions")}
           </p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             Try again

@@ -35,6 +35,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { SignaturePad } from "./signature-pad";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 
 const OTHER = "Other";
 
@@ -113,9 +114,9 @@ export function BaaSignModal({ terms, open, onOpenChange }: BaaSignModalProps) {
       onOpenChange(false);
       form.reset();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(
-        error?.response?.data?.message ?? "The agreement could not be signed"
+        getApiErrorMessage(error, "The agreement could not be signed")
       );
     },
   });

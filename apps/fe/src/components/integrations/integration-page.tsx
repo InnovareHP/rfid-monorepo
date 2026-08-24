@@ -1,4 +1,3 @@
-import axios from "axios";
 import { IntegrationCard } from "@/components/integrations/integration-card";
 import { ProviderLogo } from "@/components/integrations/provider-logo";
 import { PageHeader } from "@/components/page-header";
@@ -41,13 +40,11 @@ import type { IntegrationTab } from "@/components/integrations/integration-tabs"
 import { Calendar, Copy, Inbox, Mail, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 
 // The single-calendar rule is enforced server-side, so its message has to reach
 // the toast rather than being swallowed by a generic failure string.
-const errorMessage = (error: unknown, fallback: string) =>
-  (axios.isAxiosError<{ message?: string }>(error)
-    ? error.response?.data?.message
-    : null) ?? fallback;
+const errorMessage = getApiErrorMessage;
 
 export default function IntegrationPage() {
   const queryClient = useQueryClient();
@@ -187,9 +184,9 @@ export default function IntegrationPage() {
       setFaxApiKey("");
       toast.success("Eldon Fax connected");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(
-        error?.response?.data?.message ?? "Failed to connect Eldon Fax"
+        getApiErrorMessage(error, "Failed to connect Eldon Fax")
       );
     },
   });
@@ -200,9 +197,9 @@ export default function IntegrationPage() {
       queryClient.invalidateQueries({ queryKey: ["fax-integration-status"] });
       toast.success("Eldon Fax disconnected");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(
-        error?.response?.data?.message ?? "Failed to disconnect Eldon Fax"
+        getApiErrorMessage(error, "Failed to disconnect Eldon Fax")
       );
     },
   });

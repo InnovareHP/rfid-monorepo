@@ -48,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import {
   useInfiniteQuery,
@@ -284,8 +285,8 @@ export function ActivityTab({
       }
       resetForm();
     },
-    onError: (error: any) =>
-      toast.error(error?.response?.data?.message ?? "Failed to send fax"),
+    onError: (error: unknown) =>
+      toast.error(getApiErrorMessage(error, "Failed to send fax")),
   });
 
   const completeMutation = useMutation({
