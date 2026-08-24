@@ -1,5 +1,6 @@
 import { PasswordInput } from "@/components/password-input";
 import { Button } from "@dashboard/ui/components/button";
+import { Input } from "@dashboard/ui/components/input";
 import {
   Form,
   FormControl,
@@ -15,15 +16,18 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export const passwordSignInSchema = z.object({
+  email: z.email("Enter a valid email address."),
   password: z.string().min(1, "Enter your password."),
 });
 
 // Existing account: password sign-in first, passkey as the fallback.
 export const SignInSection = ({
+  email,
   pending,
   onPasswordSignIn,
   onPasskeySignIn,
 }: {
+  email: string;
   pending: boolean;
   onPasswordSignIn: (
     values: z.infer<typeof passwordSignInSchema>
@@ -32,7 +36,7 @@ export const SignInSection = ({
 }) => {
   const form = useForm<z.infer<typeof passwordSignInSchema>>({
     resolver: zodResolver(passwordSignInSchema),
-    defaultValues: { password: "" },
+    defaultValues: { email, password: "" },
   });
 
   return (
@@ -42,6 +46,27 @@ export const SignInSection = ({
           className="space-y-3"
           onSubmit={form.handleSubmit(onPasswordSignIn)}
         >
+          {/* Prefilled from the invitation and left editable: the invite is
+              bound to this address, but someone whose account uses a different
+              one still needs a way through. */}
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    autoComplete="username"
+                    placeholder="you@company.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="password"

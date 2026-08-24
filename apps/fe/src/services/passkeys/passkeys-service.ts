@@ -91,6 +91,20 @@ export const verifySignupOtp = async (
   return response.data as { context: string; expiresInSeconds: number };
 };
 
+export const getInvitationPreview = async (invitationId: string) => {
+  const response = await axiosClient.post(
+    "/api/registration/invitation/preview",
+    { invitationId }
+  );
+
+  return response.data as {
+    email: string;
+    organizationName: string;
+    inviterName: string;
+    hasAccount: boolean;
+  };
+};
+
 export const getInvitationContext = async (invitationId: string) => {
   const response = await axiosClient.post(
     "/api/registration/invitation/context",

@@ -2,6 +2,7 @@ import { authClient } from "@/lib/auth-client";
 import {
   completeSignup,
   getInvitationContext,
+  getInvitationPreview,
 } from "@/services/passkeys/passkeys-service";
 import { Button } from "@dashboard/ui/components/button";
 import { Spinner } from "@dashboard/ui/components/spinner";
@@ -121,35 +122,39 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
           return;
         }
 
-        const invitation: InvitationData = {
-          email: email || "",
-          organizationName: orgName || "the team",
-          inviterName: inviter || "A colleague",
-        };
-
-        // Requesting an enrollment grant doubles as the "does this email
-        // already have an account" check: the API only issues one when it
-        // doesn't.
         try {
+          // The invite link carries only the token, so who it is for comes from
+          // the API rather than the URL. hasAccount picks the branch directly
+          // instead of string-matching an error message.
+          const preview = await getInvitationPreview(token);
+          const invitation: InvitationData = {
+            email: preview.email,
+            organizationName: preview.organizationName || orgName || "the team",
+            inviterName: preview.inviterName || inviter || "A colleague",
+          };
+
+          if (preview.hasAccount) {
+            setState({ step: "sign-in", invitation });
+            return;
+          }
+
           const grant = await getInvitationContext(token);
           setState({
             step: "register",
             invitation: { ...invitation, email: grant.email },
             context: grant.context,
           });
-        } catch (grantError) {
+        } catch (previewError) {
           // The API nests its body under `message`, so this must go through
           // getApiErrorMessage -- reading data.message directly yields an
-          // object, and calling .includes on it throws past the sign-in branch.
-          const message = getApiErrorMessage(
-            grantError,
-            "This invitation is no longer valid."
-          );
-          if (message.includes("account already exists")) {
-            setState({ step: "sign-in", invitation });
-            return;
-          }
-          setState({ step: "error", message });
+          // object, not a string.
+          setState({
+            step: "error",
+            message: getApiErrorMessage(
+              previewError,
+              "This invitation is no longer valid."
+            ),
+          });
         }
       } catch {
         setState({
@@ -174,11 +179,10 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   };
 
   const handlePasswordSignIn = async (
-    values: z.infer<typeof passwordSignInSchema>,
-    invitationEmail: string
+    values: z.infer<typeof passwordSignInSchema>
   ) => {
     const { error } = await authClient.signIn.email({
-      email: invitationEmail,
+      email: values.email,
       password: values.password,
     });
     if (error) {
@@ -372,10 +376,9 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
           {state.step === "sign-in" ? (
             <SignInSection
+              email={invitation.email}
               pending={pending}
-              onPasswordSignIn={(values) =>
-                handlePasswordSignIn(values, invitation.email)
-              }
+              onPasswordSignIn={handlePasswordSignIn}
               onPasskeySignIn={handleSignInWithPasskey}
             />
           ) : (

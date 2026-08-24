@@ -150,6 +150,41 @@ export class RegistrationService {
   // enrollment grant only for an email that has no account yet. An existing user
   // joining a second org signs in with their own passkey, or recovers through
   // the mailbox OTP in sendMigrationOtp.
+  // Who the invite is for, so the accept page can name the organization and
+  // prefill the address instead of guessing. The id is a secret that was mailed
+  // to this address, so returning it to whoever holds it discloses nothing new
+  // -- and hasAccount saves the client from parsing an error string to decide
+  // between the sign-in and register paths.
+  async invitationPreview(invitationId: string) {
+    const invitation = await prisma.invitation.findFirst({
+      where: { id: invitationId, status: "pending" },
+      select: {
+        email: true,
+        expiresAt: true,
+        organization: { select: { name: true } },
+        user: { select: { name: true, email: true } },
+      },
+    });
+    if (!invitation || invitation.expiresAt < new Date()) {
+      throw new BadRequestException(
+        "This invitation is no longer valid. Ask your organization owner to send a new one."
+      );
+    }
+
+    const email = invitation.email.toLowerCase();
+    const existing = await prisma.user.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+
+    return {
+      email,
+      organizationName: invitation.organization.name,
+      inviterName: invitation.user.name || invitation.user.email,
+      hasAccount: Boolean(existing),
+    };
+  }
+
   async invitationContext(invitationId: string) {
     const invitation = await prisma.invitation.findFirst({
       where: { id: invitationId, status: "pending" },
