@@ -5,9 +5,9 @@ import heroVisual from "../../assets/home/hero-referral-map.png";
 import { APP_URL } from "../../config";
 ---
 
-<section class="bg-background pt-12 lg:pt-[53px]">
+<section class="bg-background pt-12 lg:pt-[53px]" data-motion="hero">
   <div class="site-shell text-center">
-    <div data-reveal>
+    <div data-hero-item>
       <p
         class="text-sm font-semibold uppercase text-brand-accent sm:text-base lg:text-xl lg:leading-[30px]"
       >
@@ -15,8 +15,9 @@ import { APP_URL } from "../../config";
       </p>
     </div>
 
-    <div data-reveal>
+    <div>
       <h1
+        data-split
         class="mx-auto mt-2 max-w-[700px] text-[32px] leading-[1.15] font-semibold sm:text-[44px] lg:mt-[5px] lg:text-[55px] lg:leading-[66px]"
       >
         Track every <span class="text-brand">referral.</span><br
@@ -26,7 +27,7 @@ import { APP_URL } from "../../config";
       </h1>
     </div>
 
-    <div data-reveal>
+    <div data-hero-item>
       <p
         class="mx-auto mt-4 max-w-[696px] text-base leading-relaxed text-foreground sm:text-lg lg:text-xl lg:leading-[30px]"
       >
@@ -35,7 +36,7 @@ import { APP_URL } from "../../config";
       </p>
     </div>
 
-    <div data-reveal>
+    <div data-hero-item>
       <div class="mt-8 flex flex-wrap items-center justify-center gap-[15px]">
         <a
           href={APP_URL}
@@ -59,7 +60,7 @@ import { APP_URL } from "../../config";
     </div>
   </div>
 
-  <div class="mt-6 px-4 sm:px-6 lg:px-0" data-reveal>
+  <div class="mt-6 px-4 sm:px-6 lg:px-0" data-hero-visual>
     <Image
       src={heroVisual}
       alt="Refidly referral coverage map with the create-referral workspace"
