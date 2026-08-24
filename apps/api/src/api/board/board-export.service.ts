@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { AuditService } from "../../lib/audit/audit.service";
 import { prisma } from "../../lib/prisma/prisma";
 import { BoardService } from "./board.service";
@@ -66,7 +66,18 @@ export class BoardExportService {
     request: ExportRequest,
     actor: { userId: string; role: string | null; ip: string | null }
   ): Promise<{ csv: string; rows: number; filename: string }> {
-    const isReferral = request.moduleType === "REFERRAL";
+    // Every module exports, so the name column is headed by whatever this
+    // organization calls one of its records rather than a hardcoded label.
+    const board = await prisma.module.findFirst({
+      where: { key: request.moduleType, organizationId },
+      select: { label: true, labelSingular: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException(
+        `No module "${request.moduleType}" for the active organization`
+      );
+    }
 
     const result: any = await this.boardService.getAllBoards(organizationId, {
       ...request,
@@ -77,24 +88,30 @@ export class BoardExportService {
     const data: Record<string, unknown>[] = result.data ?? [];
     const columns: { name: string }[] = result.columns ?? [];
 
+    const nameHeader = board.labelSingular;
+    const ASSIGNEE_HEADER = "Account Manager";
+
+    // A module can own a field named the same as its own label (REFERRAL has a
+    // "Facility" field), and a duplicated header would drop one of the two.
     const headers = [
-      ...(isReferral ? [] : ["Organization", "Account Manager"]),
-      ...columns.filter((c) => c.name !== "History").map((c) => c.name),
+      nameHeader,
+      ASSIGNEE_HEADER,
+      ...columns
+        .filter((c) => c.name !== "History")
+        .map((c) => c.name)
+        .filter((name) => name !== nameHeader && name !== ASSIGNEE_HEADER),
     ];
 
-    const names = isReferral
-      ? new Map<string, string>()
-      : await this.memberNames(organizationId);
+    const names = await this.memberNames(organizationId);
 
     const rows = data.map((row) => {
       const out: Record<string, unknown> = {};
 
-      if (!isReferral) {
-        const assignedTo = row["assigned_to"];
-        out["Organization"] = row["referral_name"] ?? "";
-        out["Account Manager"] =
-          typeof assignedTo === "string" ? (names.get(assignedTo) ?? "") : "";
-      }
+      // recordName and assignedTo are what getAllBoards puts on a flat row.
+      const assignedTo = row["assignedTo"];
+      out[nameHeader] = row["recordName"] ?? "";
+      out[ASSIGNEE_HEADER] =
+        typeof assignedTo === "string" ? (names.get(assignedTo) ?? "") : "";
 
       for (const header of headers) {
         if (header in out) continue;
@@ -124,7 +141,7 @@ export class BoardExportService {
     });
 
     const stamp = new Date().toISOString().split("T")[0];
-    const prefix = isReferral ? "Referrals" : "Master_Leads";
+    const prefix = board.label.replace(/[^a-zA-Z0-9]+/g, "_");
 
     return {
       csv: BOM + toCsv(headers, rows),

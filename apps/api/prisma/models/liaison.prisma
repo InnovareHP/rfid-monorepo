@@ -1,21 +1,24 @@
 model Marketing {
-  id             String           @id @default(uuid())
-  facility       String
-  touchpoints    TouchpointType[]
-  talkedTo       String
-  reasonForVisit String?
-  notes          String?
-  memberId       String
-  organizationId String
-  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime?        @updatedAt @db.Timestamptz(3)
-  isDeleted      Boolean          @default(false)
+  id                String           @id @default(uuid())
+  facility          String
+  touchpoints       TouchpointType[]
+  talkedTo          String
+  reasonForVisit    String?
+  notes             String?
+  memberId          String
+  organizationId    String
+  facilityRecordId  String?
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime?        @updatedAt @db.Timestamptz(3)
+  isDeleted         Boolean          @default(false)
 
-  member       Member       @relation(fields: [memberId], references: [id])
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member         Member       @relation(fields: [memberId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  facilityRecord Board?       @relation(fields: [facilityRecordId], references: [id], onDelete: SetNull)
 
   @@index([memberId])
   @@index([organizationId])
+  @@index([facilityRecordId])
   @@schema("liason_schema")
 }
 
@@ -76,6 +79,7 @@ enum TouchpointType {
   FACEBOOK
   TEXT
   EMAIL
+  EMAIL_BLAST
   PHONE
   OTHER
 

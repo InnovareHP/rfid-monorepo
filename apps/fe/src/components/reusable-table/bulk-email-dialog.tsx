@@ -2,10 +2,8 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  DialogFormFooter,
+  DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
 import {
   Form,
@@ -23,10 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
+import { Spinner } from "@dashboard/ui/components/spinner";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, MailIcon, SendIcon } from "lucide-react";
+import { MailIcon, SendIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -108,22 +107,15 @@ export function BulkEmailDialog({
         if (!next) form.reset();
       }}
     >
-      <DialogContent className="max-w-lg">
-        <DialogHeader className="space-y-3">
-          <div className="mx-auto h-12 w-12 rounded-full bg-primary/15 flex items-center justify-center">
-            <MailIcon className="h-6 w-6 text-primary" />
-          </div>
-          <DialogTitle className="text-center text-xl">Send Email</DialogTitle>
-          <DialogDescription className="text-center">
-            Send an email to {recordIds.length} selected {recipientLabel}.
-            Records without an email address will be skipped.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogFormHeader
+          icon={<MailIcon />}
+          title="Send Email"
+          description={`Send an email to ${recordIds.length} selected ${recipientLabel}. Records without an email address will be skipped.`}
+        />
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSendEmail)}
-            className="space-y-4 py-2"
-          >
+          <form onSubmit={form.handleSubmit(handleSendEmail)}>
+            <div className="space-y-4 px-6 py-5">
             <FormField
               control={form.control}
               name="subject"
@@ -196,34 +188,31 @@ export function BulkEmailDialog({
               )}
             />
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            </div>
+
+            <DialogFormFooter>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={form.formState.isSubmitting}
-                className="flex-1"
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className="flex-1"
-              >
+              <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Spinner size="sm" className="mr-2 text-current" />
                     Sending...
                   </>
                 ) : (
                   <>
-                    <SendIcon className="w-4 h-4 mr-2" />
+                    <SendIcon className="mr-2 size-4" />
                     Send to {recordIds.length} {recipientLabel}
                   </>
                 )}
               </Button>
-            </DialogFooter>
+            </DialogFormFooter>
           </form>
         </Form>
       </DialogContent>

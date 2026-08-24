@@ -66,7 +66,7 @@ export const ListFormDialog = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      List Name <span className="text-red-500">*</span>
+                      List Name <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. General, Onboarding" {...field} />
@@ -88,7 +88,7 @@ export const ListFormDialog = ({
               <Button
                 type="submit"
                 disabled={submitting}
-                className="bg-brand text-white hover:bg-brand/90"
+               
               >
                 {submitting ? (
                   <Loader2 className="size-4 animate-spin" />

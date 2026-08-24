@@ -23,9 +23,12 @@ export const UpdateMillageSchema = z.object({
   reimbursementAmount: z.number().optional(),
 });
 
+// EMAIL_BLAST is a server-only touchpoint set by the bulk-email mirror path, never by manual entry.
+const ManualTouchpointType = z.enum(TouchpointType).exclude(["EMAIL_BLAST"]);
+
 export const CreateMarketingSchema = z.object({
   facility: z.string(),
-  touchpoint: z.array(z.enum(TouchpointType)),
+  touchpoint: z.array(ManualTouchpointType),
   talkedTo: z.string(),
   notes: z.string().optional(),
   reasonForVisit: z.string().optional(),
@@ -33,7 +36,7 @@ export const CreateMarketingSchema = z.object({
 
 export const UpdateMarketingSchema = z.object({
   facility: z.string().optional(),
-  touchpoint: z.enum(TouchpointType).optional(),
+  touchpoint: ManualTouchpointType.optional(),
   talkedTo: z.string().optional(),
   notes: z.string().optional(),
 });

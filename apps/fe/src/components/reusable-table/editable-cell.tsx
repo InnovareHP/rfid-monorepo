@@ -37,7 +37,7 @@ import {
 } from "@dashboard/ui/components/select";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { format, isValid, parseISO } from "date-fns";
 import {
   AlertCircle,
@@ -50,6 +50,7 @@ import {
 import { useState } from "react";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
+import { CountyLiaisonsHint } from "../referral-list/county-liaisons-hint";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
 import LocationCell from "./location-cell";
@@ -81,6 +82,36 @@ const normalizeBoolean = (value: string): boolean => {
   return truthyValues.includes(value.toLowerCase());
 };
 
+const parseDate = (dateString: string): Date | undefined => {
+  if (!dateString) return undefined;
+  try {
+    const parsed = parseISO(dateString);
+    return isValid(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const parseMultiselectValue = (val: string): string[] => {
+  if (!val) return [];
+  try {
+    const parsed = JSON.parse(val);
+    if (Array.isArray(parsed))
+      return [...new Set(parsed.map((v) => String(v).trim()))];
+  } catch {
+    return [
+      ...new Set(
+        val
+          .replace(/[[\]\\"]/g, "")
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean)
+      ),
+    ];
+  }
+  return [];
+};
+
 export function EditableCell({
   id,
   fieldKey,
@@ -91,6 +122,7 @@ export function EditableCell({
   moduleType,
   linkTargetId,
 }: EditableCellProps) {
+  const { team } = useParams({ strict: false });
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value);
   const [syncedValue, setSyncedValue] = useState(value);
@@ -123,10 +155,17 @@ export function EditableCell({
       displayValue?: string;
     }) =>
       moduleType
-        ? await updateModuleRecord(moduleType, id, field, value, previousValue)
+        ? await updateModuleRecord(
+            moduleType,
+            id,
+            field,
+            value,
+            previousValue,
+            reason
+          )
         : isReferral
           ? await updateReferral(id, field, value, reason, previousValue)
-          : await updateLead(id, field, value),
+          : await updateLead(id, field, value, undefined, reason),
     onMutate: async ({ id, fieldName: patchKey, value, displayValue }) => {
       await queryClient.cancelQueries({ queryKey: recordsKey });
       const previous = queryClient.getQueriesData({ queryKey: recordsKey });
@@ -187,25 +226,15 @@ export function EditableCell({
     setIsUpdating(true);
 
     try {
-      if (isReferral) {
-        updateLeadMutation.mutate({
-          id,
-          field: fieldKey,
-          fieldName,
-          value: newVal,
-          reason,
-          previousValue,
-          displayValue,
-        });
-      } else {
-        updateLeadMutation.mutate({
-          id,
-          field: fieldKey,
-          fieldName,
-          value: newVal,
-          displayValue,
-        });
-      }
+      updateLeadMutation.mutate({
+        id,
+        field: fieldKey,
+        fieldName,
+        value: newVal,
+        reason,
+        previousValue,
+        displayValue,
+      });
       // Only show success toast for significant changes, not for every edit
       // toast.success("Value updated successfully");
     } catch (error) {
@@ -295,6 +324,53 @@ export function EditableCell({
     }
   };
 
+  // Every hook below must run on every render regardless of `type` -
+  // conditional hooks after early returns violate rules-of-hooks even when
+  // `type` never changes for a mounted cell. Each hook is gated by `enabled`
+  // (queries) or is simply unused outside its relevant type branch (state).
+  const [date, setDate] = useState<Date | undefined>(parseDate(val));
+
+  const { data: assignedToOptionsData, isLoading: isLoadingAssignedTo } =
+    useQuery({
+      queryKey: ["assigned-to-users"],
+      queryFn: () => getDropdownOptions("ASSIGNED_TO"),
+      enabled: type === "ASSIGNED_TO" || fieldName === "account_manager",
+      staleTime: 1000 * 60 * 30,
+    });
+
+  const isLinkType =
+    type === "REFERRAL_LINK" ||
+    type === "CONTACT_LINK" ||
+    type === "COMPANY_LINK";
+
+  const linkTargetModule =
+    type === "CONTACT_LINK"
+      ? "CONTACT"
+      : type === "COMPANY_LINK"
+        ? "COMPANY"
+        : moduleType === "CONTACT" && fieldName === "Company"
+          ? "COMPANY"
+          : "LEAD";
+
+  const { data: records, isLoading: isLoadingRecords } = useQuery({
+    queryKey: ["link-records", linkTargetModule, 1, 500],
+    queryFn: () =>
+      linkTargetModule === "LEAD"
+        ? getLeadRecords(1, 500)
+        : getLinkCandidates(linkTargetModule, 1, 500),
+    enabled: isLinkType,
+  });
+
+  // Shared by the DROPDOWN and link-type Select search boxes below - the two
+  // branches are mutually exclusive per `type`, so one state slot is enough.
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [selectedValues, setSelectedValues] = useState<string[]>(
+    parseMultiselectValue(val)
+  );
+  const [initialValues] = useState<string[]>(parseMultiselectValue(val));
+  const [open, setOpen] = useState(false);
+
   // ---- STATUS ----
   if (type === "STATUS") {
     return (
@@ -319,19 +395,6 @@ export function EditableCell({
   }
 
   if (type === "DATE") {
-    // Parse date safely
-    const parseDate = (dateString: string): Date | undefined => {
-      if (!dateString) return undefined;
-      try {
-        const parsed = parseISO(dateString);
-        return isValid(parsed) ? parsed : undefined;
-      } catch {
-        return undefined;
-      }
-    };
-
-    const [date, setDate] = useState<Date | undefined>(parseDate(val));
-
     const handleClearDate = (e: React.MouseEvent) => {
       e.stopPropagation();
       setDate(undefined);
@@ -408,37 +471,6 @@ export function EditableCell({
     );
   }
 
-  const { data: assignedToOptionsData, isLoading: isLoadingAssignedTo } =
-    useQuery({
-      queryKey: ["assigned-to-users"],
-      queryFn: () => getDropdownOptions("ASSIGNED_TO"),
-      enabled: type === "ASSIGNED_TO" || fieldName === "account_manager",
-      staleTime: 1000 * 60 * 30,
-    });
-
-  const isLinkType =
-    type === "REFERRAL_LINK" ||
-    type === "CONTACT_LINK" ||
-    type === "COMPANY_LINK";
-
-  const linkTargetModule =
-    type === "CONTACT_LINK"
-      ? "CONTACT"
-      : type === "COMPANY_LINK"
-        ? "COMPANY"
-        : moduleType === "CONTACT" && fieldName === "Company"
-          ? "COMPANY"
-          : "LEAD";
-
-  const { data: records, isLoading: isLoadingRecords } = useQuery({
-    queryKey: ["link-records", linkTargetModule, 1, 500],
-    queryFn: () =>
-      linkTargetModule === "LEAD"
-        ? getLeadRecords(1, 500)
-        : getLinkCandidates(linkTargetModule, 1, 500),
-    enabled: isLinkType,
-  });
-
   if (type === "ASSIGNED_TO" || fieldName === "account_manager") {
     return (
       <Select
@@ -500,7 +532,6 @@ export function EditableCell({
   }
 
   if (type === "DROPDOWN") {
-    const [searchQuery, setSearchQuery] = useState("");
     const hasCurrentVal =
       !!val &&
       (!options ||
@@ -514,21 +545,27 @@ export function EditableCell({
         opt.value.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
+    // Referral counties carry liaison assignments, and the Facility column is
+    // derived from them, so the cell says who a county is covered by.
+    const showCountyLiaisons = isReferral && fieldName === "County";
+
     return (
-      <Select
-        defaultValue={val}
-        onValueChange={(v) => handleUpdate(String(v))}
-        disabled={isUpdating}
-      >
-        <SelectTrigger
-          className={cn("w-auto text-sm", isUpdating && "opacity-50")}
-          onMouseEnter={handleHover} // prefetch before opening
+      <div className="flex items-center gap-1.5">
+        {showCountyLiaisons && <CountyLiaisonsHint county={val} />}
+        <Select
+          defaultValue={val}
+          onValueChange={(v) => handleUpdate(String(v))}
+          disabled={isUpdating}
         >
-          {isUpdating ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : null}
-          <SelectValue placeholder={val || "Select an option"} />
-        </SelectTrigger>
+          <SelectTrigger
+            className={cn("w-auto text-sm", isUpdating && "opacity-50")}
+            onMouseEnter={handleHover} // prefetch before opening
+          >
+            {isUpdating ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : null}
+            <SelectValue placeholder={val || "Select an option"} />
+          </SelectTrigger>
 
         <SelectContent>
           {isLoadingOptions ? (
@@ -667,33 +704,47 @@ export function EditableCell({
                         + Add more option
                       </div>
 
-                      <Link
-                        to={
-                          `${
-                            isReferral
-                              ? "/$team/referral-list/option"
-                              : "/$team/master-list/leads/option"
-                          }/${fieldKey}` as any
-                        }
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer">
-                          Proceed to Option Configuration
-                        </div>
-                      </Link>
+                      {/* Referral counties are configured with their liaisons,
+                          not as plain field options. */}
+                      {team &&
+                        (showCountyLiaisons ? (
+                          <Link
+                            to="/$team/county-config"
+                            params={{ team }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer">
+                              Proceed to County Configuration
+                            </div>
+                          </Link>
+                        ) : (
+                          <Link
+                            to={
+                              isReferral
+                                ? "/$team/referral-list/option/$option"
+                                : "/$team/master-list/leads/option/$option"
+                            }
+                            params={{ team, option: fieldKey }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer">
+                              Proceed to Option Configuration
+                            </div>
+                          </Link>
+                        ))}
                     </div>
                   )}
                 </>
               </div>
             </>
           )}
-        </SelectContent>
-      </Select>
+          </SelectContent>
+        </Select>
+      </div>
     );
   }
 
   if (isLinkType) {
-    const [searchQuery, setSearchQuery] = useState("");
     const hasCurrentVal =
       !!val &&
       (!records ||
@@ -837,32 +888,6 @@ export function EditableCell({
   }
 
   if (type === "MULTISELECT") {
-    const parseValue = (val: string): string[] => {
-      if (!val) return [];
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed))
-          return [...new Set(parsed.map((v) => String(v).trim()))];
-      } catch {
-        return [
-          ...new Set(
-            val
-              .replace(/[[\]\\"]/g, "")
-              .split(",")
-              .map((v) => v.trim())
-              .filter(Boolean)
-          ),
-        ];
-      }
-      return [];
-    };
-
-    const [selectedValues, setSelectedValues] = useState<string[]>(
-      parseValue(val)
-    );
-    const [initialValues] = useState<string[]>(parseValue(val));
-    const [open, setOpen] = useState(false);
-
     const toggleValue = (optionValue: string) => {
       setSelectedValues((prev) => {
         const isSelected = prev.includes(optionValue);

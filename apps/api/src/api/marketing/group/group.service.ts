@@ -90,7 +90,7 @@ export class GroupService {
         name: dto.name,
         description: dto.description ?? null,
         moduleType: toModuleType(moduleKey),
-        moduleId: await resolveModuleId(moduleKey),
+        moduleId: await resolveModuleId(moduleKey, organizationId),
         audienceType: dto.audienceType ?? AudienceType.BOARD,
         filter: dto.filter as Prisma.InputJsonValue,
         organizationId,
@@ -109,7 +109,7 @@ export class GroupService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.moduleType !== undefined && {
           moduleType: toModuleType(dto.moduleType),
-          moduleId: await resolveModuleId(dto.moduleType),
+          moduleId: await resolveModuleId(dto.moduleType, organizationId),
         }),
         ...(dto.audienceType !== undefined && {
           audienceType: dto.audienceType,
@@ -143,7 +143,7 @@ export class GroupService {
   ) {
     const { filter, search, boardDateFrom, boardDateTo } = audienceFilter;
 
-    const moduleId = await resolveModuleId(moduleType);
+    const moduleId = await resolveModuleId(moduleType, organizationId);
 
     const where: Prisma.BoardWhereInput = {
       organizationId,
@@ -196,7 +196,7 @@ export class GroupService {
       prisma.field.findFirst({
         where: {
           organizationId,
-          moduleId: await resolveModuleId(moduleType),
+          moduleId: await resolveModuleId(moduleType, organizationId),
           fieldType: "EMAIL",
           isDeleted: false,
         },

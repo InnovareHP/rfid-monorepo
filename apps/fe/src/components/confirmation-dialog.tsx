@@ -1,13 +1,13 @@
-import { Button } from "@dashboard/ui/components/button";
 import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
-import { cn } from "@dashboard/ui/lib/utils";
-import { AlertTriangle, X } from "lucide-react";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFormFooter,
+  AlertDialogFormHeader,
+} from "@dashboard/ui/components/alert-dialog";
+import { Button } from "@dashboard/ui/components/button";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -30,67 +30,33 @@ export function ConfirmationDialog({
   variant = "default",
   onConfirm,
 }: ConfirmationDialogProps) {
-  if (!open) return null;
-
-  const handleConfirm = () => {
-    onConfirm();
-    onOpenChange(false);
-  };
-
-  const handleCancel = () => {
-    onOpenChange(false);
-  };
+  const isDestructive = variant === "destructive";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleCancel}
-      />
-      <Card className="relative z-50 w-full max-w-md mx-4 shadow-2xl">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            {variant === "destructive" && (
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-            )}
-            <div className="flex-1">
-              <CardTitle
-                className={cn(
-                  variant === "destructive" && "text-red-600 dark:text-red-400"
-                )}
-              >
-                {title}
-              </CardTitle>
-            </div>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <AlertDialogFormHeader
+          icon={isDestructive ? <AlertTriangle /> : <CheckCircle2 />}
+          iconClassName={
+            isDestructive ? "bg-destructive text-destructive-foreground" : ""
+          }
+          title={title}
+          description={description}
+        />
+        <AlertDialogFormFooter>
+          <AlertDialogCancel asChild>
+            <Button variant="outline">{cancelText}</Button>
+          </AlertDialogCancel>
+          <AlertDialogAction asChild>
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancel}
-              className="h-8 w-8 p-0"
+              onClick={onConfirm}
+              variant={isDestructive ? "destructive" : "default"}
             >
-              <X className="h-4 w-4" />
+              {confirmText}
             </Button>
-          </div>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardFooter className="flex justify-end gap-2">
-          <Button variant="outline" onClick={handleCancel}>
-            {cancelText}
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            variant={variant === "destructive" ? "destructive" : "default"}
-            className={cn(
-              variant === "default" &&
-                "bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90"
-            )}
-          >
-            {confirmText}
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+          </AlertDialogAction>
+        </AlertDialogFormFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

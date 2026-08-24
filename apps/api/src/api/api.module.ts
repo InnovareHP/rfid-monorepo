@@ -8,6 +8,7 @@ import { BoardModule } from "./board/board.module";
 import { BookingModule } from "./booking/booking.module";
 import { CalendarModule } from "./calendar/calendar.module";
 import { ComplianceModule } from "./compliance/compliance.module";
+import { CustomAnalyticsModule } from "./custom-analytics/custom-analytics.module";
 import { EmailModule } from "./email/email.module";
 import { FaxModule } from "./fax/fax.module";
 import { HealthModule } from "./health/health.module";
@@ -25,6 +26,7 @@ import { PlacesModule } from "./places/places.module";
 import { RegistrationModule } from "./registration/registration.module";
 import { SupportModule } from "./support/support.module";
 import { TaskModule } from "./task/task.module";
+import { TeamModule } from "./team/team.module";
 import { UserModule } from "./user/user.module";
 
 @Module({
@@ -38,8 +40,11 @@ import { UserModule } from "./user/user.module";
     FaxModule,
     ImageModule,
     UserModule,
-    BoardModule,
+    // Must precede BoardModule: routes register in import order, and
+    // BoardController's "boards/:recordId" would otherwise swallow
+    // "boards/export" and look up a record named "export".
     BoardExportModule,
+    BoardModule,
     BookingModule,
     CalendarModule,
     AnalyticsModule,
@@ -51,9 +56,11 @@ import { UserModule } from "./user/user.module";
     PlacesModule,
     KanbanModule,
     TaskModule,
+    TeamModule,
     MarketingModule,
     ModulesModule,
     ReportModule,
+    CustomAnalyticsModule,
     NotificationModule,
     HealthModule,
   ],

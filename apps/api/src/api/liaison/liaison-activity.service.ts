@@ -8,6 +8,7 @@ type RecordActivityLog = {
   organizationId: string;
   userId: string;
   activityType: ActivityType;
+  isBulkSend?: boolean;
 };
 
 const ACTIVITY_TOUCHPOINTS: Record<ActivityType, TouchpointType> = {
@@ -36,12 +37,19 @@ export class LiaisonActivityService {
 
       const record = await prisma.board.findFirst({
         where: { id: input.recordId, organizationId: input.organizationId },
-        select: { recordName: true },
+        select: { recordName: true, moduleType: true },
       });
 
       if (!record) return;
 
-      const touchpoint = ACTIVITY_TOUCHPOINTS[input.activityType];
+      const touchpoint = input.isBulkSend
+        ? TouchpointType.EMAIL_BLAST
+        : ACTIVITY_TOUCHPOINTS[input.activityType];
+
+      // Facilities are LEAD-type records only; skip the FK for REFERRAL/CONTACT/COMPANY
+      // records so facility-scoped aggregation is never corrupted.
+      const facilityRecordId =
+        record.moduleType === "LEAD" ? input.recordId : null;
 
       // Marketing rows are not encrypted at rest and facility is matched with a
       // SQL contains, so nothing beyond the record name is copied in here.
@@ -54,6 +62,7 @@ export class LiaisonActivityService {
             notes: `Auto-logged from a ${input.activityType} activity on the board`,
             memberId: member.id,
             organizationId: input.organizationId,
+            facilityRecordId,
           },
         });
 

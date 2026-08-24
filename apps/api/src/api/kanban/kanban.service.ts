@@ -206,7 +206,7 @@ export class KanbanService {
         id: { in: stages.map((s) => s.optionId) },
         field: {
           organizationId,
-          moduleId: await resolveModuleId(moduleType),
+          moduleId: await resolveModuleId(moduleType, organizationId),
           isDeleted: false,
         },
       },
@@ -241,7 +241,7 @@ export class KanbanService {
     return prisma.field.findFirst({
       where: {
         organizationId,
-        moduleId: await resolveModuleId(moduleType),
+        moduleId: await resolveModuleId(moduleType, organizationId),
         isDeleted: false,
         fieldType: "STATUS",
       },
@@ -267,7 +267,7 @@ export class KanbanService {
   ): Promise<Prisma.BoardWhereInput> {
     return {
       organizationId,
-      moduleId: await resolveModuleId(moduleType),
+      moduleId: await resolveModuleId(moduleType, organizationId),
       isDeleted: false,
       ...((range.from || range.to) && {
         createdAt: {

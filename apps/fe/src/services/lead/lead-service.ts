@@ -1,6 +1,8 @@
 import { axiosClient } from "@/lib/axios-client";
 import type { BoardStats, LeadAnalyze, LeadHistoryItem } from "@dashboard/shared";
 
+export type ImportColumn = { id: string; name: string; type: string };
+
 export interface ScannedCardResult {
   recordName: string;
   contactInfo: {
@@ -38,7 +40,7 @@ export const getLeads = async (filters: any) => {
 // than as a burst of page reads indistinguishable from browsing.
 export const exportBoardCsv = async (
   filters: any,
-  moduleType: "LEAD" | "REFERRAL" = "LEAD"
+  moduleType: string = "LEAD"
 ) => {
   const response = await axiosClient.get("/api/boards/export", {
     params: {
@@ -68,12 +70,12 @@ export const getBoardStats = async (
   return response.data;
 };
 
-export const getLeadColumnOptions = async () => {
+export const getLeadColumnOptions = async (moduleType: string = "LEAD") => {
   const response = await axiosClient.get("/api/boards/column", {
-    params: { moduleType: "LEAD" },
+    params: { moduleType },
   });
 
-  return response.data;
+  return response.data as ImportColumn[];
 };
 
 export const getColumnOptions = async (moduleType?: string) => {
@@ -184,12 +186,14 @@ export const updateLead = async (
   recordId: string,
   fieldId: string,
   value: string,
-  moduleType?: string
+  moduleType?: string,
+  reason?: string
 ) => {
   const response = await axiosClient.patch(`/api/boards/${recordId}`, {
     value,
     fieldId: fieldId,
     moduleType: moduleType || "LEAD",
+    reason,
   });
 
   return response.data;
@@ -363,13 +367,29 @@ export const deleteLeadTimeline = async (
   return response.data;
 };
 
-export const importLeads = async (data: any, moduleType: string = "LEAD") => {
-  const response = await axiosClient.post("/api/boards/csv-import", {
-    excelData: data,
-    moduleType: moduleType,
-  });
+export type ImportResult = {
+  jobId: string;
+  queuedRows: number;
+  ignoredColumns: string[];
+  createdColumns: string[];
+};
 
-  return response.data;
+export type ImportNewColumn = {
+  header: string;
+  fieldName: string;
+  fieldType: string;
+};
+
+export const importLeads = async (input: {
+  excelData: Record<string, unknown>[];
+  moduleType: string;
+  columnMap: Record<string, string>;
+  nameColumn: string;
+  newColumns: ImportNewColumn[];
+}) => {
+  const response = await axiosClient.post("/api/boards/csv-import", input);
+
+  return response.data as ImportResult;
 };
 
 export const sendBulkEmail = async (data: {
@@ -416,10 +436,11 @@ export interface Activity {
 export const getActivities = async (
   recordId: string,
   page: number = 1,
-  limit: number = 15
+  limit: number = 15,
+  filters?: { activityType?: string; status?: string }
 ) => {
   const response = await axiosClient.get(`/api/boards/${recordId}/activities`, {
-    params: { page, limit },
+    params: { page, limit, ...filters },
   });
 
   return response.data as { data: Activity[]; total: number };

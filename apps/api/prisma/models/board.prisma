@@ -21,6 +21,7 @@ model Module {
   recipientGroups RecipientGroup[]
   forms           Form[]
   savedReports    SavedReport[]
+  customAnalytics CustomAnalytic[]
 
   @@unique([organizationId, key])
   @@index([organizationId, isArchived, moduleOrder])
@@ -76,6 +77,7 @@ model Board {
   formSubmissions   FormSubmission[]
   blastRecipients   BlastRecipient[]
   emailSubscribers  EmailSubscriber[]
+  marketingLogs     Marketing[]
 
   @@index([organizationId, recordName])
   @@index([organizationId, moduleType, isDeleted, createdAt])

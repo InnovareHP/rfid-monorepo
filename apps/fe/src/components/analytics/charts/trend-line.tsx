@@ -15,6 +15,7 @@ const chartConfig = {
 type TrendLineProps = {
   data: MonthlyPoint[];
   emptyMessage?: string;
+  compact?: boolean;
 };
 
 type TrendDotProps = {
@@ -26,6 +27,7 @@ type TrendDotProps = {
 export function TrendLine({
   data,
   emptyMessage = "No trend data available",
+  compact = false,
 }: TrendLineProps) {
   if (data.length === 0) {
     return (
@@ -57,11 +59,24 @@ export function TrendLine({
   };
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-64 w-full">
-      <LineChart data={data} margin={{ top: 16, right: 16, bottom: 0, left: 8 }}>
+    <ChartContainer
+      config={chartConfig}
+      className={
+        compact ? "aspect-auto h-40 w-full" : "aspect-auto h-64 w-full"
+      }
+    >
+      <LineChart
+        data={data}
+        margin={
+          compact
+            ? { top: 8, right: 8, bottom: 0, left: 0 }
+            : { top: 16, right: 16, bottom: 0, left: 8 }
+        }
+      >
         <CartesianGrid vertical={false} stroke="var(--color-border)" />
         <XAxis
           dataKey="label"
+          hide={compact}
           tickLine={false}
           axisLine={false}
           tickMargin={12}
@@ -73,7 +88,7 @@ export function TrendLine({
           type="natural"
           stroke="var(--color-total)"
           strokeWidth={3}
-          dot={renderDot}
+          dot={compact ? false : renderDot}
           activeDot={{ r: 7 }}
         />
       </LineChart>

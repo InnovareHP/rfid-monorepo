@@ -63,6 +63,28 @@ function subItemIsActive(pathname: string, subItem: NavSubItem) {
   );
 }
 
+function collectUrls(items: NavItem[]) {
+  return items.flatMap((item) => [
+    ...(item.url ? [item.url] : []),
+    ...(item.items ?? []).flatMap((subItem) => [
+      subItem.url,
+      ...(subItem.items ?? []).map((child) => child.url),
+    ]),
+  ]);
+}
+
+// Only the deepest matching url lights up. One row's url can be an ancestor of
+// another's (/analytics/custom vs /analytics/custom/dashboards), and subtree
+// matching alone would light both rows on the deeper page.
+function findActiveUrl(pathname: string, items: NavItem[]) {
+  return collectUrls(items)
+    .filter((url) => matchesPath(pathname, url))
+    .reduce<string | null>(
+      (best, url) => (best && best.length >= url.length ? best : url),
+      null
+    );
+}
+
 export const NavMain = React.memo(function NavMain({
   items,
 }: {
@@ -77,6 +99,10 @@ export const NavMain = React.memo(function NavMain({
   const [openOverrides, setOpenOverrides] = React.useState<
     Record<string, boolean>
   >({});
+  const activeUrl = React.useMemo(
+    () => findActiveUrl(pathname, items),
+    [pathname, items]
+  );
 
   return (
     <SidebarGroup>
@@ -88,7 +114,7 @@ export const NavMain = React.memo(function NavMain({
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   tooltip={item.title}
-                  isActive={Boolean(item.url && matchesPath(pathname, item.url))}
+                  isActive={item.url === activeUrl}
                   onClick={() => setOpen(true)}
                   asChild
                 >
@@ -128,7 +154,7 @@ export const NavMain = React.memo(function NavMain({
                           asChild
                           className={cn(
                             "border border-transparent transition-all duration-150 ease-out hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground hover:border-border/80",
-                            matchesPath(pathname, subItem.url) &&
+                            subItem.url === activeUrl &&
                               "bg-accent text-accent-foreground border-border/80"
                           )}
                         >
@@ -146,7 +172,7 @@ export const NavMain = React.memo(function NavMain({
                             asChild
                             className={cn(
                               "border border-transparent pl-6 transition-all duration-150 ease-out hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground hover:border-border/80",
-                              matchesPath(pathname, child.url) &&
+                              child.url === activeUrl &&
                                 "bg-accent text-accent-foreground border-border/80"
                             )}
                           >
@@ -201,7 +227,7 @@ export const NavMain = React.memo(function NavMain({
                       return (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
-                            isActive={matchesPath(pathname, subItem.url)}
+                            isActive={subItem.url === activeUrl}
                             className={cn(subItem.items?.length && "pr-8")}
                             asChild
                           >
@@ -235,10 +261,7 @@ export const NavMain = React.memo(function NavMain({
                                     <SidebarMenuSubItem key={child.title}>
                                       <SidebarMenuSubButton
                                         size="sm"
-                                        isActive={matchesPath(
-                                          pathname,
-                                          child.url
-                                        )}
+                                        isActive={child.url === activeUrl}
                                         asChild
                                       >
                                         <Link preload="intent" to={child.url}>

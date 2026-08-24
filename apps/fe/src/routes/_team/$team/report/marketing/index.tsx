@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_team/$team/report/marketing/")({
   beforeLoad: async (context) => {
-    return AuthorizedRoute(context, { report: ["read"] });
+    return AuthorizedRoute(context, { analytics: ["read"] });
   },
   component: RouteComponent,
 });

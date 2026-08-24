@@ -159,7 +159,7 @@ export function GroupEditorDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Group Name <span className="text-red-500">*</span>
+                      Group Name <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="Referring physicians" {...field} />
@@ -266,7 +266,7 @@ export function GroupEditorDialog({
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-900">
+                <h4 className="text-sm font-semibold text-foreground">
                   Recipients in this group
                 </h4>
                 {isFetching && (
@@ -287,7 +287,7 @@ export function GroupEditorDialog({
             Cancel
           </Button>
           <Button
-            className="bg-brand text-white hover:bg-brand/90"
+           
             disabled={saveMutation.isPending}
             onClick={form.handleSubmit((values) => saveMutation.mutate(values))}
           >

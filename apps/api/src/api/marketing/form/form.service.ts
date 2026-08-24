@@ -115,7 +115,7 @@ export class FormService {
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
         ...(dto.moduleType !== undefined && {
           moduleType: toModuleType(dto.moduleType),
-          moduleId: await resolveModuleId(dto.moduleType),
+          moduleId: await resolveModuleId(dto.moduleType, organizationId),
         }),
         ...(dto.fieldMappings !== undefined && {
           fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
@@ -378,7 +378,7 @@ export class FormService {
         organizationId,
         campaignId: dto.campaignId ?? null,
         moduleType: toModuleType(moduleKey),
-        moduleId: await resolveModuleId(moduleKey),
+        moduleId: await resolveModuleId(moduleKey, organizationId),
         fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
         submitButtonText: dto.submitButtonText ?? "Submit",
         redirectUrl: dto.redirectUrl ?? null,

@@ -1,6 +1,6 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
 import { RecordActions } from "@/components/reusable-table/record-actions";
-import { Checkbox } from "@dashboard/ui/components/checkbox";
+import { createSelectColumn } from "../reusable-table/select-column";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { User } from "better-auth";
 import { Bell, HistoryIcon, SearchIcon } from "lucide-react";
@@ -11,6 +11,7 @@ type ColumnType = {
   id: string;
   name: string;
   type: string;
+  hasData?: boolean;
 };
 
 type LeadRow = {
@@ -48,6 +49,7 @@ export function generateLeadColumns(
             sortBy={sortState?.sortBy}
             sortOrder={sortState?.sortOrder}
             onSort={onSort}
+            canDelete={!col.hasData}
           />
         ) : (
           col.name
@@ -68,21 +70,7 @@ export function generateLeadColumns(
     })
   );
 
-  const selectColumn: ColumnDef<LeadRow> = {
-    id: "select",
-    header: () => <div className="px-4">Select</div>,
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-    enableResizing: false,
-    size: 100,
-  };
+  const selectColumn = createSelectColumn<LeadRow>(100);
 
   const OrganizerColumn: ColumnDef<LeadRow> = {
     header: () =>

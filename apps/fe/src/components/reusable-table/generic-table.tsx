@@ -1,5 +1,4 @@
 import { Button } from "@dashboard/ui/components/button";
-import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 import {
   Table,
   TableBody,
@@ -75,8 +74,16 @@ export function ReusableTable<T>({
 
   return (
     <div className="w-full border border-border rounded-lg overflow-hidden bg-card shadow-sm">
-      <ScrollArea>
-        <Table className={cn("border-0 w-full", tableClassName)}>
+      {/* Native scroll rather than Radix ScrollArea, which defaults to
+          type="hover" and so never shows a scrollbar on touch. The Table
+          primitive's own container is opted out of overflow so this element
+          owns it -- nesting two scroll containers is what made wide tables
+          read as clipped on a phone. */}
+      <div className="w-full overflow-auto overscroll-x-contain">
+        <Table
+          containerClassName="overflow-visible"
+          className={cn("border-0 w-full", tableClassName)}
+        >
           <TableHeader>
             <TableRow className="border-b border-border bg-table-header hover:bg-table-header">
               {columns.map((col, idx) => (
@@ -168,8 +175,7 @@ export function ReusableTable<T>({
             )}
           </TableBody>
         </Table>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
 
       {/* Pagination */}
       {onPageChange && totalPages > 1 && !isLoading && (

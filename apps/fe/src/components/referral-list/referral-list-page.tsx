@@ -15,13 +15,9 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
-import {
-  getCoreRowModel,
-  useReactTable,
-  type Header,
-} from "@tanstack/react-table";
+import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { KanbanSquare, Plus, Settings, TableProperties } from "lucide-react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import KanbanView from "@/components/kanban/kanban-view";
 import { KanbanSettingsDialog } from "@/components/kanban/kanban-settings-dialog";
@@ -202,37 +198,19 @@ export default function ReferralListPage() {
       .getAllColumns()
       .filter((column) => column.id !== "create_column")
       .map((column) => {
-        const header = column.columnDef.header;
-        let columnLabel = column.id || "Unnamed Column"; // Default to column id
-
-        if (typeof header === "string") {
-          columnLabel = header;
-        } else if (typeof header === "function") {
-          const renderedHeader = header({
-            column,
-            header: column.columnDef.header as unknown as Header<
-              unknown,
-              unknown
-            >,
-            table,
-          });
-
-          if (React.isValidElement(renderedHeader)) {
-            const props = renderedHeader.props as {
-              children: string | string[];
-            };
-            if (typeof props.children === "string") {
-              columnLabel = props.children;
-            } else if (Array.isArray(props.children)) {
-              columnLabel = props.children
-                .map((child) => (typeof child === "string" ? child : ""))
-                .join("");
-            }
-          }
-        }
+        const accessorKey = (column.columnDef as any).accessorKey as
+          | string
+          | undefined;
+        // The name column's accessorKey is a placeholder ("record_name"),
+        // not the user-facing label; every other column's accessorKey is
+        // already the real field name.
+        const label =
+          accessorKey === "record_name"
+            ? "Referral Name"
+            : (accessorKey ?? column.id ?? "Unnamed Column");
 
         return {
-          label: columnLabel, // Extracted column name
+          label,
           accessorFn: column.id,
           getCanHide: column.getCanHide,
           getIsVisible: column.getIsVisible,

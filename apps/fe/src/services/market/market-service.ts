@@ -1,6 +1,13 @@
 import { axiosClient } from "@/lib/axios-client";
+import type { MarketingReportResponse } from "@dashboard/shared";
 
-export const getMarketLogs = async (filters?: any) => {
+type MarketLogsResponse = MarketingReportResponse & {
+  columns: { id: string; name: string; type: string }[];
+};
+
+export const getMarketLogs = async (
+  filters?: any
+): Promise<MarketLogsResponse> => {
   const response = await axiosClient.get("/api/liaison/marketing", {
     params: {
       ...filters,

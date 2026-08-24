@@ -1,6 +1,5 @@
 import {
   BOARD_NOTIFICATION_EVENT,
-  normalizeKey,
   normalizeOptionValue,
 } from "@dashboard/shared";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
@@ -21,16 +20,19 @@ export interface CsvImportJobData {
   organizationId: string;
   moduleType: string;
   userId: string;
+  columnMap: Record<string, string>;
+  nameColumn: string;
 }
 
-function resolveRecordName(row: Record<string, unknown>): string {
-  return String(
-    row["Name of Organization"] ||
-      row["Company Name"] ||
-      row["Organization"] ||
-      row["Org Name"] ||
-      "Untitled Lead"
-  );
+// unknown, not string: a cell can come through as a number, boolean, or a
+// stray object/array, and String() on the latter silently writes "[object Object]".
+function stringifyCell(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
 }
 
 @Processor(QUEUE_NAMES.CSV_IMPORT)
@@ -50,25 +52,44 @@ export class CsvImportProcessor extends WorkerHost {
   }
 
   private async handle(job: Job<CsvImportJobData>) {
-    const { excelData, organizationId, moduleType } = job.data;
+    const { excelData, organizationId, moduleType, columnMap, nameColumn } =
+      job.data;
 
     this.logger.log(
       `Processing CSV import job ${job.id} — ${excelData.length} rows`
     );
 
-    const moduleId = await resolveModuleId(moduleType);
+    const moduleId = await resolveModuleId(moduleType, organizationId);
 
+    // A custom module's label lives only in this row, not in SYSTEM_MODULES.
+    const { labelSingular } = await prisma.module.findUniqueOrThrow({
+      where: { id: moduleId },
+      select: { labelSingular: true },
+    });
+
+    // isDeleted matters: the board only renders live fields, so a value written
+    // onto a soft-deleted one is stored and never seen again.
     const fields = (await prisma.field.findMany({
       where: {
         organizationId: organizationId,
         moduleId: moduleId,
+        isDeleted: false,
       },
       include: { options: true },
     })) as (Field & { options: FieldOption[] })[];
 
-    const fieldMap = new Map<string, Field & { options: FieldOption[] }>();
-    for (const field of fields) {
-      fieldMap.set(normalizeKey(field.fieldName), field);
+    const fieldById = new Map(fields.map((field) => [field.id, field]));
+
+    // The mapping is the user's, but the ids in it are still theirs to prove:
+    // anything outside this module's live fields is dropped, not trusted.
+    const fieldByHeader = new Map<string, Field & { options: FieldOption[] }>();
+    for (const [header, fieldId] of Object.entries(columnMap)) {
+      const field = fieldById.get(fieldId);
+      if (field) fieldByHeader.set(header, field);
+    }
+
+    if (fieldByHeader.size === 0) {
+      throw new Error("No CSV column maps to a field on this module");
     }
 
     // Ids are generated here rather than read back after the insert: the read
@@ -91,7 +112,9 @@ export class CsvImportProcessor extends WorkerHost {
     const optionsToCreate = new Map<string, Set<string>>();
 
     excelData.forEach((row, rowIndex) => {
-      const recordName = resolveRecordName(row);
+      const recordName =
+        normalizeOptionValue(stringifyCell(row[nameColumn])) ||
+        `Untitled ${labelSingular}`;
 
       recordsToCreate.push({
         id: uuidv4(),
@@ -101,13 +124,14 @@ export class CsvImportProcessor extends WorkerHost {
         moduleId: moduleId,
       });
 
-      for (const [csvFieldName, rawValue] of Object.entries(row)) {
-        if (!rawValue || String(rawValue).trim() === "") continue;
+      for (const [header, rawValue] of Object.entries(row)) {
+        const rawText = stringifyCell(rawValue);
+        if (!rawText.trim()) continue;
 
-        const field = fieldMap.get(normalizeKey(csvFieldName));
+        const field = fieldByHeader.get(header);
         if (!field) continue;
 
-        let value = normalizeOptionValue(String(rawValue));
+        let value = normalizeOptionValue(rawText);
         if (!value) continue;
 
         if (isSelectType(field.fieldType)) {
@@ -144,7 +168,7 @@ export class CsvImportProcessor extends WorkerHost {
       }
 
       if ((rowIndex + 1) % 50 === 0) {
-        job.updateProgress({
+        void job.updateProgress({
           phase: "parsing",
           processed: rowIndex + 1,
           total: excelData.length,

@@ -1,13 +1,14 @@
 import { formatCapitalize, formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
-import { AlertTriangle, ArrowRight, Loader2, RotateCcw, X } from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogFormFooter,
+  DialogFormHeader,
+} from "@dashboard/ui/components/dialog";
+import { Spinner } from "@dashboard/ui/components/spinner";
+import { ArrowRight, RotateCcw } from "lucide-react";
+import { HistoryDetailField } from "./history-detail-field";
 
 interface RestoreHistoryModalProps {
   open: boolean;
@@ -37,156 +38,104 @@ export function RestoreHistoryModal({
   onConfirm,
   isRestoring,
 }: RestoreHistoryModalProps) {
-  if (!open || !historyItem) return null;
+  if (!historyItem) return null;
 
   const handleConfirm = async () => {
     await onConfirm(historyItem.leadId, historyItem.id, historyItem.action);
     onOpenChange(false);
   };
 
-  const handleCancel = () => {
-    if (!isRestoring) {
-      onOpenChange(false);
-    }
-  };
-
   const isDelete = historyItem.action.toLowerCase() === "delete";
   const isUpdate = historyItem.action.toLowerCase() === "update";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={handleCancel}
-      />
-      <Card className="relative z-[100] w-full max-w-2xl mx-4 shadow-2xl">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/20">
-              <RotateCcw className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-            </div>
-            <div className="flex-1">
-              <CardTitle className="text-orange-600 dark:text-orange-400">
-                Restore History
-              </CardTitle>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancel}
-              className="h-8 w-8 p-0"
-              disabled={isRestoring}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!isRestoring) onOpenChange(next);
+      }}
+    >
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogFormHeader
+          icon={<RotateCcw />}
+          iconClassName="bg-warning text-warning-foreground"
+          title="Restore History"
+          description={`Are you sure you want to restore this ${formatCapitalize(historyItem.action)} action?`}
+        />
+
+        <div className="space-y-4 px-6 py-5">
+          <div className="grid grid-cols-1 gap-4 rounded-lg bg-muted p-4 sm:grid-cols-2">
+            <HistoryDetailField
+              label="Action Type"
+              value={formatCapitalize(historyItem.action)}
+            />
+            <HistoryDetailField label="Entity Type" value={historyItem.entityType} />
+            <HistoryDetailField label="Changed By" value={historyItem.createdBy} />
+            <HistoryDetailField
+              label="Changed At"
+              value={formatDateTime(historyItem.createdAt)}
+            />
           </div>
-          <CardDescription className="space-y-4 pt-4">
-            <div className="flex items-center gap-2 text-sm">
-              <AlertTriangle className="w-4 h-4 text-orange-500" />
-              <span>
-                Are you sure you want to restore this{" "}
-                {formatCapitalize(historyItem.action)} action?
-              </span>
+
+          {isUpdate && (
+            <div className="rounded-lg border border-primary/30 bg-primary/10 p-4">
+              <p className="mb-2 text-xs font-semibold text-primary">
+                This will revert the change:
+              </p>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="rounded bg-destructive/10 px-2 py-1 font-mono text-destructive">
+                  {historyItem.oldValue || "(empty)"}
+                </span>
+                <ArrowRight className="size-4 text-muted-foreground" />
+                <span className="rounded bg-success/10 px-2 py-1 font-mono text-success">
+                  {historyItem.newValue || "(empty)"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-primary">
+                Restoring will change it back to:{" "}
+                <span className="font-semibold">
+                  {historyItem.oldValue || "(empty)"}
+                </span>
+              </p>
             </div>
+          )}
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                  Action Type
-                </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {formatCapitalize(historyItem.action)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                  Entity Type
-                </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {historyItem.entityType}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                  Changed By
-                </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {historyItem.createdBy}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                  Changed At
-                </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {formatDateTime(historyItem.createdAt)}
-                </p>
-              </div>
+          {isDelete && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <p className="mb-2 text-xs font-semibold text-destructive">
+                This will restore a deleted record
+              </p>
+              <p className="text-xs text-destructive">
+                The {historyItem.entityType} that was deleted will be restored
+                with its previous data.
+              </p>
             </div>
+          )}
+        </div>
 
-            {isUpdate && (
-              <div className="p-4 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/30 dark:border-primary">
-                <p className="text-xs font-semibold text-primary dark:text-primary mb-2">
-                  This will revert the change:
-                </p>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded font-mono">
-                    {historyItem.oldValue || "(empty)"}
-                  </span>
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded font-mono">
-                    {historyItem.newValue || "(empty)"}
-                  </span>
-                </div>
-                <p className="text-xs text-primary dark:text-primary mt-2">
-                  Restoring will change it back to:{" "}
-                  <span className="font-semibold">
-                    {historyItem.oldValue || "(empty)"}
-                  </span>
-                </p>
-              </div>
-            )}
-
-            {isDelete && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">
-                  This will restore a deleted record
-                </p>
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  The {historyItem.entityType} that was deleted will be restored
-                  with its previous data.
-                </p>
-              </div>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex justify-end gap-2">
+        <DialogFormFooter>
           <Button
             variant="outline"
-            onClick={handleCancel}
+            onClick={() => onOpenChange(false)}
             disabled={isRestoring}
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={isRestoring}
-            className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
-          >
+          <Button onClick={handleConfirm} disabled={isRestoring}>
             {isRestoring ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Spinner size="sm" className="mr-2 text-current" />
                 Restoring...
               </>
             ) : (
               <>
-                <RotateCcw className="w-4 h-4 mr-2" />
+                <RotateCcw className="mr-2 size-4" />
                 Restore
               </>
             )}
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </DialogFormFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

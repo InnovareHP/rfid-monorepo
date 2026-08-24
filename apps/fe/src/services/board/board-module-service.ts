@@ -41,13 +41,15 @@ export const updateModuleRecord = async (
   recordId: string,
   fieldId: string,
   value: string,
-  previousValue?: string
+  previousValue?: string,
+  reason?: string
 ) => {
   const response = await axiosClient.patch(`/api/boards/${recordId}`, {
     value,
     fieldId,
     moduleType,
     previousValue,
+    reason,
   });
 
   return response.data;

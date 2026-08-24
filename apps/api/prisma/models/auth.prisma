@@ -1,29 +1,29 @@
 model User {
-  id               String          @id @default(dbgenerated("gen_random_uuid()"))
-  name             String
-  email            String          @unique
-  emailVerified    Boolean
-  image            String?
-  createdAt        DateTime        @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime        @default(now()) @db.Timestamptz(3)
-  banExpires       DateTime?       @db.Timestamptz(3)
-  isActive         Boolean         @default(false)
-  stripeCustomerId String?
-  twoFactorEnabled Boolean?
-  isOnboarded      Boolean         @default(false)
-  role             String          @default("user")
-  banReason        String?
-  banned           Boolean         @default(false)
+  id                    String          @id @default(dbgenerated("gen_random_uuid()"))
+  name                  String
+  email                 String          @unique
+  emailVerified         Boolean
+  image                 String?
+  createdAt             DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime        @default(now()) @db.Timestamptz(3)
+  banExpires            DateTime?       @db.Timestamptz(3)
+  isActive              Boolean         @default(false)
+  stripeCustomerId      String?
+  twoFactorEnabled      Boolean?
+  isOnboarded           Boolean         @default(false)
+  role                  String          @default("user")
+  banReason             String?
+  banned                Boolean         @default(false)
   // Set when the user declines the post-login passkey offer, so it is offered
   // once rather than on every sign-in. Passkeys stay optional either way.
-  passkeyPromptWaivedAt DateTime? @db.Timestamptz(3)
-  invitations      Invitation[]
-  members          Member[]
-  accounts         UserAccount[]
-  passkeys         Passkey[]
-  onboarding       UserOnboarding?
-  Board            Board[]
-  History          History[]
+  passkeyPromptWaivedAt DateTime?       @db.Timestamptz(3)
+  invitations           Invitation[]
+  members               Member[]
+  accounts              UserAccount[]
+  passkeys              Passkey[]
+  onboarding            UserOnboarding?
+  Board                 Board[]
+  History               History[]
 
   SupportTicket             SupportTicket[]             @relation("SupportTicketCreateBy")
   SupportTicketAssignedTo   SupportTicket[]             @relation("SupportTicketAssignedTo")
@@ -43,6 +43,8 @@ model User {
   TwoFactor                 TwoFactor[]
   createdTasks              Task[]                      @relation("TaskCreatedBy")
   savedReports              SavedReport[]               @relation("SavedReportCreatedBy")
+  customAnalytics           CustomAnalytic[]            @relation("CustomAnalyticCreatedBy")
+  customAnalyticDashboards  CustomAnalyticDashboard[]   @relation("CustomAnalyticDashboardCreatedBy")
   taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
@@ -50,8 +52,8 @@ model User {
   createdCampaigns          Campaign[]
   createdBlasts             Blast[]
   createdRecipientGroups    RecipientGroup[]
-  createdSenderIdentities   SenderIdentity[]           @relation("SenderIdentityCreator")
-  senderMailboxes           SenderIdentity[]           @relation("SenderIdentityMailbox")
+  createdSenderIdentities   SenderIdentity[]            @relation("SenderIdentityCreator")
+  senderMailboxes           SenderIdentity[]            @relation("SenderIdentityMailbox")
   createdForms              Form[]
   createdLandingPages       LandingPage[]
 
@@ -134,37 +136,39 @@ model Organization {
   retentionDays Int       @default(2555)
   ipAllowlist   String[]  @default([])
 
-  invitations     Invitation[]
-  members         Member[]
-  agreements      ContractAgreement[]
-  modules         Module[]
-  savedReports    SavedReport[]
-  Board           Board[]
-  Field           Field[]
-  BoardCounty     BoardCounty[]
-  Activity        Activity[]
-  emailOpenEvents EmailOpenEvent[]
-  emailIngest     EmailIngestAddress?
-  integrations    OrgIntegration[]
-  taskProjects    TaskProject[]
-  taskLists       TaskList[]
-  taskStatuses    TaskStatus[]
-  tasks           Task[]
-  taskLabels      TaskLabel[]
-  taskTimeEntries TaskTimeEntry[]
-  campaigns       Campaign[]
-  blasts          Blast[]
-  recipientGroups  RecipientGroup[]
-  senderIdentities SenderIdentity[]
-  forms           Form[]
-  formSubmissions FormSubmission[]
-  blastRecipients BlastRecipient[]
-  emailSubscribers EmailSubscriber[]
-  landingPages    LandingPage[]
-  notifications   Notification[]
-  expenses        Expense[]
-  mileages        Mileage[]
-  marketingVisits Marketing[]
+  invitations              Invitation[]
+  members                  Member[]
+  agreements               ContractAgreement[]
+  modules                  Module[]
+  savedReports             SavedReport[]
+  customAnalytics          CustomAnalytic[]
+  customAnalyticDashboards CustomAnalyticDashboard[]
+  Board                    Board[]
+  Field                    Field[]
+  BoardCounty              BoardCounty[]
+  Activity                 Activity[]
+  emailOpenEvents          EmailOpenEvent[]
+  emailIngest              EmailIngestAddress?
+  integrations             OrgIntegration[]
+  taskProjects             TaskProject[]
+  taskLists                TaskList[]
+  taskStatuses             TaskStatus[]
+  tasks                    Task[]
+  taskLabels               TaskLabel[]
+  taskTimeEntries          TaskTimeEntry[]
+  campaigns                Campaign[]
+  blasts                   Blast[]
+  recipientGroups          RecipientGroup[]
+  senderIdentities         SenderIdentity[]
+  forms                    Form[]
+  formSubmissions          FormSubmission[]
+  blastRecipients          BlastRecipient[]
+  emailSubscribers         EmailSubscriber[]
+  landingPages             LandingPage[]
+  notifications            Notification[]
+  expenses                 Expense[]
+  mileages                 Mileage[]
+  marketingVisits          Marketing[]
 
   @@schema("auth_schema")
 }
@@ -185,13 +189,13 @@ model OrgIntegration {
 }
 
 model Member {
-  id             String       @id
+  id             String         @id
   organizationId String
   userId         String
   role           String
-  createdAt      DateTime     @db.Timestamptz(3)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @db.Timestamptz(3)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   marketing      Marketing[]
   mileage        Mileage[]
   expense        Expense[]

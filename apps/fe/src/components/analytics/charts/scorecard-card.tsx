@@ -16,6 +16,7 @@ type ScorecardCardProps = {
 };
 
 export function ScorecardCard({ sources }: ScorecardCardProps) {
+  // Four columns cannot fit a phone, so the grid keeps its width and scrolls sideways.
   return (
     <ChartCard title="Referral Source Scorecard">
       {sources.length === 0 ? (
@@ -23,8 +24,8 @@ export function ScorecardCard({ sources }: ScorecardCardProps) {
           No scorecard data available
         </p>
       ) : (
-        <div className="max-h-72 overflow-hidden overflow-y-auto rounded-xl border">
-          <div className="grid grid-cols-4 gap-2 bg-brand/5 px-4 py-3 text-xs font-medium text-foreground">
+        <div className="max-h-72 overflow-auto rounded-xl border">
+          <div className="grid min-w-[26rem] grid-cols-4 gap-2 bg-brand/5 px-4 py-3 text-xs font-medium text-foreground">
             <span>Source</span>
             <span>Tier</span>
             <span className="text-right">Referrals</span>
@@ -34,7 +35,7 @@ export function ScorecardCard({ sources }: ScorecardCardProps) {
           {sources.map((source, index) => (
             <div
               key={`${source.sourceName}-${index}`}
-              className="grid grid-cols-4 items-center gap-2 border-t px-4 py-3"
+              className="grid min-w-[26rem] grid-cols-4 items-center gap-2 border-t px-4 py-3"
             >
               <span
                 className="truncate text-sm font-medium"

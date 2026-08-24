@@ -26,3 +26,106 @@ model SavedReport {
   @@index([organizationId, moduleId])
   @@schema("board_schema")
 }
+
+enum CustomAnalyticChartType {
+  BAR
+  LINE
+  PIE
+  KPI
+  TABLE
+
+  @@schema("board_schema")
+}
+
+enum CustomAnalyticAggregation {
+  SUM
+  AVG
+  COUNT
+  MIN
+  MAX
+
+  @@schema("board_schema")
+}
+
+// An explicit grouping mode, since "group by owner" cannot be expressed as a
+// Field/FieldValue lookup (Board.assignedTo is a scalar column) and "group by
+// date" needs a bucket size, not a field id.
+enum CustomAnalyticDimensionType {
+  FIELD
+  OWNER
+  DATE
+
+  @@schema("board_schema")
+}
+
+enum CustomAnalyticDateBucket {
+  DAY
+  WEEK
+  MONTH
+
+  @@schema("board_schema")
+}
+
+// A saved chart config over one module. Metric/dimension are field ids, never
+// field names, so two same-named fields in a module cannot collide.
+model CustomAnalytic {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  name      String
+
+  chartType         CustomAnalyticChartType
+  metricFieldId     String?
+  metricAggregation CustomAnalyticAggregation @default(COUNT)
+
+  // dimensionFieldId is required only when dimensionType is FIELD; dateBucket
+  // is used when dimensionType is DATE, and always for LINE.
+  dimensionType    CustomAnalyticDimensionType @default(FIELD)
+  dimensionFieldId String?
+  dateBucket       CustomAnalyticDateBucket?
+
+  // Only used when chartType is TABLE; same shape as SavedReport.columnIds.
+  columnIds String[]
+  filter    Json
+  rangeDays Int?
+
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  creator   User?   @relation("CustomAnalyticCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  dashboardId String?
+  dashboard   CustomAnalyticDashboard? @relation(fields: [dashboardId], references: [id], onDelete: SetNull)
+
+  // Position within `dashboard`, 0-based and dense. Meaningless (and reset to
+  // 0) when dashboardId is null.
+  dashboardOrder Int @default(0)
+
+  @@index([organizationId, moduleId])
+  @@index([organizationId, dashboardId, dashboardOrder])
+  @@schema("board_schema")
+}
+
+// A named collection of existing saved charts, rendered together as one page.
+// Deleting a dashboard never deletes the charts in it - SetNull, not Cascade.
+model CustomAnalyticDashboard {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  name      String
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  creator   User?   @relation("CustomAnalyticDashboardCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  analytics CustomAnalytic[]
+
+  @@index([organizationId])
+  @@schema("board_schema")
+}

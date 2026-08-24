@@ -7,7 +7,14 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Board, BoardFieldType, Prisma } from "@prisma/client";
+import {
+  ActivityStatus,
+  ActivityType,
+  Board,
+  BoardFieldType,
+  ModuleType,
+  Prisma,
+} from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { appConfig } from "src/config/app-config";
 import { aiGenerateVision } from "src/lib/aws/ai-guard";
@@ -32,6 +39,7 @@ import { LiaisonActivityService } from "../liaison/liaison-activity.service";
 import { toComponents } from "../places/places.service";
 import { BoardNotifyService } from "./board-notify.service";
 import { BoardGateway } from "./board.gateway";
+import { CsvNewColumnsSchema } from "./dto/board.dto";
 import { UpdateContactDto } from "./dto/board.schema";
 import { EmailDispatchService } from "./email-dispatch.service";
 
@@ -107,7 +115,7 @@ export class BoardService {
       sortOrder = "asc",
     } = filters;
     const scopedModuleId = moduleType
-      ? await resolveModuleId(moduleType)
+      ? await resolveModuleId(moduleType, organizationId)
       : undefined;
 
     const cachedData = await getData(
@@ -164,6 +172,25 @@ export class BoardService {
         orderBy: { fieldOrder: "asc" },
       }),
     ]);
+
+    // A column can only be deleted while empty; check independently of the
+    // page/date/search filters above so "has data" reflects every record,
+    // not just the ones currently in view. Values are encrypted at rest, so
+    // emptiness is checked in JS after the read-path decrypts them, not in SQL.
+    const fieldValuesForDataCheck = await prisma.fieldValue.findMany({
+      where: {
+        fieldId: { in: fields.map((f) => f.id) },
+        record: { isDeleted: false, organizationId },
+      },
+      select: { fieldId: true, value: true },
+    });
+    // Trimmed to match deleteColumn's guard: if the two disagree, the header
+    // hides a Delete the server would have allowed.
+    const fieldIdsWithData = new Set(
+      fieldValuesForDataCheck
+        .filter((v) => v.value?.trim())
+        .map((v) => v.fieldId)
+    );
 
     // Link fields store the target board id; resolve to names for display
     // and keep the ids so the frontend can navigate to the target record.
@@ -295,6 +322,7 @@ export class BoardService {
         id: f.id,
         name: f.fieldName,
         type: f.fieldType,
+        hasData: fieldIdsWithData.has(f.id),
       })),
       data: formatted,
     };
@@ -309,7 +337,7 @@ export class BoardService {
   }
 
   async getBoardStats(organizationId: string, moduleType: string) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const cacheKey = `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:stats`;
     const cachedStats = await getData(cacheKey);
 
@@ -405,7 +433,7 @@ export class BoardService {
     page: number,
     limit: number
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const offset = (page - 1) * Number(limit);
     const records = await prisma.board.findMany({
       where: {
@@ -500,7 +528,7 @@ export class BoardService {
       userId,
       column,
     } = filters;
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const offset = (page - 1) * Number(limit);
 
     // Stats and filter options stay on the unfiltered org scope.
@@ -571,7 +599,7 @@ export class BoardService {
   // Stats and filter options span the whole org scope, so they are fetched
   // separately from the paged rows and only change when the module changes.
   async getRecordHistoryMeta(organizationId: string, moduleType: string) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const scope: Prisma.HistoryWhereInput = {
       record: {
         organizationId: organizationId,
@@ -996,7 +1024,7 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const record = await prisma.board.findUniqueOrThrow({
       where: {
         id: recordId,
@@ -1090,7 +1118,7 @@ export class BoardService {
   }
 
   async getColumns(organizationId: string, moduleType: string) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const columns = await prisma.field.findMany({
       where: {
         organizationId: organizationId,
@@ -1184,6 +1212,21 @@ export class BoardService {
       }));
     }
 
+    const field = await prisma.field.findFirst({
+      where: { id: fieldId, organizationId: organizationId, isDeleted: false },
+      select: { fieldName: true, moduleType: true },
+    });
+
+    // The referral County column is the county configuration: reading its
+    // options from FieldOption instead let the two lists drift, so a configured
+    // county never appeared and an ad-hoc option had no liaison mapping.
+    if (
+      field?.fieldName === "County" &&
+      field.moduleType === ModuleType.REFERRAL
+    ) {
+      return this.countyOptions(organizationId, field.fieldName, page, limit);
+    }
+
     const where: Prisma.FieldOptionFindManyArgs = {
       where: { fieldId: fieldId, isDeleted: false },
     };
@@ -1204,13 +1247,6 @@ export class BoardService {
       }));
     }
 
-    const field = await prisma.field.findUnique({
-      where: { id: fieldId, isDeleted: false },
-      select: {
-        fieldName: true,
-      },
-    });
-
     const total = await prisma.fieldOption.count({
       where: where.where,
     });
@@ -1226,6 +1262,54 @@ export class BoardService {
     };
   }
 
+  // Counties carry no colour of their own, so the shape matches a field option
+  // and the dropdown renders them without a special case.
+  private async countyOptions(
+    organizationId: string,
+    fieldName: string,
+    page: number | null,
+    limit: number | null
+  ) {
+    const where = { organizationId: organizationId };
+    const select = { id: true, countyName: true };
+    const orderBy = { countyName: "asc" } as const;
+
+    if (!page || !limit) {
+      const counties = await prisma.boardCounty.findMany({
+        where,
+        select,
+        orderBy,
+      });
+
+      return counties.map((c) => ({
+        id: c.id,
+        value: c.countyName,
+        color: null,
+      }));
+    }
+
+    const [counties, total] = await Promise.all([
+      prisma.boardCounty.findMany({
+        where,
+        select,
+        orderBy,
+        skip: (page - 1) * limit,
+        take: Number(limit),
+      }),
+      prisma.boardCounty.count({ where }),
+    ]);
+
+    return {
+      field: fieldName,
+      data: counties.map((c) => ({
+        id: c.id,
+        value: c.countyName,
+        color: null,
+      })),
+      total,
+    };
+  }
+
   async updateRecordValue(
     recordId: string,
     fieldId: string,
@@ -1236,7 +1320,7 @@ export class BoardService {
     reason?: string,
     previousValue?: string
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     try {
       let changedField: {
         id: string;
@@ -1787,8 +1871,14 @@ export class BoardService {
       ctx;
 
     if (field.fieldName === "County" && moduleType === "REFERRAL") {
+      const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+      // A county added straight from the dropdown writes a FieldOption and
+      // nothing else — its liaison mapping is a separate BoardCounty row that
+      // only the county config screen creates. No row means "no liaisons yet",
+      // which is a normal state, not a reason to refuse the edit.
       const [county, facilityField] = await Promise.all([
-        tx.boardCounty.findFirstOrThrow({
+        tx.boardCounty.findFirst({
           where: {
             countyName: value,
             organizationId: organizationId,
@@ -1801,10 +1891,12 @@ export class BoardService {
             },
           },
         }),
-        tx.field.findFirstOrThrow({
+        tx.field.findFirst({
           where: {
             fieldName: "Facility",
             organizationId: organizationId,
+            moduleId: scopedModuleId,
+            isDeleted: false,
           },
           select: {
             id: true,
@@ -1812,20 +1904,12 @@ export class BoardService {
         }),
       ]);
 
-      const [previousCounty, previousFacility] = await Promise.all([
-        tx.fieldValue.findUnique({
-          where: {
-            recordId_fieldId: { recordId: recordId, fieldId: field.id },
-          },
-          select: { value: true },
-        }),
-        tx.fieldValue.findUnique({
-          where: {
-            recordId_fieldId: { recordId: recordId, fieldId: facilityField.id },
-          },
-          select: { value: true },
-        }),
-      ]);
+      const previousCounty = await tx.fieldValue.findUnique({
+        where: {
+          recordId_fieldId: { recordId: recordId, fieldId: field.id },
+        },
+        select: { value: true },
+      });
 
       // Save County value
       await tx.fieldValue.upsert({
@@ -1844,29 +1928,6 @@ export class BoardService {
         },
       });
 
-      // Facility mirrors every liaison assigned to the county
-      const liaisons = county.boardCountyAssignedTo
-        .map((a) => a.assignedTo)
-        .join(", ");
-
-      await tx.fieldValue.upsert({
-        where: {
-          recordId_fieldId: {
-            recordId: recordId,
-            fieldId: facilityField.id,
-          },
-        },
-        update: {
-          value: liaisons,
-        },
-        create: {
-          recordId: recordId,
-          fieldId: facilityField.id,
-          value: liaisons,
-          organizationId: organizationId,
-        },
-      });
-
       await this.createRecordHistory(
         recordId,
         previousCounty?.value ?? "",
@@ -1878,16 +1939,52 @@ export class BoardService {
         field.id
       );
 
-      await this.createRecordHistory(
-        recordId,
-        previousFacility?.value ?? "",
-        liaisons,
-        memberId,
-        tx,
-        "update",
-        "Facility",
-        facilityField.id
-      );
+      // Facility mirrors every liaison assigned to the county, so an
+      // unassigned county clears it rather than leaving the previous one.
+      const liaisons = (county?.boardCountyAssignedTo ?? [])
+        .map((a) => a.assignedTo)
+        .join(", ");
+
+      if (facilityField) {
+        const previousFacility = await tx.fieldValue.findUnique({
+          where: {
+            recordId_fieldId: {
+              recordId: recordId,
+              fieldId: facilityField.id,
+            },
+          },
+          select: { value: true },
+        });
+
+        await tx.fieldValue.upsert({
+          where: {
+            recordId_fieldId: {
+              recordId: recordId,
+              fieldId: facilityField.id,
+            },
+          },
+          update: {
+            value: liaisons,
+          },
+          create: {
+            recordId: recordId,
+            fieldId: facilityField.id,
+            value: liaisons,
+            organizationId: organizationId,
+          },
+        });
+
+        await this.createRecordHistory(
+          recordId,
+          previousFacility?.value ?? "",
+          liaisons,
+          memberId,
+          tx,
+          "update",
+          "Facility",
+          facilityField.id
+        );
+      }
 
       await purgeAllCacheKeys(
         `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
@@ -1900,13 +1997,16 @@ export class BoardService {
         value,
         moduleType
       );
-      this.boardGateway.emitRecordValueUpdated(
-        organizationId,
-        recordId,
-        "Facility",
-        liaisons,
-        moduleType
-      );
+
+      if (facilityField) {
+        this.boardGateway.emitRecordValueUpdated(
+          organizationId,
+          recordId,
+          "Facility",
+          liaisons,
+          moduleType
+        );
+      }
 
       return {
         message: "County assigned successfully",
@@ -1927,7 +2027,7 @@ export class BoardService {
       field,
       memberId,
     } = ctx;
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
 
     if (field.fieldType === BoardFieldType.STATUS) {
       const statusFields = await tx.field.findMany({
@@ -2108,7 +2208,7 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const fields = await prisma.field.findMany({
       where: {
         organizationId: organizationId,
@@ -2188,7 +2288,7 @@ export class BoardService {
       initialValues,
       personContact,
     } = params;
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
 
     const board = await tx.board.create({
       data: {
@@ -2256,18 +2356,45 @@ export class BoardService {
       },
     });
 
-    return board;
+    const dynamicData: Record<string, string | null> = {};
+    for (const f of fields) {
+      dynamicData[f.fieldName] = initialValues?.[f.id] ?? null;
+    }
+
+    return { ...board, dynamicData };
+  }
+
+  // Matches the row shape getAllBoards flattens FieldValue rows into, so a
+  // live-created row renders its custom columns instead of coming in blank.
+  private buildCreatedRow(
+    board: { id: string; recordName: string; assignedTo?: string | null },
+    dynamicData: Record<string, string | null> = {},
+    linkIds: Record<string, string> = {}
+  ) {
+    return {
+      id: board.id,
+      recordName: board.recordName,
+      assignedTo: board.assignedTo ?? "",
+      has_notification: true,
+      linkIds,
+      ...dynamicData,
+    };
   }
 
   async afterRecordCreated(
-    record: Board,
+    record: Board & { dynamicData?: Record<string, string | null> },
     organizationId: string,
     moduleType: string
   ) {
     await purgeAllCacheKeys(
       `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
     );
-    this.boardGateway.emitRecordCreated(organizationId, record, moduleType);
+    const { dynamicData, ...board } = record;
+    this.boardGateway.emitRecordCreated(
+      organizationId,
+      this.buildCreatedRow(board, dynamicData),
+      moduleType
+    );
   }
 
   async createRecord(
@@ -2314,7 +2441,7 @@ export class BoardService {
     memberId: string,
     moduleType: string
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const result = await prisma.$transaction(async (tx) => {
       const fields = await tx.field.findMany({
         where: {
@@ -2358,6 +2485,11 @@ export class BoardService {
       const allHistoryEntries: any[] = [];
       const allNotificationStates: any[] = [];
       const allRelations: any[] = [];
+      const dynamicDataByRecord = new Map<
+        string,
+        Record<string, string | null>
+      >();
+      const linkIdsByRecord = new Map<string, Record<string, string>>();
 
       // One insert instead of one per item: a create per referral is a round
       // trip inside the 5s interactive transaction default, so a large batch
@@ -2380,6 +2512,9 @@ export class BoardService {
             referralData[field.fieldName] ??
             referralData[field.fieldName.toLowerCase()];
           let value: string | null = null;
+          // For a link field the row shown live carries the target's
+          // display name, same as getAllBoards; the raw id goes in linkIds.
+          let displayValue: string | null = null;
 
           if (customValue !== undefined && customValue !== null) {
             // Handle MULTISELECT type
@@ -2393,6 +2528,7 @@ export class BoardService {
                       .filter(Boolean)
                   : [];
               value = JSON.stringify(normalizedValue);
+              displayValue = value;
             } else if (this.isLinkFieldType(field.fieldType)) {
               const { targetModule, relation } = this.resolveLinkTarget(
                 moduleType,
@@ -2406,6 +2542,7 @@ export class BoardService {
                 candidates.find((c) => c.recordName === raw);
               // Store the target board id; skip unresolved names silently
               value = target?.id ?? null;
+              displayValue = target?.recordName ?? null;
               if (target) {
                 allRelations.push({
                   sourceId: recordId,
@@ -2413,9 +2550,13 @@ export class BoardService {
                   relationType: relation,
                   organizationId: organizationId,
                 });
+                const linkIds = linkIdsByRecord.get(recordId) ?? {};
+                linkIds[field.fieldName] = target.id;
+                linkIdsByRecord.set(recordId, linkIds);
               }
             } else {
               value = String(customValue);
+              displayValue = value;
             }
           }
 
@@ -2426,6 +2567,10 @@ export class BoardService {
             value: value,
             organizationId: organizationId,
           });
+
+          const row = dynamicDataByRecord.get(recordId) ?? {};
+          row[field.fieldName] = displayValue;
+          dynamicDataByRecord.set(recordId, row);
         }
 
         // Prepare history entry
@@ -2484,14 +2629,23 @@ export class BoardService {
       return {
         message: `${createdReferrals.length} referral(s) created successfully`,
         count: createdReferrals.length,
-        referrals: createdReferrals,
+        referrals: createdReferrals.map((r) => ({
+          ...r,
+          dynamicData: dynamicDataByRecord.get(r.id) ?? {},
+          linkIds: linkIdsByRecord.get(r.id) ?? {},
+        })),
       };
     });
 
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
     for (const referral of result.referrals) {
-      this.boardGateway.emitRecordCreated(organizationId, referral, moduleType);
+      const { dynamicData, linkIds, ...board } = referral;
+      this.boardGateway.emitRecordCreated(
+        organizationId,
+        this.buildCreatedRow(board, dynamicData, linkIds),
+        moduleType
+      );
 
       await this.boardNotify.notifyRecord({
         recordId: referral.id,
@@ -2588,7 +2742,7 @@ export class BoardService {
     userId: string,
     moduleType: string = "LEAD"
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const history = await prisma.history.findUniqueOrThrow({
       where: { id: history_id },
       select: {
@@ -2745,7 +2899,7 @@ export class BoardService {
     moduleType: string,
     organizationId: string
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     const lastColumn = await prisma.field.findFirst({
       where: {
         organizationId: organizationId,
@@ -2782,16 +2936,39 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
     const field = await prisma.field.findFirst({
       where: {
         id: columnId,
         organizationId: organizationId,
+        moduleId: scopedModuleId,
         isDeleted: false,
       },
     });
 
     if (!field) {
       throw new NotFoundException("Column not found");
+    }
+
+    // FieldValue.value is encrypted at rest, so "is it empty" cannot be asked in
+    // Postgres — an empty string's ciphertext looks like any other. NULLs skip
+    // encryption, so dropping those is the only part SQL can do up front.
+    const values = await prisma.fieldValue.findMany({
+      where: {
+        fieldId: columnId,
+        value: { not: null },
+        record: { organizationId, isDeleted: false },
+      },
+      select: { value: true },
+    });
+
+    const populated = values.filter((row) => row.value?.trim()).length;
+
+    if (populated > 0) {
+      throw new BadRequestException(
+        `"${field.fieldName}" still holds data on ${populated} record(s). Clear those values before deleting the column.`
+      );
     }
 
     await prisma.field.update({
@@ -3043,10 +3220,36 @@ export class BoardService {
   ) {
     const field = await prisma.field.findFirst({
       where: { id: fieldId, organizationId },
-      select: { organizationId: true },
+      select: { organizationId: true, fieldName: true, moduleType: true },
     });
 
     if (!field) throw new NotFoundException("Field not found");
+
+    // Referral counties live in the county configuration, so adding one from
+    // the column writes there. A FieldOption here would not show up at all,
+    // since that column reads its options from BoardCounty.
+    if (
+      field.fieldName === "County" &&
+      field.moduleType === ModuleType.REFERRAL
+    ) {
+      const existing = await prisma.boardCounty.findFirst({
+        where: { countyName: optionName, organizationId },
+        select: { id: true },
+      });
+
+      if (existing) {
+        throw new BadRequestException(`"${optionName}" already exists`);
+      }
+
+      // No liaisons yet: assigning them is the county configuration's job, and
+      // until then a referral on this county mirrors an empty Facility.
+      const county = await prisma.boardCounty.create({
+        data: { countyName: optionName, organizationId: organizationId },
+        select: { id: true, countyName: true },
+      });
+
+      return { id: county.id, value: county.countyName, color: null };
+    }
 
     return await prisma.fieldOption.create({
       data: {
@@ -3058,20 +3261,158 @@ export class BoardService {
     });
   }
 
+  // Creates the columns the user approved in the mapping step and returns
+  // header -> field id. Field has no unique constraint, so a name that already
+  // exists reuses that field rather than adding a near-duplicate to the schema.
+  private async createImportColumns(
+    newColumns: {
+      header: string;
+      fieldName: string;
+      fieldType: BoardFieldType;
+    }[],
+    existing: { id: string; fieldName: string; fieldOrder: number }[],
+    moduleType: string,
+    moduleId: string,
+    organizationId: string
+  ) {
+    if (newColumns.length === 0) return { map: {}, createdNames: [] };
+
+    // This controller has no ZodValidationPipe, so the body arrived unchecked.
+    const parsed = CsvNewColumnsSchema.safeParse(newColumns);
+    if (!parsed.success) {
+      throw new BadRequestException(
+        "New columns must each supply a header, a name, and an importable field type"
+      );
+    }
+    newColumns = parsed.data;
+
+    const byName = new Map(
+      existing.map((field) => [field.fieldName.trim().toLowerCase(), field.id])
+    );
+    const createdMap: Record<string, string> = {};
+    // Names of fields this import actually created, so the UI can say which.
+    const createdNames: string[] = [];
+    let nextOrder =
+      existing.reduce((max, field) => Math.max(max, field.fieldOrder), 0) + 1;
+
+    for (const column of newColumns) {
+      const key = column.fieldName.trim().toLowerCase();
+      const reused = byName.get(key);
+
+      if (reused) {
+        createdMap[column.header] = reused;
+        continue;
+      }
+
+      const field = await prisma.field.create({
+        data: {
+          fieldName: column.fieldName.trim(),
+          fieldType: column.fieldType,
+          fieldOrder: nextOrder,
+          organizationId,
+          moduleType: toModuleType(moduleType),
+          moduleId,
+        },
+        select: { id: true, fieldName: true, fieldType: true },
+      });
+
+      nextOrder += 1;
+      byName.set(key, field.id);
+      createdMap[column.header] = field.id;
+      createdNames.push(field.fieldName);
+
+      this.boardGateway.emitColumnCreated(
+        organizationId,
+        { id: field.id, name: field.fieldName, type: field.fieldType },
+        moduleType
+      );
+    }
+
+    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+
+    return { map: createdMap, createdNames };
+  }
+
   async createRecordDataFromCSV(
     excelData: Record<string, unknown>[],
     organizationId: string,
     moduleType: string,
-    userId: string
+    userId: string,
+    columnMap: Record<string, string>,
+    nameColumn: string,
+    newColumns: {
+      header: string;
+      fieldName: string;
+      fieldType: BoardFieldType;
+    }[] = []
   ) {
+    // Validate the module up front so a bad moduleType 404s on the request
+    // instead of failing silently deep inside the queue worker.
+    const moduleId = await resolveModuleId(moduleType, organizationId);
+
+    const headers = new Set(excelData.flatMap((row) => Object.keys(row)));
+
+    if (!headers.has(nameColumn)) {
+      throw new BadRequestException(
+        `Naming column "${nameColumn}" is not a column in the uploaded file`
+      );
+    }
+
+    // Only this module's live fields are mappable, so a stale or cross-tenant
+    // id is rejected here rather than silently dropping its column on import.
+    const fields = await prisma.field.findMany({
+      where: { organizationId, moduleId, isDeleted: false },
+      select: { id: true, fieldName: true, fieldOrder: true },
+    });
+    const fieldIds = new Set(fields.map((field) => field.id));
+
+    const mapped = Object.entries(columnMap).filter(([header]) =>
+      headers.has(header)
+    );
+
+    const unknownField = mapped.find(([, fieldId]) => !fieldIds.has(fieldId));
+    if (unknownField) {
+      throw new BadRequestException(
+        `Column "${unknownField[0]}" is mapped to a field that does not exist on this module`
+      );
+    }
+
+    const created = await this.createImportColumns(
+      newColumns.filter((column) => headers.has(column.header)),
+      fields,
+      moduleType,
+      moduleId,
+      organizationId
+    );
+
+    if (mapped.length + Object.keys(created.map).length === 0) {
+      throw new BadRequestException(
+        "Map at least one column to a field before importing"
+      );
+    }
+
+    // A created column wins: the user picked "create" for that header after
+    // seeing whatever the auto-match had proposed.
+    const scopedColumnMap = { ...Object.fromEntries(mapped), ...created.map };
+
     const job = await this.csvImportQueue.add("import", {
       excelData,
       organizationId,
       moduleType,
       userId,
+      columnMap: scopedColumnMap,
+      nameColumn,
     });
 
-    return { jobId: job.id, message: "CSV import queued" };
+    return {
+      jobId: job.id,
+      queuedRows: excelData.length,
+      createdColumns: created.createdNames,
+      // Named so the UI can say what it skipped instead of implying a total.
+      ignoredColumns: [...headers].filter(
+        (header) => !(header in scopedColumnMap)
+      ),
+    };
   }
 
   async createRecordHistory(
@@ -3267,16 +3608,21 @@ export class BoardService {
     recordId: string,
     organizationId: string,
     page: number = 1,
-    limit: number = 15
+    limit: number = 15,
+    activityType?: string,
+    status?: string
   ) {
     const offset = (page - 1) * limit;
+    const where: Prisma.ActivityWhereInput = {
+      recordId: recordId,
+      organizationId: organizationId,
+      ...(activityType && { activityType: activityType as ActivityType }),
+      ...(status && { status: status as ActivityStatus }),
+    };
 
     const [activities, total] = await Promise.all([
       prisma.activity.findMany({
-        where: {
-          recordId: recordId,
-          organizationId: organizationId,
-        },
+        where,
         include: {
           creator: {
             select: { name: true, email: true },
@@ -3286,12 +3632,7 @@ export class BoardService {
         take: limit,
         skip: offset,
       }),
-      prisma.activity.count({
-        where: {
-          recordId: recordId,
-          organizationId: organizationId,
-        },
-      }),
+      prisma.activity.count({ where }),
     ]);
 
     return {
@@ -3611,6 +3952,7 @@ export class BoardService {
   async updateActivity(
     activityId: string,
     organizationId: string,
+    userId: string,
     data: {
       title?: string;
       description?: string;
@@ -3621,7 +3963,7 @@ export class BoardService {
       emailBody?: string;
     }
   ) {
-    await prisma.activity.findFirstOrThrow({
+    const existingActivity = await prisma.activity.findFirstOrThrow({
       where: { id: activityId, organizationId: organizationId },
     });
 
@@ -3645,10 +3987,27 @@ export class BoardService {
       updateData.completedAt = null;
     }
 
-    return await prisma.activity.update({
+    const updated = await prisma.activity.update({
       where: { id: activityId },
       data: updateData,
     });
+
+    // An EMAIL activity only reaches the recipient on completion, so that is
+    // where the liaison touchpoint belongs rather than at creation.
+    if (
+      existingActivity.activityType === "EMAIL" &&
+      existingActivity.status !== "COMPLETED" &&
+      data.status === "COMPLETED"
+    ) {
+      await this.liaisonActivity.logRecordActivity({
+        recordId: existingActivity.recordId,
+        organizationId,
+        userId,
+        activityType: existingActivity.activityType,
+      });
+    }
+
+    return updated;
   }
 
   async deleteActivity(activityId: string, organizationId: string) {
@@ -3668,7 +4027,7 @@ export class BoardService {
     phone?: string,
     excludeRecordId?: string
   ) {
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     if (!email && !phone) {
       return { duplicates: [] };
     }
@@ -3736,14 +4095,4 @@ export class BoardService {
 
     return { duplicates };
   }
-}
-
-function resolveRecordName(row: Record<string, unknown>) {
-  return (
-    row["Name of Organization"] ||
-    row["Company Name"] ||
-    row["Organization"] ||
-    row["Org Name"] ||
-    "Untitled Lead"
-  );
 }

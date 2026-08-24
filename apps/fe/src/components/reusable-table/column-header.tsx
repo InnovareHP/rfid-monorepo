@@ -4,10 +4,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogFormFooter,
+  AlertDialogFormHeader,
 } from "@dashboard/ui/components/alert-dialog";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -65,11 +63,15 @@ export function ColumnHeader({
       queryClient.invalidateQueries({
         queryKey: boardQueryKey(moduleType ?? "LEAD"),
       });
-    } catch {
-      toast.error("Failed to delete column");
+    } catch (error) {
+      // The server refuses a column that still holds data, and that reason is
+      // the whole point of the message — a generic failure would hide it.
+      toast.error(
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Failed to delete column"
+      );
     } finally {
       setIsDeleting(false);
-      setDeleteOpen(false);
     }
   };
 
@@ -79,17 +81,17 @@ export function ColumnHeader({
         <DropdownMenuTrigger asChild>
           <Button
             variant={"ghost"}
-            className="flex justify-between w-full gap-1 px-0 font-semibold text-gray-900 hover:text-primary transition-colors cursor-pointer select-none"
+            className="flex justify-between w-full gap-1 px-0 font-semibold text-foreground hover:text-primary transition-colors cursor-pointer select-none"
           >
             <span>{columnName}</span>
             {isActive && currentOrder === "asc" && (
-              <ArrowUpAZ className="h-3.5 w-3.5 text-gray-900" />
+              <ArrowUpAZ className="h-3.5 w-3.5 text-foreground" />
             )}
             {isActive && currentOrder === "desc" && (
-              <ArrowDownAZ className="h-3.5 w-3.5 text-gray-900" />
+              <ArrowDownAZ className="h-3.5 w-3.5 text-foreground" />
             )}
             {!isActive && (
-              <ChevronsUpDown className="h-3.5 w-3.5 text-gray-600" />
+              <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
             )}
           </Button>
         </DropdownMenuTrigger>
@@ -124,26 +126,27 @@ export function ColumnHeader({
       </DropdownMenu>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete "{columnName}" column?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the column and hide its data from all records.
-              This action cannot be easily undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+        <AlertDialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <AlertDialogFormHeader
+            icon={<Trash2 />}
+            iconClassName="bg-destructive text-destructive-foreground"
+            title={`Delete "${columnName}" column?`}
+            description="A column can only be deleted while it is empty. If any record still has a value here, the delete is refused and nothing changes."
+          />
+          <AlertDialogFormFooter>
+            <AlertDialogCancel asChild disabled={isDeleting}>
+              <Button variant="outline">Cancel</Button>
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
               asChild
             >
-              <Button variant={"destructive"}>
+              <Button variant="destructive">
                 {isDeleting ? "Deleting..." : "Delete"}
               </Button>
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </AlertDialogFormFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>

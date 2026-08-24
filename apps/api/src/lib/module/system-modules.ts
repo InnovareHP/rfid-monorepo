@@ -47,9 +47,11 @@ export const seedSystemModules = (organizationId: string) =>
 
 // Every row written during the dual-write window needs its module, so a missing
 // one means the seed did not run and should fail loudly rather than write null.
-export const resolveModuleId = async (key: string) => {
+// Module rows are org-scoped (one per org per key) — omitting organizationId
+// lets this resolve to another tenant's module.
+export const resolveModuleId = async (key: string, organizationId: string) => {
   const found = await prisma.module.findFirst({
-    where: { key },
+    where: { key, organizationId },
     select: { id: true },
   });
 

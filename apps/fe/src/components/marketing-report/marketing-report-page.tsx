@@ -5,7 +5,11 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { exportToCSV } from "@/lib/fe-helpers";
 import { getMarketLogs } from "@/services/market/market-service";
-import type { MarketLogRow } from "@dashboard/shared";
+import type {
+  MarketingFacilityBreakdown,
+  MarketingReportRow,
+  MarketingTouchpointBreakdown,
+} from "@dashboard/shared";
 import { formatDateTime } from "@dashboard/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -18,9 +22,17 @@ import {
   type ReportColumn,
 } from "../reusable-table/report-table";
 
-type MarketingReportRow = MarketLogRow & {
-  liaisonName?: string;
-  touchpoints?: string[];
+// EMAIL_BLAST is a server-only touchpoint (bulk sends), labeled distinctly
+// from a liaison's individually-logged EMAIL touchpoint.
+const TOUCHPOINT_LABELS: Record<string, string> = {
+  IN_PERSON_MEETING: "In Person",
+  LINKED_IN: "LinkedIn",
+  FACEBOOK: "Facebook",
+  TEXT: "Text",
+  EMAIL: "Email",
+  EMAIL_BLAST: "Email (Blast)",
+  PHONE: "Phone",
+  OTHER: "Other",
 };
 
 const columns: ReportColumn<MarketingReportRow>[] = [
@@ -46,7 +58,7 @@ const columns: ReportColumn<MarketingReportRow>[] = [
       <div className="flex flex-wrap gap-2">
         {(row.touchpoints ?? []).map((touchpoint) => (
           <ReportChip key={touchpoint}>
-            {touchpoint.replace(/_/g, " ")}
+            {TOUCHPOINT_LABELS[touchpoint] ?? touchpoint.replace(/_/g, " ")}
           </ReportChip>
         ))}
       </div>
@@ -69,6 +81,30 @@ const columns: ReportColumn<MarketingReportRow>[] = [
   },
 ];
 
+const facilityColumns: ReportColumn<MarketingFacilityBreakdown>[] = [
+  {
+    key: "facility",
+    header: "Facility",
+    render: (row) => row.facility || "N/A",
+  },
+  { key: "outreach", header: "Outreach", render: (row) => row.outreach },
+  { key: "referrals", header: "Referrals", render: (row) => row.referrals },
+  {
+    key: "conversionRate",
+    header: "Conversion Rate",
+    render: (row) => `${row.conversionRate}%`,
+  },
+];
+
+const touchpointColumns: ReportColumn<MarketingTouchpointBreakdown>[] = [
+  {
+    key: "touchpoint",
+    header: "Touchpoint",
+    render: (row) => TOUCHPOINT_LABELS[row.touchpoint] ?? row.touchpoint,
+  },
+  { key: "count", header: "Count", render: (row) => row.count },
+];
+
 export default function MarketingReportPage() {
   const [filterMeta, setFilterMeta] = useState({
     filter: { marketingDateFrom: null, marketingDateTo: null },
@@ -87,6 +123,8 @@ export default function MarketingReportPage() {
     referrals: 0,
     conversionRate: 0,
   };
+  const facilityBreakdown = data?.facilityBreakdown ?? [];
+  const touchpointBreakdown = data?.touchpointBreakdown ?? [];
 
   const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
@@ -200,6 +238,42 @@ export default function MarketingReportPage() {
             setPage(1);
           }}
         />
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-2">
+            <h3 className="text-base font-medium text-foreground">
+              Facility Breakdown
+            </h3>
+            <ReportTable
+              columns={facilityColumns}
+              rows={facilityBreakdown}
+              isLoading={isFetching}
+              emptyMessage="No facility activity found"
+              currentPage={1}
+              pageSize={facilityBreakdown.length || 1}
+              totalCount={facilityBreakdown.length}
+              onPageChange={() => {}}
+              onPageSizeChange={() => {}}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-base font-medium text-foreground">
+              Touchpoint Breakdown
+            </h3>
+            <ReportTable
+              columns={touchpointColumns}
+              rows={touchpointBreakdown}
+              isLoading={isFetching}
+              emptyMessage="No touchpoint activity found"
+              currentPage={1}
+              pageSize={touchpointBreakdown.length || 1}
+              totalCount={touchpointBreakdown.length}
+              onPageChange={() => {}}
+              onPageSizeChange={() => {}}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

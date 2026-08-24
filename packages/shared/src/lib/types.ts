@@ -389,6 +389,48 @@ export type MarketLogRow = {
   notes: string;
 };
 
+export type MarketingReportRow = {
+  id: string;
+  facility: string;
+  facilityRecordId: string | null;
+  touchpoints: string[];
+  talkedTo: string;
+  reasonForVisit: string | null;
+  notes: string | null;
+  memberId: string;
+  organizationId: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+  liaisonName: string;
+};
+
+export type MarketingFacilityBreakdown = {
+  facility: string;
+  facilityRecordId: string | null;
+  outreach: number;
+  referrals: number;
+  conversionRate: number;
+};
+
+export type MarketingTouchpointBreakdown = {
+  touchpoint: string;
+  count: number;
+};
+
+export type MarketingReportResponse = {
+  data: MarketingReportRow[];
+  total: number;
+  totals: {
+    outreach: number;
+    referrals: number;
+    conversionRate: number;
+  };
+  facilityBreakdown: MarketingFacilityBreakdown[];
+  touchpointBreakdown: MarketingTouchpointBreakdown[];
+  nextPage: number | null;
+};
+
 // Destinations the assistant may link to, keyed so the model never supplies a path.
 export const ASSISTANT_DESTINATIONS = {
   home: "",

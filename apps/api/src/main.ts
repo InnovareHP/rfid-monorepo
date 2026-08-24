@@ -42,6 +42,9 @@ async function bootstrap() {
   // applies everywhere else, and parsing here leaves that parser a no-op.
   app.use("/api/compliance/baa/sign", json({ limit: "1mb" }));
 
+  // CSV import ships up to 20_000 parsed rows as a JSON body, well past the 100kb default.
+  app.use("/api/boards/csv-import", json({ limit: "25mb" }));
+
   app.useGlobalFilters(new AllExceptionsFilter());
 
   app.use(new LoggerMiddleware().use);

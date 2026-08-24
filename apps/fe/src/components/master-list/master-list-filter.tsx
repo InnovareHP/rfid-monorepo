@@ -204,7 +204,7 @@ export function MasterListFilters({
             Advanced Filters
           </Button>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
             <Button
               variant="ghost"
               onClick={handleRefresh}
@@ -225,7 +225,7 @@ export function MasterListFilters({
         </div>
 
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent side="right" className="w-[350px] sm:w-[400px] p-4">
+          <SheetContent side="right" className="w-full p-4 sm:w-[400px]">
             <SheetHeader>
               <SheetTitle>Advanced Filters</SheetTitle>
             </SheetHeader>
@@ -293,7 +293,7 @@ export function MasterListFilters({
                     handleSearch();
                   }
                 }}
-                className="min-w-[240px] bg-white"
+                className="w-full bg-white sm:min-w-[240px]"
               />
               <Button variant="outline" onClick={handleSearch}>
                 <SearchIcon className="h-4 w-4" />
@@ -328,7 +328,7 @@ export function MasterListFilters({
           </Button>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
           <Button
             variant="ghost"
             onClick={handleRefresh}
@@ -352,7 +352,7 @@ export function MasterListFilters({
 
       {/* === FILTER SHEET === */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent side="right" className="w-[350px] sm:w-[400px] p-4">
+        <SheetContent side="right" className="w-full p-4 sm:w-[400px]">
           <ScrollArea className="h-[calc(100vh-100px)]">
             <SheetHeader>
               <SheetTitle>Advanced Filters</SheetTitle>

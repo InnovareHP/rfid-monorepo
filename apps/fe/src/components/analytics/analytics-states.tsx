@@ -15,7 +15,7 @@ export function AnalyticsLoading() {
 
 export function AnalyticsError({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-white p-8 text-center">
+    <div className="rounded-2xl border border-red-200 bg-white p-4 text-center sm:p-8">
       <div className="flex flex-col items-center gap-3">
         <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
           <AlertCircle className="size-8 text-red-600" />
@@ -44,7 +44,7 @@ export function AnalyticsError({ message }: { message: string }) {
 
 export function AnalyticsEmpty() {
   return (
-    <div className="rounded-2xl border bg-white p-12 text-center">
+    <div className="rounded-2xl border bg-white p-6 text-center sm:p-12">
       <div className="flex flex-col items-center gap-3">
         <div className="flex size-20 items-center justify-center rounded-full bg-brand/5">
           <BarChart3 className="size-10 text-brand" />

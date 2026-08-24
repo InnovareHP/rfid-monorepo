@@ -26,6 +26,7 @@ type CategoryPieProps = {
   data: CategoryRow[];
   variant?: "pie" | "donut";
   emptyMessage?: string;
+  compact?: boolean;
 };
 
 // Slices thinner than this cannot hold a readable in-slice label.
@@ -125,6 +126,7 @@ export function CategoryPie({
   data,
   variant = "donut",
   emptyMessage = "No data available",
+  compact = false,
 }: CategoryPieProps) {
   const slices = toSlices(data);
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
@@ -143,12 +145,19 @@ export function CategoryPie({
   }, {});
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-72 w-full">
+    <ChartContainer
+      config={chartConfig}
+      className={
+        compact ? "aspect-auto h-40 w-full" : "aspect-auto h-72 w-full"
+      }
+    >
       <PieChart
         margin={
-          variant === "donut"
-            ? { top: 8, right: 72, bottom: 8, left: 72 }
-            : { top: 8, right: 8, bottom: 8, left: 8 }
+          compact
+            ? { top: 4, right: 4, bottom: 4, left: 4 }
+            : variant === "donut"
+              ? { top: 8, right: 72, bottom: 8, left: 72 }
+              : { top: 8, right: 8, bottom: 8, left: 8 }
         }
       >
         <ChartTooltip content={<ChartTooltipContent nameKey="key" />} />
@@ -156,11 +165,13 @@ export function CategoryPie({
           data={slices}
           dataKey="value"
           nameKey="key"
-          innerRadius={variant === "donut" ? 56 : 0}
-          outerRadius={variant === "donut" ? 92 : 108}
+          innerRadius={compact ? (variant === "donut" ? 40 : 0) : variant === "donut" ? 56 : 0}
+          outerRadius={compact ? 68 : variant === "donut" ? 92 : 108}
           paddingAngle={0}
           stroke="none"
-          label={makeSliceLabel(variant)}
+          // A 136px pie cannot hold readable in-slice text, and the donut's
+          // outside-label mode needs side margins a thumbnail card lacks.
+          label={compact ? undefined : makeSliceLabel(variant)}
           labelLine={false}
         >
           {slices.map((slice) => (

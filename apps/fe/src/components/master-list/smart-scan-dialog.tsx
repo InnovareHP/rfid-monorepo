@@ -198,7 +198,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               isDragging
                 ? "border-primary bg-primary/10"
-                : "border-gray-300 hover:border-gray-400"
+                : "border-border hover:border-primary/50"
             }`}
             onDragOver={(e) => {
               e.preventDefault();
@@ -207,8 +207,8 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
           >
-            <ImagePlus className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-sm text-gray-600 mb-2">
+            <ImagePlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-sm text-muted-foreground mb-2">
               Drag and drop a business card image, or
             </p>
             <div className="flex gap-2 justify-center">
@@ -245,7 +245,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
                 if (f) handleFile(f);
               }}
             />
-            <p className="text-xs text-gray-400 mt-3">
+            <p className="text-xs text-muted-foreground mt-3">
               Supports JPG, PNG, WebP. Max 5MB.
             </p>
           </div>
@@ -254,8 +254,8 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
         {step === "processing" && (
           <div className="py-12 text-center">
             <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
-            <p className="text-sm text-gray-600">Scanning business card...</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-sm text-muted-foreground">Scanning business card...</p>
+            <p className="text-xs text-muted-foreground mt-1">
               Extracting contact information
             </p>
           </div>
@@ -276,7 +276,9 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                      // Scrim over the uploaded photo, not themed UI: the
+                      // contrast has to hold against arbitrary image content.
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/50 text-white hover:bg-black/70"
                       onClick={reset}
                     >
                       <X className="h-3 w-3" />

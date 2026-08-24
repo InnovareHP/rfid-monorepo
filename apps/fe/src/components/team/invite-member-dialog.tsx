@@ -77,7 +77,7 @@ export function InviteMemberDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto">
+        <Button className="w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Invite Member
         </Button>
@@ -108,7 +108,7 @@ export function InviteMemberDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Email Address <span className="text-red-500">*</span>
+                      Email Address <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -128,7 +128,7 @@ export function InviteMemberDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Company Role <span className="text-red-500">*</span>
+                      Company Role <span className="text-destructive">*</span>
                     </FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
@@ -182,7 +182,7 @@ export function InviteMemberDialog({
               <Button
                 disabled={form.formState.isSubmitting}
                 type="submit"
-                className="bg-brand text-white hover:bg-brand/90"
+               
               >
                 <Send className="h-4 w-4" />
                 {form.formState.isSubmitting ? "Sending..." : "Send Invitation"}

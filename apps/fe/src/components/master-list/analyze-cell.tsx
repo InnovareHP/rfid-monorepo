@@ -190,7 +190,7 @@ export function AnalyzeLeadDialog({
               ) : (
                 <div className="space-y-6 py-6">
                   {/* Top Stats Row with Enhanced Design */}
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     {/* Engagement Level */}
                     <Card className="bg-card">
                       <CardContent className="p-5">

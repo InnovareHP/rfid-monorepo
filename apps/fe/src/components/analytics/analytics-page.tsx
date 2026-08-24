@@ -312,7 +312,7 @@ export default function ReferralAnalyticsDashboard() {
         <ChartCard title="Referral Density by County">
           <Suspense
             fallback={
-              <div className="flex h-[450px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground sm:h-[450px]">
                 Loading map...
               </div>
             }

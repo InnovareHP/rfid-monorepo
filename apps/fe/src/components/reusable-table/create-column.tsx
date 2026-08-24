@@ -1,20 +1,30 @@
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { createColumn } from "@/services/lead/lead-service";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  DialogFormFooter,
+  DialogFormHeader,
   DialogTrigger,
 } from "@dashboard/ui/components/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import {
   RadioGroup,
   RadioGroupItem,
 } from "@dashboard/ui/components/radio-group";
-import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@dashboard/ui/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlignLeft,
   Building2,
@@ -22,14 +32,53 @@ import {
   CheckSquare,
   ChevronDown,
   Hash,
+  type LucideIcon,
   Mail,
   Phone,
   Plus,
   User,
 } from "lucide-react";
 import { useState } from "react";
-import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
+
+// The picker deliberately omits the types a plain form cannot populate
+// (STATUS, LOCATION, TIMELINE, ASSIGNED_TO, PERSON), so the schema is the
+// single source of truth for what this dialog can create.
+const ColumnSchema = z.object({
+  name: z.string().trim().min(1, "Column name is required").max(120),
+  fieldType: z.enum([
+    "TEXT",
+    "NUMBER",
+    "EMAIL",
+    "PHONE",
+    "DATE",
+    "CHECKBOX",
+    "DROPDOWN",
+    "CONTACT_LINK",
+    "COMPANY_LINK",
+  ]),
+});
+
+type ColumnForm = z.infer<typeof ColumnSchema>;
+
+// Typed against the schema, so a typo here fails the build rather than the request.
+const FIELD_TYPES: {
+  label: string;
+  value: ColumnForm["fieldType"];
+  icon: LucideIcon;
+}[] = [
+  { label: "Text", value: "TEXT", icon: AlignLeft },
+  { label: "Number", value: "NUMBER", icon: Hash },
+  { label: "Email", value: "EMAIL", icon: Mail },
+  { label: "Phone", value: "PHONE", icon: Phone },
+  { label: "Date", value: "DATE", icon: Calendar },
+  { label: "Checkbox", value: "CHECKBOX", icon: CheckSquare },
+  { label: "Dropdown", value: "DROPDOWN", icon: ChevronDown },
+  { label: "Contact Link", value: "CONTACT_LINK", icon: User },
+  { label: "Company Link", value: "COMPANY_LINK", icon: Building2 },
+];
 
 export function CreateColumnModal({
   isReferral = false,
@@ -41,131 +90,132 @@ export function CreateColumnModal({
   queryKey?: string[];
 }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [type, setType] = useState("TEXT");
-  const [loading, setLoading] = useState(false);
-
   const queryClient = useQueryClient();
 
-  const handleSave = async () => {
-    if (!name) {
-      toast.error("Please enter a column name");
-      return;
-    }
+  const form = useForm<ColumnForm>({
+    resolver: zodResolver(ColumnSchema),
+    defaultValues: { name: "", fieldType: "TEXT" },
+  });
 
-    setLoading(true);
-    try {
-      await createColumn(
-        type,
-        name,
+  const createMutation = useMutation({
+    mutationFn: (values: ColumnForm) =>
+      createColumn(
+        values.fieldType,
+        values.name,
         moduleType ?? (isReferral ? "REFERRAL" : "LEAD")
-      );
-
+      ),
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKey ?? boardQueryKey(isReferral ? "REFERRAL" : "LEAD"),
       });
-
       toast.success("Column created successfully!");
       setOpen(false);
-      setName("");
-      setType("TEXT");
-    } catch (err) {
-      console.error(err);
-      toast.error("Error creating column");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fieldTypes = [
-    { label: "Text", value: "TEXT", icon: <AlignLeft className="w-4 h-4" /> },
-    { label: "Number", value: "NUMBER", icon: <Hash className="w-4 h-4" /> },
-
-    { label: "Email", value: "EMAIL", icon: <Mail className="w-4 h-4" /> },
-    { label: "Phone", value: "PHONE", icon: <Phone className="w-4 h-4" /> },
-    { label: "Date", value: "DATE", icon: <Calendar className="w-4 h-4" /> },
-    {
-      label: "Checkbox",
-      value: "CHECKBOX",
-      icon: <CheckSquare className="w-4 h-4" />,
+      form.reset();
     },
-    {
-      label: "Dropdown",
-      value: "DROPDOWN",
-      icon: <ChevronDown className="w-4 h-4" />,
-    },
-    {
-      label: "Contact Link",
-      value: "CONTACT_LINK",
-      icon: <User className="w-4 h-4" />,
-    },
-    {
-      label: "Company Link",
-      value: "COMPANY_LINK",
-      icon: <Building2 className="w-4 h-4" />,
-    },
-  ];
+    onError: () => toast.error("Error creating column"),
+  });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) form.reset();
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
           <Plus className="h-4 w-4" /> Create Column
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Add a New Column</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogFormHeader
+          icon={<Plus />}
+          title="Add a New Column"
+          description="Pick a name and the type of value this column will hold."
+        />
 
-        <div className="space-y-5">
-          {/* Column Name */}
-          <div>
-            <Label className="text-sm font-medium">Column Name</Label>
-            <Input
-              placeholder="e.g. Last Interaction"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1"
-            />
-          </div>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((values) =>
+              createMutation.mutateAsync(values)
+            )}
+          >
+            <div className="space-y-5 px-6 py-5">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Column Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Last Interaction"
+                        disabled={createMutation.isPending}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          {/* Column Type (Radio Group) */}
-          <div>
-            <Label className="text-sm font-medium">Column Type</Label>
-            <RadioGroup
-              value={type}
-              onValueChange={setType}
-              className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2"
-            >
-              {fieldTypes.map((ft) => (
-                <Label
-                  key={ft.value}
-                  htmlFor={ft.value}
-                  className={`flex items-center gap-2 border rounded-md p-2 cursor-pointer hover:bg-accent transition-all ${
-                    type === ft.value
-                      ? "border-primary bg-accent"
-                      : "border-border"
-                  }`}
-                >
-                  <RadioGroupItem id={ft.value} value={ft.value} />
-                  {ft.icon}
-                  <span className="text-sm">{ft.label}</span>
-                </Label>
-              ))}
-            </RadioGroup>
-          </div>
-        </div>
+              <FormField
+                control={form.control}
+                name="fieldType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Column Type</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={createMutation.isPending}
+                        className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3"
+                      >
+                        {FIELD_TYPES.map((fieldType) => (
+                          <Label
+                            key={fieldType.value}
+                            htmlFor={fieldType.value}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2 rounded-md border p-2 transition-all hover:bg-accent",
+                              field.value === fieldType.value
+                                ? "border-primary bg-accent"
+                                : "border-border"
+                            )}
+                          >
+                            <RadioGroupItem
+                              id={fieldType.value}
+                              value={fieldType.value}
+                            />
+                            <fieldType.icon className="size-4" />
+                            <span className="text-sm">{fieldType.label}</span>
+                          </Label>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Saving..." : "Save"}
-          </Button>
-        </DialogFooter>
+            <DialogFormFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={createMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </DialogFormFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -45,9 +45,37 @@ export const NotificationStateSchema = z.object({
   recordId: z.string(),
 });
 
+// Columns the user chose to create rather than map. Only types the import can
+// actually populate are accepted; TIMELINE, LOCATION, ASSIGNED_TO, PERSON and
+// the *_LINK types need a resolution step a spreadsheet cell cannot supply.
+// Exported so the service can re-validate: this controller has no
+// ZodValidationPipe, so a request body reaches it unchecked.
+export const CsvNewColumnsSchema = z.array(
+  z.object({
+    header: z.string().min(1),
+    fieldName: z.string().trim().min(1).max(120),
+    fieldType: z.enum([
+      BoardFieldType.TEXT,
+      BoardFieldType.NUMBER,
+      BoardFieldType.DATE,
+      BoardFieldType.EMAIL,
+      BoardFieldType.PHONE,
+      BoardFieldType.CHECKBOX,
+      BoardFieldType.DROPDOWN,
+      BoardFieldType.MULTISELECT,
+    ]),
+  })
+);
+
 export const CsvImportSchema = z.object({
-  excelData: z.array(z.record(z.string(), z.unknown())).max(20_000),
+  excelData: z.array(z.record(z.string(), z.unknown())).min(1).max(20_000),
   moduleType: z.string(),
+  // CSV header -> Field id, chosen by the user in the import mapping step. A
+  // header the user left unmapped is absent here and is never guessed at.
+  columnMap: z.record(z.string(), z.string().min(1)),
+  // Board.recordName is not a Field, so the naming column is picked explicitly.
+  nameColumn: z.string().min(1),
+  newColumns: CsvNewColumnsSchema.default([]),
 });
 
 export const CreateColumnSchema = z.object({

@@ -222,17 +222,17 @@ export function SenderSetupDialog({
                             className={cn(
                               "rounded-xl border p-4 text-left transition-colors",
                               selected
-                                ? "border-brand bg-[#F4F9FF]"
-                                : "border-gray-200 hover:border-gray-300"
+                                ? "border-brand bg-table-header"
+                                : "border-border hover:border-primary/50"
                             )}
                           >
                             <Icon
                               className={cn(
                                 "size-5",
-                                selected ? "text-brand" : "text-gray-400"
+                                selected ? "text-brand" : "text-muted-foreground"
                               )}
                             />
-                            <span className="mt-2 block text-sm font-semibold text-gray-900">
+                            <span className="mt-2 block text-sm font-semibold text-foreground">
                               {option.title}
                             </span>
                             <span className="mt-1 block text-xs text-muted-foreground">
@@ -254,7 +254,7 @@ export function SenderSetupDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Sender Name <span className="text-red-500">*</span>
+                        Sender Name <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input placeholder="Admissions outreach" {...field} />
@@ -300,7 +300,7 @@ export function SenderSetupDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Domain <span className="text-red-500">*</span>
+                          Domain <span className="text-destructive">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input placeholder="acme-health.com" {...field} />
@@ -336,14 +336,14 @@ export function SenderSetupDialog({
                 (mailbox?.email ? (
                   <p className="text-sm text-muted-foreground">
                     Sends from{" "}
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-foreground">
                       {mailbox.email}
                     </span>
                     , so replies thread straight back into it.
                   </p>
                 ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-[#F4F9FF] p-4">
-                    <p className="text-sm text-gray-700">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-info/30 bg-table-header p-4">
+                    <p className="text-sm text-foreground">
                       No mailbox is connected to your account yet.
                     </p>
                     <Button
@@ -372,7 +372,7 @@ export function SenderSetupDialog({
           </Button>
           {!created && (
             <Button
-              className="bg-brand text-white hover:bg-brand/90"
+             
               disabled={
                 createMutation.isPending ||
                 (kind === "PERSONAL" && !mailbox?.email)

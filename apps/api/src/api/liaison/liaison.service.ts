@@ -1,3 +1,4 @@
+import { MarketingReportResponse } from "@dashboard/shared";
 import {
   BadRequestException,
   Injectable,
@@ -205,6 +206,7 @@ export class LiaisonService {
           reasonForVisit: createMarketingDto.reasonForVisit,
           memberId,
           organizationId,
+          facilityRecordId: findLeadNameViaName.id,
         },
       });
 
@@ -234,23 +236,24 @@ export class LiaisonService {
     memberId: string | null,
     filter: any,
     organizationId: string
-  ) {
+  ): Promise<MarketingReportResponse> {
     const where: Prisma.MarketingWhereInput = {
       memberId: memberId ?? undefined,
       member: { organizationId },
       isDeleted: false,
     };
 
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
     if (filter.filter.marketingDateFrom && filter.filter.marketingDateTo) {
-      where.createdAt = {
-        gte: new Date(filter.filter.marketingDateFrom),
-        lte: new Date(filter.filter.marketingDateTo),
-      };
+      startDate = new Date(filter.filter.marketingDateFrom);
+      endDate = new Date(filter.filter.marketingDateTo);
+      where.createdAt = { gte: startDate, lte: endDate };
     }
 
     const offset = (filter.page - 1) * filter.limit;
 
-    const [data, total, referrals] = await Promise.all([
+    const [data, total, scopedRows] = await Promise.all([
       prisma.marketing.findMany({
         where,
         skip: offset,
@@ -261,17 +264,112 @@ export class LiaisonService {
       prisma.marketing.count({
         where,
       }),
-      prisma.marketing.count({
-        where: {
-          ...where,
-          reasonForVisit: { contains: "referral", mode: "insensitive" },
-        },
+      // Full scan of the filtered set to build the facility/touchpoint
+      // breakdowns below — acceptable at current scale, revisit if this
+      // becomes a hot path.
+      prisma.marketing.findMany({
+        where,
+        select: { facility: true, facilityRecordId: true, touchpoints: true },
       }),
     ]);
 
+    const facilityIds = [
+      ...new Set(
+        scopedRows
+          .map((row) => row.facilityRecordId)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
+
+    // source is the REFERRAL-type record, target is the LEAD/facility record
+    // (BoardRelation.REFERRAL_LINK), mirroring analytics.service.ts's
+    // referralRecordWhere/fetchReferralLinkedLeads shape. The date filter
+    // belongs on source.createdAt (the referral's own creation date), not the
+    // facility's, and organizationId must be checked on source explicitly
+    // since BoardRelation.organizationId is nullable and unenforced.
+    const referralLinks = facilityIds.length
+      ? await prisma.boardRelation.findMany({
+          where: {
+            relationType: "REFERRAL_LINK",
+            target: { id: { in: facilityIds } },
+            source: {
+              moduleType: "REFERRAL",
+              isDeleted: false,
+              organizationId,
+              ...(startDate &&
+                endDate && { createdAt: { gte: startDate, lte: endDate } }),
+            },
+          },
+          select: { targetId: true },
+        })
+      : [];
+
+    const referrals = referralLinks.length;
+
+    const referralCountByFacilityId = new Map<string, number>();
+    for (const link of referralLinks) {
+      referralCountByFacilityId.set(
+        link.targetId,
+        (referralCountByFacilityId.get(link.targetId) ?? 0) + 1
+      );
+    }
+
+    // Group by facilityRecordId, falling back to the plain-text facility name
+    // for legacy rows without one — Marketing.facility is not encrypted, so
+    // it is safe to group and display directly.
+    const facilityGroups = new Map<
+      string,
+      { facility: string; facilityRecordId: string | null; outreach: number }
+    >();
+    for (const row of scopedRows) {
+      const key = row.facilityRecordId ?? `name:${row.facility}`;
+      const existing = facilityGroups.get(key);
+      if (existing) {
+        existing.outreach += 1;
+      } else {
+        facilityGroups.set(key, {
+          facility: row.facility,
+          facilityRecordId: row.facilityRecordId,
+          outreach: 1,
+        });
+      }
+    }
+
+    const facilityBreakdown = [...facilityGroups.values()]
+      .map((group) => {
+        const groupReferrals = group.facilityRecordId
+          ? (referralCountByFacilityId.get(group.facilityRecordId) ?? 0)
+          : 0;
+        return {
+          facility: group.facility,
+          facilityRecordId: group.facilityRecordId,
+          outreach: group.outreach,
+          referrals: groupReferrals,
+          conversionRate: group.outreach
+            ? Math.round((groupReferrals / group.outreach) * 100)
+            : 0,
+        };
+      })
+      .sort((a, b) => b.outreach - a.outreach);
+
+    const touchpointCounts = new Map<string, number>();
+    for (const row of scopedRows) {
+      for (const touchpoint of row.touchpoints) {
+        touchpointCounts.set(
+          touchpoint,
+          (touchpointCounts.get(touchpoint) ?? 0) + 1
+        );
+      }
+    }
+    const touchpointBreakdown = [...touchpointCounts.entries()]
+      .map(([touchpoint, count]) => ({ touchpoint, count }))
+      .sort((a, b) => b.count - a.count);
+
     return {
-      data: data.map(({ member, ...row }) => ({
+      data: data.map(({ member, createdAt, updatedAt, ...row }) => ({
         ...row,
+        createdAt: createdAt.toISOString(),
+        updatedAt: updatedAt ? updatedAt.toISOString() : null,
         liaisonName: member.user.name,
       })),
       total,
@@ -280,6 +378,8 @@ export class LiaisonService {
         referrals,
         conversionRate: total ? Math.round((referrals / total) * 100) : 0,
       },
+      facilityBreakdown,
+      touchpointBreakdown,
       nextPage: filter.page * filter.limit < total ? filter.page + 1 : null,
     };
   }

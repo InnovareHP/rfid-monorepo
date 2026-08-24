@@ -174,6 +174,12 @@ export function ActivityTab({
 }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = React.useState(false);
+  const [typeFilter, setTypeFilter] = React.useState<ActivityType | "ALL">(
+    "ALL"
+  );
+  const [statusFilter, setStatusFilter] = React.useState<
+    "ALL" | "PENDING" | "COMPLETED" | "CANCELLED"
+  >("ALL");
 
   const { data: gmailStatus } = useQuery({
     queryKey: ["gmail-status"],
@@ -219,16 +225,21 @@ export function ActivityTab({
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: ["activities", recordId],
+    queryKey: ["activities", recordId, typeFilter, statusFilter],
     enabled: enabled && !!recordId,
     queryFn: ({ pageParam = 1 }) =>
-      getActivities(recordId, pageParam as number),
+      getActivities(recordId, pageParam as number, 15, {
+        activityType: typeFilter !== "ALL" ? typeFilter : undefined,
+        status: statusFilter !== "ALL" ? statusFilter : undefined,
+      }),
     getNextPageParam: (lastPage, pages) => {
       const pageSize = 15;
       return lastPage.data.length === pageSize ? pages.length + 1 : undefined;
     },
     initialPageParam: 1,
   });
+
+  const hasActiveFilter = typeFilter !== "ALL" || statusFilter !== "ALL";
 
   const createMutation = useMutation({
     mutationFn: createActivity,
@@ -409,7 +420,7 @@ export function ActivityTab({
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-24 w-full rounded-xl bg-muted animate-pulse"
+              className="h-24 w-full rounded-lg bg-muted animate-pulse"
             />
           ))}
         </div>
@@ -422,10 +433,7 @@ export function ActivityTab({
       <div className="space-y-4">
         {/* Create Button / Form */}
         {!showForm ? (
-          <Button
-            onClick={() => setShowForm(true)}
-            className="w-full bg-warning hover:bg-warning/90 text-warning-foreground font-semibold shadow-md"
-          >
+          <Button onClick={() => setShowForm(true)} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             New Activity
           </Button>
@@ -433,10 +441,10 @@ export function ActivityTab({
           <Form {...form}>
             <form
               onSubmit={handleSubmit(onSubmit)}
-              className="rounded-xl border-2 border-warning/30 bg-warning/5 p-5 space-y-4"
+              className="rounded-lg border bg-card p-5 space-y-4"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-foreground">
+                <h3 className="text-sm font-semibold text-foreground">
                   Create Activity
                 </h3>
                 <Button
@@ -561,8 +569,8 @@ export function ActivityTab({
               />
 
               {watchActivityType === "EMAIL" && (
-                <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/10/50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                <div className="space-y-3 rounded-lg border bg-muted p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Email Details
                   </p>
 
@@ -647,8 +655,8 @@ export function ActivityTab({
               )}
 
               {watchActivityType === "FAX" && hasFax && (
-                <div className="space-y-3 rounded-lg border border-info/30 bg-info/10/50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-info">
+                <div className="space-y-3 rounded-lg border bg-muted p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Fax Details
                   </p>
 
@@ -688,7 +696,7 @@ export function ActivityTab({
                     )}
                   />
 
-                  <p className="text-xs text-info">
+                  <p className="text-xs text-muted-foreground">
                     The document is faxed immediately when you create this
                     activity (max 25 MB).
                   </p>
@@ -696,8 +704,8 @@ export function ActivityTab({
               )}
 
               {watchActivityType === "MEETING" && hasCalendar && (
-                <div className="space-y-3 rounded-lg border border-warning/30 bg-warning/10/50 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-warning">
+                <div className="space-y-3 rounded-lg border bg-muted p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Meeting Details
                   </p>
 
@@ -776,18 +784,12 @@ export function ActivityTab({
               )}
 
               <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={resetForm}
-                  className="font-semibold"
-                >
+                <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={createMutation.isPending || faxMutation.isPending}
-                  className="bg-warning hover:bg-warning/90 text-warning-foreground font-semibold"
                 >
                   {faxMutation.isPending
                     ? "Sending fax..."
@@ -802,6 +804,63 @@ export function ActivityTab({
           </Form>
         )}
 
+        {/* Filters */}
+        {!showForm && (allActivities.length > 0 || hasActiveFilter) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={typeFilter}
+              onValueChange={(value) =>
+                setTypeFilter(value as ActivityType | "ALL")
+              }
+            >
+              <SelectTrigger className="h-8 w-[130px] text-xs">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All types</SelectItem>
+                {Object.entries(activityTypeConfig).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    {config.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(
+                  value as "ALL" | "PENDING" | "COMPLETED" | "CANCELLED"
+                )
+              }
+            >
+              <SelectTrigger className="h-8 w-[130px] text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All statuses</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-muted-foreground"
+                onClick={() => {
+                  setTypeFilter("ALL");
+                  setStatusFilter("ALL");
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Activity List */}
         {allActivities.length === 0 && !showForm && (
           <div className="flex flex-col items-center justify-center py-16">
@@ -809,17 +868,19 @@ export function ActivityTab({
               <MessageSquare className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-center text-muted-foreground font-medium">
-              No activities yet
+              {hasActiveFilter ? "No matching activities" : "No activities yet"}
             </p>
             <p className="text-center text-muted-foreground text-sm mt-1">
-              Create your first activity to start tracking interactions
+              {hasActiveFilter
+                ? "Try a different type or status filter"
+                : "Create your first activity to start tracking interactions"}
             </p>
           </div>
         )}
 
         {allActivities.length > 0 && (
           <div className="relative">
-            <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-warning to-destructive"></div>
+            <div className="absolute left-[19px] top-0 bottom-0 w-px bg-border"></div>
 
             <div className="space-y-4">
               {allActivities.map((activity) => (
@@ -848,11 +909,7 @@ export function ActivityTab({
 
         {hasNextPage && (
           <div className="flex justify-center pt-2">
-            <Button
-              variant="outline"
-              onClick={() => fetchNextPage()}
-              className="hover:bg-warning/10 hover:text-warning hover:border-warning/30 font-semibold"
-            >
+            <Button variant="outline" onClick={() => fetchNextPage()}>
               Load More
             </Button>
           </div>
@@ -889,19 +946,19 @@ function ActivityCard({
   const isPending = activity.status === "PENDING";
 
   return (
-    <div className="relative pl-12 group">
+    <div className="relative pl-12">
       <div
-        className={`absolute left-0 w-10 h-10 rounded-full ${typeConfig.color} flex items-center justify-center border-4 border-card shadow-lg group-hover:scale-110 transition-transform`}
+        className={`absolute left-0 flex size-10 items-center justify-center rounded-full border-4 border-background ${typeConfig.color}`}
       >
         <Icon className="h-5 w-5 text-primary-foreground" />
       </div>
 
-      <div className="bg-card rounded-xl border-2 border-border hover:border-warning/30 p-4 shadow-sm hover:shadow-md transition-all">
+      <div className="rounded-lg border bg-card p-4 transition-colors hover:border-primary/40">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p
-                className={`text-sm font-bold ${
+                className={`text-sm font-medium ${
                   activity.status === "COMPLETED"
                     ? "text-muted-foreground line-through"
                     : "text-foreground"
@@ -911,14 +968,14 @@ function ActivityCard({
               </p>
               <Badge
                 variant="outline"
-                className={`${typeConfig.badge} text-xs font-semibold shrink-0`}
+                className={`${typeConfig.badge} text-xs font-medium shrink-0`}
               >
                 {typeConfig.label}
               </Badge>
               {activity.direction === "INBOUND" && (
                 <Badge
                   variant="outline"
-                  className="bg-info/10 text-info border-info/30 text-xs font-semibold shrink-0"
+                  className="bg-info/10 text-info border-info/30 text-xs font-medium shrink-0"
                 >
                   <CornerDownLeft className="h-3 w-3 mr-1" />
                   Reply
@@ -926,7 +983,7 @@ function ActivityCard({
               )}
               <Badge
                 variant="outline"
-                className={`${status.badge} text-xs font-semibold shrink-0`}
+                className={`${status.badge} text-xs font-medium shrink-0`}
               >
                 <span
                   className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot} mr-1`}
@@ -948,7 +1005,7 @@ function ActivityCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 gap-1.5 text-xs hover:bg-success/10 hover:text-success hover:border-success/30 font-semibold"
+                className="h-7 gap-1.5 text-xs hover:bg-success/10 hover:text-success hover:border-success/30"
                 onClick={() =>
                   onComplete(activity.id, {
                     emailBody: activity.emailBody ?? undefined,
@@ -1026,21 +1083,21 @@ function ActivityCard({
           )}
 
           {activity.faxSentAt && (
-            <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+            <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
               <Check className="h-3 w-3" />
               Faxed {formatDateTime(activity.faxSentAt)}
             </span>
           )}
 
           {activity.emailSentAt && (
-            <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+            <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
               <Check className="h-3 w-3" />
               Sent{activity.senderEmail ? ` via ${activity.senderEmail}` : ""}
             </span>
           )}
 
           {activity.openCount > 0 && (
-            <span className="text-xs text-info bg-info/10 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+            <span className="text-xs text-info bg-info/10 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
               <Eye className="h-3 w-3" />
               Opened {activity.openCount}
               {activity.lastOpenedAt

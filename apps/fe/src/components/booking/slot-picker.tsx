@@ -26,7 +26,7 @@ export function SlotPicker({
   }
 
   return (
-    <ScrollArea className="w-[240px] shrink-0 border-l h-[480px] max-md:w-full max-md:border-l-0 max-md:border-t">
+    <ScrollArea className="w-[240px] shrink-0 border-l h-[480px] max-md:h-[360px] max-md:w-full max-md:border-l-0 max-md:border-t">
       <div className="grid grid-cols-3 gap-2 p-4 md:flex md:flex-col md:p-6">
         {slots.map((slot) => (
           <button

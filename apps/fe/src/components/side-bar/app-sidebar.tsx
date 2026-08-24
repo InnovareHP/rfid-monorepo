@@ -17,6 +17,7 @@ import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import {
   CalendarClock,
+  ChartSpline,
   CircuitBoard,
   ClipboardList,
   Contact,
@@ -45,8 +46,6 @@ import * as React from "react";
 
 const BRAND_WORDMARK =
   "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
-
-
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   activeOrganizationId: string;
@@ -79,20 +78,31 @@ export function AppSidebar({
           icon: SquareTerminal,
           // Analytics is a paid feature, so the entries are hidden rather than
           // leading to a lock screen.
-          items: canUseAdvancedAnalytics
-            ? [
-                {
-                  title: "Referral Analytics",
-                  url: `/${activeOrganizationId}`,
-                  icon: FileText,
-                },
-                {
-                  title: "Master Marketing List Analytics",
-                  url: `/${activeOrganizationId}/master-list-analytics`,
-                  icon: Users,
-                },
-              ]
-            : [],
+          items: [
+            ...(canUseAdvancedAnalytics
+              ? [
+                  {
+                    title: "Referral Analytics",
+                    url: `/${activeOrganizationId}`,
+                    icon: FileText,
+                  },
+                  {
+                    title: "Master Marketing List Analytics",
+                    url: `/${activeOrganizationId}/master-list-analytics`,
+                    icon: Users,
+                  },
+                ]
+              : []),
+            ...(canUseCustomReporting
+              ? [
+                  {
+                    title: "Analytics Dashboards",
+                    url: `/${activeOrganizationId}/analytics/custom/dashboards`,
+                    icon: LayoutTemplate,
+                  },
+                ]
+              : []),
+          ],
         },
         {
           title: "CRM",
@@ -228,6 +238,11 @@ export function AppSidebar({
                           url: `/${activeOrganizationId}/report/custom`,
                           icon: FileBarChart,
                         },
+                        {
+                          title: "Custom Analytics",
+                          url: `/${activeOrganizationId}/analytics/custom`,
+                          icon: ChartSpline,
+                        },
                       ]
                     : []),
                 ],
@@ -238,7 +253,7 @@ export function AppSidebar({
           ? [
               {
                 title: "Import",
-                url: `/${activeOrganizationId}/import/master-list`,
+                url: `/${activeOrganizationId}/import`,
                 icon: Upload,
               },
             ]
