@@ -1212,3 +1212,35 @@ live database, so the new counts are unconfirmed against real rows.
 - fe-support VITE_API_URL moved from a build arg (no matching ARG in its Dockerfile, so it was dropped) to a runtime env var, which is what vite loadEnv reads.
 - S3, SES, SNS, Bedrock and AWS Location have no local substitute: the clients in `src/lib` build with no endpoint override, so dev points at a real AWS account.
 - Root scripts added: `infra:up`, `infra:down`, `infra:logs`, `infra:stripe`, `stack:up`. `docker compose down` tears down profiled containers too, so no separate stack:down.
+
+## 2026-08-25 email 2FA and non-owner billing wait screen
+
+Billing: `BillingPage` now reads `memberData` and the subscription from the
+route context with the query cache as the first source, because the standalone
+`/billing` route renders outside `_team` and `_team` is what seeds those caches
+— a non-owner invited into an unpaid org therefore read as roleless. With no
+subscription, a role without `manage_billing` gets the new
+`billing/billing-awaiting-owner.tsx` (wait for the owner, check again, log out)
+instead of `PlansPage`, whose every button hits an owner-only endpoint.
+
+Two-factor: second factor is now an emailed 6-digit OTP, not TOTP. Server adds
+`otpOptions` (5 minute period, `sendTwoFactorOtp`) to the better-auth
+`twoFactor` plugin, plus `react-email/two-factor-otp-email.tsx` through the
+existing `emailQueue`. `TwoFactorSettings` calls `enable` then `sendOtp` and
+verifies with `verifyOtp` (which flips `twoFactorEnabled` itself); the QR code
+and `qrcode.react` are gone. `TwoFactorVerify` sends on an explicit button
+press rather than an effect, so a re-render cannot mail a second code.
+Backup codes are unchanged.
+
+Errors: every 2FA call is wrapped and reports through `form.setError("root")`
+rendered as a persistent inline block plus a toast, so a thrown error or a
+failed `sendOtp` can no longer pass silently.
+
+`TwoFactor.lockedUntil` was missing from the Prisma model while better-auth
+1.6.25 writes it on every successful verification (`resetTwoFactorFailures`),
+which would have thrown on each 2FA sign-in. Added as `DateTime?`.
+
+Verified: `pnpm --filter fe exec tsc --noEmit` and `pnpm --filter api exec tsc
+--noEmit` exit 0; eslint clean on the touched frontend files. Not verified: no
+migration applied (`prisma migrate dev` is interactive — user runs it), no
+browser pass, no real email sent.

@@ -263,7 +263,7 @@ export function MasterListView({
               }
               className="w-full"
             >
-              <div className="border-b bg-table-header px-6">
+              <div className="border-b bg-table-header px-4 overflow-x-auto sm:px-6">
                 <TabsList className="bg-transparent border-b-0">
                   <TabsTrigger
                     value="details"
@@ -302,7 +302,7 @@ export function MasterListView({
               </div>
 
               <TabsContent value="details" className="mt-0">
-                <ScrollArea className="h-[calc(90vh-240px)]">
+                <ScrollArea className="h-[60dvh] sm:h-[calc(90vh-240px)]">
                   <div className="px-6 py-4">
                     <div className="divide-y rounded-lg border bg-card">
                       {detailColumns.map((col) => (
@@ -345,7 +345,7 @@ export function MasterListView({
               </TabsContent>
 
               <TabsContent value="history" className="mt-0">
-                <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+                <ScrollArea className="h-[60dvh] px-4 py-4 sm:h-[calc(90vh-240px)] sm:px-6">
                   {historyLoading && (
                     <div className="space-y-4">
                       {Array.from({ length: 5 }).map((_, i) => (

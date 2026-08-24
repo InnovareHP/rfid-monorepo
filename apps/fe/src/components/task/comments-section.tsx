@@ -84,7 +84,7 @@ export const CommentsSection = ({
                   {formatDateTime(comment.createdAt)}
                 </span>
                 {isOwn && editingId !== comment.id && (
-                  <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                  <span className="hover-reveal flex items-center gap-1">
                     <Button
                       variant="ghost"
                       size="sm"

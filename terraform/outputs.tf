@@ -35,33 +35,8 @@ output "cloudfront_certificate_arn" {
 }
 
 # ── Database ──────────────────────────────────────────────
-output "db_endpoint" {
-  description = "Private RDS endpoint. Not reachable from outside the VPC."
-  value       = module.rds.endpoint
-}
-
-output "database_url_secret_arn" {
-  description = "Secrets Manager entry holding the full postgresql:// URL."
-  value       = module.rds.database_url_secret_arn
-}
-
-output "db_tunnel_instance_id" {
-  description = "--target for aws ssm start-session."
-  value       = module.rds.tunnel_instance_id
-}
-
-# Copy-paste command that yields a localhost connection URL. sslmode=require
-# rather than verify-full: through a localhost tunnel the RDS certificate CN
-# will never match localhost.
-output "db_tunnel_command" {
-  description = "Open the port-forward, then connect to postgresql://<user>:<pw>@localhost:5432/<db>?sslmode=require"
-  value = var.enable_db_tunnel ? join(" ", [
-    "aws ssm start-session",
-    "--target ${module.rds.tunnel_instance_id}",
-    "--document-name AWS-StartPortForwardingSessionToRemoteHost",
-    "--parameters '{\"host\":[\"${module.rds.address}\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"5432\"]}'",
-  ]) : ""
-}
+# Postgres is Neon, not self-hosted. DATABASE_URL is a key in the app_secrets_arn
+# secret (see below), set via console/CLI, not terraform.
 
 # ── Data layer ────────────────────────────────────────────
 output "redis_primary_endpoint" {
@@ -86,25 +61,6 @@ output "uploads_public_base_url" {
 
 output "uploads_distribution_id" {
   value = module.uploads.distribution_id
-}
-
-output "db_backup_bucket" {
-  description = "WORM bucket for pg_dump archives. DB_BACKUP_BUCKET."
-  value       = module.db_backup.bucket_name
-}
-
-# ── Landing site ──────────────────────────────────────────
-output "landing_bucket" {
-  description = "Sync apps/landing/dist here, then invalidate the distribution."
-  value       = module.landing_site.bucket_name
-}
-
-output "landing_distribution_id" {
-  value = module.landing_site.distribution_id
-}
-
-output "landing_url" {
-  value = module.landing_site.url
 }
 
 # ── App secrets ───────────────────────────────────────────

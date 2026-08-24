@@ -96,20 +96,6 @@ resource "aws_kms_alias" "secrets" {
   target_key_id = aws_kms_key.secrets.id
 }
 
-# Separate from the S3 key so revoking database access does not also revoke
-# object access, and so a DB key rotation is independent of the bucket.
-resource "aws_kms_key" "db" {
-  description             = "${var.name_prefix} RDS"
-  enable_key_rotation     = true
-  deletion_window_in_days = 7
-  policy                  = data.aws_iam_policy_document.default.json
-}
-
-resource "aws_kms_alias" "db" {
-  name          = "alias/${var.name_prefix}-db"
-  target_key_id = aws_kms_key.db.id
-}
-
 resource "aws_kms_key" "logs" {
   description             = "${var.name_prefix} Logs / CloudTrail"
   enable_key_rotation     = true

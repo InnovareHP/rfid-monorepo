@@ -95,7 +95,7 @@ export const NotificationRow = ({
         variant="ghost"
         size="icon"
         aria-label="Dismiss notification"
-        className="size-7 opacity-0 transition-opacity group-hover:opacity-100"
+        className="hover-reveal size-9 sm:size-7"
         onClick={() => onDelete(notification.id)}
       >
         <X className="size-3.5" />

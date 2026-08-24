@@ -109,7 +109,7 @@ export function generateCrmColumns(
             type="TEXT"
           />
         </div>
-        <div className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="hover-reveal shrink-0">
           <RelatedRecords recordId={row.original.id} />
         </div>
       </div>

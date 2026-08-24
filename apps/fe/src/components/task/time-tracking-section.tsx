@@ -127,7 +127,7 @@ export const TimeTrackingSection = ({
                   variant="ghost"
                   size="icon"
                   onClick={() => onDeleteEntry(entry.id)}
-                  className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
+                  className="hover-reveal text-muted-foreground hover:text-destructive"
                   aria-label="Delete time entry"
                 >
                   <Trash2 className="size-3.5" />

@@ -1,5 +1,8 @@
 import { authClient } from "@/lib/auth-client";
-import { getInvitationContext } from "@/services/passkeys/passkeys-service";
+import {
+  completeSignup,
+  getInvitationContext,
+} from "@/services/passkeys/passkeys-service";
 import { Button } from "@dashboard/ui/components/button";
 import { Spinner } from "@dashboard/ui/components/spinner";
 import {
@@ -11,16 +14,22 @@ import {
 } from "@dashboard/ui/components/card";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import axios from "axios";
 import {
   ArrowRight,
   CheckCircle2,
-  Fingerprint,
   Mail,
   ShieldCheck,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
+import {
+  passwordRegisterSchema,
+  RegisterSection,
+} from "./register-section";
+import { passwordSignInSchema, SignInSection } from "./sign-in-section";
 
 type InvitationData = {
   email: string;
@@ -31,10 +40,18 @@ type InvitationData = {
 type PageState =
   | { step: "loading" }
   | { step: "accepting" }
-  | { step: "form"; invitation: InvitationData }
+  // Email already has an account: sign in with a password or a passkey.
+  | { step: "sign-in"; invitation: InvitationData }
+  // Email has no account yet: register with a password or a passkey.
+  | { step: "register"; invitation: InvitationData; context: string }
   | { step: "success"; organizationId: string }
   | { step: "rejected" }
   | { step: "error"; message: string };
+
+const extractErrorMessage = (error: unknown, fallback: string) =>
+  axios.isAxiosError<{ message?: string }>(error)
+    ? (error.response?.data?.message ?? fallback)
+    : fallback;
 
 const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   const { token, email, orgName, inviter } = useSearch({
@@ -97,14 +114,34 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
           navigate({ to: "/login" });
           return;
         }
-        setState({
-          step: "form",
-          invitation: {
-            email: email || "",
-            organizationName: orgName || "the team",
-            inviterName: inviter || "A colleague",
-          },
-        });
+
+        const invitation: InvitationData = {
+          email: email || "",
+          organizationName: orgName || "the team",
+          inviterName: inviter || "A colleague",
+        };
+
+        // Requesting an enrollment grant doubles as the "does this email
+        // already have an account" check: the API only issues one when it
+        // doesn't.
+        try {
+          const grant = await getInvitationContext(token);
+          setState({
+            step: "register",
+            invitation: { ...invitation, email: grant.email },
+            context: grant.context,
+          });
+        } catch (grantError) {
+          const message = extractErrorMessage(
+            grantError,
+            "This invitation is no longer valid."
+          );
+          if (message.includes("account already exists")) {
+            setState({ step: "sign-in", invitation });
+            return;
+          }
+          setState({ step: "error", message });
+        }
       } catch (err: any) {
         setState({
           step: "error",
@@ -127,15 +164,27 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
     await acceptAndRedirect();
   };
 
+  const handlePasswordSignIn = async (
+    values: z.infer<typeof passwordSignInSchema>,
+    invitationEmail: string
+  ) => {
+    const { error } = await authClient.signIn.email({
+      email: invitationEmail,
+      password: values.password,
+    });
+    if (error) {
+      toast.error(error.message ?? "Could not sign in.");
+      return;
+    }
+    await acceptAndRedirect();
+  };
+
   // Holding a valid invitation already proves mailbox control, so no code is
   // emailed — the invitation id buys the enrollment grant directly.
-  const handleEnrollAndJoin = async () => {
+  const handleEnrollAndJoin = async (context: string) => {
     setPending(true);
     try {
-      const grant = await getInvitationContext(token);
-      const { error } = await authClient.passkey.addPasskey({
-        context: grant.context,
-      });
+      const { error } = await authClient.passkey.addPasskey({ context });
       if (error) {
         toast.error(error.message ?? "Could not register your passkey.");
         return;
@@ -155,6 +204,32 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
       );
     } finally {
       setPending(false);
+    }
+  };
+
+  const handlePasswordRegister = async (
+    values: z.infer<typeof passwordRegisterSchema>,
+    context: string,
+    invitationEmail: string
+  ) => {
+    try {
+      await completeSignup(context, values.password);
+
+      const { error } = await authClient.signIn.email({
+        email: invitationEmail,
+        password: values.password,
+      });
+      if (error) {
+        toast.success("Account created. Sign in to finish joining.");
+        return;
+      }
+      await acceptAndRedirect();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not create your account. Start again."
+      );
     }
   };
 
@@ -286,36 +361,23 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
             </span>
           </div>
 
-          <div className="space-y-3">
-            <Button
-              className="w-full h-11"
-              disabled={pending}
-              onClick={handleEnrollAndJoin}
-            >
-              {pending ? (
-                <Spinner size="sm" className="text-current" />
-              ) : (
-                <>
-                  <Fingerprint className="mr-2 w-4 h-4" />
-                  Create a passkey and join
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full h-11"
-              disabled={pending}
-              onClick={handleSignInWithPasskey}
-            >
-              I already have a passkey
-            </Button>
-          </div>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Passkeys stay on your device and are unlocked with your fingerprint,
-            face, or device PIN. There is no password to set.
-          </p>
+          {state.step === "sign-in" ? (
+            <SignInSection
+              pending={pending}
+              onPasswordSignIn={(values) =>
+                handlePasswordSignIn(values, invitation.email)
+              }
+              onPasskeySignIn={handleSignInWithPasskey}
+            />
+          ) : (
+            <RegisterSection
+              pending={pending}
+              onPasswordRegister={(values) =>
+                handlePasswordRegister(values, state.context, invitation.email)
+              }
+              onPasskeyRegister={() => handleEnrollAndJoin(state.context)}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

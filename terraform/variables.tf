@@ -121,59 +121,6 @@ variable "waf_body_inspection_exempt_paths" {
   ]
 }
 
-# ── RDS (Postgres) ─────────────────────────────────────────
-variable "db_instance_class" {
-  type    = string
-  default = "db.t4g.small"
-}
-
-variable "db_engine_version" {
-  type    = string
-  default = "16"
-}
-
-variable "db_allocated_storage" {
-  type    = number
-  default = 50
-}
-
-variable "db_max_allocated_storage" {
-  type        = number
-  description = "Storage autoscaling ceiling. No manual resize below this."
-  default     = 500
-}
-
-variable "db_multi_az" {
-  type        = bool
-  description = "Standby in the second AZ. ~$24/mo more, removes the restore window on AZ loss."
-  default     = true
-}
-
-variable "db_backup_retention_period" {
-  type    = number
-  default = 35
-}
-
-# The instance carries PHI. Public means a Postgres port on the internet whose
-# only defence is an IP allowlist that drifts the moment someone works from a
-# cafe. Reach it through the SSM tunnel instead — see enable_db_tunnel.
-variable "db_publicly_accessible" {
-  type        = bool
-  description = "Expose the RDS endpoint to the internet. Staging only, never for PHI."
-  default     = false
-}
-
-variable "enable_db_tunnel" {
-  type        = bool
-  description = "t4g.nano SSM forwarder (~$4/mo) so a laptop can port-forward to the private RDS endpoint and use a plain connection URL."
-  default     = true
-}
-
-variable "db_tunnel_instance_type" {
-  type    = string
-  default = "t4g.nano"
-}
-
 # ── Redis ──────────────────────────────────────────────────
 variable "redis_version" {
   type    = string
@@ -242,6 +189,21 @@ variable "fe_support_desired_count" {
   default = 1
 }
 
+variable "landing_cpu" {
+  type    = number
+  default = 256
+}
+
+variable "landing_memory" {
+  type    = number
+  default = 512
+}
+
+variable "landing_desired_count" {
+  type    = number
+  default = 1
+}
+
 # FE and support are stateless behind the ALB, Spot gives a 2-minute warning
 # and the target group drains. base = 1 keeps one on-demand task per service so
 # a Spot capacity crunch cannot empty the target group. The API stays fully
@@ -290,6 +252,11 @@ variable "fe_support_image_tag" {
   default = "latest"
 }
 
+variable "landing_image_tag" {
+  type    = string
+  default = "latest"
+}
+
 # ── Autoscaling ────────────────────────────────────────────
 variable "enable_autoscaling" {
   type    = bool
@@ -317,6 +284,14 @@ variable "fe_support_min_count" {
   default = 1
 }
 variable "fe_support_max_count" {
+  type    = number
+  default = 3
+}
+variable "landing_min_count" {
+  type    = number
+  default = 1
+}
+variable "landing_max_count" {
   type    = number
   default = 3
 }
@@ -374,20 +349,6 @@ variable "enable_s3_replication" {
 variable "replication_region" {
   type    = string
   default = "us-west-2"
-}
-
-# ── Landing site (static Astro) ────────────────────────────
-# apps/landing has no SSR adapter, so `astro build` emits a static tree. S3 plus
-# CloudFront is ~$1/mo against ~$9/mo for a Fargate task, and removes a service,
-# a target group and a log group.
-variable "landing_bucket_name" {
-  type    = string
-  default = ""
-}
-
-variable "landing_price_class" {
-  type    = string
-  default = "PriceClass_100"
 }
 
 # ── Backups ────────────────────────────────────────────────

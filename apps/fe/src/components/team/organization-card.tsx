@@ -93,8 +93,8 @@ export function OrganizationCard({
                   <Building2 className="size-8 text-primary" />
                 )}
                 {canEdit && !logo && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all group-hover:bg-black/40">
-                    <Camera className="size-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition-all sm:bg-black/0 sm:group-hover:bg-black/40">
+                    <Camera className="hover-reveal size-6 text-white" />
                   </div>
                 )}
                 {isUploadingLogo && (

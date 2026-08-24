@@ -77,14 +77,34 @@ resource "aws_lb_target_group" "fe_support" {
   deregistration_delay = 30
 }
 
+resource "aws_lb_target_group" "landing" {
+  name        = "${substr(var.name_prefix, 0, 21)}-land-tg"
+  port        = 3002
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc_id
+
+  health_check {
+    path                = "/"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+
+  deregistration_delay = 30
+}
+
 locals {
   # Static, plan-known. var.acm_certificate_arn is often a computed cert ARN,
   # and driving listener counts off it makes the first plan fail.
   https_enabled = var.enable_https
 }
 
-# Redirect everything to HTTPS once a cert exists. Before that, forward to the
-# FE with a path rule for the API so the stack is reachable during bootstrap.
+# Redirect everything to HTTPS once a cert exists. Before that, forward to
+# landing (it's the apex/www site) with path rules for the other services so
+# the whole stack is reachable during bootstrap.
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
@@ -102,7 +122,7 @@ resource "aws_lb_listener" "http" {
       }
     }
 
-    target_group_arn = local.https_enabled ? null : aws_lb_target_group.fe.arn
+    target_group_arn = local.https_enabled ? null : aws_lb_target_group.landing.arn
   }
 }
 
@@ -140,6 +160,23 @@ resource "aws_lb_listener_rule" "support_http" {
   }
 }
 
+resource "aws_lb_listener_rule" "portal_http" {
+  count        = local.https_enabled ? 0 : 1
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 80
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.fe.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/portal/*"]
+    }
+  }
+}
+
 resource "aws_lb_listener" "https" {
   count             = local.https_enabled ? 1 : 0
   load_balancer_arn = aws_lb.this.arn
@@ -150,7 +187,27 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.fe.arn
+    target_group_arn = aws_lb_target_group.landing.arn
+  }
+}
+
+# fe and fe-support call their own API with same-origin relative paths
+# (/api/...), so /api/* must win over every host-based rule below regardless
+# of which app's hostname the browser is actually on.
+resource "aws_lb_listener_rule" "api_path_https" {
+  count        = local.https_enabled ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 5
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
   }
 }
 
@@ -201,6 +258,25 @@ resource "aws_lb_listener_rule" "support_host" {
   condition {
     host_header {
       values = [var.support_hostname]
+    }
+  }
+}
+
+# Matches apex + www once var.landing_hostnames is set (see local.fqdn_www /
+# var.domain_name in root main.tf).
+resource "aws_lb_listener_rule" "landing_host" {
+  count        = local.https_enabled && length(var.landing_hostnames) > 0 ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 40
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.landing.arn
+  }
+
+  condition {
+    host_header {
+      values = var.landing_hostnames
     }
   }
 }

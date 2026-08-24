@@ -173,7 +173,7 @@ export function ReusableTable<T>({
 
       {/* Pagination */}
       {onPageChange && totalPages > 1 && !isLoading && (
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-t border-border">
+        <div className="flex flex-col gap-3 px-4 py-3 bg-muted/50 border-t border-border sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-foreground">
             <span className="font-medium">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
@@ -184,7 +184,7 @@ export function ReusableTable<T>({
               of {totalCount ?? data.length} entries
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
             <Button
               variant="outline"
               size="sm"
@@ -195,7 +195,7 @@ export function ReusableTable<T>({
               <ChevronLeft className="w-4 h-4 mr-1" />
               Previous
             </Button>
-            <div className="flex gap-1">
+            <div className="hidden gap-1 sm:flex">
               {getPageNumbers().map((page, idx) => {
                 if (page === "...") {
                   return (

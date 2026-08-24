@@ -4,7 +4,7 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
   account_id  = data.aws_caller_identity.current.account_id
 
-  fqdn_app     = var.domain_name != "" ? "app.${var.domain_name}" : ""
+  fqdn_app     = var.domain_name != "" ? "portal.${var.domain_name}" : ""
   fqdn_api     = var.domain_name != "" ? "api.${var.domain_name}" : ""
   fqdn_support = var.domain_name != "" ? "support.${var.domain_name}" : ""
   fqdn_www     = var.domain_name != "" ? "www.${var.domain_name}" : ""
@@ -14,14 +14,6 @@ locals {
     ? var.uploads_bucket_name
     : "${local.name_prefix}-uploads-${local.account_id}"
   )
-
-  landing_bucket = (
-    var.landing_bucket_name != ""
-    ? var.landing_bucket_name
-    : "${local.name_prefix}-landing-${local.account_id}"
-  )
-
-  db_backup_bucket = "${local.name_prefix}-db-backups-${local.account_id}"
 
   # Both inputs are known at plan time, unlike the cert ARN itself which may be
   # computed. Listener counts must not depend on an unknown value.
@@ -78,40 +70,6 @@ module "s3_replication" {
   force_destroy      = var.force_destroy_buckets
 }
 
-module "db_backup" {
-  source = "./modules/db_backup"
-
-  bucket_name             = local.db_backup_bucket
-  kms_key_arn             = module.kms.s3_key_arn
-  retention_days          = var.backup_retention_days
-  cold_storage_after_days = var.backup_cold_storage_after_days
-  force_destroy           = var.force_destroy_buckets
-}
-
-module "rds" {
-  source = "./modules/rds"
-
-  name_prefix              = local.name_prefix
-  vpc_id                   = module.vpc.vpc_id
-  private_subnet_ids       = module.vpc.private_subnet_ids
-  db_sg_id                 = module.security.db_sg_id
-  kms_key_arn              = module.kms.db_key_arn
-  secrets_kms_key_arn      = module.kms.secrets_key_arn
-  instance_class           = var.db_instance_class
-  engine_version           = var.db_engine_version
-  allocated_storage        = var.db_allocated_storage
-  max_allocated_storage    = var.db_max_allocated_storage
-  multi_az                 = var.db_multi_az
-  backup_retention_period  = var.db_backup_retention_period
-  publicly_accessible      = var.db_publicly_accessible
-  log_retention_days       = var.app_log_retention_days
-  logs_kms_key_arn         = module.kms.logs_key_arn
-  enable_tunnel            = var.enable_db_tunnel
-  tunnel_instance_type     = var.db_tunnel_instance_type
-  tunnel_subnet_id         = module.vpc.private_subnet_ids[0]
-  tunnel_security_group_id = module.security.db_tunnel_sg_id
-}
-
 module "redis" {
   source = "./modules/redis"
 
@@ -129,35 +87,15 @@ module "dns" {
   source = "./modules/dns"
   count  = var.manage_dns ? 1 : 0
 
-  providers = {
-    aws.us_east_1 = aws.us_east_1
-  }
-
   domain_name      = var.domain_name
   create_zone      = var.create_route53_zone
   existing_zone_id = var.existing_zone_id
 
-  # app -> fe, api -> api, support -> fe-support. Apex and www are alias
-  # records on the landing CloudFront distribution and are created by the
-  # landing_site module instead.
-  alb_subdomains = ["app", "api", "support"]
+  # portal -> fe, api -> api, support -> fe-support, www -> landing. Apex ->
+  # landing is its own record inside the dns module (no subdomain prefix).
+  alb_subdomains = ["portal", "api", "support", "www"]
   alb_dns_name   = module.ecs.alb_dns_name
   alb_zone_id    = module.ecs.alb_zone_id
-}
-
-module "landing_site" {
-  source = "./modules/landing_site"
-
-  bucket_name   = local.landing_bucket
-  force_destroy = var.force_destroy_buckets
-  price_class   = var.landing_price_class
-
-  # Apex plus www only once DNS and the us-east-1 cert exist; before that the
-  # distribution serves on its own *.cloudfront.net domain.
-  enable_custom_domain = var.manage_dns && var.domain_name != ""
-  aliases              = var.manage_dns && var.domain_name != "" ? [var.domain_name, local.fqdn_www] : []
-  acm_certificate_arn  = var.manage_dns ? module.dns[0].cloudfront_certificate_arn : ""
-  route53_zone_id      = var.manage_dns ? module.dns[0].zone_id : ""
 }
 
 module "ecs" {
@@ -177,12 +115,8 @@ module "ecs" {
   uploads_bucket         = module.uploads.bucket_name
   uploads_bucket_arn     = module.uploads.bucket_arn
   uploads_public_cdn_url = module.uploads.public_cdn_url
-  db_backup_bucket       = module.db_backup.bucket_name
-  db_backup_bucket_arn   = module.db_backup.bucket_arn
-  s3_kms_key_arn         = module.kms.s3_key_arn
 
-  database_url_secret_arn = module.rds.database_url_secret_arn
-  redis_url_secret_arn    = module.redis.url_secret_arn
+  redis_url_secret_arn = module.redis.url_secret_arn
 
   api_cpu                  = var.api_cpu
   api_memory               = var.api_memory
@@ -193,12 +127,16 @@ module "ecs" {
   fe_support_cpu           = var.fe_support_cpu
   fe_support_memory        = var.fe_support_memory
   fe_support_desired_count = var.fe_support_desired_count
+  landing_cpu              = var.landing_cpu
+  landing_memory           = var.landing_memory
+  landing_desired_count    = var.landing_desired_count
   frontend_spot_weight     = var.frontend_spot_weight
   cpu_architecture         = var.fargate_cpu_architecture
 
   api_image_tag        = var.api_image_tag
   fe_image_tag         = var.fe_image_tag
   fe_support_image_tag = var.fe_support_image_tag
+  landing_image_tag    = var.landing_image_tag
 
   log_retention_days         = var.app_log_retention_days
   container_insights_enabled = var.container_insights_enabled
@@ -210,6 +148,8 @@ module "ecs" {
   fe_max_count                    = var.fe_max_count
   fe_support_min_count            = var.fe_support_min_count
   fe_support_max_count            = var.fe_support_max_count
+  landing_min_count               = var.landing_min_count
+  landing_max_count               = var.landing_max_count
   autoscaling_cpu_target          = var.autoscaling_cpu_target
   autoscaling_memory_target       = var.autoscaling_memory_target
   autoscaling_requests_per_target = var.autoscaling_requests_per_target
@@ -225,6 +165,7 @@ module "ecs" {
   app_hostname     = local.fqdn_app
   api_hostname     = local.fqdn_api
   support_hostname = local.fqdn_support
+  landing_hostnames = var.domain_name != "" ? [var.domain_name, local.fqdn_www] : []
 
   app_email               = var.app_email
   ses_from_email          = var.ses_from_email
@@ -317,11 +258,10 @@ module "ci" {
     "${local.name_prefix}-api",
     "${local.name_prefix}-fe",
     "${local.name_prefix}-fe-support",
+    "${local.name_prefix}-landing",
   ]
-  ecs_execution_role_arn  = module.ecs.execution_role_arn
-  ecs_task_role_arn       = module.ecs.task_role_arn
-  landing_bucket_arn      = module.landing_site.bucket_arn
-  landing_distribution_id = module.landing_site.distribution_id
+  ecs_execution_role_arn = module.ecs.execution_role_arn
+  ecs_task_role_arn      = module.ecs.task_role_arn
 }
 
 module "alerts" {
@@ -335,13 +275,12 @@ module "alerts" {
   source_bucket_name  = var.enable_s3_replication ? module.uploads.bucket_name : ""
   replication_rule_id = "uploads-crr"
 
-  db_instance_id = module.rds.instance_id
-
   container_insights_enabled = var.container_insights_enabled
   ecs_cluster_name           = module.ecs.cluster_name
   ecs_services_to_watch = [
     "${local.name_prefix}-api",
     "${local.name_prefix}-fe",
     "${local.name_prefix}-fe-support",
+    "${local.name_prefix}-landing",
   ]
 }

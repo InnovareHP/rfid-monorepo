@@ -23,7 +23,7 @@ export const RecordActions = ({ actions }: { actions: RecordAction[] }) => (
         variant="ghost"
         size="icon"
         aria-label="Record actions"
-        className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+        className="hover-reveal size-9 shrink-0 text-muted-foreground sm:size-7"
       >
         <MoreHorizontal className="size-4" />
       </Button>

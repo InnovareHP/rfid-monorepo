@@ -225,7 +225,7 @@ export function MasterListFilters({
         </div>
 
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent side="right" className="w-[350px] sm:w-[400px] p-4">
+          <SheetContent side="right" className="w-[85vw] sm:w-[400px] p-4">
             <SheetHeader>
               <SheetTitle>Advanced Filters</SheetTitle>
             </SheetHeader>
@@ -352,7 +352,7 @@ export function MasterListFilters({
 
       {/* === FILTER SHEET === */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent side="right" className="w-[350px] sm:w-[400px] p-4">
+        <SheetContent side="right" className="w-[85vw] sm:w-[400px] p-4">
           <ScrollArea className="h-[calc(100vh-100px)]">
             <SheetHeader>
               <SheetTitle>Advanced Filters</SheetTitle>

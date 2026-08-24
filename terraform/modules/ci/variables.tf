@@ -22,11 +22,3 @@ variable "ecs_execution_role_arn" {
 variable "ecs_task_role_arn" {
   type = string
 }
-
-variable "landing_bucket_arn" {
-  type = string
-}
-
-variable "landing_distribution_id" {
-  type = string
-}
