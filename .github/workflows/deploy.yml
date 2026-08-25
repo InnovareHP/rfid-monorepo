@@ -101,6 +101,7 @@ jobs:
           case "${{ matrix.service }}" in
             fe)
               BUILD_ARGS=(
+                --build-arg "VITE_APP_URL=$VITE_API_URL"
                 --build-arg "VITE_API_URL=$VITE_API_URL"
                 --build-arg "VITE_AWS_REGION=$VITE_AWS_REGION"
                 --build-arg "VITE_AWS_LOCATION_API_KEY=$VITE_AWS_LOCATION_API_KEY"
