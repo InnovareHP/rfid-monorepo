@@ -24,6 +24,7 @@ import { useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 
 const passwordSchema = z.object({
   password: z.string().min(8, "Password is required"),
@@ -35,10 +36,20 @@ const codeSchema = z.object({
 type PasswordValues = z.infer<typeof passwordSchema>;
 type CodeValues = z.infer<typeof codeSchema>;
 
-type Step = "idle" | "enable-password" | "verify" | "backup" | "disable-password";
+type Step =
+  | "idle"
+  | "enabling"
+  | "enable-password"
+  | "verify"
+  | "backup"
+  | "disable-password";
 
-const messageOf = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback;
+// Better Auth returns INVALID_PASSWORD when the account holds a credential and
+// none was supplied. That is the signal to ask for one, not a failure to report.
+const NEEDS_PASSWORD = "INVALID_PASSWORD";
+
+const needsPassword = (error: { code?: string } | null) =>
+  error?.code === NEEDS_PASSWORD;
 
 // Failures surface twice: a toast, and a line that stays in the form once it fades.
 const FormError = ({ message }: { message?: string }) =>
@@ -78,31 +89,75 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
     setStep("idle");
   };
 
+  // Sign-in here is passkey-first, so most accounts have no password to confirm.
+  // Enrollment is attempted without one and only asks if the server says the
+  // account actually holds a credential.
+  const startEnable = async () => {
+    passwordForm.clearErrors("root");
+    setStep("enabling");
+    const { data, error } = await authClient.twoFactor.enable({});
+    if (needsPassword(error)) {
+      setStep("enable-password");
+      return;
+    }
+    if (error || !data) {
+      setStep("idle");
+      const message = getApiErrorMessage(error, "Failed to start 2FA setup");
+      passwordForm.setError("root", { message });
+      toast.error(message);
+      return;
+    }
+    await afterEnable(data.backupCodes, passwordForm);
+  };
+
+  const startDisable = async () => {
+    passwordForm.clearErrors("root");
+    const { error } = await authClient.twoFactor.disable({});
+    if (needsPassword(error)) {
+      setStep("disable-password");
+      return;
+    }
+    if (error) {
+      fail(passwordForm, getApiErrorMessage(error, "Failed to disable 2FA"));
+      return;
+    }
+    toast.success("Two-factor authentication disabled");
+    reset();
+    router.invalidate();
+  };
+
+  const afterEnable = async (
+    codes: string[],
+    form: UseFormReturn<PasswordValues>
+  ) => {
+    const { error: sendError } = await authClient.twoFactor.sendOtp();
+    if (sendError) {
+      setStep("idle");
+      fail(
+        form,
+        getApiErrorMessage(sendError, "Could not email your verification code")
+      );
+      return;
+    }
+
+    setBackupCodes(codes);
+    form.reset();
+    setStep("verify");
+    toast.success("Verification code sent to your email");
+  };
+
   const handleEnable = async (values: PasswordValues) => {
     try {
       const { data, error } = await authClient.twoFactor.enable({
         password: values.password,
       });
       if (error || !data) {
-        fail(passwordForm, error?.message ?? "Failed to start 2FA setup");
+        fail(passwordForm, getApiErrorMessage(error, "Failed to start 2FA setup"));
         return;
       }
-
-      const { error: sendError } = await authClient.twoFactor.sendOtp();
-      if (sendError) {
-        fail(
-          passwordForm,
-          sendError.message ?? "Could not email your verification code"
-        );
-        return;
-      }
-
-      setBackupCodes(data.backupCodes);
-      passwordForm.reset();
-      setStep("verify");
-      toast.success("Verification code sent to your email");
+      await afterEnable(data.backupCodes, passwordForm);
     } catch (error) {
-      fail(passwordForm, messageOf(error, "Failed to start 2FA setup"));
+      fail(passwordForm, getApiErrorMessage(error, "Failed to start 2FA setup"));
     }
   };
 
@@ -112,14 +167,14 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
         code: values.code,
       });
       if (error) {
-        fail(codeForm, error.message ?? "Invalid code, try again");
+        fail(codeForm, getApiErrorMessage(error, "Invalid code, try again"));
         return;
       }
       codeForm.reset();
       toast.success("Two-factor authentication enabled");
       setStep("backup");
     } catch (error) {
-      fail(codeForm, messageOf(error, "Could not verify the code"));
+      fail(codeForm, getApiErrorMessage(error, "Could not verify the code"));
     }
   };
 
@@ -127,7 +182,7 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
     codeForm.clearErrors("root");
     const { error } = await authClient.twoFactor.sendOtp();
     if (error) {
-      fail(codeForm, error.message ?? "Could not email a new code");
+      fail(codeForm, getApiErrorMessage(error, "Could not email a new code"));
       return;
     }
     toast.success("A new code is on its way");
@@ -139,14 +194,14 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
         password: values.password,
       });
       if (error) {
-        fail(passwordForm, error.message ?? "Failed to disable 2FA");
+        fail(passwordForm, getApiErrorMessage(error, "Failed to disable 2FA"));
         return;
       }
       toast.success("Two-factor authentication disabled");
       reset();
       router.invalidate();
     } catch (error) {
-      fail(passwordForm, messageOf(error, "Failed to disable 2FA"));
+      fail(passwordForm, getApiErrorMessage(error, "Failed to disable 2FA"));
     }
   };
 
@@ -163,22 +218,34 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
   return (
     <div className="space-y-4">
       {step === "idle" && (
-        <Button
-          className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
-          onClick={() => setStep(enabled ? "disable-password" : "enable-password")}
-        >
-          {enabled ? (
-            <>
-              <ShieldOff className="w-4 h-4 mr-2" />
-              Disable
-            </>
-          ) : (
-            <>
-              <ShieldCheck className="w-4 h-4 mr-2" />
-              Enable
-            </>
-          )}
-        </Button>
+        <>
+          {/* The probe can fail before any form is on screen, so the reason has
+              to render here too or it exists only in a toast that fades. */}
+          <FormError message={passwordForm.formState.errors.root?.message} />
+          <Button
+            className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
+            onClick={enabled ? startDisable : startEnable}
+          >
+            {enabled ? (
+              <>
+                <ShieldOff className="w-4 h-4 mr-2" />
+                Disable
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Enable
+              </>
+            )}
+          </Button>
+        </>
+      )}
+
+      {step === "enabling" && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Starting setup...
+        </div>
       )}
 
       {(step === "enable-password" || step === "disable-password") && (

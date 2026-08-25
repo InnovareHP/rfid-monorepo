@@ -780,7 +780,7 @@ export class LiaisonService {
         doc.end();
       } catch (error) {
         this.logger.error(`Failed to generate PDF: ${error.message}`);
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }

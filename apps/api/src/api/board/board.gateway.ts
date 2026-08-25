@@ -21,29 +21,33 @@ export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
   @WebSocketServer() server: Server;
 
   afterInit(server: Server) {
-    server.use(async (socket, next) => {
-      try {
-        const token = socket.handshake.auth?.token;
+    // Socket.IO ignores the middleware's return value, so the async work is
+    // marked void. Every path below calls next(), so it never rejects.
+    server.use((socket, next) => {
+      void (async () => {
+        try {
+          const token = socket.handshake.auth?.token;
 
-        if (!token) {
-          return next(new Error("No token provided"));
+          if (!token) {
+            return next(new Error("No token provided"));
+          }
+
+          const verified = await auth.api.verifyOneTimeToken({
+            body: {
+              token: token, // required
+            },
+          });
+          if (!verified?.session) {
+            return next(new Error("Invalid token"));
+          }
+
+          socket.data.session = verified.session;
+          next();
+        } catch (err) {
+          this.logger.error(`Socket auth error: ${err.message}`);
+          next(new Error("Unauthorized"));
         }
-
-        const verified = await auth.api.verifyOneTimeToken({
-          body: {
-            token: token, // required
-          },
-        });
-        if (!verified?.session) {
-          return next(new Error("Invalid token"));
-        }
-
-        socket.data.session = verified.session;
-        next();
-      } catch (err) {
-        this.logger.error(`Socket auth error: ${err.message}`);
-        next(new Error("Unauthorized"));
-      }
+      })();
     });
   }
 

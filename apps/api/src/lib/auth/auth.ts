@@ -131,6 +131,9 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      // Written to hold even if a plugin re-registers one of these routes, so
+      // it has to run on every request rather than rely on the plugin list.
+      blockSessionGrantingEmailPaths(ctx);
       requireImpersonationReason(ctx);
     }),
     after: auditAdminActions,

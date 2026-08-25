@@ -12,10 +12,7 @@ import {
   LocationType,
   Prisma,
 } from "@prisma/client";
-import {
-  NOTIFICATION_ENTITY,
-  NOTIFICATION_TYPE,
-} from "@dashboard/shared";
+import { NOTIFICATION_ENTITY, NOTIFICATION_TYPE } from "@dashboard/shared";
 import { randomBytes } from "crypto";
 import type { z } from "zod";
 import { appConfig } from "../../config/app-config";
