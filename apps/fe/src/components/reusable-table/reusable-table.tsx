@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@dashboard/ui/components/table";
+import { useIsMobile } from "@dashboard/ui/hooks/use-mobile";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
   type ColumnDef,
@@ -80,6 +81,7 @@ const ReusableTable = <T extends { id: string }>({
   pageSize,
   onPageSizeChange,
 }: Props<T>) => {
+  const isMobile = useIsMobile();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -109,18 +111,16 @@ const ReusableTable = <T extends { id: string }>({
   return (
     <>
       {hasSelected && (
-        <div className="flex flex-wrap items-center gap-3 m-4 p-3 bg-primary/10 border-2 border-primary/50 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300 sm:p-4">
+        <div className="flex flex-wrap items-center gap-3 p-3 sm:p-4 bg-primary/10 border-2 border-primary/50 rounded-lg shadow-sm animate-in slide-in-from-top-2 duration-300">
           <div className="flex min-w-0 items-center gap-2">
             <div className="h-8 w-8 shrink-0 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm">
               {selectedIds.length}
             </div>
-            <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+            <span className="truncate text-sm font-semibold whitespace-nowrap text-foreground">
               {selectedIds.length === 1 ? "item" : "items"} selected
             </span>
           </div>
-          {/* ml-auto only from sm up, so on a phone the actions wrap onto their
-              own line instead of overflowing the pill. */}
-          <div className="flex items-center gap-2 sm:ml-auto">
+          <div className="flex w-full items-center justify-end gap-2 sm:ml-auto sm:w-auto">
             <Button
               variant="ghost"
               size="sm"
@@ -181,13 +181,25 @@ const ReusableTable = <T extends { id: string }>({
                     key={headerGroup.id}
                     className="border-b border-border bg-table-header hover:bg-table-header"
                   >
-                    {headerGroup.headers.map((header) => (
+                    {headerGroup.headers.map((header, headerIndex) => {
+                      const stickyLeft = !isMobile && headerIndex < 2;
+                      const leftOffset =
+                        headerIndex === 1
+                          ? (headerGroup.headers[0]?.getSize() ?? 0)
+                          : 0;
+                      return (
                       <TableHead
-                        className="text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 z-20 bg-table-header"
+                        className={cn(
+                          "text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
+                          stickyLeft ? "z-30" : "z-20"
+                        )}
                         key={header.id}
                         style={{
                           width: header.getSize(),
                           maxWidth: header.getSize(),
+                          ...(stickyLeft
+                            ? { position: "sticky", left: leftOffset }
+                            : {}),
                         }}
                       >
                         <div className="overflow-hidden text-ellipsis">
@@ -213,7 +225,8 @@ const ReusableTable = <T extends { id: string }>({
                           />
                         )}
                       </TableHead>
-                    ))}
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableHeader>
@@ -248,6 +261,7 @@ const ReusableTable = <T extends { id: string }>({
                 ) : table.getRowModel().rows.length ? (
                   table.getRowModel().rows.map((row) => {
                     const cells = row.getVisibleCells();
+                    const col0Width = cells[0]?.column.getSize() ?? 0;
                     const isSelected = row.getIsSelected();
                     const rowBg = isSelected ? "bg-primary/10" : "bg-card";
                     return (
@@ -273,16 +287,24 @@ const ReusableTable = <T extends { id: string }>({
                         onRowOpen(row.original.id);
                       }}
                     >
-                      {cells.map((cell, cellIndex) => (
+                      {cells.map((cell, cellIndex) => {
+                        const stickyLeft = !isMobile && cellIndex < 2;
+                        const leftOffset = cellIndex === 1 ? col0Width : 0;
+                        return (
                         <TableCell
                           key={cell.id}
                           style={{
                             width: cell.column.getSize(),
                             maxWidth: cell.column.getSize(),
+                            ...(stickyLeft
+                              ? { position: "sticky", left: leftOffset, zIndex: 10 }
+                              : {}),
                           }}
                           className={cn(
                             "px-4 py-3 text-sm overflow-hidden text-ellipsis",
-                            cellIndex === 0 && "font-medium text-foreground"
+                            cellIndex === 0 && "font-medium text-foreground",
+                            stickyLeft && rowBg,
+                            stickyLeft && !isSelected && "group-hover:bg-muted/50"
                           )}
                         >
                           {flexRender(
@@ -290,7 +312,8 @@ const ReusableTable = <T extends { id: string }>({
                             cell.getContext()
                           )}
                         </TableCell>
-                      ))}
+                        );
+                      })}
                     </TableRow>
                     );
                   })

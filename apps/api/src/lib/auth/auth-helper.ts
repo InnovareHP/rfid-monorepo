@@ -13,6 +13,7 @@ import { InvitationResponseEmail } from "../../react-email/invitation-response-e
 import { MemberWelcomeEmail } from "../../react-email/member-welcome-email";
 import { PasswordChangedEmail } from "../../react-email/password-changed-email";
 import { ResetPasswordEmail } from "../../react-email/reset-password-email";
+import { TwoFactorOtpEmail } from "../../react-email/two-factor-otp-email";
 import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
@@ -172,6 +173,25 @@ export const sendVerificationEmail = async ({
   await emailQueue.add("send", {
     to: user.email,
     subject: `Verify your ${appConfig.APP_NAME} account`,
+    html,
+    from: `${appConfig.APP_EMAIL}`,
+  });
+};
+
+// Two-factor codes are emailed, so no authenticator app is ever required.
+export const sendTwoFactorOtp = async ({
+  user,
+  otp,
+}: {
+  user: { email: string };
+  otp: string;
+}) => {
+  const html = await renderEmailHtml(
+    TwoFactorOtpEmail({ validationCode: otp })
+  );
+  await emailQueue.add("send", {
+    to: user.email,
+    subject: `Your ${appConfig.APP_NAME} verification code`,
     html,
     from: `${appConfig.APP_EMAIL}`,
   });

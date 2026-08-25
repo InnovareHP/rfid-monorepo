@@ -53,7 +53,7 @@ const LocationCell: React.FC<LocationCellProps> = ({
   value = "",
   onChange,
   onSelectComponents,
-  className = "w-96",
+  className = "w-full",
   placeholder = "Search for an address...",
   disabled = false,
   autocompleteUrl = "/api/places/autocomplete",

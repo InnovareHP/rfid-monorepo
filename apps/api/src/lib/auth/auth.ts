@@ -44,6 +44,7 @@ import {
   onPasswordReset,
   sendInvitationEmail,
   sendResetPassword,
+  sendTwoFactorOtp,
   sendVerificationEmail,
   stripeAuthorizeReference,
   subscriptionAuthorizeReference,
@@ -258,6 +259,11 @@ export const auth = betterAuth({
     }),
     twoFactor({
       issuer: appConfig.APP_NAME,
+      // Email OTP is the only second factor, so no authenticator app is needed.
+      otpOptions: {
+        period: 5,
+        sendOTP: sendTwoFactorOtp,
+      },
       schema: {
         twoFactor: {
           modelName: "TwoFactor",

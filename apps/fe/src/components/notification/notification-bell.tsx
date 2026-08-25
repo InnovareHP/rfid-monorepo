@@ -66,7 +66,7 @@ export const NotificationBell = () => {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-90 p-0">
+      <PopoverContent align="end" className="w-[calc(100vw-2rem)] p-0 sm:w-90">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <p className="text-sm font-semibold">Notifications</p>
           {unreadCount > 0 && (

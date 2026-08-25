@@ -24,7 +24,7 @@ export function CalendarToolbar({
   onViewChange,
 }: CalendarToolbarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
+    <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -46,11 +46,12 @@ export function CalendarToolbar({
         </Button>
       </div>
 
-      <h2 className="flex-1 text-center text-2xl font-semibold text-foreground sm:text-3xl">
+      <h2 className="text-xl font-semibold text-foreground sm:flex-1 sm:text-center sm:text-3xl">
         {title}
       </h2>
 
       <Tabs
+        className="max-w-full overflow-x-auto"
         value={view}
         onValueChange={(value) => onViewChange(value as CalendarView)}
       >

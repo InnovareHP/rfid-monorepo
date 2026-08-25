@@ -488,7 +488,7 @@ code {
   .page-style {
     min-height: 100vh;
     background-color: var(--color-gray-50);
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .page-style > :not([hidden]) ~ :not([hidden]) {
@@ -498,6 +498,25 @@ code {
   @media (min-width: 40rem) {
     .page-style {
       padding: 2rem;
+    }
+  }
+
+  /* A control that hides until its row is hovered has no trigger at all on a
+     touch screen, so the reveal is gated on hover capability, not a breakpoint. */
+  .hover-reveal {
+    opacity: 1;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hover-reveal {
+      opacity: 0;
+      transition: opacity 150ms ease;
+    }
+
+    .group:hover .hover-reveal,
+    .hover-reveal:focus-visible,
+    .hover-reveal[data-state="open"] {
+      opacity: 1;
     }
   }
   .primary-active-border::before {
