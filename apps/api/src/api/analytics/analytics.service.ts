@@ -13,6 +13,11 @@ import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 // rest, so every aggregation groups in memory after decryption instead of
 // GROUP BY / raw SQL in Postgres.
 
+// Interpolating a Date directly renders it in the server's locale and zone, so
+// the same range would key differently across hosts or after a TZ change. ISO
+// keeps the key stable and comparable.
+const keyPart = (value: Date | undefined) => value?.toISOString() ?? "none";
+
 @Injectable()
 export class AnalyticsService {
   private readonly geminiQueueEvents: QueueEvents;
@@ -559,12 +564,10 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    const cachedData = await getData(
-      `analytics:${organizationId}:${startDate}:${endDate}`
-    );
-    // if (cachedData) {
-    //   return cachedData;
-    // }
+    // The read-through was disabled deliberately (the return below it was
+    // commented out), so fetching here only cost a Redis round-trip whose
+    // result was discarded. The write is left in place so re-enabling is one
+    // line, but nothing reads this key today.
     const [
       totalCounts,
       statusBreakdown,
@@ -618,7 +621,7 @@ export class AnalyticsService {
     };
 
     await cacheData(
-      `analytics:${organizationId}:${startDate}:${endDate}`,
+      `analytics:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}`,
       result,
       60 * 5
     );
@@ -633,7 +636,7 @@ export class AnalyticsService {
     analytics: any,
     force = false
   ) {
-    const cacheKey = `analytics_summary:${organizationId}:${startDate}:${endDate}`;
+    const cacheKey = `analytics_summary:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}`;
     if (!force) {
       const cached = await getData(cacheKey);
       if (cached) return cached;
@@ -691,7 +694,7 @@ export class AnalyticsService {
     userId?: string | null
   ) {
     const cachedData = await getData(
-      `marketing_analytics:${organizationId}:${startDate}:${endDate}:${userId}`
+      `marketing_analytics:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}:${userId}`
     );
     if (cachedData) {
       return cachedData;
@@ -853,7 +856,7 @@ export class AnalyticsService {
     };
 
     await cacheData(
-      `marketing_analytics:${organizationId}:${startDate}:${endDate}:${userId}`,
+      `marketing_analytics:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}:${userId}`,
       data,
       60 * 5
     );
