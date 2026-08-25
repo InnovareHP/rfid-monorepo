@@ -23,6 +23,7 @@ COPY apps/fe/ ./apps/fe/
 
 # Vite statically replaces import.meta.env.VITE_* at build time, so these
 # have to be real env vars before vite build runs, not just runtime env.
+# //rerun
 ARG VITE_API_URL
 ARG VITE_APP_URL
 ARG VITE_AWS_REGION
