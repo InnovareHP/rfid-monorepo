@@ -35,7 +35,6 @@ export function ScorecardCard({ sources }: ScorecardCardProps) {
           {sources.map((source, index) => (
             <div
               key={`${source.sourceName}-${index}`}
-              className="grid min-w-[28rem] grid-cols-4 items-center gap-2 border-t px-4 py-3"
               className="grid min-w-[26rem] grid-cols-4 items-center gap-2 border-t px-4 py-3"
             >
               <span

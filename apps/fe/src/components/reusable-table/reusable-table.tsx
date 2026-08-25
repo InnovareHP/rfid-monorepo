@@ -189,11 +189,17 @@ const ReusableTable = <T extends { id: string }>({
                           : 0;
                       return (
                       <TableHead
-                        className="text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 z-20 bg-table-header"
+                        className={cn(
+                          "text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
+                          stickyLeft ? "z-30" : "z-20"
+                        )}
                         key={header.id}
                         style={{
                           width: header.getSize(),
                           maxWidth: header.getSize(),
+                          ...(stickyLeft
+                            ? { position: "sticky", left: leftOffset }
+                            : {}),
                         }}
                       >
                         <div className="overflow-hidden text-ellipsis">
@@ -219,7 +225,8 @@ const ReusableTable = <T extends { id: string }>({
                           />
                         )}
                       </TableHead>
-                    ))}
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableHeader>
@@ -254,6 +261,7 @@ const ReusableTable = <T extends { id: string }>({
                 ) : table.getRowModel().rows.length ? (
                   table.getRowModel().rows.map((row) => {
                     const cells = row.getVisibleCells();
+                    const col0Width = cells[0]?.column.getSize() ?? 0;
                     const isSelected = row.getIsSelected();
                     const rowBg = isSelected ? "bg-primary/10" : "bg-card";
                     return (
@@ -288,10 +296,15 @@ const ReusableTable = <T extends { id: string }>({
                           style={{
                             width: cell.column.getSize(),
                             maxWidth: cell.column.getSize(),
+                            ...(stickyLeft
+                              ? { position: "sticky", left: leftOffset, zIndex: 10 }
+                              : {}),
                           }}
                           className={cn(
                             "px-4 py-3 text-sm overflow-hidden text-ellipsis",
-                            cellIndex === 0 && "font-medium text-foreground"
+                            cellIndex === 0 && "font-medium text-foreground",
+                            stickyLeft && rowBg,
+                            stickyLeft && !isSelected && "group-hover:bg-muted/50"
                           )}
                         >
                           {flexRender(
@@ -299,7 +312,8 @@ const ReusableTable = <T extends { id: string }>({
                             cell.getContext()
                           )}
                         </TableCell>
-                      ))}
+                        );
+                      })}
                     </TableRow>
                     );
                   })
