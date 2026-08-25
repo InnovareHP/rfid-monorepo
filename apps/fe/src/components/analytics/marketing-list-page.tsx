@@ -115,7 +115,7 @@ const MarketingListPage = () => {
     : [];
 
   return (
-    <div className="min-h-full bg-white p-8">
+    <div className="min-h-full bg-white p-4 sm:p-8">
       <div className="space-y-6">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">

@@ -37,6 +37,8 @@
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.623 0.214 259.815);
+  /* Shared packages/ui modal shell reads this; landing is light-only. */
+  --table-header: #f4f9ff;
   --brand-strong: oklch(0.546 0.245 262.881);
   --brand-deep: oklch(0.42 0.19 264);
   --brand-fade: oklch(0.97 0.014 254.604);
@@ -72,6 +74,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-table-header: var(--table-header);
   --color-brand-strong: var(--brand-strong);
   --color-brand-deep: var(--brand-deep);
   --color-brand-fade: var(--brand-fade);

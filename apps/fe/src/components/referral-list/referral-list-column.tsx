@@ -1,6 +1,6 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
 import { RecordActions } from "@/components/reusable-table/record-actions";
-import { Checkbox } from "@dashboard/ui/components/checkbox";
+import { createSelectColumn } from "../reusable-table/select-column";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Bell, HistoryIcon } from "lucide-react";
 import { ColumnHeader } from "../reusable-table/column-header";
@@ -10,6 +10,7 @@ type ColumnType = {
   id: string;
   name: string;
   type: string;
+  hasData?: boolean;
 };
 
 type ReferralRow = {
@@ -41,6 +42,7 @@ export function generateReferralColumns(
             sortOrder={sortState?.sortOrder}
             onSort={onSort}
             moduleType="REFERRAL"
+            canDelete={!col.hasData}
           />
         ) : (
           col.name
@@ -65,21 +67,7 @@ export function generateReferralColumns(
     })
   );
 
-  const selectColumn: ColumnDef<ReferralRow> = {
-    id: "select",
-    header: () => "Select",
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-    enableResizing: false,
-    size: 80,
-  };
+  const selectColumn = createSelectColumn<ReferralRow>();
 
   const referralNameColumn: ColumnDef<ReferralRow> = {
     header: () =>
@@ -91,6 +79,7 @@ export function generateReferralColumns(
           sortOrder={sortState?.sortOrder}
           onSort={onSort}
           moduleType="REFERRAL"
+          canDelete={false}
         />
       ) : (
         "Referral Name"

@@ -2,6 +2,12 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 
+import {
+  MODAL_SHELL_FOOTER,
+  MODAL_SHELL_HEADER,
+  MODAL_SHELL_ICON,
+  MODAL_SHELL_TITLE,
+} from "@dashboard/ui/lib/modal-shell";
 import { cn } from "@dashboard/ui/lib/utils";
 
 function Dialog({
@@ -58,6 +64,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
+          "bg-background relative data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-4 shadow-lg duration-200 sm:max-w-4xl sm:p-6",
           "bg-background relative data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:w-[min(56rem,calc(100%-4rem))]",
           className
         )}
@@ -116,25 +123,10 @@ function DialogFormHeader({
   iconClassName?: string;
 }) {
   return (
-    <DialogHeader
-      className={cn(
-        "flex-row items-center gap-4 space-y-0 border-b border-gray-200 bg-[#F4F9FF] px-6 py-5 text-left",
-        className
-      )}
-      {...props}
-    >
-      <div
-        className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white [&_svg]:size-6",
-          iconClassName
-        )}
-      >
-        {icon}
-      </div>
+    <DialogHeader className={cn(MODAL_SHELL_HEADER, className)} {...props}>
+      <div className={cn(MODAL_SHELL_ICON, iconClassName)}>{icon}</div>
       <div className="space-y-1">
-        <DialogTitle className="text-2xl font-bold text-[#0D3185]">
-          {title}
-        </DialogTitle>
+        <DialogTitle className={MODAL_SHELL_TITLE}>{title}</DialogTitle>
         {description ? (
           <DialogDescription>{description}</DialogDescription>
         ) : null}
@@ -149,13 +141,7 @@ function DialogFormFooter({
   ...props
 }: React.ComponentProps<"div">) {
   return (
-    <DialogFooter
-      className={cn(
-        "flex-row items-center justify-between gap-3 border-t border-gray-200 px-6 py-4 sm:justify-between",
-        className
-      )}
-      {...props}
-    />
+    <DialogFooter className={cn(MODAL_SHELL_FOOTER, className)} {...props} />
   );
 }
 

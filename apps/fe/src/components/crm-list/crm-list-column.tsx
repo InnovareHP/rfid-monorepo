@@ -1,7 +1,7 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
 import type { CrmModuleType } from "@/services/board/board-module-service";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
-import { Checkbox } from "@dashboard/ui/components/checkbox";
+import { createSelectColumn } from "../reusable-table/select-column";
 import { type ColumnDef } from "@tanstack/react-table";
 import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
@@ -11,6 +11,7 @@ type ColumnType = {
   id: string;
   name: string;
   type: string;
+  hasData?: boolean;
 };
 
 export type CrmRow = {
@@ -44,6 +45,7 @@ export function generateCrmColumns(
           sortOrder={sortState?.sortOrder}
           onSort={onSort}
           moduleType={moduleType}
+          canDelete={!col.hasData}
         />
       ) : (
         col.name
@@ -64,21 +66,7 @@ export function generateCrmColumns(
     minSize: 250,
   }));
 
-  const selectColumn: ColumnDef<CrmRow> = {
-    id: "select",
-    header: () => "Select",
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-    enableResizing: false,
-    size: 80,
-  };
+  const selectColumn = createSelectColumn<CrmRow>();
 
   const nameColumn: ColumnDef<CrmRow> = {
     header: () =>
@@ -90,6 +78,7 @@ export function generateCrmColumns(
           sortOrder={sortState?.sortOrder}
           onSort={onSort}
           moduleType={moduleType}
+          canDelete={false}
         />
       ) : (
         nameLabel

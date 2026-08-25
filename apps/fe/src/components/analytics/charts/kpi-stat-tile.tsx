@@ -41,19 +41,21 @@ export function KpiStatTile({
   const hasSeries = (series?.length ?? 0) > 1;
 
   return (
-    <Card className="gap-0 rounded-2xl border py-5 shadow-sm">
-      <CardContent className="flex h-full flex-col px-5 py-0">
+    <Card className="gap-0 rounded-2xl border py-3 shadow-sm sm:py-5">
+      <CardContent className="flex h-full flex-col px-4 py-0 sm:px-5">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-base font-medium text-foreground">{label}</p>
+          <p className="text-sm font-medium text-foreground sm:text-base">
+            {label}
+          </p>
           {delta ? (
             <TrendPill delta={delta} positiveDirection={positiveDirection} />
           ) : null}
         </div>
 
         {isLoading ? (
-          <Skeleton className="mt-1 mb-3 h-10 w-24" />
+          <Skeleton className="mt-1 mb-2 h-8 w-20 sm:mb-3 sm:h-10 sm:w-24" />
         ) : (
-          <p className="page-title mt-0.5 pb-3 text-[2.5rem] leading-tight font-bold tabular-nums">
+          <p className="page-title mt-0.5 pb-2 text-2xl leading-tight font-bold tabular-nums sm:pb-3 sm:text-[2.5rem]">
             {value}
           </p>
         )}
@@ -61,7 +63,7 @@ export function KpiStatTile({
         {hasSeries ? (
           <ChartContainer
             config={chartConfig}
-            className="mt-auto aspect-auto h-48 w-full"
+            className="mt-auto aspect-auto h-28 w-full sm:h-48"
           >
             <AreaChart
               data={series}

@@ -71,6 +71,15 @@ export class RegistrationController {
     );
   }
 
+  @Post("invitation/preview")
+  async invitationPreview(
+    @Body() dto: InvitationContextDto,
+    @Req() request: Request
+  ) {
+    await this.limitPerIp(request, "invitation-preview");
+    return this.registrationService.invitationPreview(dto.invitationId);
+  }
+
   @Post("invitation/context")
   async invitationContext(
     @Body() dto: InvitationContextDto,

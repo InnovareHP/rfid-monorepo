@@ -74,7 +74,7 @@ type TaskFormDialogProps = {
   onSubmit: (payload: CreateTaskPayload, subtaskNames: string[]) => void;
 };
 
-const RequiredMark = () => <span className="text-red-500">*</span>;
+const RequiredMark = () => <span className="text-destructive">*</span>;
 
 const Section = ({
   title,
@@ -85,8 +85,8 @@ const Section = ({
 }) => (
   <section className="space-y-4">
     <div>
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-      <div className="mt-2 border-b border-gray-200" />
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <div className="mt-2 border-b border-border" />
     </div>
     {children}
   </section>
@@ -310,7 +310,7 @@ export const TaskFormDialog = ({
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-muted-foreground hover:text-foreground"
                           aria-label="Remove subtask"
                           onClick={() => subtaskFields.remove(index)}
                         >
@@ -460,7 +460,7 @@ export const TaskFormDialog = ({
               <Button
                 type="submit"
                 disabled={submitting}
-                className="bg-brand text-white hover:bg-brand/90"
+               
               >
                 {submitting ? (
                   <Loader2 className="size-4 animate-spin" />

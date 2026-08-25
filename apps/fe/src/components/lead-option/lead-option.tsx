@@ -261,7 +261,7 @@ export default function LeadOption() {
   );
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="p-4 bg-gray-50 min-h-full sm:p-8">
       <div className="space-y-6">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

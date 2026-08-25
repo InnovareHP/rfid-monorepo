@@ -1,61 +1,197 @@
-import {
-  AlertCircle,
-  CheckCircle2,
-  Download,
-  FileDown,
-  FileText,
-  Info,
-  Loader2,
-  Upload,
-  X,
-} from "lucide-react";
-import Papa from "papaparse";
-import { Fragment, useMemo, useRef, useState } from "react";
-
 import { downloadCSVTemplate } from "@/lib/fe-helpers";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
+import {
+  autoMatchColumns,
+  CREATE_COLUMN,
+  inferFieldType,
+  suggestColumns,
+  type ColumnSuggestion,
+  type NewFieldType,
+} from "@/lib/helper/csv-column-mapping";
+import {
+  parseSpreadsheet,
+  pickDefaultSheet,
+  type ParsedWorkbook,
+} from "@/lib/helper/spreadsheet-parse";
 import {
   getLeadColumnOptions,
   importLeads,
+  type ImportResult,
 } from "@/services/lead/lead-service";
-import { isValidHeader, normalizeHeader } from "@dashboard/shared";
+import { getModules } from "@/services/module/module-service";
+import { normalizeKey } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
-import { cn } from "@dashboard/ui/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@dashboard/ui/components/select";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, FileDown, Info, Upload } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const IMPORT_STEPS = [
-  { title: "Upload File", caption: "Add your CSV File" },
-  { title: "Review Data", caption: "Preview and Validate" },
-  { title: "Import", caption: "Sync and Complete" },
-];
+import { ColumnMapping } from "./column-mapping";
+import { ImportDropzone } from "./import-dropzone";
+import { ImportPreviewTable } from "./import-preview-table";
+import { ImportResultPanel } from "./import-result-panel";
+import { ImportStepper } from "./import-stepper";
+import { SheetPicker } from "./sheet-picker";
 
 export default function MasterListImportPage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [rows, setRows] = useState<Record<string, any>[]>([]);
-
+  const [workbook, setWorkbook] = useState<ParsedWorkbook | null>(null);
   const [isParsing, setIsParsing] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{
-    imported?: number;
-    createdOptions?: number;
-    unmatchedColumns?: string[];
-  } | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [moduleType, setModuleType] = useState("LEAD");
 
-  const maxPreviewRows = 5;
+  // Only the user's explicit choices are stored; everything shown is derived
+  // below, so switching module, file or sheet needs no effect to stay coherent.
+  const [sheetOverride, setSheetOverride] = useState<string | null>(null);
+  const [mapOverrides, setMapOverrides] = useState<
+    Record<string, string | null>
+  >({});
+  const [newFieldTypes, setNewFieldTypes] = useState<
+    Record<string, NewFieldType>
+  >({});
 
-  const normalizedRowsCount = useMemo(() => rows.length, [rows]);
+  const { data: allModules = [] } = useQuery({
+    queryKey: ["modules"],
+    queryFn: getModules,
+  });
+  const modules = allModules.filter((m) => !m.isArchived);
 
-  const currentStep = isUploading || result ? 3 : file ? 2 : 1;
+  const selectedModule = modules.find((m) => m.key === moduleType);
+  const recordLabel = selectedModule?.label ?? "Records";
+  const recordLabelSingular = selectedModule?.labelSingular ?? "record";
+
+  const { data: allColumns = [] } = useQuery({
+    queryKey: ["board-columns", moduleType],
+    queryFn: () => getLeadColumnOptions(moduleType),
+  });
+
+  const importableColumns = useMemo(
+    () =>
+      allColumns.filter((c) => c.name !== "History" && c.type !== "TIMELINE"),
+    [allColumns]
+  );
+
+  const sheets = workbook?.sheets ?? [];
+  const activeSheet =
+    sheets.find((sheet) => sheet.name === sheetOverride) ??
+    (sheets.length ? pickDefaultSheet(sheets) : undefined);
+
+  const headers = activeSheet?.headers ?? [];
+  const rows = activeSheet?.rows ?? [];
+
+  const columnMap = useMemo(() => {
+    const merged = autoMatchColumns(headers, importableColumns);
+
+    for (const [header, value] of Object.entries(mapOverrides)) {
+      if (value === null || value === CREATE_COLUMN) delete merged[header];
+      else merged[header] = value;
+    }
+
+    return merged;
+  }, [headers, importableColumns, mapOverrides]);
+
+  // A column marked for creation carries the user's type when they picked one,
+  // otherwise the type inferred from its own cells.
+  const newColumnTypes = useMemo(() => {
+    const types: Record<string, NewFieldType> = {};
+
+    for (const header of headers) {
+      if (mapOverrides[header] !== CREATE_COLUMN) continue;
+
+      types[header] =
+        newFieldTypes[header] ??
+        inferFieldType(rows.map((row) => row[header]));
+    }
+
+    return types;
+  }, [headers, rows, mapOverrides, newFieldTypes]);
+
+  const suggestions = useMemo(() => {
+    const taken = new Set(Object.values(columnMap));
+    const byHeader: Record<string, ColumnSuggestion[]> = {};
+
+    for (const header of headers) {
+      if (columnMap[header] || newColumnTypes[header]) continue;
+      byHeader[header] = suggestColumns(header, importableColumns, taken);
+    }
+
+    return byHeader;
+  }, [headers, importableColumns, columnMap, newColumnTypes]);
+
+  const newColumns = useMemo(
+    () =>
+      Object.entries(newColumnTypes).map(([header, fieldType]) => ({
+        header,
+        fieldName: header,
+        fieldType,
+      })),
+    [newColumnTypes]
+  );
+
+  // A header containing "name" is the usual title column; otherwise the first.
+  const nameColumn =
+    mapOverrides.__nameColumn && headers.includes(mapOverrides.__nameColumn)
+      ? mapOverrides.__nameColumn
+      : (headers.find((h) => normalizeKey(h).includes("name")) ??
+        headers[0] ??
+        "");
+
+  const importMutation = useMutation({
+    mutationFn: () =>
+      importLeads({
+        excelData: rows,
+        moduleType,
+        columnMap,
+        nameColumn,
+        newColumns,
+      }),
+    onSuccess: async (res) => {
+      setResult(res);
+      toast.success(`${recordLabel} imported successfully`);
+      clearFile();
+
+      // Created fields exist the moment this resolves, so the board and the
+      // mapping list both need the new column set.
+      await queryClient.invalidateQueries({
+        queryKey: ["board-columns", moduleType],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: boardQueryKey(moduleType),
+      });
+    },
+    onError: (mutationError: Error) => {
+      setError(mutationError.message ?? "Something went wrong while uploading.");
+    },
+  });
+
+  const canUpload =
+    !!file &&
+    !isParsing &&
+    !importMutation.isPending &&
+    rows.length > 0 &&
+    !!nameColumn &&
+    Object.keys(columnMap).length + newColumns.length > 0;
+
+  const currentStep = importMutation.isPending || result ? 3 : file ? 2 : 1;
 
   const clearFile = () => {
     setFile(null);
-    setHeaders([]);
-    setRows([]);
+    setWorkbook(null);
+    setSheetOverride(null);
+    setMapOverrides({});
+    setNewFieldTypes({});
 
     // reset the input so selecting the same file again triggers onChange
     if (inputRef.current) inputRef.current.value = "";
@@ -67,101 +203,60 @@ export default function MasterListImportPage() {
     setResult(null);
   };
 
-  const parseCSV = (f: File) => {
-    setIsParsing(true);
-    setError(null);
-    setResult(null);
-
-    Papa.parse<Record<string, any>>(f, {
-      header: true,
-      skipEmptyLines: "greedy",
-      complete: (results) => {
-        const rawHeaders = (results.meta.fields ?? [])
-          .filter(Boolean)
-          .map((h) => normalizeHeader(h));
-
-        const cleanedHeaders = rawHeaders.filter(isValidHeader);
-
-        const cleanedRows = (results.data ?? [])
-          .map((row) => {
-            if (!row) return null;
-
-            return Object.fromEntries(
-              Object.entries(row)
-                .map(([key, value]) => [normalizeHeader(key), value])
-                .filter(([key]) => isValidHeader(key))
-            );
-          })
-          .filter(
-            (r) =>
-              r &&
-              Object.values(r).some(
-                (v) => v !== null && v !== undefined && String(v).trim() !== ""
-              )
-          ) as Record<string, any>[];
-
-        setHeaders(cleanedHeaders);
-        setRows(cleanedRows);
-        setIsParsing(false);
-
-        if (!cleanedHeaders.length) {
-          setError(
-            "No valid column headers detected. Please check your CSV file."
-          );
-        }
-      },
-      error: (err) => {
-        setIsParsing(false);
-        setError(err?.message ?? "Failed to parse CSV.");
-      },
-    });
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
 
     setFile(selectedFile);
-    parseCSV(selectedFile);
-  };
-
-  const handleDownloadTemplate = async () => {
-    const columns: { name: string }[] = await getLeadColumnOptions();
-    const headers = columns
-      .map((column) => column.name)
-      .filter((name) => name !== "History");
-
-    if (!headers.length) {
-      toast.error("No lead fields available for a template.");
-      return;
-    }
-
-    downloadCSVTemplate(headers, "Master_List_Template");
-  };
-
-  const handleUpload = async () => {
-    if (!file) return;
-    if (!rows.length) {
-      setError("No rows detected. Please check your CSV content.");
-      return;
-    }
-
-    setIsUploading(true);
+    setWorkbook(null);
+    setSheetOverride(null);
+    setMapOverrides({});
+    setNewFieldTypes({});
     setError(null);
     setResult(null);
+    setIsParsing(true);
 
     try {
-      const res = await importLeads(rows);
-      setResult(res);
+      setWorkbook(await parseSpreadsheet(selectedFile));
+    } catch (parseError) {
+      const message =
+        parseError instanceof Error
+          ? parseError.message
+          : "Failed to read this file.";
 
-      toast.success("Leads imported successfully");
-
-      clearFile();
-    } catch (e: any) {
-      setError(e?.message ?? "Something went wrong while uploading.");
+      setError(message);
+      toast.error(message);
     } finally {
-      setIsUploading(false);
+      setIsParsing(false);
     }
+  };
+
+  // A mapping keyed by the previous sheet's headers means nothing here.
+  const handleSheetChange = (name: string) => {
+    setSheetOverride(name);
+    setMapOverrides({});
+    setNewFieldTypes({});
+  };
+
+  const handleModuleChange = (nextModuleType: string) => {
+    setModuleType(nextModuleType);
+    removeFile();
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateHeaders = importableColumns.map((column) => column.name);
+
+    if (!templateHeaders.length) {
+      toast.error(`No ${recordLabelSingular} fields available for a template.`);
+      return;
+    }
+
+    downloadCSVTemplate(
+      templateHeaders,
+      `${recordLabel.replace(/\s+/g, "_")}_Template`
+    );
   };
 
   return (
@@ -169,12 +264,12 @@ export default function MasterListImportPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
           <h1 className="page-title text-3xl font-bold tracking-tight sm:text-4xl">
-            Import Master List
+            Import {recordLabel}
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Import your data records using CSV files. We&apos;ll detect headers
-            and let the backend match them to your Lead Fields. You&apos;ll be
-            able to review and confirm before anything is synced.
+            Import your records from a CSV or Excel file. Columns are matched to
+            your {recordLabelSingular} fields where the names agree, and you
+            confirm or change every mapping before anything is synced.
           </p>
         </div>
 
@@ -186,236 +281,109 @@ export default function MasterListImportPage() {
 
       <Card className="shadow-sm">
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
-            {IMPORT_STEPS.map((step, index) => (
-              <Fragment key={step.title}>
-                {index > 0 && (
-                  <div
-                    className={cn(
-                      "h-px flex-1 transition-colors duration-300",
-                      index < currentStep ? "bg-primary" : "bg-muted-foreground"
-                    )}
-                  />
-                )}
-                <div className="flex items-center gap-3">
-                  <span
-                    className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-full text-base font-semibold text-primary-foreground transition-colors duration-300",
-                      index < currentStep ? "bg-primary" : "bg-muted-foreground"
-                    )}
-                  >
-                    {index + 1 === currentStep && isUploading ? (
-                      <Loader2 className="size-5 animate-spin" />
-                    ) : (
-                      index + 1
-                    )}
-                  </span>
-                  <div>
-                    <p className="text-lg font-semibold text-foreground">
-                      {step.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {step.caption}
-                    </p>
-                  </div>
-                </div>
-              </Fragment>
-            ))}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold">Import into</p>
+            <Select value={moduleType} onValueChange={handleModuleChange}>
+              <SelectTrigger className="w-full sm:w-72">
+                <SelectValue placeholder="Select a module" />
+              </SelectTrigger>
+              <SelectContent>
+                {modules.map((module) => (
+                  <SelectItem key={module.key} value={module.key}>
+                    {module.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Dropzone Area */}
-          {!file ? (
-            <div className="group relative">
-              <label
-                htmlFor="file-upload"
-                className={cn(
-                  "flex flex-col items-center justify-center w-full h-72",
-                  "border border-dashed rounded-xl cursor-pointer",
-                  "bg-card border-border",
-                  "group-hover:bg-muted group-hover:border-primary/50 transition-all duration-300"
-                )}
-              >
-                <div className="flex flex-col items-center justify-center p-6 text-center">
-                  <div className="mb-4 flex size-20 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-transform duration-300 group-hover:scale-110">
-                    <Download className="size-8 text-brand" />
-                  </div>
-                  <p className="text-base text-foreground mb-1">
-                    <span className="font-semibold text-brand">
-                      Click to browse
-                    </span>{" "}
-                    or drag and drop your file
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    CSV (Max size: 10MB)
-                  </p>
-                </div>
-                <input
-                  ref={inputRef}
-                  id="file-upload"
-                  type="file"
-                  className="hidden"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                />
-              </label>
-            </div>
-          ) : (
-            /* Selected File Preview */
-            <div className="relative overflow-hidden rounded-2xl border bg-accent/20 p-6 animate-in zoom-in-95 duration-300">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-5">
-                  <div className="bg-background p-4 rounded-xl shadow-sm border border-primary/10">
-                    <FileText className="h-10 w-10 text-primary" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-base font-bold text-foreground break-all">
-                      {file.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB •{" "}
-                      {isParsing ? "Parsing..." : "Ready"}
-                    </p>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-success/15 text-success text-xs font-bold border border-success/30">
-                      <CheckCircle2 className="h-3 w-3" />
-                      {isParsing ? "Processing" : "Validated"}
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={removeFile}
-                  className="rounded-full h-8 w-8 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <ImportStepper
+            currentStep={currentStep}
+            isUploading={importMutation.isPending}
+          />
 
-          {/* Errors */}
+          <ImportDropzone
+            inputRef={inputRef}
+            file={file}
+            isParsing={isParsing}
+            onFileChange={handleFileChange}
+            onRemove={removeFile}
+          />
+
           {error && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-              <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
-              <p className="text-sm text-destructive leading-relaxed">
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              <p className="text-sm leading-relaxed text-destructive">
                 <strong>Error:</strong> {error}
               </p>
             </div>
           )}
 
-          {/* Parsed Info */}
           {file && !isParsing && headers.length > 0 && (
             <div className="space-y-4">
-              {/* Headers chips */}
-              <div className="rounded-xl border p-4 bg-muted/20">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold">Detected Columns</p>
-                  <p className="text-xs text-muted-foreground">
-                    {headers.length} columns • {normalizedRowsCount} rows
-                  </p>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {headers.map((h) => (
-                    <span
-                      key={h}
-                      className="px-2.5 py-1 rounded-md bg-background border text-xs font-medium"
-                      title={h}
-                    >
-                      {h}
-                    </span>
-                  ))}
-                </div>
+              {sheets.length > 1 && activeSheet && (
+                <SheetPicker
+                  sheets={sheets}
+                  value={activeSheet.name}
+                  onChange={handleSheetChange}
+                />
+              )}
+
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">Detected Columns</p>
+                <p className="text-xs text-muted-foreground">
+                  {headers.length} columns • {rows.length} rows
+                </p>
               </div>
 
-              {/* Preview table */}
+              <ColumnMapping
+                headers={headers}
+                columns={importableColumns}
+                columnMap={columnMap}
+                newColumnTypes={newColumnTypes}
+                suggestions={suggestions}
+                nameColumn={nameColumn}
+                recordLabelSingular={recordLabelSingular}
+                onMapChange={(header, value) =>
+                  setMapOverrides((prev) => ({ ...prev, [header]: value }))
+                }
+                onNewFieldTypeChange={(header, fieldType) =>
+                  setNewFieldTypes((prev) => ({ ...prev, [header]: fieldType }))
+                }
+                onNameColumnChange={(header) =>
+                  setMapOverrides((prev) => ({ ...prev, __nameColumn: header }))
+                }
+              />
+
               {rows.length > 0 && (
-                <div className="rounded-xl border overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted border-b border-border">
-                      <tr>
-                        {headers.map((h) => (
-                          <th
-                            key={h}
-                            className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
-                          >
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.slice(0, maxPreviewRows).map((row, i) => (
-                        <tr
-                          key={i}
-                          className="border-t border-border hover:bg-muted transition-colors"
-                        >
-                          {headers.map((h) => (
-                            <td key={h} className="px-3 py-2 whitespace-nowrap">
-                              {row?.[h] ?? ""}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <p className="text-xs text-muted-foreground p-2">
-                    Showing first {Math.min(maxPreviewRows, rows.length)} rows
-                    only.
-                  </p>
-                </div>
+                <ImportPreviewTable headers={headers} rows={rows} />
               )}
             </div>
           )}
 
-          {/* Upload Result */}
           {result && (
-            <div className="rounded-xl border p-4 bg-success/10/60">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-success mt-0.5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-success">
-                    Import complete
-                  </p>
-                  <p className="text-sm text-success/80">
-                    Imported <strong>{result.imported ?? 0}</strong> leads.
-                    {typeof result.createdOptions === "number" && (
-                      <>
-                        {" "}
-                        Created <strong>{result.createdOptions}</strong> new
-                        options.
-                      </>
-                    )}
-                  </p>
-                  {!!result.unmatchedColumns?.length && (
-                    <p className="text-xs text-success/80">
-                      Unmatched columns:{" "}
-                      <strong>{result.unmatchedColumns.join(", ")}</strong>
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+            <ImportResultPanel result={result} recordLabel={recordLabel} />
           )}
 
-          {/* Action Footer */}
-          <div className="pt-4 space-y-4">
+          <div className="space-y-4 pt-4">
             <Button
-              onClick={handleUpload}
-              disabled={!file || isParsing || isUploading || !rows.length}
+              onClick={() => importMutation.mutate()}
+              disabled={!canUpload}
               size="lg"
               className="h-12 w-full text-base font-semibold transition-all active:scale-[0.99]"
             >
               <Upload className="mr-2 h-5 w-5" />
-              {isUploading ? "Uploading..." : "Upload and Sync"}
+              {importMutation.isPending ? "Uploading..." : "Upload and Sync"}
             </Button>
 
             <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-table-header p-4">
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
               <p className="text-sm leading-relaxed text-foreground">
-                <strong>Note:</strong> The backend will match your CSV column
-                headers to Lead Fields by name (fuzzy match), then use the field
-                type from the database to validate values and create missing
-                options.
+                <strong>Note:</strong> Columns whose header matches a{" "}
+                {recordLabelSingular} field are mapped for you, ignoring word
+                order. A near miss is offered as a suggestion, never applied on
+                your behalf. Anything left over stays on <em>Do not import</em>{" "}
+                unless you map it or choose <em>Create new field</em>.
               </p>
             </div>
           </div>

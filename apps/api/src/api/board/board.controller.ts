@@ -421,14 +421,18 @@ export class BoardController {
     @Param("recordId") recordId: string,
     @Session() session: AuthenticatedSession,
     @Query("page") page = 1,
-    @Query("limit") limit = 15
+    @Query("limit") limit = 15,
+    @Query("activityType") activityType?: string,
+    @Query("status") status?: string
   ) {
     try {
       return await this.boardService.getActivities(
         recordId,
         session.session.activeOrganizationId,
         Number(page),
-        Number(limit)
+        Number(limit),
+        activityType,
+        status
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -737,7 +741,10 @@ export class BoardController {
         dto.excelData,
         organizationId,
         dto.moduleType,
-        session.user.id
+        session.user.id,
+        dto.columnMap,
+        dto.nameColumn,
+        dto.newColumns
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -795,6 +802,7 @@ export class BoardController {
       return await this.boardService.updateActivity(
         activityId,
         session.session.activeOrganizationId,
+        session.user.id,
         dto
       );
     } catch (error) {

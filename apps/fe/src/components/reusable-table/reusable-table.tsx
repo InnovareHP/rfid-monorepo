@@ -7,7 +7,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
-import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 import {
   Table,
   TableBody,
@@ -24,7 +23,6 @@ import {
   type Table as ReactTable,
 } from "@tanstack/react-table";
 import {
-  AlertCircle,
   ArrowDown,
   Loader2,
   MailIcon,
@@ -37,6 +35,8 @@ import { toast } from "sonner";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { BulkEmailDialog } from "./bulk-email-dialog";
 import { DeleteRecordsDialog } from "./delete-records-dialog";
+import { TableEmptyState } from "./table-empty-state";
+import { TableErrorState } from "./table-error-state";
 import { TablePagination } from "./table-pagination";
 
 type Props<T> = {
@@ -163,8 +163,15 @@ const ReusableTable = <T extends { id: string }>({
       )}
       <Card className="border border-border shadow-sm py-0 gap-0 overflow-hidden">
         <CardContent className="relative p-0">
-          <ScrollArea className="relative w-full max-h-[calc(100vh-260px)]">
+          {/* Native scroll, not Radix ScrollArea: ScrollArea defaults to
+              type="hover", so on touch its scrollbars never show and panning a
+              wide table is unreliable. The Table primitive's own container is
+              switched to overflow-visible so this element owns both axes -- two
+              nested scroll containers is what made the table look merely
+              clipped. */}
+          <div className="relative w-full max-h-[calc(100vh-260px)] overflow-auto overscroll-x-contain">
             <Table
+              containerClassName="overflow-visible"
               className="table-fixed w-full"
               style={{ minWidth: table.getCenterTotalSize() }}
             >
@@ -182,17 +189,11 @@ const ReusableTable = <T extends { id: string }>({
                           : 0;
                       return (
                       <TableHead
-                        className={cn(
-                          "text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
-                          stickyLeft ? "z-30" : "z-20"
-                        )}
+                        className="text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 z-20 bg-table-header"
                         key={header.id}
                         style={{
                           width: header.getSize(),
                           maxWidth: header.getSize(),
-                          ...(stickyLeft
-                            ? { position: "sticky", left: leftOffset }
-                            : {}),
                         }}
                       >
                         <div className="overflow-hidden text-ellipsis">
@@ -218,8 +219,7 @@ const ReusableTable = <T extends { id: string }>({
                           />
                         )}
                       </TableHead>
-                      );
-                    })}
+                    ))}
                   </TableRow>
                 ))}
               </TableHeader>
@@ -248,24 +248,12 @@ const ReusableTable = <T extends { id: string }>({
                       colSpan={columns.length}
                       className="text-center py-16 bg-destructive/5"
                     >
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                          <AlertCircle className="h-8 w-8 text-destructive" />
-                        </div>
-                        <p className="font-semibold text-destructive">
-                          {errorMessage}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Please refresh the page or contact support if the
-                          problem persists.
-                        </p>
-                      </div>
+                      <TableErrorState message={errorMessage} />
                     </TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows.length ? (
                   table.getRowModel().rows.map((row) => {
                     const cells = row.getVisibleCells();
-                    const col0Width = cells[0]?.column.getSize() ?? 0;
                     const isSelected = row.getIsSelected();
                     const rowBg = isSelected ? "bg-primary/10" : "bg-card";
                     return (
@@ -300,15 +288,10 @@ const ReusableTable = <T extends { id: string }>({
                           style={{
                             width: cell.column.getSize(),
                             maxWidth: cell.column.getSize(),
-                            ...(stickyLeft
-                              ? { position: "sticky", left: leftOffset, zIndex: 10 }
-                              : {}),
                           }}
                           className={cn(
                             "px-4 py-3 text-sm overflow-hidden text-ellipsis",
-                            cellIndex === 0 && "font-medium text-foreground",
-                            stickyLeft && rowBg,
-                            stickyLeft && !isSelected && "group-hover:bg-muted/50"
+                            cellIndex === 0 && "font-medium text-foreground"
                           )}
                         >
                           {flexRender(
@@ -316,8 +299,7 @@ const ReusableTable = <T extends { id: string }>({
                             cell.getContext()
                           )}
                         </TableCell>
-                        );
-                      })}
+                      ))}
                     </TableRow>
                     );
                   })
@@ -327,41 +309,13 @@ const ReusableTable = <T extends { id: string }>({
                       colSpan={columns.length}
                       className="text-center py-20 bg-muted/50 border-t border-border"
                     >
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center border-2 border-primary/30">
-                          <svg
-                            className="h-10 w-10 text-primary"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                            />
-                          </svg>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="font-semibold text-foreground text-lg">
-                            {emptyMessage}
-                          </p>
-                          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                            Add your first entry to get started and see your
-                            data here.
-                          </p>
-                        </div>
-                      </div>
+                      <TableEmptyState message={emptyMessage} />
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-
-            <ScrollBar orientation="horizontal" />
-            <ScrollBar orientation="vertical" />
-          </ScrollArea>
+          </div>
 
           {hasMore && !isError && (
             <div className="flex w-full justify-center items-center mt-6 mb-4">

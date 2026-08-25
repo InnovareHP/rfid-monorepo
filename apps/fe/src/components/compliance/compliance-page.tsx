@@ -24,6 +24,7 @@ import { Download, FileSignature, Lock, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BaaSignModal } from "./baa-sign-modal";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 
 type Member = { role: string };
 
@@ -62,9 +63,9 @@ export function CompliancePage() {
       queryClient.setQueryData(["compliance"], next);
       toast.success("HIPAA mode enabled");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(
-        error?.response?.data?.message ?? "HIPAA mode could not be enabled"
+        getApiErrorMessage(error, "HIPAA mode could not be enabled")
       );
     },
   });

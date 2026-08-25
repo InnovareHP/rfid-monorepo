@@ -35,7 +35,8 @@
     "migrate:cloudinary-s3": "ts-node prisma/scripts/migrate-cloudinary-to-s3.ts",
     "docker:build": "docker build -t dashboard-backend .",
     "auth:generate": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/auth.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "audit:collapsed-values": "ts-node scripts/audit-collapsed-values.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1046.0",

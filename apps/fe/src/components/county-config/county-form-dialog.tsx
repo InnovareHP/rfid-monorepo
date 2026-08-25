@@ -104,7 +104,7 @@ export function CountyFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      County Name <span className="text-red-500">*</span>
+                      County Name <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -121,7 +121,7 @@ export function CountyFormDialog({
               <div className="space-y-2">
                 <FormLabel>Assigned To</FormLabel>
                 <div className="relative">
-                  <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
+                  <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Search Team Members"
                     value={search}
@@ -130,7 +130,7 @@ export function CountyFormDialog({
                   />
                 </div>
 
-                <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 p-2">
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-border p-2">
                   {matches.length === 0 ? (
                     <p className="px-2 py-6 text-center text-sm text-muted-foreground">
                       No team members found
@@ -142,15 +142,15 @@ export function CountyFormDialog({
                         type="button"
                         onClick={() => toggleLiaison(liaison.value)}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50",
-                          selected.includes(liaison.value) && "bg-gray-100"
+                          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted",
+                          selected.includes(liaison.value) && "bg-muted"
                         )}
                       >
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#2C86D9] text-xs font-semibold text-white">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-avatar-6 text-xs font-semibold text-avatar-foreground">
                           {initials(liaison.value)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-gray-900">
+                          <span className="block truncate text-sm font-medium text-foreground">
                             {liaison.value}
                           </span>
                           <span className="block text-xs text-muted-foreground">
@@ -158,7 +158,7 @@ export function CountyFormDialog({
                           </span>
                         </span>
                         {selected.includes(liaison.value) ? (
-                          <Check className="size-4 shrink-0 text-gray-900" />
+                          <Check className="size-4 shrink-0 text-foreground" />
                         ) : null}
                       </button>
                     ))
@@ -178,7 +178,7 @@ export function CountyFormDialog({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-brand text-white hover:bg-brand/90"
+               
               >
                 {isSubmitting ? (
                   <Loader2 className="size-4 animate-spin" />

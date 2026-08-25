@@ -1,4 +1,4 @@
-import ImportPage from "@/components/import/import-page";
+import MasterListImportPage from "@/components/import/master-list-import-page";
 import { EntitledRoute } from "@/lib/helper/helper";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -10,5 +10,5 @@ export const Route = createFileRoute("/_team/$team/import/")({
 });
 
 function RouteComponent() {
-  return <ImportPage />;
+  return <MasterListImportPage />;
 }

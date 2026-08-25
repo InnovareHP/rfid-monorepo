@@ -2,12 +2,11 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  DialogFormFooter,
+  DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
-import { Loader2, Trash2Icon } from "lucide-react";
+import { Spinner } from "@dashboard/ui/components/spinner";
+import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -38,8 +37,7 @@ export function DeleteRecordsDialog({
       setOpen(false);
       onDeleted();
       toast.success(`Successfully deleted ${recordIds.length} item(s).`);
-    } catch (error) {
-      console.error("Delete error:", error);
+    } catch {
       toast.error("Failed to delete items. Please try again.");
     } finally {
       setIsDeleting(false);
@@ -48,26 +46,19 @@ export function DeleteRecordsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md">
-        <DialogHeader className="space-y-3">
-          <div className="mx-auto h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-            <Trash2Icon className="h-6 w-6 text-red-600" />
-          </div>
-          <DialogTitle className="text-center text-xl">
-            Delete {recordIds.length} {itemLabel}?
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            Are you sure you want to delete {recordIds.length} selected{" "}
-            {itemLabel}? This action cannot be undone and all associated data
-            will be permanently removed.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="gap-2 sm:gap-0">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogFormHeader
+          icon={<Trash2Icon />}
+          iconClassName="bg-destructive text-destructive-foreground"
+          title={`Delete ${recordIds.length} ${itemLabel}?`}
+          description={`This permanently removes ${recordIds.length} selected ${itemLabel} and all associated data. This cannot be undone.`}
+        />
+
+        <DialogFormFooter>
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
             disabled={isDeleting}
-            className="flex-1"
           >
             Cancel
           </Button>
@@ -75,21 +66,20 @@ export function DeleteRecordsDialog({
             variant="destructive"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="flex-1"
           >
             {isDeleting ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Spinner size="sm" className="mr-2 text-current" />
                 Deleting...
               </>
             ) : (
               <>
-                <Trash2Icon className="w-4 h-4 mr-2" />
+                <Trash2Icon className="mr-2 size-4" />
                 Delete Permanently
               </>
             )}
           </Button>
-        </DialogFooter>
+        </DialogFormFooter>
       </DialogContent>
     </Dialog>
   );

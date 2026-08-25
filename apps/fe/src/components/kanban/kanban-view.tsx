@@ -129,7 +129,7 @@ export default function KanbanView({
 
   if (error || !kanban) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-card p-8 text-center">
+      <div className="rounded-md border border-dashed border-border bg-card p-4 text-center sm:p-8">
         <p className="font-medium text-foreground">Kanban not available</p>
         <p className="mt-1 text-sm text-muted-foreground">
           This module has no status field to group by. Add one to the board, then

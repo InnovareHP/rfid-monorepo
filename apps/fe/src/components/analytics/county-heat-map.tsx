@@ -157,7 +157,7 @@ export default function CountyHeatMap({
   }
 
   return (
-    <div className="h-[450px] w-full rounded-lg overflow-hidden">
+    <div className="h-[320px] w-full rounded-lg overflow-hidden sm:h-[450px]">
       <MapGL
         ref={mapRef}
         initialViewState={{

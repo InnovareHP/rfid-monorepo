@@ -8,8 +8,12 @@ jest.mock("bullmq", () => ({
 jest.mock("./board.gateway", () => ({ BoardGateway: jest.fn() }));
 
 const findMany = jest.fn();
+const moduleFindFirst = jest.fn();
 jest.mock("../../lib/prisma/prisma", () => ({
-  prisma: { member: { findMany: (...a: unknown[]) => findMany(...a) } },
+  prisma: {
+    member: { findMany: (...a: unknown[]) => findMany(...a) },
+    module: { findFirst: (...a: unknown[]) => moduleFindFirst(...a) },
+  },
 }));
 
 import { BoardExportService } from "./board-export.service";
@@ -22,12 +26,16 @@ const service = () =>
 
 const actor = { userId: "user_a", role: "owner", ip: "10.0.0.5" };
 
-const lines = (csv: string) => csv.replace(/^\uFEFF/, "").split("\r\n");
+const lines = (csv: string) => csv.replace(/^﻿/, "").split("\r\n");
 
 describe("BoardExportService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     findMany.mockResolvedValue([{ userId: "u1", user: { name: "Dana Reed" } }]);
+    moduleFindFirst.mockResolvedValue({
+      label: "Master Marketing List",
+      labelSingular: "Lead",
+    });
   });
 
   it("prepends the BOM so Excel reads utf-8", async () => {
@@ -39,12 +47,14 @@ describe("BoardExportService", () => {
       actor
     );
 
-    expect(csv.startsWith("\uFEFF")).toBe(true);
+    expect(csv.startsWith("﻿")).toBe(true);
   });
 
+  // recordName and assignedTo are the keys getAllBoards actually puts on a flat
+  // row; reading referral_name/assigned_to exported both columns blank.
   it("drops the History column and resolves the assignee name", async () => {
     getAllBoards.mockResolvedValue({
-      data: [{ referral_name: "Acme", assigned_to: "u1", Stage: "New" }],
+      data: [{ recordName: "Acme", assignedTo: "u1", Stage: "New" }],
       columns: [{ name: "Stage" }, { name: "History" }],
     });
 
@@ -54,14 +64,41 @@ describe("BoardExportService", () => {
       actor
     );
 
-    expect(lines(csv)[0]).toBe("Organization,Account Manager,Stage");
+    expect(lines(csv)[0]).toBe("Lead,Account Manager,Stage");
     expect(lines(csv)[1]).toBe("Acme,Dana Reed,New");
   });
 
-  it("omits the lead-only columns for referrals", async () => {
+  // Every module exports its record name, headed by that module's own label.
+  it("heads the name column with the module label", async () => {
+    moduleFindFirst.mockResolvedValue({
+      label: "Facilities",
+      labelSingular: "Facility",
+    });
     getAllBoards.mockResolvedValue({
-      data: [{ Stage: "New" }],
+      data: [{ recordName: "Lakeside", Stage: "New" }],
       columns: [{ name: "Stage" }],
+    });
+
+    const { csv, filename } = await service().exportCsv(
+      "org_a",
+      { moduleType: "FACILITY" },
+      actor
+    );
+
+    expect(lines(csv)[0]).toBe("Facility,Account Manager,Stage");
+    expect(filename).toMatch(/^Facilities_/);
+  });
+
+  // REFERRAL owns a field literally called "Facility"; a module whose label
+  // collides with one of its own fields must not emit that column twice.
+  it("does not repeat a column that matches the module label", async () => {
+    moduleFindFirst.mockResolvedValue({
+      label: "Referral Logs",
+      labelSingular: "Facility",
+    });
+    getAllBoards.mockResolvedValue({
+      data: [{ recordName: "Acme", Facility: "ignored" }],
+      columns: [{ name: "Facility" }],
     });
 
     const { csv } = await service().exportCsv(
@@ -70,8 +107,16 @@ describe("BoardExportService", () => {
       actor
     );
 
-    expect(lines(csv)[0]).toBe("Stage");
-    expect(findMany).not.toHaveBeenCalled();
+    expect(lines(csv)[0]).toBe("Facility,Account Manager");
+    expect(lines(csv)[1]).toBe("Acme,");
+  });
+
+  it("rejects a module the organization does not own", async () => {
+    moduleFindFirst.mockResolvedValue(null);
+
+    await expect(
+      service().exportCsv("org_a", { moduleType: "NOPE" }, actor)
+    ).rejects.toThrow('No module "NOPE" for the active organization');
   });
 
   // Papa quotes only when it has to, and doubles an embedded quote. A field that
@@ -90,11 +135,11 @@ describe("BoardExportService", () => {
 
     const { csv } = await service().exportCsv(
       "org_a",
-      { moduleType: "REFERRAL" },
+      { moduleType: "LEAD" },
       actor
     );
 
-    expect(csv.replace(/^\uFEFF/, "").split("\r\n")[1]).toBe(expected);
+    expect(lines(csv)[1]).toBe(`,,${expected}`);
   });
 
   // A LOCATION value arrives as an object; default stringification would have
@@ -107,11 +152,11 @@ describe("BoardExportService", () => {
 
     const { csv } = await service().exportCsv(
       "org_a",
-      { moduleType: "REFERRAL" },
+      { moduleType: "LEAD" },
       actor
     );
 
-    expect(lines(csv)[1]).toBe('"{""label"":""Clinic"",""lat"":1}"');
+    expect(lines(csv)[1]).toBe(',,"{""label"":""Clinic"",""lat"":1}"');
   });
 
   it("renders a missing value as empty rather than undefined", async () => {
@@ -122,11 +167,11 @@ describe("BoardExportService", () => {
 
     const { csv } = await service().exportCsv(
       "org_a",
-      { moduleType: "REFERRAL" },
+      { moduleType: "LEAD" },
       actor
     );
 
-    expect(lines(csv)[1]).toBe("");
+    expect(lines(csv)[1]).toBe(",,");
   });
 
   // The reason the endpoint exists: one row naming the export and its size.

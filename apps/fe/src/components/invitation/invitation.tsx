@@ -2,6 +2,7 @@ import { authClient } from "@/lib/auth-client";
 import {
   completeSignup,
   getInvitationContext,
+  getInvitationPreview,
 } from "@/services/passkeys/passkeys-service";
 import { Button } from "@dashboard/ui/components/button";
 import { Spinner } from "@dashboard/ui/components/spinner";
@@ -14,7 +15,7 @@ import {
 } from "@dashboard/ui/components/card";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import axios from "axios";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   ArrowRight,
   CheckCircle2,
@@ -48,15 +49,11 @@ type PageState =
   | { step: "rejected" }
   | { step: "error"; message: string };
 
-const extractErrorMessage = (error: unknown, fallback: string) =>
-  axios.isAxiosError<{ message?: string }>(error)
-    ? (error.response?.data?.message ?? fallback)
-    : fallback;
 
 const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   const { token, email, orgName, inviter } = useSearch({
     from: "/invitation/$action",
-  }) as any;
+  });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [state, setState] = useState<PageState>({ step: "loading" });
@@ -80,16 +77,26 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
       } else {
         setState({ step: "success", organizationId: "" });
       }
-    } catch (err: any) {
+    } catch (err) {
       setState({
         step: "error",
-        message: err.message || "Failed to accept invitation.",
+        message: getApiErrorMessage(err, "Failed to accept invitation."),
       });
     }
   };
 
   useEffect(() => {
     const init = async () => {
+      // A link without a token cannot identify an invitation, so say so rather
+      // than sending undefined to the API and surfacing its generic failure.
+      if (!token) {
+        setState({
+          step: "error",
+          message:
+            "This invitation link is incomplete. Ask your organization owner to send a new one.",
+        });
+        return;
+      }
       try {
         const { data: sessionData } = await authClient.getSession();
         if (sessionData?.user) {
@@ -115,34 +122,41 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
           return;
         }
 
-        const invitation: InvitationData = {
-          email: email || "",
-          organizationName: orgName || "the team",
-          inviterName: inviter || "A colleague",
-        };
-
-        // Requesting an enrollment grant doubles as the "does this email
-        // already have an account" check: the API only issues one when it
-        // doesn't.
         try {
+          // The invite link carries only the token, so who it is for comes from
+          // the API rather than the URL. hasAccount picks the branch directly
+          // instead of string-matching an error message.
+          const preview = await getInvitationPreview(token);
+          const invitation: InvitationData = {
+            email: preview.email,
+            organizationName: preview.organizationName || orgName || "the team",
+            inviterName: preview.inviterName || inviter || "A colleague",
+          };
+
+          if (preview.hasAccount) {
+            setState({ step: "sign-in", invitation });
+            return;
+          }
+
           const grant = await getInvitationContext(token);
           setState({
             step: "register",
             invitation: { ...invitation, email: grant.email },
             context: grant.context,
           });
-        } catch (grantError) {
-          const message = extractErrorMessage(
-            grantError,
-            "This invitation is no longer valid."
-          );
-          if (message.includes("account already exists")) {
-            setState({ step: "sign-in", invitation });
-            return;
-          }
-          setState({ step: "error", message });
+        } catch (previewError) {
+          // The API nests its body under `message`, so this must go through
+          // getApiErrorMessage -- reading data.message directly yields an
+          // object, not a string.
+          setState({
+            step: "error",
+            message: getApiErrorMessage(
+              previewError,
+              "This invitation is no longer valid."
+            ),
+          });
         }
-      } catch (err: any) {
+      } catch {
         setState({
           step: "error",
           message: "Initialization failed. Please try again.",
@@ -165,11 +179,10 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   };
 
   const handlePasswordSignIn = async (
-    values: z.infer<typeof passwordSignInSchema>,
-    invitationEmail: string
+    values: z.infer<typeof passwordSignInSchema>
   ) => {
     const { error } = await authClient.signIn.email({
-      email: invitationEmail,
+      email: values.email,
       password: values.password,
     });
     if (error) {
@@ -363,10 +376,9 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
           {state.step === "sign-in" ? (
             <SignInSection
+              email={invitation.email}
               pending={pending}
-              onPasswordSignIn={(values) =>
-                handlePasswordSignIn(values, invitation.email)
-              }
+              onPasswordSignIn={handlePasswordSignIn}
               onPasskeySignIn={handleSignInWithPasskey}
             />
           ) : (

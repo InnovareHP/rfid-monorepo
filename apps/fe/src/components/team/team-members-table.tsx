@@ -13,10 +13,9 @@ import { RoleBadge, TEAM_COLUMN_WIDTHS } from "./role-badge";
 
 export type TeamMemberRow = {
   id: string;
-  userId: string;
   role?: string | null;
   createdAt?: string | Date | null;
-  user: { name?: string | null; email: string };
+  user: { id: string; name?: string | null; email: string };
 };
 
 type TeamMembersTableProps = {
@@ -103,7 +102,7 @@ export function TeamMembersTable({
 
                 <DropdownMenuItem
                   className="text-red-600 focus:text-red-600"
-                  onClick={() => onRemove(row.userId)}
+                  onClick={() => onRemove(row.user.id)}
                 >
                   Remove From Team
                 </DropdownMenuItem>

@@ -1,10 +1,11 @@
 import { STATUS_LABELS } from "./constant";
 
+// Collapses newlines and runs of whitespace only. Never rewrite the characters
+// themselves: an imported value is user data, not a token to be canonicalised.
 export const normalizeOptionValue = (value: string) => {
   return value
     .replace(/\r?\n|\r/g, " ")
     .replace(/\s+/g, " ")
-    .replace(/(.+?)\1+/g, "$1") // collapse repeated sequences
     .trim();
 };
 

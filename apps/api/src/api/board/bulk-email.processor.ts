@@ -54,7 +54,7 @@ export class BulkEmailProcessor extends WorkerHost {
       `Processing bulk email job ${job.id} — ${recordIds.length} records`
     );
 
-    const scopedModuleId = await resolveModuleId(moduleType);
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
 
     const emailField = await prisma.field.findFirst({
       where: {
@@ -141,6 +141,7 @@ export class BulkEmailProcessor extends WorkerHost {
           organizationId,
           userId,
           activityType: "EMAIL",
+          isBulkSend: true,
         });
 
         sent++;

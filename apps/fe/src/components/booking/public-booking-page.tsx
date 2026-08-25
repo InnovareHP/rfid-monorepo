@@ -26,7 +26,6 @@ import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { Clock, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -36,6 +35,7 @@ import { BookingConfirmation } from "./booking-confirmation";
 import { BookingPageSkeleton, SlotListSkeleton } from "./booking-skeleton";
 import { SlotPicker } from "./slot-picker";
 import { TimezoneSelect } from "./timezone-select";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 
 const inviteeSchema = z.object({
   inviteeName: z.string().min(1, "Name is required"),
@@ -115,10 +115,7 @@ export function PublicBookingPage({
       });
     },
     onError: (error: Error) => {
-      const message = axios.isAxiosError<{ message?: string }>(error)
-        ? (error.response?.data?.message ?? error.message)
-        : error.message;
-      toast.error(message || "Failed to book this slot");
+      toast.error(getApiErrorMessage(error, "Failed to book this slot"));
     },
   });
 

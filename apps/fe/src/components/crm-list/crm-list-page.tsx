@@ -131,6 +131,27 @@ export default function CrmListPage({
     [SIZING_KEY]
   );
 
+  const VISIBILITY_KEY = `${queryKey}-column-visibility`;
+  const [columnVisibility, setColumnVisibility] = useState(() => {
+    try {
+      const saved = localStorage.getItem(VISIBILITY_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const handleColumnVisibilityChange = useCallback(
+    (updater: any) => {
+      setColumnVisibility((prev: any) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        localStorage.setItem(VISIBILITY_KEY, JSON.stringify(next));
+        return next;
+      });
+    },
+    [VISIBILITY_KEY]
+  );
+
   const table = useReactTable({
     data: rows,
     columns,
@@ -138,8 +159,9 @@ export default function CrmListPage({
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     columnResizeMode: "onChange",
-    state: { columnSizing },
+    state: { columnSizing, columnVisibility },
     onColumnSizingChange: handleColumnSizingChange,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
   });
 
   const deleteMutation = useMutation({
@@ -189,14 +211,26 @@ export default function CrmListPage({
       table
         .getAllColumns()
         .filter((column) => column.id !== "create_column")
-        .map((column) => ({
-          label: column.id || "Unnamed Column",
-          accessorFn: column.id,
-          getCanHide: column.getCanHide,
-          getIsVisible: column.getIsVisible,
-          toggleVisibility: column.toggleVisibility,
-        })),
-    [table]
+        .map((column) => {
+          const accessorKey = (column.columnDef as any).accessorKey as
+            | string
+            | undefined;
+          // The name column's accessorKey is a placeholder ("record_name"),
+          // not the user-facing label; every other column's accessorKey is
+          // already the real field name.
+          const label =
+            accessorKey === "record_name"
+              ? nameLabel
+              : (accessorKey ?? column.id ?? "Unnamed Column");
+          return {
+            label,
+            accessorFn: column.id,
+            getCanHide: column.getCanHide,
+            getIsVisible: column.getIsVisible,
+            toggleVisibility: column.toggleVisibility,
+          };
+        }),
+    [table, nameLabel]
   );
 
   const totalPages = Math.ceil(

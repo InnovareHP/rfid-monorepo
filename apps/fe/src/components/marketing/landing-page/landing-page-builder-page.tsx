@@ -39,11 +39,11 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import axios from "axios";
 import { ArrowLeft, Loader2, Plus, Send } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 
 type LandingSectionValue = LandingPageFormValues["sections"][number];
 
@@ -77,12 +77,7 @@ const createDefaultSection = (
   }
 };
 
-const extractErrorMessage = (error: unknown, fallback: string): string => {
-  if (axios.isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? error.message ?? fallback;
-  }
-  return fallback;
-};
+const extractErrorMessage = getApiErrorMessage;
 
 export const LandingPageBuilderPage = () => {
   const { team, pageId } = useParams({ strict: false }) as {

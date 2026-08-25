@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/page-header";
 import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
 import { authClient } from "@/lib/auth-client";
 import { getComplianceStatus } from "@/services/compliance/compliance-service";
+import { listMembers } from "@/services/team/team-service";
 import { isOrgAdmin } from "@dashboard/shared";
 import { Input } from "@dashboard/ui/components/input";
 import {
@@ -94,21 +95,12 @@ const TeamPage = () => {
     },
   });
 
+  // Better Auth's listMembers can only filter the member table's own columns,
+  // so people search runs against the joined user through our own endpoint.
   const { data: employees, isLoading } = useQuery({
     queryKey: ["member", memberTableField],
     enabled: !!organizationData?.id,
-    queryFn: async () =>
-      await authClient.organization.listMembers({
-        query: {
-          organizationId: organizationData?.id ?? "",
-          limit: memberTableField.limit.toString(),
-          offset: memberTableField.page,
-          sortBy: "createdAt",
-          sortDirection: "desc",
-          filterOperator: "eq",
-          filterValue: memberTableField.search,
-        },
-      }),
+    queryFn: () => listMembers(memberTableField),
   });
 
   const handleInvite = async (
@@ -173,7 +165,7 @@ const TeamPage = () => {
         organizationId: organizationData?.id ?? "",
       });
 
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["member"] });
       toast.success("Member removed from team successfully");
     } catch (error) {
       toast.error("Failed to remove member from team");
@@ -191,9 +183,7 @@ const TeamPage = () => {
           toast.error("Failed to edit role");
         },
         onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ["member", memberTableField],
-          });
+          queryClient.invalidateQueries({ queryKey: ["member"] });
           toast.success("Role updated successfully");
         },
       }
@@ -202,15 +192,13 @@ const TeamPage = () => {
 
   const teamStats = useMemo(() => {
     return {
-      totalMembers: employees?.data?.total,
-      activeMembers: employees?.data?.total,
+      totalMembers: employees?.total,
+      activeMembers: employees?.total,
       pendingInvites: invitations?.length,
     };
   }, [employees, invitations]);
 
-  const members = Array.isArray(employees?.data?.members)
-    ? (employees.data.members as unknown as TeamMemberRow[])
-    : [];
+  const members = employees?.members ?? [];
 
   return (
     <div className="page-style rounded-xl">
@@ -299,7 +287,7 @@ const TeamPage = () => {
                 members={members}
                 isLoading={isLoading}
                 currentPage={memberTableField.page}
-                totalCount={employees?.data?.total}
+                totalCount={employees?.total}
                 onPageChange={(page) =>
                   setMemberTableField((prev) => ({ ...prev, page }))
                 }

@@ -1,5 +1,5 @@
-import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { PageHeader } from "@/components/page-header";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   getLeadHistory,
   getLeadHistoryMeta,
@@ -33,7 +33,7 @@ import { ReportTable, type ReportColumn } from "../reusable-table/report-table";
 import { RestoreHistoryModal } from "./restore-history-modal";
 
 const HISTORY_MODULES = [
-  { value: "LEAD", label: "Leads", entity: "Lead" },
+  { value: "LEAD", label: "Marketing List", entity: "Lead" },
   {
     value: "REFERRAL",
     label: "Referrals",
@@ -227,7 +227,9 @@ export default function HistoryReportPage() {
       await queryClient.invalidateQueries({
         queryKey: ["history-report-meta", module.value],
       });
-      await queryClient.invalidateQueries({ queryKey: boardQueryKey(module.value) });
+      await queryClient.invalidateQueries({
+        queryKey: boardQueryKey(module.value),
+      });
     } catch (error) {
       toast.error("Failed to restore history");
     } finally {
