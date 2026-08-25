@@ -1,6 +1,10 @@
 import { Heading, Text } from "@react-email/components";
 import * as React from "react";
-import { EmailCta, EmailDetailTable, type DetailRow } from "./email-detail-table";
+import {
+  EmailCta,
+  EmailDetailTable,
+  type DetailRow,
+} from "./email-detail-table";
 import { EmailLayout, emailStyles } from "./email-layout";
 
 type LeadAssignedEmailProps = {
@@ -24,7 +28,8 @@ export const LeadAssignedEmail = ({
 }: LeadAssignedEmailProps) => {
   const rows: DetailRow[] = [{ label: "Facility Name", value: facilityName }];
 
-  if (contactPerson) rows.push({ label: "Contact Person", value: contactPerson });
+  if (contactPerson)
+    rows.push({ label: "Contact Person", value: contactPerson });
   if (phone) rows.push({ label: "Phone", value: phone });
   if (county) rows.push({ label: "County", value: county });
 

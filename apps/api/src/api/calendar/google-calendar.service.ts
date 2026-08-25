@@ -8,6 +8,36 @@ import { prisma } from "src/lib/prisma/prisma";
 export class GoogleCalendarService {
   private readonly logger = new Logger(GoogleCalendarService.name);
 
+  // google-auth-library ignores the listener's return value, so the async work
+  // is marked void rather than left as a floating promise. Every path is
+  // caught: a failed refresh must not take down the request that triggered it.
+  private persistRefreshedToken(
+    oauth2Client: InstanceType<typeof google.auth.OAuth2>,
+    userId: string
+  ) {
+    oauth2Client.on("tokens", (newTokens) => {
+      void (async () => {
+        try {
+          await prisma.googleCalendarToken.update({
+            where: { userId },
+            data: {
+              accessToken: newTokens.access_token!,
+              tokenExpiry: new Date(newTokens.expiry_date!),
+              ...(newTokens.refresh_token && {
+                refreshToken: newTokens.refresh_token,
+              }),
+            },
+          });
+        } catch (err) {
+          this.logger.error(
+            "Failed to persist refreshed Google Calendar token",
+            err
+          );
+        }
+      })();
+    });
+  }
+
   private createOAuth2Client() {
     return new google.auth.OAuth2(
       appConfig.GOOGLE_CLIENT_ID,
@@ -121,25 +151,7 @@ export class GoogleCalendarService {
         expiry_date: token.tokenExpiry.getTime(),
       });
 
-      oauth2Client.on("tokens", async (newTokens) => {
-        try {
-          await prisma.googleCalendarToken.update({
-            where: { userId },
-            data: {
-              accessToken: newTokens.access_token!,
-              tokenExpiry: new Date(newTokens.expiry_date!),
-              ...(newTokens.refresh_token && {
-                refreshToken: newTokens.refresh_token,
-              }),
-            },
-          });
-        } catch (err) {
-          this.logger.error(
-            "Failed to persist refreshed Google Calendar token",
-            err
-          );
-        }
-      });
+      this.persistRefreshedToken(oauth2Client, userId);
 
       const calendar = google.calendar({ version: "v3", auth: oauth2Client });
       const response = await calendar.events.list({
@@ -211,22 +223,7 @@ export class GoogleCalendarService {
       expiry_date: token.tokenExpiry.getTime(),
     });
 
-    oauth2Client.on("tokens", async (newTokens) => {
-      try {
-        await prisma.googleCalendarToken.update({
-          where: { userId },
-          data: {
-            accessToken: newTokens.access_token!,
-            tokenExpiry: new Date(newTokens.expiry_date!),
-            ...(newTokens.refresh_token && {
-              refreshToken: newTokens.refresh_token,
-            }),
-          },
-        });
-      } catch (err) {
-        this.logger.error("Failed to persist refreshed token", err);
-      }
-    });
+    this.persistRefreshedToken(oauth2Client, userId);
 
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 

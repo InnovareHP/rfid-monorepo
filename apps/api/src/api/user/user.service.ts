@@ -317,23 +317,23 @@ export class UserService {
     const where: Prisma.OrganizationWhereInput = {
       ...(hipaaOnly ? { hipaaEnabled: true } : {}),
       ...(search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search,
-                mode: "insensitive" as const,
+        ? {
+            OR: [
+              {
+                name: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
               },
-            },
-            {
-              slug: {
-                contains: search,
-                mode: "insensitive" as const,
+              {
+                slug: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
               },
-            },
-          ],
-        }
-      : {}),
+            ],
+          }
+        : {}),
     };
 
     const [orgs, total] = await Promise.all([
@@ -428,7 +428,9 @@ export class UserService {
       prisma.organization.count(),
       prisma.organization.count({ where: { hipaaEnabled: true } }),
       prisma.organization.count({ where: { baaAcceptedAt: { not: null } } }),
-      prisma.organization.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.organization.count({
+        where: { createdAt: { gte: thirtyDaysAgo } },
+      }),
       prisma.subscription.groupBy({
         by: ["status"],
         _count: { _all: true },
@@ -684,7 +686,9 @@ export class UserService {
     });
 
     if (!agreement?.document) {
-      throw new NotFoundException("No executed agreement for this organization");
+      throw new NotFoundException(
+        "No executed agreement for this organization"
+      );
     }
 
     return {

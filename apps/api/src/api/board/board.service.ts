@@ -28,10 +28,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { geoPlaces } from "../../lib/geo/geo-places";
-import {
-  resolveModuleId,
-  toModuleType,
-} from "../../lib/module/system-modules";
+import { resolveModuleId, toModuleType } from "../../lib/module/system-modules";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
@@ -1317,8 +1314,10 @@ export class BoardService {
     organizationId: string,
     memberId: string,
     moduleType: string,
-    reason?: string,
-    previousValue?: string
+    // No previousValue parameter on purpose: each sub-handler reads the prior
+    // value from the row it is updating, which cannot be stale or forged the
+    // way a client-supplied one can.
+    reason?: string
   ) {
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     try {
@@ -3129,7 +3128,9 @@ export class BoardService {
           },
         });
       })
-      .filter(Boolean);
+      // filter(Boolean) does not narrow, so the array still reads as possibly
+      // holding nulls and Promise.all looks like it aggregates non-promises.
+      .filter((upsert) => upsert !== null);
 
     await Promise.all(upserts);
 
