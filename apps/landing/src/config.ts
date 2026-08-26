@@ -9,7 +9,16 @@ export const NAV_LINKS = [
 ];
 
 export const LEGAL_ENTITY = "InnovareHP";
-export const LEGAL_ADDRESS = "4221 Bud Drive NE, Comstock Park, MI 49321";
+
+export const LEGAL_ADDRESS_PARTS = {
+  street: "4221 Bud Drive NE",
+  city: "Comstock Park",
+  region: "MI",
+  postalCode: "49321",
+  country: "US",
+};
+
+export const LEGAL_ADDRESS = `${LEGAL_ADDRESS_PARTS.street}, ${LEGAL_ADDRESS_PARTS.city}, ${LEGAL_ADDRESS_PARTS.region} ${LEGAL_ADDRESS_PARTS.postalCode}`;
 export const LEGAL_ADDRESS_URL =
   "https://www.google.com/maps?q=4221+Bud+Drive+NE+Comstock+Park+MI+49321";
 

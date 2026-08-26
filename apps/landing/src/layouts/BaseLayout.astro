@@ -1,14 +1,28 @@
 ---
 import "../styles/global.css";
+import JsonLd from "../components/seo/JsonLd.astro";
 
 interface Props {
   title: string;
   description: string;
+  ogType?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
-const ogImage = new URL("/og-image.png", Astro.site ?? Astro.url);
-const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
+const {
+  title,
+  description,
+  ogType = "website",
+  ogImage = "/og-image.png",
+  ogImageAlt = "Refidly referral tracking dashboard for healthcare marketing teams",
+  noindex = false,
+} = Astro.props;
+
+const base = Astro.site ?? Astro.url;
+const ogImageUrl = new URL(ogImage, base);
+const canonical = new URL(Astro.url.pathname, base);
 ---
 
 <!doctype html>
@@ -18,16 +32,32 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta
+      name="robots"
+      content={noindex
+        ? "noindex, nofollow"
+        : "index, follow, max-image-preview:large, max-snippet:-1"}
+    />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="canonical" href={canonical} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="Refidly" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={ogImage} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogImageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
     <meta name="theme-color" content="#0d3185" />
+    <JsonLd />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
