@@ -1,6 +1,10 @@
 import { Heading, Text } from "@react-email/components";
 import * as React from "react";
-import { EmailCta, EmailDetailTable, type DetailRow } from "./email-detail-table";
+import {
+  EmailCta,
+  EmailDetailTable,
+  type DetailRow,
+} from "./email-detail-table";
 import { EmailLayout, emailStyles } from "./email-layout";
 
 type SubscriptionUpdatedEmailProps = {

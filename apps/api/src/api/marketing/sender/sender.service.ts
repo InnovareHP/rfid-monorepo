@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma, SenderKind, SenderStatus } from "@prisma/client";
-import { appConfig } from "../../../config/app-config";
 import {
   getDomainIdentityStatus,
   provisionDomainIdentity,

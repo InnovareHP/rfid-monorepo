@@ -863,8 +863,7 @@ export class BoardController {
         organizationId,
         session.session.userId,
         dto.moduleType,
-        dto.reason,
-        dto.previousValue
+        dto.reason
       );
     } catch (error) {
       throw new BadRequestException(error.message);

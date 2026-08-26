@@ -124,21 +124,25 @@ export class GmailService {
         expiry_date: token.tokenExpiry.getTime(),
       });
 
-      oauth2Client.on("tokens", async (newTokens) => {
-        try {
-          await prisma.gmailToken.update({
-            where: { userId: userId },
-            data: {
-              accessToken: newTokens.access_token!,
-              tokenExpiry: new Date(newTokens.expiry_date!),
-              ...(newTokens.refresh_token && {
-                refreshToken: newTokens.refresh_token,
-              }),
-            },
-          });
-        } catch (err) {
-          this.logger.error("Failed to persist refreshed Gmail token", err);
-        }
+      // googleapis ignores the listener's return value, so the async work is
+      // marked void rather than left as a floating promise.
+      oauth2Client.on("tokens", (newTokens) => {
+        void (async () => {
+          try {
+            await prisma.gmailToken.update({
+              where: { userId: userId },
+              data: {
+                accessToken: newTokens.access_token!,
+                tokenExpiry: new Date(newTokens.expiry_date!),
+                ...(newTokens.refresh_token && {
+                  refreshToken: newTokens.refresh_token,
+                }),
+              },
+            });
+          } catch (err) {
+            this.logger.error("Failed to persist refreshed Gmail token", err);
+          }
+        })();
       });
 
       const rawMessage = this.buildRawEmail(

@@ -1,7 +1,6 @@
 import { normalizeFieldName } from "@dashboard/shared";
 import { BoardFieldType, Field, FieldOption } from "@prisma/client";
 import { render } from "@react-email/render";
-import { prisma } from "./prisma/prisma";
 
 export const generateTemplate = (template: React.ReactNode) => {
   return render(template);

@@ -55,6 +55,10 @@ export const ENCRYPTED_FIELDS: FieldMap = {
 // Relation key → model, so encrypted models are handled when nested
 // under another model's include/select or nested-write payload.
 export const RELATION_MODELS: Record<string, string> = {
+  // EmailSubscriber.email/.name are encrypted, so every relation name that
+  // can reach it has to map here or the child comes back as ciphertext.
+  subscriber: "EmailSubscriber",
+  emailSubscribers: "EmailSubscriber",
   values: "FieldValue",
   contactValue: "FieldPersonInformation",
   fieldvalue: "FieldValue",

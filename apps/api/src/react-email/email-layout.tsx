@@ -18,7 +18,8 @@ import { appConfig } from "../config/app-config";
 export const BRAND_NAME = appConfig.APP_NAME;
 
 const logoUrl =
-  appConfig.EMAIL_LOGO_URL ?? `${appConfig.WEBSITE_URL}/branding/email-logo.png`;
+  appConfig.EMAIL_LOGO_URL ??
+  `${appConfig.WEBSITE_URL}/branding/email-logo.png`;
 
 const responsiveCss = `
   @media only screen and (max-width: 600px) {
