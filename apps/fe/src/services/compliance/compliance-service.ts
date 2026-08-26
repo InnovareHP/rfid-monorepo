@@ -80,3 +80,13 @@ export const getBlankBaaUrl = () => fetchPdf("/api/compliance/baa/document");
 
 export const getSignedBaaUrl = () =>
   fetchPdf("/api/compliance/baa/document/signed");
+
+// Irreversible. The confirmation is the organization name, checked server side
+// against the stored name before anything is deleted.
+export const purgeOrganizationData = async (confirmation: string) => {
+  const response = await axiosClient.post("/api/compliance/purge", {
+    confirmation,
+  });
+
+  return response.data as { deleted: number };
+};

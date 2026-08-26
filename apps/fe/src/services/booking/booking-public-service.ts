@@ -45,6 +45,7 @@ export const createPublicBooking = async (
     inviteeNotes?: string;
     locationType?: BookingLocation;
     boardId?: string;
+    inviteeTimezone?: string;
   }
 ): Promise<{
   id: string;
@@ -56,6 +57,58 @@ export const createPublicBooking = async (
   const response = await axiosClient.post(
     `/api/booking/public/${slug}/bookings`,
     data
+  );
+  return response.data;
+};
+
+// ─── Invitee-side management ────────────────────────────────────────────
+// The booking id is the only credential; it reaches the invitee by email.
+
+export interface ManagedBooking {
+  id: string;
+  title: string;
+  status: "CONFIRMED" | "CANCELLED";
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  timezone: string;
+  hostTimezone: string;
+  hostName: string | null;
+  locationLabel: string | null;
+  meetingUrl: string | null;
+  inviteeName: string;
+  slug: string;
+}
+
+export const getManagedBooking = async (
+  bookingId: string
+): Promise<ManagedBooking> => {
+  const response = await axiosClient.get(
+    `/api/booking/public/bookings/${bookingId}`
+  );
+  return response.data;
+};
+
+export const cancelManagedBooking = async (
+  bookingId: string
+): Promise<{ status: "CANCELLED" }> => {
+  const response = await axiosClient.post(
+    `/api/booking/public/bookings/${bookingId}/cancel`
+  );
+  return response.data;
+};
+
+export const rescheduleManagedBooking = async (
+  bookingId: string,
+  startTime: string
+): Promise<{
+  startTime: string;
+  endTime: string;
+  meetingUrl: string | null;
+}> => {
+  const response = await axiosClient.post(
+    `/api/booking/public/bookings/${bookingId}/reschedule`,
+    { startTime }
   );
   return response.data;
 };

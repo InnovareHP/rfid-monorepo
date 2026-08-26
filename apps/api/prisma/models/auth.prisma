@@ -234,6 +234,8 @@ enum AdminAction {
   REVOKE_SESSIONS
   UPDATE_USER
   SET_ENTITLEMENT
+  UPDATE_DEMO_REQUEST
+  SET_DEMO_HOST
 
   @@schema("auth_schema")
 }

@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import { KpiStatTile } from "@/components/analytics/charts/kpi-stat-tile";
 import {
@@ -173,13 +174,15 @@ export const MarketingFormsListPage = () => {
         description="Capture leads with public forms."
       />
 
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="bg-brand text-white hover:bg-brand/90"
-        >
-          <Plus className="h-4 w-4" />
-          New Form
-        </Button>
+        <WriteGate>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-brand text-white hover:bg-brand/90"
+          >
+            <Plus className="h-4 w-4" />
+            New Form
+          </Button>
+        </WriteGate>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

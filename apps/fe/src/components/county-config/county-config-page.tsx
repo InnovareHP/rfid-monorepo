@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import { getLiaisons } from "@/services/options/options-service";
 import {
@@ -154,16 +155,18 @@ export default function CountyConfigTablePage() {
         description="Manage county assignments and responsible personnel."
       />
 
-        <Button
-          onClick={() => {
-            setEditingCounty(null);
-            setDialogOpen(true);
-          }}
-          className="bg-brand text-white hover:bg-brand/90"
-        >
-          <Plus className="h-4 w-4" />
-          Add County
-        </Button>
+        <WriteGate>
+          <Button
+            onClick={() => {
+              setEditingCounty(null);
+              setDialogOpen(true);
+            }}
+            className="bg-brand text-white hover:bg-brand/90"
+          >
+            <Plus className="h-4 w-4" />
+            Add County
+          </Button>
+        </WriteGate>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

@@ -32,4 +32,11 @@ export const CreateBookingSchema = z.object({
   inviteeNotes: z.string().optional(),
   locationType: z.enum(["VIDEO", "IN_PERSON"]).optional(),
   boardId: z.string().optional(),
+  // IANA zone from the browser. Optional so a direct API caller still works;
+  // absent falls back to the host's zone.
+  inviteeTimezone: z.string().max(64).optional(),
+});
+
+export const ReschedulePublicBookingSchema = z.object({
+  startTime: z.iso.datetime(),
 });

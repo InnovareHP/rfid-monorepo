@@ -23,6 +23,16 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ packages/
 COPY apps/landing/ apps/landing/
 
+# Astro statically replaces import.meta.env.PUBLIC_* at build time, so this has
+# to be a real env var before `astro build` runs. Setting it on the runtime
+# container does nothing: the output is static files served by `serve`.
+ARG PUBLIC_API_URL
+ENV PUBLIC_API_URL=$PUBLIC_API_URL
+
+# Fail here rather than ship a demo form that posts to a relative /api path the
+# static server has no route for.
+RUN test -n "$PUBLIC_API_URL" || { echo "PUBLIC_API_URL build-arg is required"; exit 1; }
+
 RUN pnpm --filter landing run build
 
 FROM node:22-alpine AS runner

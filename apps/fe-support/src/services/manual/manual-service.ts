@@ -43,6 +43,51 @@ export interface ManualArticleResponse {
   total: number;
 }
 
+// ── Published reads (customer knowledge base) ───────────────
+// Open endpoints: a visitor browses and searches these before signing in.
+
+export const getPublishedCategories = async (): Promise<ManualCategory[]> => {
+  const response = await axiosClient.get("/api/manual/categories/published");
+  return response.data;
+};
+
+export const getPublishedCategoryBySlug = async (
+  slug: string
+): Promise<ManualCategory> => {
+  const response = await axiosClient.get(
+    `/api/manual/categories/slug/${slug}`
+  );
+  return response.data;
+};
+
+export const getPublishedArticles = async (params: {
+  categoryId?: string;
+  search?: string;
+  limit?: number;
+  page?: number;
+}): Promise<ManualArticleResponse> => {
+  const response = await axiosClient.get("/api/manual/published", {
+    params: { limit: 20, page: 1, ...params },
+  });
+  return response.data;
+};
+
+export const getFeaturedArticles = async (
+  limit = 6
+): Promise<ManualArticle[]> => {
+  const response = await axiosClient.get("/api/manual/featured", {
+    params: { limit },
+  });
+  return response.data;
+};
+
+export const getPublishedArticleBySlug = async (
+  slug: string
+): Promise<ManualArticle> => {
+  const response = await axiosClient.get(`/api/manual/published/${slug}`);
+  return response.data;
+};
+
 // ── Categories ──────────────────────────────────────────────
 
 export const getCategories = async (): Promise<ManualCategory[]> => {

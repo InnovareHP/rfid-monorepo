@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import ReusableTable from "@/components/reusable-table/reusable-table";
 import {
   deleteModuleRecords,
@@ -250,12 +251,14 @@ export default function CrmListPage({
             className="flex items-center gap-2 hover:text-primary transition-colors"
           />
           <ColumnFilter tableColumns={tableColumns as any} />
-          <Link to={createPath} params={{ team: activeOrganizationId }}>
-            <Button className="flex items-center gap-2 shadow-sm">
-              <Plus className="h-4 w-4" />
-              {addLabel}
-            </Button>
-          </Link>
+          <WriteGate>
+            <Link to={createPath} params={{ team: activeOrganizationId }}>
+              <Button className="flex items-center gap-2 shadow-sm">
+                <Plus className="h-4 w-4" />
+                {addLabel}
+              </Button>
+            </Link>
+          </WriteGate>
         </PageHeader>
 
         <ReusableTable

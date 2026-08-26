@@ -1,14 +1,23 @@
+import { subscriptionBadgeVariant } from "@/lib/helper/subscription-badge";
 import { BillingAwaitingOwner } from "@/components/billing/billing-awaiting-owner";
 import { BillingTopBar } from "@/components/billing/billing-top-bar";
 import { TransactionsCard } from "@/components/billing/transactions-card";
 import { authClient } from "@/lib/auth-client";
 import { can } from "@/lib/permissions";
+import { SeatStepper } from "@/components/billing/seat-stepper";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   cancelSubscription,
   getPlanCard,
   resumeSubscription,
+  updateSeats,
 } from "@/services/billing/billing-service";
-import { formatCapitalize, ROLES, type Subscription } from "@dashboard/shared";
+import {
+  accessForStatus,
+  formatCapitalize,
+  ROLES,
+  type Subscription,
+} from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
@@ -23,7 +32,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
 import { Calendar, Users } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { PlansPage } from "./plans-page";
 
@@ -71,9 +80,12 @@ export function BillingPage({
     billing: ["manage_billing"],
   });
 
+  // Stripe has stopped collecting, so the page explains what happens to the
+  // records rather than showing a billing date that has already passed.
+  const isReadOnly = accessForStatus(subscriptions?.status) === "read_only";
+
   const billingInfo = subscriptions && {
     currentPlan: subscriptions?.plan,
-    billingCycle: "monthly",
     nextBillingDate: subscriptions?.periodEnd,
     status: subscriptions?.status,
   };
@@ -82,6 +94,19 @@ export function BillingPage({
     queryKey: ["billing-plan", activeOrganizationId],
     enabled: !!activeOrganizationId,
     queryFn: getPlanCard,
+  });
+
+  const [seatOverride, setSeatOverride] = useState<number | null>(null);
+
+  const seatMutation = useMutation({
+    mutationFn: updateSeats,
+    onSuccess: async () => {
+      setSeatOverride(null);
+      toast.success("Seats updated");
+      await queryClient.invalidateQueries({ queryKey: ["billing-plan"] });
+    },
+    onError: (error) =>
+      toast.error(getApiErrorMessage(error, "Could not update seats")),
   });
 
   const cancelMutation = useMutation({
@@ -128,6 +153,15 @@ export function BillingPage({
 
   const standalone = propContext === "/billing";
 
+  // Seats are purchased, so the stepper starts at what the plan card reports and
+  // can never drop below the members already holding one.
+  const seats = Math.max(
+    seatOverride ?? planCard?.seats ?? 1,
+    Math.max(planCard?.memberCount ?? 1, 1)
+  );
+  const intervalLabel = planCard?.interval === "year" ? "year" : "month";
+  const intervalShort = planCard?.interval === "year" ? "yr" : "mo";
+
   // Every plan button calls a manage_billing endpoint, so a non-owner gets told
   // to wait rather than a picker that would 403 on every click.
   if (!billingInfo) {
@@ -160,20 +194,24 @@ export function BillingPage({
                 {formatCapitalize(billingInfo.currentPlan)}
               </span>
 
-              <Badge
-                variant={
-                  billingInfo.status === "active" ||
-                  billingInfo.status === "trialing"
-                    ? "default"
-                    : "secondary"
-                }
-              >
+              <Badge variant={subscriptionBadgeVariant(billingInfo.status)}>
                 {formatCapitalize(billingInfo.status)}
               </Badge>
             </div>
 
-            {billingInfo.nextBillingDate &&
-            (memberData as Member)?.role === ROLES.OWNER ? (
+            {isReadOnly ? (
+              <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span>
+                  {billingInfo.nextBillingDate
+                    ? `Ended ${new Date(
+                        billingInfo.nextBillingDate
+                      ).toLocaleDateString()}`
+                    : "Subscription ended"}
+                </span>
+              </div>
+            ) : billingInfo.nextBillingDate &&
+              (memberData as Member)?.role === ROLES.OWNER ? (
               <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
                 <Calendar className="w-4 h-4" />
                 <span>
@@ -186,27 +224,59 @@ export function BillingPage({
                 <span>Contact the owner to upgrade your plan</span>
               </div>
             )}
+
+            {isReadOnly && (
+              <p className="mt-3 rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                Your records stay readable and exportable, and nothing is
+                deleted on a schedule. The owner can delete them from the
+                Compliance page whenever you are ready.
+              </p>
+            )}
           </div>
 
           {planCard?.pricePerSeat != null && (
-            <div className="rounded-lg border p-4 space-y-1">
+            <div className="rounded-lg border p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <Users className="w-4 h-4 text-muted-foreground" />
                 <span>
                   <strong>{planCard.seats}</strong>{" "}
                   {planCard.seats === 1 ? "seat" : "seats"} at $
-                  {planCard.pricePerSeat} per seat
+                  {planCard.pricePerSeat} per seat/{intervalLabel}
                 </span>
               </div>
+
               <p className="text-2xl font-bold">
-                ${planCard.monthlyTotal}
+                ${planCard.total}
                 <span className="text-sm font-normal text-muted-foreground">
-                  /month
+                  /{intervalShort}
                 </span>
               </p>
+
+              {canManageBilling && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <SeatStepper
+                    value={seats}
+                    min={Math.max(planCard.memberCount, 1)}
+                    max={planCard.maxSeats}
+                    disabled={seatMutation.isPending}
+                    onChange={setSeatOverride}
+                  />
+
+                  <Button
+                    size="sm"
+                    disabled={
+                      seats === planCard.seats || seatMutation.isPending
+                    }
+                    onClick={() => seatMutation.mutate(seats)}
+                  >
+                    Update seats
+                  </Button>
+                </div>
+              )}
+
               <p className="text-xs text-muted-foreground">
-                Seats follow your team size. Adding or removing a member adjusts
-                this on your next invoice.
+                {planCard.memberCount} of {planCard.seats} seats used. Seat
+                changes are prorated onto an invoice straight away.
               </p>
             </div>
           )}

@@ -1,6 +1,7 @@
 import { moduleIcon } from "@/lib/helper/module-icons";
 import { useModules } from "@/hooks/use-modules";
 import { modulePath } from "@/lib/helper/module-route";
+import { PlanChip } from "@/components/billing/plan-chip";
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
@@ -355,6 +356,8 @@ export function AppSidebar({
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
+        <PlanChip organizationId={activeOrganizationId} />
+
         <NavUser user={user} activeOrganizationId={activeOrganizationId} />
       </SidebarFooter>
     </Sidebar>

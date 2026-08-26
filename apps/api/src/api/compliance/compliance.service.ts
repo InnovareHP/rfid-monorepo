@@ -7,6 +7,7 @@ import {
   isBaaCurrent,
 } from "@dashboard/shared";
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -20,6 +21,7 @@ import { renderBlankBaa, renderExecutedBaa } from "../../lib/documents/baa-pdf";
 import { prisma } from "../../lib/prisma/prisma";
 import { runUnscoped } from "../../lib/prisma/tenant-context";
 import {
+  PurgeOrganizationDataInput,
   SignBaaInput,
   UpdateComplianceSettingsInput,
 } from "./dto/compliance.dto";
@@ -270,5 +272,102 @@ export class ComplianceService {
     }
 
     return Buffer.from(agreement.document);
+  }
+
+  // Records, logs and campaigns. Members, the signed agreement and the billing
+  // ledger stay: the first two are who the organization is, the third is a
+  // financial record neither side may destroy on request.
+  //
+  // Children before parents. Cascades would cover most of this on their own,
+  // but an explicit order cannot half-delete if a relation is later relaxed.
+  private purgeOperations(organizationId: string) {
+    const scope = { where: { organizationId } };
+
+    return [
+      prisma.notification.deleteMany(scope),
+
+      prisma.customAnalyticDashboard.deleteMany(scope),
+      prisma.customAnalytic.deleteMany(scope),
+      prisma.savedReport.deleteMany(scope),
+
+      prisma.taskTimeEntry.deleteMany(scope),
+      prisma.task.deleteMany(scope),
+      prisma.taskList.deleteMany(scope),
+      prisma.taskStatus.deleteMany(scope),
+      prisma.taskLabel.deleteMany(scope),
+      prisma.taskProject.deleteMany(scope),
+
+      prisma.blastRecipient.deleteMany(scope),
+      prisma.formSubmission.deleteMany(scope),
+      prisma.blast.deleteMany(scope),
+      prisma.form.deleteMany(scope),
+      prisma.landingPage.deleteMany(scope),
+      prisma.emailSubscriber.deleteMany(scope),
+      prisma.recipientGroup.deleteMany(scope),
+      prisma.senderIdentity.deleteMany(scope),
+      prisma.campaign.deleteMany(scope),
+
+      prisma.booking.deleteMany(scope),
+      prisma.bookingPage.deleteMany(scope),
+
+      prisma.mileage.deleteMany(scope),
+      prisma.expense.deleteMany(scope),
+      prisma.marketing.deleteMany(scope),
+
+      prisma.emailOpenEvent.deleteMany(scope),
+      prisma.history.deleteMany(scope),
+      prisma.boardRelation.deleteMany(scope),
+      prisma.fieldValue.deleteMany(scope),
+      prisma.fieldOption.deleteMany(scope),
+      prisma.activity.deleteMany(scope),
+      prisma.boardCounty.deleteMany(scope),
+      prisma.board.deleteMany(scope),
+      prisma.field.deleteMany(scope),
+      prisma.emailIngestAddress.deleteMany(scope),
+      prisma.module.deleteMany(scope),
+
+      prisma.orgIntegration.deleteMany(scope),
+    ];
+  }
+
+  // Irreversible, owner only, and deliberately not on a timer: under a BAA the
+  // covered entity decides when its PHI is destroyed, and its own retention
+  // rules may require years.
+  async purgeOrganizationData(
+    organizationId: string,
+    input: PurgeOrganizationDataInput,
+    actor: SignerContext
+  ) {
+    const organization = await this.organization(organizationId);
+
+    if (!organization) {
+      throw new NotFoundException("Organization not found");
+    }
+
+    if (input.confirmation !== organization.name) {
+      throw new BadRequestException(
+        "Type the organization name exactly as it appears to confirm."
+      );
+    }
+
+    // Recorded before the delete, so an interrupted purge still leaves the
+    // intent and the actor on the record.
+    await this.audit.record({
+      actorUserId: actor.userId,
+      actorOrgId: organizationId,
+      actorIp: actor.ipAddress,
+      actorUserAgent: actor.userAgent,
+      action: "organization.data.purge",
+      resourceType: "organization",
+      resourceId: organizationId,
+    });
+
+    const results = await prisma.$transaction(
+      this.purgeOperations(organizationId)
+    );
+
+    return {
+      deleted: results.reduce((total, result) => total + result.count, 0),
+    };
   }
 }

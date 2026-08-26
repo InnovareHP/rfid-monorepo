@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
   useTaskLists,
@@ -303,22 +304,27 @@ const TaskPage = () => {
           </div>
 
           <div className="flex items-center gap-3 sm:ml-auto">
-            <Button
-              className="bg-brand text-white hover:bg-brand/90"
-              onClick={() => setCreateOpen(true)}
-              disabled={!activeProjectId}
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              New Tasks
-            </Button>
-            <Button
-              className="bg-brand text-white hover:bg-brand/90"
-              onClick={() => setListDialogOpen(true)}
-              disabled={!activeProjectId}
-            >
-              <ListPlus className="mr-1 h-4 w-4" />
-              New List
-            </Button>
+            <WriteGate>
+              <Button
+                className="bg-brand text-white hover:bg-brand/90"
+                onClick={() => setCreateOpen(true)}
+                disabled={!activeProjectId}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                New Tasks
+              </Button>
+            </WriteGate>
+
+            <WriteGate>
+              <Button
+                className="bg-brand text-white hover:bg-brand/90"
+                onClick={() => setListDialogOpen(true)}
+                disabled={!activeProjectId}
+              >
+                <ListPlus className="mr-1 h-4 w-4" />
+                New List
+              </Button>
+            </WriteGate>
           </div>
         </div>
 

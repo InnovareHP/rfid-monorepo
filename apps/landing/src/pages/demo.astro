@@ -1,0 +1,49 @@
+---
+import { DemoScheduler } from "../components/demo/DemoScheduler";
+import Footer from "../components/layout/Footer.astro";
+import Nav from "../components/layout/Nav.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const POINTS = [
+  "A walkthrough of the referral board with your own territory as the example.",
+  "How liaison visits, referral sources, and census tie together in one record.",
+  "Straight answers on HIPAA, BAAs, migration, and pricing.",
+];
+---
+
+<BaseLayout
+  title="Book a Refidly Demo — Referral Tracking for Healthcare Teams"
+  description="See Refidly on a 30 minute call. Pick a time that suits you and we will walk your team through referral tracking, liaison activity, and analytics."
+>
+  <Nav />
+
+  <main class="mx-auto w-full max-w-5xl px-6 py-16 min-h-screen">
+    <div class="grid gap-12 lg:grid-cols-2">
+      <div class="space-y-6">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          See Refidly on a live call
+        </h1>
+
+        <p class="text-muted-foreground">
+          Thirty minutes, no slide deck. Tell us how your referral team works
+          today and we will show you the parts that matter to you.
+        </p>
+
+        <ul class="space-y-3">
+          {
+            POINTS.map((point) => (
+              <li class="flex gap-3 text-sm text-muted-foreground">
+                <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-accent" />
+                <span>{point}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <DemoScheduler client:load />
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>

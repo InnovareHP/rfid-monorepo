@@ -19,20 +19,19 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
-import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
   BarChart3,
   BookOpen,
   Building2,
+  CalendarCheck,
   ChevronsUpDown,
   ClipboardList,
   LayoutDashboard,
@@ -48,8 +47,10 @@ import * as React from "react";
 
 const QUEUE_BOARD_URL = "/api/queues";
 
-const LOGO_WORDMARK = "/branding/Wordmark/refidly-wordmark-colored.png";
-const LOGO_ICON = "/branding/Icon/refidly-icon-colored.png";
+// White variants: the rail is brand navy in both themes, so the coloured
+// wordmark would sit navy-on-navy.
+const LOGO_WORDMARK = "/branding/Wordmark/refidly-wordmark-white.png";
+const LOGO_ICON = "/branding/Icon/refidly-icon-white.png";
 
 type NavItem = {
   id: string;
@@ -80,6 +81,12 @@ const SUPER_ADMIN_NAV: NavItem[] = [
     title: "Organizations",
     icon: Building2,
     path: "/admin/organizations",
+  },
+  {
+    id: "demo-requests",
+    title: "Demo Requests",
+    icon: CalendarCheck,
+    path: "/admin/demo-requests",
   },
   {
     id: "activity-log",
@@ -173,16 +180,9 @@ export function AdminSidebar() {
     };
   }, []);
 
-  const logoSrc = state === "collapsed" ? LOGO_ICON : LOGO_WORDMARK;
-
-  const logoClassName = cn(
-    "cursor-pointer transition-all duration-300 object-contain object-center",
-    state === "collapsed" ? "h-12 w-8" : "h-auto w-[70%]"
-  );
-
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      {/* <SidebarHeader>
         <div className="mb-2 w-full overflow-hidden flex items-center justify-center">
           <Link
             to={role === ROLES.SUPER_ADMIN ? "/admin" : "/support"}
@@ -197,7 +197,7 @@ export function AdminSidebar() {
             />
           </Link>
         </div>
-      </SidebarHeader>
+      </SidebarHeader> */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Admin</SidebarGroupLabel>

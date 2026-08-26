@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
   deleteBlast,
@@ -101,13 +102,15 @@ export const MarketingBlastsListPage = () => {
           description="Email one or more recipient groups."
         />
 
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="bg-brand text-white hover:bg-brand/90"
-        >
-          <Plus className="h-4 w-4" />
-          New Blast
-        </Button>
+        <WriteGate>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-brand text-white hover:bg-brand/90"
+          >
+            <Plus className="h-4 w-4" />
+            New Blast
+          </Button>
+        </WriteGate>
       </div>
 
       <MarketingSubNav active="blasts" />

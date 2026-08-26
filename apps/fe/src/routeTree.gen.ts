@@ -20,6 +20,7 @@ import { Route as STokenRouteImport } from './routes/s/$token'
 import { Route as LSlugRouteImport } from './routes/l/$slug'
 import { Route as InvitationActionRouteImport } from './routes/invitation.$action'
 import { Route as FSlugRouteImport } from './routes/f/$slug'
+import { Route as BookingBookingIdRouteImport } from './routes/booking.$bookingId'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
@@ -137,6 +138,11 @@ const InvitationActionRoute = InvitationActionRouteImport.update({
 const FSlugRoute = FSlugRouteImport.update({
   id: '/f/$slug',
   path: '/f/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookingBookingIdRoute = BookingBookingIdRouteImport.update({
+  id: '/booking/$bookingId',
+  path: '/booking/$bookingId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookSlugRoute = BookSlugRouteImport.update({
@@ -507,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof AuthRegisterRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
+  '/booking/$bookingId': typeof BookingBookingIdRoute
   '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/l/$slug': typeof LSlugRoute
@@ -583,6 +590,7 @@ export interface FileRoutesByTo {
   '/register': typeof AuthRegisterRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
+  '/booking/$bookingId': typeof BookingBookingIdRoute
   '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/l/$slug': typeof LSlugRoute
@@ -662,6 +670,7 @@ export interface FileRoutesById {
   '/_auth/register': typeof AuthRegisterRoute
   '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
+  '/booking/$bookingId': typeof BookingBookingIdRoute
   '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
   '/l/$slug': typeof LSlugRoute
@@ -740,6 +749,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/two-factor'
     | '/book/$slug'
+    | '/booking/$bookingId'
     | '/f/$slug'
     | '/invitation/$action'
     | '/l/$slug'
@@ -816,6 +826,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/two-factor'
     | '/book/$slug'
+    | '/booking/$bookingId'
     | '/f/$slug'
     | '/invitation/$action'
     | '/l/$slug'
@@ -894,6 +905,7 @@ export interface FileRouteTypes {
     | '/_auth/register'
     | '/_auth/two-factor'
     | '/book/$slug'
+    | '/booking/$bookingId'
     | '/f/$slug'
     | '/invitation/$action'
     | '/l/$slug'
@@ -969,6 +981,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PasskeySetupRoute: typeof PasskeySetupRoute
   BookSlugRoute: typeof BookSlugRoute
+  BookingBookingIdRoute: typeof BookingBookingIdRoute
   FSlugRoute: typeof FSlugRoute
   InvitationActionRoute: typeof InvitationActionRoute
   LSlugRoute: typeof LSlugRoute
@@ -1053,6 +1066,13 @@ declare module '@tanstack/react-router' {
       path: '/f/$slug'
       fullPath: '/f/$slug'
       preLoaderRoute: typeof FSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking/$bookingId': {
+      id: '/booking/$bookingId'
+      path: '/booking/$bookingId'
+      fullPath: '/booking/$bookingId'
+      preLoaderRoute: typeof BookingBookingIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book/$slug': {
@@ -1683,6 +1703,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PasskeySetupRoute: PasskeySetupRoute,
   BookSlugRoute: BookSlugRoute,
+  BookingBookingIdRoute: BookingBookingIdRoute,
   FSlugRoute: FSlugRoute,
   InvitationActionRoute: InvitationActionRoute,
   LSlugRoute: LSlugRoute,

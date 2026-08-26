@@ -25,6 +25,9 @@ export const appConfigSchema = z.object({
   WEBSITE_URL: z.url(),
   EMAIL_LOGO_URL: z.url().optional(),
   SUPPORT_URL: z.url(),
+  // Marketing site. Optional so a deploy without one still boots; the demo
+  // routes are simply unreachable from a browser until it is set.
+  LANDING_URL: z.url().optional(),
   API_URL: z.url(),
 
   GOOGLE_CLIENT_ID: z.string().min(1),
@@ -45,6 +48,11 @@ export const appConfigSchema = z.object({
   STRIPE_PRICE_ESSENTIALS_SEAT: z.string().min(1).optional(),
   STRIPE_PRICE_GROWTH_SEAT: z.string().min(1).optional(),
   STRIPE_PRICE_SCALE_SEAT: z.string().min(1).optional(),
+  // Yearly per-seat price IDs. Absent means the yearly toggle has nothing to
+  // check out against, so the plans page hides it.
+  STRIPE_PRICE_ESSENTIALS_SEAT_ANNUAL: z.string().min(1).optional(),
+  STRIPE_PRICE_GROWTH_SEAT_ANNUAL: z.string().min(1).optional(),
+  STRIPE_PRICE_SCALE_SEAT_ANNUAL: z.string().min(1).optional(),
   // Uploads bucket. Objects under public/ are world readable via bucket policy,
   // everything under private/ is only reachable through a presigned redirect.
   S3_UPLOADS_BUCKET: z.string().min(1),

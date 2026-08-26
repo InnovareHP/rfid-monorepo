@@ -121,11 +121,13 @@ export const customSessionHandler = async ({
         createdAt: true,
       },
     }),
+    // Whatever its status, and ordered the same way the subscription guard
+    // orders it: filtering to live rows here would hand the client the same
+    // null for a canceled organization as for one that never subscribed, and
+    // the two need different screens.
     prisma.subscription.findFirst({
-      where: {
-        referenceId: activeOrganizationId,
-        status: { in: ["active", "trialing"] },
-      },
+      where: { referenceId: activeOrganizationId },
+      orderBy: { periodEnd: "desc" },
     }),
   ]);
 
@@ -368,6 +370,7 @@ export const beforeAddMember = async ({
       where: { referenceId: organization.id },
       select: {
         plan: true,
+        seats: true,
         isCustom: true,
         contractLabel: true,
         customLimits: true,
@@ -381,13 +384,12 @@ export const beforeAddMember = async ({
 
   await assertWorkEmailIfHipaa(organization.id, user?.email);
 
-  // Seats bill per member, so subscription.seats tracks the current head count
-  // and can never be the ceiling. The resolved entitlement is — a negotiated
-  // contract carries its own seat count rather than a tier's.
+  // Seats are purchased, so the ceiling is what the organization bought — a
+  // negotiated contract carries its own count rather than a tier's.
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount >= maxSeats) {
     throw new Error(
-      `Organization has reached its plan limit of ${maxSeats} members. Upgrade your plan to add more.`
+      `Organization has used all ${maxSeats} of its seats. Add seats to invite more members.`
     );
   }
 
@@ -524,6 +526,7 @@ export const beforeCreateInvitation = async ({
       where: { referenceId: organization.id },
       select: {
         plan: true,
+        seats: true,
         isCustom: true,
         contractLabel: true,
         customLimits: true,
@@ -536,7 +539,7 @@ export const beforeCreateInvitation = async ({
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount + pendingInvitations >= maxSeats) {
     throw new Error(
-      `Cannot send invitation. Organization has reached its plan limit of ${maxSeats} members (${memberCount} members, ${pendingInvitations} pending invitations).`
+      `Cannot send invitation. All ${maxSeats} seats are taken (${memberCount} members, ${pendingInvitations} pending invitations). Add seats to invite more.`
     );
   }
 
@@ -571,6 +574,7 @@ export const beforeAcceptInvitation = async ({
       where: { referenceId: organization.id },
       select: {
         plan: true,
+        seats: true,
         isCustom: true,
         contractLabel: true,
         customLimits: true,
@@ -581,7 +585,7 @@ export const beforeAcceptInvitation = async ({
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount >= maxSeats) {
     throw new Error(
-      "This organization has reached its member limit. Contact the organization admin."
+      "This organization has no seats left. Contact the organization admin."
     );
   }
 };

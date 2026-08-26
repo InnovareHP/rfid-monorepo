@@ -1,11 +1,14 @@
 import {
+  ANNUAL_DISCOUNT,
+  accessForStatus,
   entitlementFor,
   hasFeature,
   isSubscriptionActive,
+  resolveEntitlement,
   resolvePlan,
   seatCap,
 } from "@dashboard/shared";
-import { PLANS, getPlanLimits } from "./plans";
+import { PLANS, getPlanLimits, priceForInterval } from "./plans";
 
 describe("resolvePlan", () => {
   it("resolves the known tiers case insensitively", () => {
@@ -63,18 +66,37 @@ describe("seatCap", () => {
   });
 });
 
-describe("isSubscriptionActive", () => {
-  it("accepts only a paid or trialing seat", () => {
-    expect(isSubscriptionActive("active")).toBe(true);
-    expect(isSubscriptionActive("trialing")).toBe(true);
+describe("accessForStatus", () => {
+  // past_due is Stripe still retrying the card, so locking the organization out
+  // during a retry window it will probably win would be self-inflicted.
+  it("keeps a trialing, active or retrying subscription on full access", () => {
+    expect(accessForStatus("trialing")).toBe("full");
+    expect(accessForStatus("active")).toBe("full");
+    expect(accessForStatus("past_due")).toBe("full");
   });
 
-  // past_due closes feature access; the billing routes stay reachable so the
-  // organization can pay its way back in.
-  it("refuses past_due, canceled and missing", () => {
-    expect(isSubscriptionActive("past_due")).toBe(false);
+  // The records belong to the organization, and export is how it leaves.
+  it("drops to read only once Stripe stops collecting", () => {
+    expect(accessForStatus("unpaid")).toBe("read_only");
+    expect(accessForStatus("canceled")).toBe("read_only");
+    expect(accessForStatus("paused")).toBe("read_only");
+  });
+
+  it("locks an unfinished checkout and anything unrecognised", () => {
+    expect(accessForStatus("incomplete")).toBe("locked");
+    expect(accessForStatus("incomplete_expired")).toBe("locked");
+    expect(accessForStatus("something_new")).toBe("locked");
+    expect(accessForStatus(null)).toBe("locked");
+    expect(accessForStatus(undefined)).toBe("locked");
+  });
+});
+
+describe("isSubscriptionActive", () => {
+  it("is the full-access statuses under another name", () => {
+    expect(isSubscriptionActive("active")).toBe(true);
+    expect(isSubscriptionActive("trialing")).toBe(true);
+    expect(isSubscriptionActive("past_due")).toBe(true);
     expect(isSubscriptionActive("canceled")).toBe(false);
-    expect(isSubscriptionActive("incomplete_expired")).toBe(false);
     expect(isSubscriptionActive(null)).toBe(false);
   });
 });
@@ -98,5 +120,50 @@ describe("plan catalog", () => {
 
   it("falls back to the lowest tier's limits for an unknown plan", () => {
     expect(getPlanLimits("enterprise")).toEqual(PLANS[0].limits);
+  });
+});
+
+describe("purchased seats", () => {
+  it("takes the seat ceiling from the subscription, not the tier", () => {
+    expect(resolveEntitlement({ plan: "essentials", seats: 30 }).seats).toBe(
+      30
+    );
+    expect(resolveEntitlement({ plan: "scale", seats: 3 }).seats).toBe(3);
+  });
+
+  // A row written before seats were purchased has none, and must not be capped
+  // at zero members.
+  it("falls back to the tier count when no seats are recorded", () => {
+    expect(resolveEntitlement({ plan: "growth", seats: null }).seats).toBe(25);
+    expect(resolveEntitlement({ plan: "growth" }).seats).toBe(25);
+  });
+
+  it("keeps a contract's own seat count ahead of purchased seats", () => {
+    expect(
+      resolveEntitlement({
+        plan: "custom",
+        seats: 5,
+        isCustom: true,
+        customLimits: { seats: 40, features: ["hipaa"] },
+      }).seats
+    ).toBe(40);
+  });
+});
+
+describe("billing intervals", () => {
+  it("discounts a yearly seat against twelve monthly ones", () => {
+    for (const plan of PLANS) {
+      const undiscounted = plan.monthly.pricePerSeat * 12;
+      expect(plan.yearly.pricePerSeat).toBeLessThanOrEqual(
+        undiscounted * (1 - ANNUAL_DISCOUNT)
+      );
+      expect(plan.yearly.pricePerSeat).toBeGreaterThan(undiscounted * 0.85);
+    }
+  });
+
+  // A row predating yearly carries no interval, and that was monthly.
+  it("treats a missing interval as monthly", () => {
+    expect(priceForInterval(PLANS[0], null)).toBe(PLANS[0].monthly);
+    expect(priceForInterval(PLANS[0], "year")).toBe(PLANS[0].yearly);
   });
 });

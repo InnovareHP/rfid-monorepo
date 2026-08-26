@@ -13,7 +13,7 @@ import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { runWithTenant } from "../prisma/tenant-context";
 import { emailQueue } from "../queue/email-queue";
-import { getPlan, PLANS } from "./plans";
+import { findPlanByPriceId, getPlan, priceForInterval } from "./plans";
 import { claimWebhookEvent, releaseWebhookEvent } from "./webhook-idempotency";
 
 const PROVIDER = "stripe";
@@ -37,7 +37,7 @@ const customerIdOf = (subscription: Stripe.Subscription) =>
     : subscription.customer.id;
 
 const planFromPriceId = (priceId: string | null | undefined) =>
-  priceId ? PLANS.find((plan) => plan.seatPriceId === priceId) : undefined;
+  priceId ? findPlanByPriceId(priceId) : undefined;
 
 const billingUrl = (organizationId: string) =>
   `${appConfig.WEBSITE_URL}/${organizationId}/settings/billing`;
@@ -252,6 +252,8 @@ const handleEvent = async (event: Stripe.Event) => {
       if (!audience) return;
 
       const quantity = item?.quantity ?? audience.seats;
+      const interval =
+        item?.price?.recurring?.interval === "year" ? "year" : "month";
 
       await queueToOwners(
         audience,
@@ -262,7 +264,9 @@ const handleEvent = async (event: Stripe.Event) => {
             organizationName: audience.organizationName,
             previousPlan: previousPlan.label,
             newPlan: newPlan.label,
-            billingAmount: `$${newPlan.pricePerSeat * quantity}/mo`,
+            billingAmount: `$${
+              priceForInterval(newPlan, interval).pricePerSeat * quantity
+            }/${interval === "year" ? "yr" : "mo"}`,
             effectiveOn: formatDate(event.created),
             billingUrl: billingUrl(audience.organizationId),
           })

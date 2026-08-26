@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { createColumn } from "@/services/lead/lead-service";
 import { Button } from "@dashboard/ui/components/button";
@@ -123,11 +124,13 @@ export function CreateColumnModal({
         if (!next) form.reset();
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Create Column
-        </Button>
-      </DialogTrigger>
+      <WriteGate>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Create Column
+          </Button>
+        </DialogTrigger>
+      </WriteGate>
 
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogFormHeader

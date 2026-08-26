@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import {
   createMarketLog,
   deleteMarketLog,
@@ -201,10 +202,12 @@ const MarketLogPage = () => {
           title="Marketing Log"
           description="Track facility visits, touchpoints, and outreach activity"
         >
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Log Activity
-          </Button>
+          <WriteGate>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Log Activity
+            </Button>
+          </WriteGate>
         </PageHeader>
 
         <div className="grid gap-4 sm:grid-cols-3">

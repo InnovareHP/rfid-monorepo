@@ -19,10 +19,15 @@ import {
   PermissionGuard,
   RequirePermission,
 } from "../../guard/permission/permission.guard";
-import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import { OwnerRoleGuard } from "../../guard/role/role.guard";
+import {
+  AllowReadOnly,
+  SubscriptionGuard,
+} from "../../guard/subscription/subscription.guard";
 import { clientIp } from "../../lib/http/client-ip";
 import { ComplianceService, SignerContext } from "./compliance.service";
 import {
+  PurgeOrganizationDataDto,
   SignBaaDto,
   UpdateComplianceSettingsDto,
 } from "./dto/compliance.schema";
@@ -88,6 +93,23 @@ export class ComplianceController {
       .header("Content-Type", "application/pdf")
       .header("Content-Disposition", 'inline; filename="hipaa-baa.pdf"')
       .send(document);
+  }
+
+  // The one write a read-only organization keeps: refusing it would hold the
+  // records hostage to a subscription. Owner only, and irreversible.
+  @UseGuards(OwnerRoleGuard)
+  @AllowReadOnly()
+  @Post("purge")
+  purge(
+    @Session() session: FullSession,
+    @Req() request: Request,
+    @Body() body: PurgeOrganizationDataDto
+  ) {
+    return this.complianceService.purgeOrganizationData(
+      session.session.activeOrganizationId,
+      body,
+      this.signer(session, request, session.user.email)
+    );
   }
 
   @RequirePermission({ compliance: ["manage"] })

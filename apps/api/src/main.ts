@@ -30,7 +30,11 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [appConfig.WEBSITE_URL, appConfig.SUPPORT_URL],
+    origin: [
+      appConfig.WEBSITE_URL,
+      appConfig.SUPPORT_URL,
+      ...(appConfig.LANDING_URL ? [appConfig.LANDING_URL] : []),
+    ],
     methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Content-Length"],

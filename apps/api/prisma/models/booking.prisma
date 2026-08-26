@@ -20,6 +20,12 @@ model BookingPage {
   minNoticeHours       Int      @default(4)
   isActive             Boolean  @default(true)
 
+  // Marks this page as a host for the public product demo. The rotation picks
+  // the enabled page with the oldest demoLastAssignedAt, so one host means
+  // always that host and a second turns round robin on with no code change.
+  demoEnabled          Boolean  @default(false)
+  demoLastAssignedAt   DateTime? @db.Timestamptz(3)
+
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   availability AvailabilityRule[]
   bookings     Booking[]
@@ -63,6 +69,12 @@ model Booking {
   calendarSyncFailed Boolean       @default(false)
   // Meet or Teams join URL minted with the calendar event, for VIDEO only.
   meetingUrl         String?
+  // The invitee's own zone, captured at booking time, so their confirmation
+  // reads in their local time rather than the host's.
+  inviteeTimezone    String?
+  // Set once the upcoming-meeting reminder goes out, which is what stops the
+  // scheduler mailing the same booking on every pass.
+  reminderSentAt     DateTime?     @db.Timestamptz(3)
 
   bookingPage BookingPage @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
   board       Board?      @relation(fields: [boardId], references: [id], onDelete: SetNull)

@@ -6,6 +6,7 @@ import {
   getSignedBaaUrl,
   updateComplianceSettings,
 } from "@/services/compliance/compliance-service";
+import { ROLES } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -24,6 +25,7 @@ import { Download, FileSignature, Lock, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BaaSignModal } from "./baa-sign-modal";
+import { PurgeDataCard } from "./purge-data-card";
 import { getApiErrorMessage } from "@/lib/helper/helper";
 
 type Member = { role: string };
@@ -38,6 +40,7 @@ const formatDate = (value: string) =>
 export function CompliancePage() {
   const context = useRouteContext({ from: "/_team" }) as {
     memberData: Member;
+    activeOrganizationId: string;
   };
   const queryClient = useQueryClient();
   const [signOpen, setSignOpen] = useState(false);
@@ -45,6 +48,16 @@ export function CompliancePage() {
   const role = context.memberData?.role;
   const canManage = can(role, { compliance: ["manage"] });
   const canDownload = can(role, { compliance: ["download"] });
+
+  // Seeded by _team.tsx, so this reads the cache rather than fetching again.
+  const { data: organizations } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["organizations"],
+    enabled: false,
+  });
+
+  const organizationName = organizations?.find(
+    (organization) => organization.id === context.activeOrganizationId
+  )?.name;
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["compliance"],
@@ -210,6 +223,10 @@ export function CompliancePage() {
           </div>
         </CardContent>
       </Card>
+
+      {role === ROLES.OWNER && organizationName && (
+        <PurgeDataCard organizationName={organizationName} />
+      )}
 
       {terms && (
         <BaaSignModal

@@ -14,7 +14,10 @@ import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import { CrossTenant } from "../../filter/tenant-context";
 import { ZodValidationPipe } from "nestjs-zod";
 import { BookingService } from "./booking.service";
-import { CreateBookingDto } from "./dto/booking.schema";
+import {
+  CreateBookingDto,
+  ReschedulePublicBookingDto,
+} from "./dto/booking.schema";
 
 @Controller("booking/public")
 @CrossTenant()
@@ -54,6 +57,44 @@ export class BookingPublicController {
   ) {
     try {
       return await this.bookingService.createPublicBooking(slug, dto);
+    } catch (error) {
+      this.rethrow(error);
+    }
+  }
+
+  // The booking id is the credential, so these are throttled like the create
+  // path rather than left open to enumeration.
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
+  @Get("/bookings/:id")
+  async getBooking(@Param("id") id: string) {
+    try {
+      return await this.bookingService.getPublicBooking(id);
+    } catch (error) {
+      this.rethrow(error);
+    }
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post("/bookings/:id/cancel")
+  async cancelBooking(@Param("id") id: string) {
+    try {
+      return await this.bookingService.cancelPublicBooking(id);
+    } catch (error) {
+      this.rethrow(error);
+    }
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post("/bookings/:id/reschedule")
+  async rescheduleBooking(
+    @Param("id") id: string,
+    @Body() dto: ReschedulePublicBookingDto
+  ) {
+    try {
+      return await this.bookingService.reschedulePublicBooking(
+        id,
+        dto.startTime
+      );
     } catch (error) {
       this.rethrow(error);
     }

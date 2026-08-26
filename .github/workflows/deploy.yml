@@ -97,6 +97,7 @@ jobs:
           VITE_AWS_REGION: ${{ vars.VITE_AWS_REGION }}
           VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
           VITE_DASHBOARD_URL: ${{ vars.VITE_DASHBOARD_URL }}
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
         run: |
           BUILD_ARGS=()
           case "${{ matrix.service }}" in
@@ -112,6 +113,11 @@ jobs:
               BUILD_ARGS=(
                 --build-arg "VITE_API_URL=$VITE_API_URL"
                 --build-arg "VITE_DASHBOARD_URL=$VITE_DASHBOARD_URL"
+              )
+              ;;
+            landing)
+              BUILD_ARGS=(
+                --build-arg "PUBLIC_API_URL=$PUBLIC_API_URL"
               )
               ;;
           esac

@@ -2,7 +2,7 @@
 import { buttonVariants } from "@dashboard/ui/components/button";
 import { Image } from "astro:assets";
 import mark from "../../assets/brand/refidly-mark-white.png";
-import { APP_URL, SUPPORT_EMAIL } from "../../config";
+import { APP_URL } from "../../config";
 ---
 
 <section
@@ -48,13 +48,13 @@ import { APP_URL, SUPPORT_EMAIL } from "../../config";
         Start Free Trial
       </a>
       <a
-        href={`mailto:${SUPPORT_EMAIL}`}
+        href="/demo"
         class={buttonVariants({
           variant: "inverseOutline",
           className: "h-[38px] w-[152px] text-base font-bold",
         })}
       >
-        Talk To Us
+        Book A Demo
       </a>
     </div>
   </div>

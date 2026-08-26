@@ -1,8 +1,12 @@
 // Plan catalog: single source of truth for tiers, price IDs, and limits.
-// Billing is per seat — one seat per organization member. The Better Auth
-// stripe plugin syncs the seat quantity to Stripe whenever membership changes.
+// Billing is per seat, and seats are purchased explicitly rather than tracked
+// from head count. Quantity on the Stripe item is the purchased seat count.
 
-import { entitlementFor, seatCap } from "@dashboard/shared";
+import {
+  entitlementFor,
+  seatCap,
+  type BillingInterval,
+} from "@dashboard/shared";
 import { appConfig } from "../../config/app-config";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -31,15 +35,18 @@ const limitsFor = (name: string): PlanLimits => {
   };
 };
 
+export type PlanPrice = {
+  // Cost of one seat for one billing period, in whole currency units.
+  pricePerSeat: number;
+  priceId: string;
+};
+
 export type Plan = {
   name: string;
   label: string;
-  // Monthly cost of one seat, in whole currency units.
-  pricePerSeat: number;
-  // One recurring price per tier, billed by quantity = member count. The plugin
-  // reads priceId === seatPriceId as a seat-only plan and emits a single line
-  // item, so the invoice is exactly pricePerSeat x seats with no base fee.
-  seatPriceId: string;
+  monthly: PlanPrice;
+  // Ten percent off twelve monthly seats, rounded down to whole dollars.
+  yearly: PlanPrice;
   limits: PlanLimits;
   freeTrialDays: number;
 };
@@ -48,45 +55,62 @@ export const PLANS: Plan[] = [
   {
     name: "essentials",
     label: "Essentials",
-    pricePerSeat: 20,
-    seatPriceId: priceId(appConfig.STRIPE_PRICE_ESSENTIALS_SEAT),
+    monthly: {
+      pricePerSeat: 20,
+      priceId: priceId(appConfig.STRIPE_PRICE_ESSENTIALS_SEAT),
+    },
+    yearly: {
+      pricePerSeat: 216,
+      priceId: priceId(appConfig.STRIPE_PRICE_ESSENTIALS_SEAT_ANNUAL),
+    },
     limits: limitsFor("essentials"),
     freeTrialDays: 14,
   },
   {
     name: "growth",
     label: "Growth",
-    pricePerSeat: 49,
-    seatPriceId: priceId(appConfig.STRIPE_PRICE_GROWTH_SEAT),
+    monthly: {
+      pricePerSeat: 49,
+      priceId: priceId(appConfig.STRIPE_PRICE_GROWTH_SEAT),
+    },
+    yearly: {
+      pricePerSeat: 529,
+      priceId: priceId(appConfig.STRIPE_PRICE_GROWTH_SEAT_ANNUAL),
+    },
     limits: limitsFor("growth"),
     freeTrialDays: 14,
   },
   {
     name: "scale",
     label: "Scale",
-    pricePerSeat: 79,
-    seatPriceId: priceId(appConfig.STRIPE_PRICE_SCALE_SEAT),
+    monthly: {
+      pricePerSeat: 79,
+      priceId: priceId(appConfig.STRIPE_PRICE_SCALE_SEAT),
+    },
+    yearly: {
+      pricePerSeat: 853,
+      priceId: priceId(appConfig.STRIPE_PRICE_SCALE_SEAT_ANNUAL),
+    },
     limits: limitsFor("scale"),
     freeTrialDays: 14,
   },
 ];
 
-// Derived plugin list so auth and catalog cannot disagree on prices. priceId
-// and seatPriceId are the same value by construction — that equality is what
-// selects the plugin's seat-only branch, so it must not drift.
+// Derived plugin list so auth and catalog cannot disagree on prices. No
+// seatPriceId on purpose: that field puts the plugin in auto-managed mode, where
+// quantity is forced to the member count and the seats argument is ignored.
 export const BETTER_AUTH_PLANS = [
   ...PLANS.map((plan) => ({
     name: plan.name,
-    priceId: plan.seatPriceId,
-    seatPriceId: plan.seatPriceId,
+    priceId: plan.monthly.priceId,
+    annualDiscountPriceId: plan.yearly.priceId || undefined,
     limits: plan.limits,
     freeTrial: { days: plan.freeTrialDays },
   })),
   // Legacy alias keeps existing "Dashboard" subscription rows resolving.
   {
     name: "dashboard",
-    priceId: PLANS[0].seatPriceId,
-    seatPriceId: PLANS[0].seatPriceId,
+    priceId: PLANS[0].monthly.priceId,
     limits: PLANS[0].limits,
   },
 ];
@@ -97,3 +121,15 @@ export const getPlan = (name: string): Plan | undefined =>
 // Feature gating hangs off limits flags, never the plan slug.
 export const getPlanLimits = (name: string | null | undefined): PlanLimits =>
   getPlan(name ?? "")?.limits ?? PLANS[0].limits;
+
+// A row written before yearly existed carries no interval, which was monthly.
+export const priceForInterval = (
+  plan: Plan,
+  interval: BillingInterval | null | undefined
+): PlanPrice => (interval === "year" ? plan.yearly : plan.monthly);
+
+export const findPlanByPriceId = (priceId: string) =>
+  PLANS.find(
+    (plan) =>
+      plan.monthly.priceId === priceId || plan.yearly.priceId === priceId
+  );

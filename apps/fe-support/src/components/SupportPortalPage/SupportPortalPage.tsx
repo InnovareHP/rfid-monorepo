@@ -1,20 +1,10 @@
-import {
-  KNOWLEDGE_BASE_ITEMS,
-  KNOWLEDGE_BASE_SECTION_TITLE,
-  RESOURCE_LINKS,
-  RESOURCE_LINKS_SECTION_TITLE,
-  SEARCH_PLACEHOLDER,
-} from "@dashboard/shared";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@dashboard/ui/components/card";
-import { Input } from "@dashboard/ui/components/input";
-import { Search } from "lucide-react";
+import { CategoryGrid } from "@/components/KnowledgeBase/CategoryGrid";
+import { FeaturedArticles } from "@/components/KnowledgeBase/FeaturedArticles";
+import { ManualSearch } from "@/components/KnowledgeBase/ManualSearch";
+import { ManualSection } from "@/components/KnowledgeBase/ManualSection";
+import { KNOWLEDGE_BASE_SECTION_TITLE } from "@dashboard/shared";
+import { useParams } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
-import { KNOWLEDGE_BASE_ICON_MAP } from "../../lib/contant";
 
 const SupportChat = lazy(() =>
   import("../SupportChat/SupportChat").then((m) => ({ default: m.SupportChat }))
@@ -23,87 +13,31 @@ const SupportChat = lazy(() =>
 const CHAT_COLUMN_WIDTH = "500px";
 
 export function SupportPortalPage() {
+  const { lang } = useParams({ from: "/_lang/$lang/" });
+
   return (
-    <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 sm:p-6 pb-24 lg:pb-6 max-w-[1920px] w-full mx-auto lg:items-stretch min-h-0">
-      {/* Left column */}
-      <div className="flex-1 min-w-0 space-y-6 sm:space-y-8 order-1">
-        <div className="relative flex items-center">
-          <Input
-            placeholder={SEARCH_PLACEHOLDER}
-            className="pl-4 pr-10 h-11 rounded-lg bg-background border border-border"
-          />
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-        </div>
+    <div className="mx-auto flex min-h-0 w-full max-w-[1920px] flex-1 flex-col gap-6 p-4 pb-24 sm:p-6 lg:flex-row lg:items-stretch lg:pb-6">
+      <div className="order-1 min-w-0 flex-1 space-y-6 sm:space-y-8">
+        <ManualSearch lang={lang} />
 
-        <section>
-          <h2 className="page-title text-lg sm:text-xl font-bold mb-4 sm:mb-5 tracking-tight">
-            {KNOWLEDGE_BASE_SECTION_TITLE}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {KNOWLEDGE_BASE_ITEMS.map((item) => {
-              const Icon = KNOWLEDGE_BASE_ICON_MAP[item.iconKey];
-              return (
-                <Card
-                  key={item.title}
-                  className="cursor-pointer transition-shadow hover:shadow-md border border-border rounded-lg overflow-hidden bg-card shadow-sm p-4 gap-3 *:data-[slot=card-header]:p-0 *:data-[slot=card-content]:p-0"
-                >
-                  <CardHeader className="pb-1">
-                    <div
-                      className={`size-8 rounded-lg flex items-center justify-center mb-2 ${item.iconBg}`}
-                    >
-                      <Icon className="size-4 text-avatar-foreground" />
-                    </div>
-                    <CardTitle
-                      className="text-sm font-bold text-foreground leading-tight"
-                    >
-                      {item.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-xs text-muted-foreground leading-relaxed font-normal">
-                      {item.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
+        <ManualSection title="Popular articles">
+          <FeaturedArticles lang={lang} />
+        </ManualSection>
 
-        <section>
-          <h2 className="page-title text-lg sm:text-xl font-bold mb-4 sm:mb-5 tracking-tight">
-            {RESOURCE_LINKS_SECTION_TITLE}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {RESOURCE_LINKS.map((item) => (
-              <Card
-                key={item.title}
-                className="cursor-pointer transition-shadow hover:shadow-md border border-border rounded-lg overflow-hidden bg-card shadow-sm p-4 gap-3 *:data-[slot=card-header]:p-0 *:data-[slot=card-content]:p-0"
-              >
-                <CardHeader className="pb-1">
-                  <CardTitle className="text-sm font-bold text-foreground leading-tight">
-                    {item.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-xs text-muted-foreground leading-relaxed font-normal">
-                    {item.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+        <ManualSection title={KNOWLEDGE_BASE_SECTION_TITLE}>
+          <CategoryGrid lang={lang} />
+        </ManualSection>
       </div>
 
-      {/* Right column: on lg takes fixed width (prevents layout shift); on mobile takes no space but SupportChat still renders for the fixed bottom bar */}
+      {/* On lg this takes a fixed width so the left column cannot shift; on
+          mobile it takes no space and SupportChat renders its own bottom bar. */}
       <div
-        className="shrink-0 order-2 w-0 min-w-0 overflow-visible lg:w-full"
+        className="order-2 w-0 min-w-0 shrink-0 overflow-visible lg:w-full"
         style={{ maxWidth: CHAT_COLUMN_WIDTH }}
       >
         <Suspense
           fallback={
-            <div className="hidden lg:block w-full min-h-[400px] rounded-xl border border-border bg-muted/30 animate-pulse" />
+            <div className="hidden min-h-[400px] w-full animate-pulse rounded-xl border border-border bg-muted/30 lg:block" />
           }
         >
           <SupportChat />

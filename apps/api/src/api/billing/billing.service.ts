@@ -3,22 +3,35 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { PLANS, getPlan, getPlanLimits } from "../../lib/stripe/plans";
+import { MAX_SEATS, type BillingInterval } from "@dashboard/shared";
+import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
 import { prisma } from "../../lib/prisma/prisma";
+import {
+  PLANS,
+  findPlanByPriceId,
+  getPlan,
+  getPlanLimits,
+  priceForInterval,
+} from "../../lib/stripe/plans";
 import { stripe } from "../../lib/stripe/stripe";
+import type Stripe from "stripe";
 
 // A past-due org keeps billing visibility; feature access is gated separately.
 const HAS_PLAN_STATUSES = ["active", "trialing", "past_due"];
 
 @Injectable()
 export class BillingService {
+  // Yearly is only offered where a yearly price id is configured, so the toggle
+  // can never check out against an empty price.
   listPlans() {
     return PLANS.map((plan) => ({
       name: plan.name,
       label: plan.label,
-      pricePerSeat: plan.pricePerSeat,
+      monthly: plan.monthly.pricePerSeat,
+      yearly: plan.yearly.priceId ? plan.yearly.pricePerSeat : null,
       limits: plan.limits,
       freeTrialDays: plan.freeTrialDays,
+      defaultSeats: plan.limits.seats,
     }));
   }
 
@@ -51,19 +64,25 @@ export class BillingService {
     const plan = subscription ? getPlan(subscription.plan) : undefined;
     const limits = getPlanLimits(subscription?.plan);
     const seats = subscription?.seats ?? members.length;
+    const interval: BillingInterval =
+      subscription?.billingInterval === "year" ? "year" : "month";
+    const price = plan ? priceForInterval(plan, interval) : null;
 
     return {
       plan: plan?.name ?? null,
       label: plan?.label ?? null,
       status: subscription?.status ?? null,
-      pricePerSeat: plan?.pricePerSeat ?? null,
+      interval,
+      pricePerSeat: price?.pricePerSeat ?? null,
       seats,
-      monthlyTotal: plan ? plan.pricePerSeat * seats : null,
+      total: price ? price.pricePerSeat * seats : null,
       periodEnd: subscription?.periodEnd ?? null,
       cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
       trialEnd: subscription?.trialEnd ?? null,
       limits,
-      memberOverCap: members.length > limits.seats,
+      // Seats are the ceiling, so these two bound the stepper.
+      memberCount: members.length,
+      maxSeats: MAX_SEATS,
       members: members.map((member) => ({
         id: member.id,
         role: member.role,
@@ -130,6 +149,98 @@ export class BillingService {
     });
 
     return { cancelAtPeriodEnd };
+  }
+
+  // Seats are purchased, not inferred from head count, so the quantity is
+  // written to Stripe here and prorated onto an invoice straight away.
+  async updateSeats(organizationId: string, seats: number) {
+    const subscription = await this.getSubscription(organizationId);
+    if (!subscription?.stripeSubscriptionId) {
+      throw new NotFoundException(
+        "No active subscription for this organization"
+      );
+    }
+
+    const memberCount = await prisma.member.count({
+      where: { organizationId },
+    });
+
+    if (seats < memberCount) {
+      throw new BadRequestException(
+        `This organization has ${memberCount} members. Remove members before dropping to ${seats} seats.`
+      );
+    }
+
+    if (seats === subscription.seats) {
+      throw new BadRequestException("Seat count is already " + seats);
+    }
+
+    const stripeSubscription = await stripe.subscriptions.retrieve(
+      subscription.stripeSubscriptionId
+    );
+
+    // The plan item is the only one carrying seats, so a plan price has to match
+    // or there is nothing safe to change the quantity on.
+    const item = stripeSubscription.items.data.find((entry) =>
+      findPlanByPriceId(entry.price.id)
+    );
+    if (!item) {
+      throw new NotFoundException("No seat price on this subscription");
+    }
+
+    const updated = await stripe.subscriptions.update(
+      subscription.stripeSubscriptionId,
+      {
+        items: [{ id: item.id, quantity: seats }],
+        proration_behavior: "always_invoice",
+        expand: ["latest_invoice"],
+      }
+    );
+
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { seats },
+    });
+
+    // Feature gating reads the cached entitlement, and the seat ceiling lives on
+    // it, so a stale key would refuse the member the seat just paid for.
+    await invalidateSubscriptionCache(organizationId);
+
+    await this.recordSeatChange(
+      organizationId,
+      subscription.plan,
+      subscription.seats ?? memberCount,
+      seats,
+      updated.latest_invoice
+    );
+
+    return { seats };
+  }
+
+  // The proration invoice settles asynchronously, so the row is the change
+  // itself and stays PENDING; the invoice webhook writes the settlement row.
+  private async recordSeatChange(
+    organizationId: string,
+    plan: string,
+    previousSeats: number,
+    seats: number,
+    latestInvoice: Stripe.Subscription["latest_invoice"]
+  ) {
+    const invoice =
+      latestInvoice && typeof latestInvoice !== "string" ? latestInvoice : null;
+
+    await prisma.transaction.create({
+      data: {
+        organizationId,
+        type: "SEAT_CHANGE",
+        status: "PENDING",
+        amountCents: invoice?.amount_due ?? 0,
+        currency: invoice?.currency ?? "usd",
+        description: `${getPlan(plan)?.label ?? plan} — ${previousSeats} to ${seats} seats`,
+        stripeInvoiceId: invoice?.id ?? null,
+        metadata: { plan, previousSeats, seats },
+      },
+    });
   }
 
   cancel(organizationId: string) {

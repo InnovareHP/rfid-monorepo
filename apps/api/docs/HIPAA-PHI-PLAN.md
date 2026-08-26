@@ -140,7 +140,9 @@ model AuditLog {
 - Global rate limiting (`@nestjs/throttler`, 300 req/min) + Better Auth `rateLimit` on Redis storage with strict rules for sign-in/sign-up/password endpoints.
 - `helmet` with HSTS (1y, includeSubDomains); `trust proxy = 1` so audit IPs can't be spoofed via `x-forwarded-for`.
 - WebSocket CORS restricted to `WEBSITE_URL`/`SUPPORT_URL` (was `*`).
-- AuditLog: per-row HMAC-SHA256 in `changeHash`; DB write failure now emits full entry to stdout (`AUDIT_FALLBACK`); append-only DB trigger in `prisma/migrations/audit_log_append_only/` (apply manually).
+- AuditLog: per-row HMAC-SHA256 in `changeHash` signed with `AUDIT_HMAC_KEY` (split off `ENCRYPTION_KEY`, `v2:` prefix, old rows verify against the legacy key); DB write failure emits the full entry to stdout (`AUDIT_FALLBACK`).
+- Append-only DB trigger in `prisma/migrations/audit_log_append_only/` — **apply manually**. Written 2026-08-27; this line previously claimed the migration existed when the folder did not. Covers `AuditLog` and `AdminActivityLog`: UPDATE and TRUNCATE always refused, DELETE refused unless the transaction has set `audit.purge` (only the retention job does) and the row is past the 2190-day floor, which the trigger re-checks itself. Not `History` — that table doubles as the user-editable record timeline. Not `ContractAgreement` — it cascades from `Organization`, so locking it would block organization deletion. The trigger is only as strong as the role that owns the table: the application role should not own `auth_schema`, or it can drop the trigger.
+- Retention purge covers both append-only tables, so neither can be locked with no way to expire.
 - MFA: Better Auth `twoFactor` plugin + `TwoFactor` model (secret/backupCodes encrypted at rest). Frontend enrollment UI still TODO.
 - Redis cache payloads (board rows, AI results) encrypted with AES-256-GCM; BullMQ job retention cut to 1h complete / 24h fail.
 - Stripe webhook logs trimmed to event ids (no full event dumps); subscription hook `console.log`s removed.
@@ -155,6 +157,9 @@ model AuditLog {
 - `User.email`, `Invitation.email` not encrypted — required by Better Auth for unique lookup. Treat row-level access controls as the mitigation.
 - `BoardCounty`, `Marketing.notes`, `Mileage.destination`, `Expense.description` not yet encrypted; covered in Phase 4 if they hold PHI per data steward review.
 - Audit log retention partitioning not yet implemented; single table for now.
+- `AuditService.verify()` is exercised only by `audit-signing.spec.ts`. Nothing verifies stored rows in production, so the signatures are evidence nobody reads yet.
+- No read path for `AuditLog` inside the app: nothing in `src/api/` queries it, and the fe-support "Activity Log" page reads the unrelated `AdminActivityLog`. §164.308(a)(1)(ii)(D) review currently means a direct database query.
+- List endpoints log `boards.read` with no resource ids, so which records a list or search view exposed is not captured; only `/:id` routes carry one.
 - Better Auth fine-grained event hooks (login.success/failure, MFA, password reset success) not yet wired — interceptor captures HTTP traffic for `/api/auth/*` which is sufficient for §164.312(b) baseline.
 
 ## 7. Open Questions

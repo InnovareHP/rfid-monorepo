@@ -319,6 +319,8 @@ export type OptionsResponse = {
 export type Subscription = {
   cancelAtPeriodEnd: boolean;
   id: string;
+  // Null outside a trial, and the only date the trial banner counts down from.
+  trialEnd: string | null;
   limits: { seats: number };
   periodEnd: string;
   periodStart: string;

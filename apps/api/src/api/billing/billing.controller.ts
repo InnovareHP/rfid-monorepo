@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -18,6 +19,7 @@ import { BillingService } from "./billing.service";
 import {
   ListInvoicesQueryDto,
   ListTransactionsQueryDto,
+  UpdateSeatsDto,
 } from "./dto/billing.schema";
 
 // Org id always comes from the session, never the body, so there is no
@@ -68,6 +70,15 @@ export class BillingController {
     return this.billingHistoryService.listTransactions(
       session.session.activeOrganizationId,
       query
+    );
+  }
+
+  @Post("seats")
+  @RequirePermission({ billing: ["manage_billing"] })
+  updateSeats(@Session() session: MemberSession, @Body() body: UpdateSeatsDto) {
+    return this.billingService.updateSeats(
+      session.session.activeOrganizationId,
+      body.seats
     );
   }
 

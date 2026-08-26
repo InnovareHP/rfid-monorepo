@@ -1,4 +1,4 @@
-import { hasFeature, isSubscriptionActive, seatCap } from "@dashboard/shared";
+import { accessForStatus, hasFeature, seatCap } from "@dashboard/shared";
 import { describe, expect, it } from "vitest";
 
 // Mirrors apps/api/src/lib/stripe/entitlement.spec.ts so a plan gated one way in
@@ -38,12 +38,16 @@ describe("entitlements", () => {
     expect(seatCap(null)).toBe(10);
   });
 
-  // The team layout redirects on the same rule the API guard enforces.
-  it("treats only active and trialing as a live subscription", () => {
-    expect(isSubscriptionActive("active")).toBe(true);
-    expect(isSubscriptionActive("trialing")).toBe(true);
-    expect(isSubscriptionActive("past_due")).toBe(false);
-    expect(isSubscriptionActive("canceled")).toBe(false);
-    expect(isSubscriptionActive(null)).toBe(false);
+  // The team layout gates on the same three levels the API guard enforces, so
+  // a banner that says read-only and a guard that says locked cannot diverge.
+  it("maps every Stripe status to the same access level as the API", () => {
+    expect(accessForStatus("trialing")).toBe("full");
+    expect(accessForStatus("active")).toBe("full");
+    expect(accessForStatus("past_due")).toBe("full");
+    expect(accessForStatus("unpaid")).toBe("read_only");
+    expect(accessForStatus("canceled")).toBe("read_only");
+    expect(accessForStatus("paused")).toBe("read_only");
+    expect(accessForStatus("incomplete")).toBe("locked");
+    expect(accessForStatus(null)).toBe("locked");
   });
 });

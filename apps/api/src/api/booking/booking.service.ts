@@ -50,6 +50,15 @@ function resolveLocation(
   return offered;
 }
 
+// Names the zone so a bare "3:00 PM" can never be read in the wrong one.
+const formatInZone = (at: Date, timeZone: string) =>
+  at.toLocaleString("en-US", {
+    timeZone,
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZoneName: "short",
+  });
+
 @Injectable()
 export class BookingService {
   private readonly logger = new Logger(BookingService.name);
@@ -216,6 +225,37 @@ export class BookingService {
     );
   }
 
+  // Best effort: a stale calendar event is worse than a slow response, but it
+  // must never block the cancellation the invitee already asked for.
+  private async deleteCalendarEvent(
+    userId: string,
+    booking: {
+      id: string;
+      externalEventId: string | null;
+      calendarProvider: string | null;
+    }
+  ) {
+    if (!booking.externalEventId || !booking.calendarProvider) return;
+
+    try {
+      if (booking.calendarProvider === "google") {
+        await this.googleCalendarService.deleteEvent(
+          userId,
+          booking.externalEventId
+        );
+      } else if (booking.calendarProvider === "outlook") {
+        await this.outlookCalendarService.deleteEvent(
+          userId,
+          booking.externalEventId
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to delete calendar event for booking ${booking.id}: ${error.message}`
+      );
+    }
+  }
+
   async cancelOwnBooking(
     userId: string,
     organizationId: string,
@@ -226,25 +266,7 @@ export class BookingService {
     });
     if (!booking) throw new NotFoundException("Booking not found");
 
-    if (booking.externalEventId && booking.calendarProvider) {
-      try {
-        if (booking.calendarProvider === "google") {
-          await this.googleCalendarService.deleteEvent(
-            userId,
-            booking.externalEventId
-          );
-        } else if (booking.calendarProvider === "outlook") {
-          await this.outlookCalendarService.deleteEvent(
-            userId,
-            booking.externalEventId
-          );
-        }
-      } catch (error) {
-        this.logger.warn(
-          `Failed to delete calendar event for booking ${bookingId}: ${error.message}`
-        );
-      }
-    }
+    await this.deleteCalendarEvent(userId, booking);
 
     const cancelled = await prisma.booking.update({
       where: { id: bookingId },
@@ -279,6 +301,7 @@ export class BookingService {
       inviteeName: string;
       inviteeEmail: string;
       startTime: Date;
+      inviteeTimezone: string | null;
     }
   ) {
     try {
@@ -293,25 +316,26 @@ export class BookingService {
         }),
       ]);
 
-      const formattedTime = booking.startTime.toLocaleString("en-US", {
-        timeZone: page?.timezone ?? DEFAULT_TIMEZONE,
-        dateStyle: "full",
-        timeStyle: "short",
-      });
+      const hostZone = page?.timezone ?? DEFAULT_TIMEZONE;
+      const hostTime = formatInZone(booking.startTime, hostZone);
+      const inviteeTime = formatInZone(
+        booking.startTime,
+        booking.inviteeTimezone ?? hostZone
+      );
 
       const props = {
         referralName: booking.inviteeName,
         facility: page?.locationLabel ?? page?.title ?? "—",
-        originalDateTime: formattedTime,
         canceledBy: host.name,
         bookingUrl: `${appConfig.WEBSITE_URL}/${organizationId}/calendar`,
       };
 
       await sendEmail({
         to: booking.inviteeEmail,
-        subject: `Canceled: booking on ${formattedTime}`,
+        subject: `Canceled: booking on ${inviteeTime}`,
         html: BookingCanceledEmail({
           ...props,
+          originalDateTime: inviteeTime,
           recipientName: booking.inviteeName,
         }),
         from: appConfig.APP_EMAIL,
@@ -320,7 +344,11 @@ export class BookingService {
       await sendEmail({
         to: host.email,
         subject: `Canceled: booking with ${booking.inviteeName}`,
-        html: BookingCanceledEmail({ ...props, recipientName: host.name }),
+        html: BookingCanceledEmail({
+          ...props,
+          originalDateTime: hostTime,
+          recipientName: host.name,
+        }),
         from: appConfig.APP_EMAIL,
       });
     } catch (error) {
@@ -352,6 +380,12 @@ export class BookingService {
 
   private buildPublicUrl(slug: string): string {
     return `${appConfig.WEBSITE_URL}/book/${slug}`;
+  }
+
+  // Where an invitee reschedules or cancels without an account. The booking id
+  // is the only credential, which is why it is a v4 uuid and never listed.
+  private buildManageUrl(bookingId: string): string {
+    return `${appConfig.WEBSITE_URL}/booking/${bookingId}`;
   }
 
   // ─── Public (unauthenticated) ───────────────────────────────────────
@@ -517,6 +551,7 @@ export class BookingService {
             locationType: resolveLocation(page.locationType, dto.locationType),
             startTime,
             endTime,
+            inviteeTimezone: dto.inviteeTimezone,
           },
         });
       });
@@ -548,6 +583,238 @@ export class BookingService {
       status: booking.status,
       meetingUrl,
     };
+  }
+
+  // ─── Public booking management (no account) ──────────────────────────
+  // The booking id is the only credential. It is a v4 uuid, never listed, and
+  // reaches the invitee by email only, which is the same trust model as the
+  // page slug.
+
+  private async findInviteeBookingOrThrow(bookingId: string) {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { bookingPage: { include: { availability: true } } },
+    });
+    if (!booking) throw new NotFoundException("Booking not found");
+    return booking;
+  }
+
+  async getPublicBooking(bookingId: string) {
+    const booking = await this.findInviteeBookingOrThrow(bookingId);
+    const host = await prisma.user.findUnique({
+      where: { id: booking.userId },
+      select: { name: true },
+    });
+
+    // Deliberately narrow: an invitee sees their own meeting, never the host's
+    // other bookings, the organization, or the notes field of anyone else.
+    return {
+      id: booking.id,
+      title: booking.bookingPage.title,
+      status: booking.status,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      durationMinutes: booking.bookingPage.durationMinutes,
+      timezone: booking.inviteeTimezone ?? booking.bookingPage.timezone,
+      hostTimezone: booking.bookingPage.timezone,
+      hostName: host?.name ?? null,
+      locationLabel: booking.bookingPage.locationLabel,
+      meetingUrl: booking.meetingUrl,
+      inviteeName: booking.inviteeName,
+      slug: booking.bookingPage.slug,
+    };
+  }
+
+  async cancelPublicBooking(bookingId: string) {
+    const booking = await this.findInviteeBookingOrThrow(bookingId);
+
+    if (booking.status !== "CONFIRMED") {
+      throw new BadRequestException("This booking is no longer active");
+    }
+
+    await this.deleteCalendarEvent(booking.userId, booking);
+
+    const cancelled = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: "CANCELLED" },
+    });
+
+    await this.sendCancellationEmails(
+      booking.userId,
+      booking.organizationId,
+      cancelled
+    );
+
+    // No actorUserId: the invitee cancelled, so the host is the one who needs
+    // telling.
+    await this.notifyHost(booking.bookingPage, {
+      type: NOTIFICATION_TYPE.BOOKING_CANCELLED,
+      title: "Booking cancelled",
+      body: `${cancelled.inviteeName} cancelled ${this.formatFor(booking.bookingPage.timezone, cancelled.startTime)}.`,
+      bookingId: cancelled.id,
+    });
+
+    return { status: cancelled.status };
+  }
+
+  async reschedulePublicBooking(bookingId: string, startTime: string) {
+    const booking = await this.findInviteeBookingOrThrow(bookingId);
+
+    if (booking.status !== "CONFIRMED") {
+      throw new BadRequestException("This booking is no longer active");
+    }
+
+    const page = booking.bookingPage;
+    const nextStart = new Date(startTime);
+    if (Number.isNaN(nextStart.getTime())) {
+      throw new BadRequestException("Invalid startTime");
+    }
+
+    const nextEnd = new Date(
+      nextStart.getTime() + page.durationMinutes * 60 * 1000
+    );
+    const bufferedStart = new Date(
+      nextStart.getTime() - page.bufferBeforeMinutes * 60 * 1000
+    );
+    const bufferedEnd = new Date(
+      nextEnd.getTime() + page.bufferAfterMinutes * 60 * 1000
+    );
+
+    // Same freshness check the create path runs: the slot list the invitee is
+    // looking at may be minutes old.
+    const calendarBusy = await this.getCalendarBusyIntervals(
+      page.userId,
+      bufferedStart,
+      bufferedEnd
+    );
+    if (
+      calendarBusy.some((busy) =>
+        overlaps(bufferedStart, bufferedEnd, busy.start, busy.end)
+      )
+    ) {
+      throw new ConflictException(
+        "This time slot was just booked — please choose another."
+      );
+    }
+
+    const previousStart = booking.startTime;
+
+    let updated;
+    try {
+      updated = await prisma.$transaction(async (tx) => {
+        const overlapping = await tx.booking.findFirst({
+          where: {
+            bookingPageId: page.id,
+            status: "CONFIRMED",
+            id: { not: bookingId },
+            startTime: { lt: bufferedEnd },
+            endTime: { gt: bufferedStart },
+          },
+        });
+        if (overlapping) {
+          throw new ConflictException(
+            "This time slot was just booked — please choose another."
+          );
+        }
+
+        return tx.booking.update({
+          where: { id: bookingId },
+          data: {
+            startTime: nextStart,
+            endTime: nextEnd,
+            // The old reminder no longer applies to the new time.
+            reminderSentAt: null,
+          },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new ConflictException(
+          "This time slot was just booked — please choose another."
+        );
+      }
+      throw error;
+    }
+
+    // Dropped and re-created rather than patched: the sync path already owns
+    // event creation, and reusing it keeps one way of writing a calendar event.
+    await this.deleteCalendarEvent(page.userId, booking);
+    const meetingUrl = await this.syncBookingToCalendar(page, updated);
+    await this.sendRescheduleEmails(page, updated, meetingUrl, previousStart);
+
+    await this.notifyHost(page, {
+      type: NOTIFICATION_TYPE.BOOKING_CREATED,
+      title: "Booking rescheduled",
+      body: `${updated.inviteeName} moved their meeting to ${this.formatFor(page.timezone, updated.startTime)}.`,
+      bookingId: updated.id,
+    });
+
+    return {
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      meetingUrl,
+    };
+  }
+
+  private async sendRescheduleEmails(
+    page: {
+      userId: string;
+      title: string;
+      timezone: string;
+      locationLabel: string | null;
+    },
+    booking: {
+      id: string;
+      inviteeName: string;
+      inviteeEmail: string;
+      startTime: Date;
+      inviteeTimezone: string | null;
+    },
+    meetingUrl: string | null,
+    previousStart: Date
+  ) {
+    try {
+      const host = await prisma.user.findUniqueOrThrow({
+        where: { id: page.userId },
+        select: { name: true, email: true },
+      });
+
+      const inviteeZone = booking.inviteeTimezone ?? page.timezone;
+
+      await sendEmail({
+        to: booking.inviteeEmail,
+        subject: `Rescheduled: ${page.title}`,
+        html: BookingConfirmationEmail({
+          recipientName: booking.inviteeName,
+          title: page.title,
+          startTime: formatInZone(booking.startTime, inviteeZone),
+          hostName: host.name,
+          locationLabel: page.locationLabel,
+          meetingUrl,
+          manageUrl: this.buildManageUrl(booking.id),
+        }),
+        from: appConfig.APP_EMAIL,
+      });
+
+      await sendEmail({
+        to: host.email,
+        subject: `Rescheduled: ${booking.inviteeName} moved from ${formatInZone(previousStart, page.timezone)}`,
+        html: BookingConfirmationEmail({
+          recipientName: host.name,
+          title: page.title,
+          startTime: formatInZone(booking.startTime, page.timezone),
+          hostName: host.name,
+          locationLabel: page.locationLabel,
+          meetingUrl,
+        }),
+        from: appConfig.APP_EMAIL,
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to send reschedule emails: ${error.message}`);
+    }
   }
 
   private async findActivePageOrThrow(slug: string) {
@@ -737,9 +1004,11 @@ export class BookingService {
       locationLabel: string | null;
     },
     booking: {
+      id: string;
       inviteeName: string;
       inviteeEmail: string;
       startTime: Date;
+      inviteeTimezone: string | null;
     },
     meetingUrl: string | null
   ) {
@@ -749,22 +1018,20 @@ export class BookingService {
         select: { name: true, email: true },
       });
 
-      const formattedTime = booking.startTime.toLocaleString("en-US", {
-        timeZone: page.timezone,
-        dateStyle: "full",
-        timeStyle: "short",
-      });
-
       await sendEmail({
         to: booking.inviteeEmail,
         subject: `Confirmed: ${page.title}`,
         html: BookingConfirmationEmail({
           recipientName: booking.inviteeName,
           title: page.title,
-          startTime: formattedTime,
+          startTime: formatInZone(
+            booking.startTime,
+            booking.inviteeTimezone ?? page.timezone
+          ),
           hostName: host.name,
           locationLabel: page.locationLabel,
           meetingUrl,
+          manageUrl: this.buildManageUrl(booking.id),
         }),
         from: appConfig.APP_EMAIL,
       });
@@ -775,7 +1042,7 @@ export class BookingService {
         html: BookingConfirmationEmail({
           recipientName: host.name,
           title: page.title,
-          startTime: formattedTime,
+          startTime: formatInZone(booking.startTime, page.timezone),
           hostName: host.name,
           locationLabel: page.locationLabel,
           meetingUrl,

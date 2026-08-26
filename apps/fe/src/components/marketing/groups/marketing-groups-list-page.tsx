@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
   deleteGroup,
@@ -76,16 +77,18 @@ export const MarketingGroupsListPage = () => {
           description="Saved audiences a blast can send to. Filtering lives here, not in the blast."
         />
 
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setEditorOpen(true);
-          }}
-          className="bg-brand text-white hover:bg-brand/90"
-        >
-          <Plus className="h-4 w-4" />
-          New Group
-        </Button>
+        <WriteGate>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setEditorOpen(true);
+            }}
+            className="bg-brand text-white hover:bg-brand/90"
+          >
+            <Plus className="h-4 w-4" />
+            New Group
+          </Button>
+        </WriteGate>
       </div>
 
       <MarketingSubNav active="groups" />

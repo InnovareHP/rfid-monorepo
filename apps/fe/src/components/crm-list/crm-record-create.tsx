@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import RecordCreatePage, {
   type CreatedRecord,
   type RecordColumn,
@@ -134,19 +135,21 @@ export default function CrmRecordCreate({
 
   return (
     <>
-      <RecordCreatePage
-        title={title}
-        description={description}
-        entityLabel={entityLabel}
-        entityLabelPlural={entityLabelPlural}
-        nameLabel={nameLabel}
-        columns={columns}
-        isLoadingColumns={isLoadingColumns}
-        isSubmitting={createMutation.isPending || isChecking}
-        fetchDropdownOptions={getModuleDropdownOptions}
-        onSubmit={handleSubmit}
-        onBack={onBack}
-      />
+      <WriteGate>
+        <RecordCreatePage
+          title={title}
+          description={description}
+          entityLabel={entityLabel}
+          entityLabelPlural={entityLabelPlural}
+          nameLabel={nameLabel}
+          columns={columns}
+          isLoadingColumns={isLoadingColumns}
+          isSubmitting={createMutation.isPending || isChecking}
+          fetchDropdownOptions={getModuleDropdownOptions}
+          onSubmit={handleSubmit}
+          onBack={onBack}
+        />
+      </WriteGate>
 
       <Dialog
         open={duplicates.length > 0}
