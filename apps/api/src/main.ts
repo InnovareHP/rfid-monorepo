@@ -13,7 +13,6 @@ import { SocketIoAdapter } from "./lib/socket";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
-    rawBody: true,
   });
 
   // Only the first proxy hop may set x-forwarded-for (audit IP integrity)

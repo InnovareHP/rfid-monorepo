@@ -41,8 +41,9 @@ export const appConfigSchema = z.object({
   MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
   MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 
-  STRIPE_SECRET_KEY: z.string().min(1),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: z.string().trim().min(1),
+  // Trimmed because a trailing newline in the Secrets Manager value reaches Stripe verbatim.
+  STRIPE_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
   // Live per-seat price IDs. Only read when NODE_ENV=production; dev and
   // staging fall back to the test IDs inline in lib/stripe/plans.ts.
   STRIPE_PRICE_ESSENTIALS_SEAT: z.string().min(1).optional(),
