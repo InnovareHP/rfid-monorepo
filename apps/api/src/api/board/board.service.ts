@@ -178,28 +178,26 @@ export class BoardService {
     // page/date/search filters above so "has data" reflects every record,
     // not just the ones currently in view. Values are encrypted at rest, so
     // emptiness is checked in JS after the read-path decrypts them, not in SQL.
-    const [fieldValuesForDataCheck, fieldsWithAttachments] = await Promise.all(
-      [
-        prisma.fieldValue.findMany({
-          where: {
+    const [fieldValuesForDataCheck, fieldsWithAttachments] = await Promise.all([
+      prisma.fieldValue.findMany({
+        where: {
+          fieldId: { in: fields.map((f) => f.id) },
+          record: { isDeleted: false, organizationId },
+        },
+        select: { fieldId: true, value: true },
+      }),
+      prisma.fieldValueAttachment.findMany({
+        where: {
+          organizationId,
+          fieldValue: {
             fieldId: { in: fields.map((f) => f.id) },
-            record: { isDeleted: false, organizationId },
+            record: { isDeleted: false },
           },
-          select: { fieldId: true, value: true },
-        }),
-        prisma.fieldValueAttachment.findMany({
-          where: {
-            organizationId,
-            fieldValue: {
-              fieldId: { in: fields.map((f) => f.id) },
-              record: { isDeleted: false },
-            },
-          },
-          select: { fieldValue: { select: { fieldId: true } } },
-          distinct: ["fieldValueId"],
-        }),
-      ]
-    );
+        },
+        select: { fieldValue: { select: { fieldId: true } } },
+        distinct: ["fieldValueId"],
+      }),
+    ]);
     // Trimmed to match deleteColumn's guard: if the two disagree, the header
     // hides a Delete the server would have allowed.
     const fieldIdsWithData = new Set(

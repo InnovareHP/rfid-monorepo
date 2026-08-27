@@ -81,16 +81,6 @@ export function DashboardSidebar() {
     };
   }, []);
 
-  const logoSrc = React.useMemo(
-    () => (state === "collapsed" ? LOGO_ICON_PATH : LOGO_WORDMARK_PATH),
-    [state]
-  );
-
-  const logoClassName = cn(
-    "cursor-pointer transition-all duration-300 object-contain object-center",
-    state === "collapsed" ? "h-12 w-8" : "h-auto w-[70%]"
-  );
-
   return (
     <Sidebar collapsible="icon">
       {/* <SidebarHeader>

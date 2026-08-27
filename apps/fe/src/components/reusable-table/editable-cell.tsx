@@ -53,6 +53,7 @@ import { toast } from "sonner";
 import { CountyLiaisonsHint } from "../referral-list/county-liaisons-hint";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
+import { AttachmentCell } from "./attachment-cell";
 import LocationCell from "./location-cell";
 import { StatusSelect } from "./status-action";
 
@@ -883,6 +884,18 @@ export function EditableCell({
       <LocationCell
         value={String(value || "")}
         onChange={(newLocation) => handleUpdate(String(newLocation), true)}
+      />
+    );
+  }
+
+  if (type === "ATTACHMENT") {
+    return (
+      <AttachmentCell
+        recordId={id}
+        fieldId={fieldKey}
+        fieldName={fieldName}
+        attachmentCount={Number(value) || 0}
+        moduleType={moduleType ?? (isReferral ? "REFERRAL" : "LEAD")}
       />
     );
   }

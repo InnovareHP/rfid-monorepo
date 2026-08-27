@@ -35,6 +35,7 @@ import {
   Hash,
   type LucideIcon,
   Mail,
+  Paperclip,
   Phone,
   Plus,
   User,
@@ -59,6 +60,7 @@ const ColumnSchema = z.object({
     "DROPDOWN",
     "CONTACT_LINK",
     "COMPANY_LINK",
+    "ATTACHMENT",
   ]),
 });
 
@@ -79,6 +81,7 @@ const FIELD_TYPES: {
   { label: "Dropdown", value: "DROPDOWN", icon: ChevronDown },
   { label: "Contact Link", value: "CONTACT_LINK", icon: User },
   { label: "Company Link", value: "COMPANY_LINK", icon: Building2 },
+  { label: "Attachment", value: "ATTACHMENT", icon: Paperclip },
 ];
 
 export function CreateColumnModal({

@@ -86,14 +86,6 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
 
-      - name: Check build args
-        env:
-          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
-          PUBLIC_API_URL_SECRET: ${{ secrets.PUBLIC_API_URL }}
-        run: |
-          echo "vars len=${#PUBLIC_API_URL}"
-          echo "secrets len=${#PUBLIC_API_URL_SECRET}"
-
       - name: Build and push image
         id: build
         env:
@@ -105,7 +97,6 @@ jobs:
           VITE_AWS_REGION: ${{ vars.VITE_AWS_REGION }}
           VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
           VITE_DASHBOARD_URL: ${{ vars.VITE_DASHBOARD_URL }}
-          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
         run: |
           BUILD_ARGS=()
           case "${{ matrix.service }}" in
@@ -124,9 +115,7 @@ jobs:
               )
               ;;
             landing)
-              BUILD_ARGS=(
-                --build-arg "PUBLIC_API_URL=$PUBLIC_API_URL"
-              )
+              BUILD_ARGS=()
               ;;
           esac
 

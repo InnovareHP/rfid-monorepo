@@ -1,6 +1,6 @@
 // The landing site is static and has no axios client, so the demo island talks
-// to the API directly. PUBLIC_API_URL must be set or the form cannot submit.
-const API_URL = import.meta.env.PUBLIC_API_URL ?? "";
+// to the API directly.
+const API_URL = "https://api.refidly.com";
 
 export type DemoRequestPayload = {
   name: string;
