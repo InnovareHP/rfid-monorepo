@@ -9,8 +9,6 @@ export const NAV_LINKS = [
   { href: "/demo", label: "Book a Demo" },
 ];
 
-// fix
-
 export const LEGAL_ENTITY = "InnovareHP";
 
 export const LEGAL_ADDRESS_PARTS = {
