@@ -24,7 +24,6 @@ import {
   SidebarRail,
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
-import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -39,7 +38,6 @@ import {
   SquareTerminal,
 } from "lucide-react";
 import * as React from "react";
-
 const LOGO_WORDMARK_PATH = "/branding/Wordmark/refidly-wordmark-colored.png";
 const LOGO_ICON_PATH = "/branding/Icon/refidly-icon-colored.png";
 
@@ -54,7 +52,7 @@ export function DashboardSidebar() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const { state, isMobile } = useSidebar();
+  const { isMobile } = useSidebar();
   const user = session?.user;
   const lang = (params as { lang?: string }).lang ?? "en";
   const base = `/${lang}`;

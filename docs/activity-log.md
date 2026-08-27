@@ -1628,3 +1628,52 @@ Verified: `pnpm --filter fe exec tsc --noEmit` and `pnpm --filter api exec tsc
 --noEmit` exit 0; eslint clean on the touched frontend files. Not verified: no
 migration applied (`prisma migrate dev` is interactive — user runs it), no
 browser pass, no real email sent.
+
+## Stripe webhook 400 investigation (2026-08-28)
+
+Symptom: `POST /api/auth/stripe/webhook` returns
+`{"code":"FAILED_TO_CONSTRUCT_STRIPE_EVENT"}` for every sandbox delivery
+(`checkout.session.completed`, `livemode: false`).
+
+Ruled out:
+
+- WAF. The response body is the app's own JSON, so the request reached NestJS.
+  A `block {}` in `terraform/modules/waf/main.tf` has no custom response and
+  returns AWS's 403 HTML page. WAF is pass-or-block and never rewrites a body,
+  so it cannot break an HMAC. Adding the path to
+  `waf_body_inspection_exempt_paths` did not change the result.
+- Missing secret. An absent `stripeWebhookSecret` returns 500 at
+  `@better-auth/stripe` `index.mjs:1555`, not 400.
+- Wrong mount path. A bad mount is 404, not 400.
+- Downstream handler throwing. For `checkout.session.completed`,
+  `onCheckoutSessionCompleted` catches and only logs (`index.mjs:242`), and
+  `StripeHelper` is a no-op for that event type (`clearEntitlementCache`
+  returns early on the type prefix, `handleEvent` falls to `default`).
+
+That leaves `constructEventAsync` at `index.mjs:1563`, whose only inputs are
+the payload bytes and the secret.
+
+Body chain audited, clean on static reading:
+
+- `bodyParser: false` at `NestFactory.create`, and the two `json()` mounts in
+  `main.ts` are path-scoped to non-auth routes.
+- `SkipBodyParsingMiddleware` skips when `req.baseUrl.startsWith("/api/auth")`.
+  Verified against Express 5.2.1 that a wildcard mount sets `baseUrl` to the
+  full request path, so the guard fires.
+- `better-call` `router.mjs:68` — `disableBody: true` on the webhook endpoint
+  means the router never reads the body, so `ctx.request.text()` sees the
+  original stream.
+
+Landmine found but not confirmed as the cause: `better-call`
+`adapters/node/request.mjs:110-118` falls back to `JSON.stringify(req.body)`
+when the node stream is already consumed. Routing and parsing still succeed, so
+every other auth route works while only signature verification breaks. Silent
+by design.
+
+Second landmine: `STRIPE_WEBHOOK_SECRET` is `z.string().min(1).optional()` in
+`app-config.ts:45` with no `.trim()`, so a trailing newline or a wrapping quote
+in the Secrets Manager JSON passes validation and reaches Stripe verbatim.
+
+Not verified: no runtime probe deployed, so the split between "wrong secret
+bytes" and "body re-serialized" is still open. Terraform not validated
+(`terraform` CLI absent from the dev machine).
