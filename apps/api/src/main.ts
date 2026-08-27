@@ -8,6 +8,7 @@ import { appConfig } from "./config/app-config";
 import { AllExceptionsFilter } from "./filter/filter";
 import { LoggerMiddleware } from "./filter/logger";
 import { tenantContextMiddleware } from "./filter/tenant-context";
+import { stripeWebhookRawBody } from "./lib/stripe/webhook-raw-body";
 import { SocketIoAdapter } from "./lib/socket";
 
 async function bootstrap() {
@@ -41,6 +42,9 @@ async function bootstrap() {
     maxAge: 600,
     credentials: true,
   });
+
+  // Stripe signs the exact bytes it sent, so this path never reaches a JSON parser.
+  app.use("/api/auth/stripe/webhook", stripeWebhookRawBody);
 
   // A drawn signature is larger than the 100kb default the auth module's parser
   // applies everywhere else, and parsing here leaves that parser a no-op.
