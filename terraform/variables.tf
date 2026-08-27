@@ -118,6 +118,8 @@ variable "waf_body_inspection_exempt_paths" {
     "/api/expense",
     "/api/support",
     "/api/organization",
+    # Stripe payloads carry URLs in the body, which GenericRFI_BODY reads as injection.
+    "/api/auth/stripe/webhook",
   ]
 }
 
