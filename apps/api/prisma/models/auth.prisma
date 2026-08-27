@@ -46,6 +46,7 @@ model User {
   customAnalytics           CustomAnalytic[]            @relation("CustomAnalyticCreatedBy")
   customAnalyticDashboards  CustomAnalyticDashboard[]   @relation("CustomAnalyticDashboardCreatedBy")
   taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
+  FieldValueAttachment      FieldValueAttachment[]      @relation("FieldValueAttachmentUploadedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
   notificationsActed        Notification[]              @relation("NotificationActor")

@@ -52,7 +52,7 @@ export const NotificationRow = ({
     <div
       className={cn(
         "group flex items-start gap-3 border-b px-4 py-3 last:border-b-0",
-        isUnread ? "bg-muted/40" : "bg-background"
+        isUnread ? "bg-muted" : "bg-background"
       )}
     >
       <span

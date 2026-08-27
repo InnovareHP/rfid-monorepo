@@ -32,7 +32,7 @@ export const NotificationBell = () => {
   const { data, isLoading } = useNotificationList({
     category,
     page: 1,
-    limit: 20,
+    limit: 10,
   });
   const { markReadMutation, markAllReadMutation, deleteMutation } =
     useNotificationMutations();

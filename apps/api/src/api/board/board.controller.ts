@@ -33,6 +33,7 @@ import {
   BulkEmailDto,
   CompleteActivityDto,
   CreateActivityDto,
+  CreateAttachmentDto,
   CreateColumnDto,
   CreateFaxActivityDto,
   CreateFieldOptionDto,
@@ -400,6 +401,24 @@ export class BoardController {
   }
 
   @RequirePermission({ record: ["read"] })
+  @Get("/:recordId/attachments/:fieldId")
+  async getRecordAttachments(
+    @Param("recordId") recordId: string,
+    @Param("fieldId") fieldId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getFieldAttachments(
+        recordId,
+        fieldId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ record: ["read"] })
   @Get("/:recordId/related")
   async getRelatedRecords(
     @Param("recordId") recordId: string,
@@ -630,6 +649,39 @@ export class BoardController {
           error.status
         );
       }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ record: ["update"] })
+  @Post("/:recordId/attachments")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 20 * 1024 * 1024 },
+    })
+  )
+  async uploadAttachment(
+    @Param("recordId") recordId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateAttachmentDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'No file uploaded. Use multipart/form-data with the "file" field.'
+      );
+    }
+    try {
+      return await this.boardService.uploadAttachment(
+        recordId,
+        dto.fieldId,
+        file,
+        session.session.activeOrganizationId,
+        session.session.userId,
+        dto.moduleType
+      );
+    } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
@@ -938,6 +990,24 @@ export class BoardController {
     try {
       return await this.boardService.deleteColumn(
         columnId,
+        session.session.activeOrganizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ record: ["update"] })
+  @Delete("/attachments/:attachmentId")
+  async deleteAttachment(
+    @Param("attachmentId") attachmentId: string,
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      return await this.boardService.deleteAttachment(
+        attachmentId,
         session.session.activeOrganizationId,
         moduleType || "LEAD"
       );

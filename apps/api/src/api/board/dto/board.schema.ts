@@ -3,6 +3,7 @@ import {
   BulkEmailSchema,
   CompleteActivitySchema,
   CreateActivitySchema,
+  CreateAttachmentSchema,
   CreateColumnSchema,
   CreateFaxActivitySchema,
   CreateFieldOptionSchema,
@@ -50,3 +51,6 @@ export class UpdateActivityDto extends createZodDto(UpdateActivitySchema) {}
 export class CompleteActivityDto extends createZodDto(CompleteActivitySchema) {}
 export class BulkEmailDto extends createZodDto(BulkEmailSchema) {}
 export class UpdateContactDto extends createZodDto(UpdateContactSchema) {}
+export class CreateAttachmentDto extends createZodDto(
+  CreateAttachmentSchema
+) {}

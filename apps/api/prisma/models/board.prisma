@@ -96,10 +96,30 @@ model FieldValue {
   field        Field                   @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   record       Board                   @relation(fields: [recordId], references: [id], onDelete: Cascade)
   contactValue FieldPersonInformation?
+  attachments  FieldValueAttachment[]
 
   @@unique([recordId, fieldId])
   @@index([recordId])
   @@index([fieldId, value])
+  @@index([organizationId])
+  @@schema("board_schema")
+}
+
+model FieldValueAttachment {
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  fileName       String
+  fileKey        String
+  fileSize       Int
+  mimeType       String
+  organizationId String
+  uploadedBy     String
+
+  fieldValueId String
+  fieldValue   FieldValue @relation(fields: [fieldValueId], references: [id], onDelete: Cascade)
+  uploader     User       @relation("FieldValueAttachmentUploadedBy", fields: [uploadedBy], references: [id])
+
+  @@index([fieldValueId])
   @@index([organizationId])
   @@schema("board_schema")
 }
@@ -386,6 +406,7 @@ enum BoardFieldType {
   CONTACT_LINK
   COMPANY_LINK
   PERSON
+  ATTACHMENT
 
   @@schema("board_schema")
 }

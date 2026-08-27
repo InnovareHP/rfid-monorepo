@@ -32,6 +32,7 @@ import { resolveModuleId, toModuleType } from "../../lib/module/system-modules";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
+import { ImageService, privateViewUrl } from "../image/image.service";
 import { LiaisonActivityService } from "../liaison/liaison-activity.service";
 import { toComponents } from "../places/places.service";
 import { BoardNotifyService } from "./board-notify.service";
@@ -88,6 +89,7 @@ export class BoardService {
     private readonly faxService: FaxService,
     private readonly boardNotify: BoardNotifyService,
     private readonly liaisonActivity: LiaisonActivityService,
+    private readonly imageService: ImageService,
     @InjectQueue(QUEUE_NAMES.BULK_EMAIL)
     private readonly bulkEmailQueue: Queue,
     @InjectQueue(QUEUE_NAMES.CSV_IMPORT)
@@ -150,9 +152,11 @@ export class BoardService {
                 select: {
                   fieldName: true,
                   id: true,
+                  fieldType: true,
                 },
               },
               value: true,
+              _count: { select: { attachments: true } },
             },
           },
           notifications: {
@@ -174,13 +178,28 @@ export class BoardService {
     // page/date/search filters above so "has data" reflects every record,
     // not just the ones currently in view. Values are encrypted at rest, so
     // emptiness is checked in JS after the read-path decrypts them, not in SQL.
-    const fieldValuesForDataCheck = await prisma.fieldValue.findMany({
-      where: {
-        fieldId: { in: fields.map((f) => f.id) },
-        record: { isDeleted: false, organizationId },
-      },
-      select: { fieldId: true, value: true },
-    });
+    const [fieldValuesForDataCheck, fieldsWithAttachments] = await Promise.all(
+      [
+        prisma.fieldValue.findMany({
+          where: {
+            fieldId: { in: fields.map((f) => f.id) },
+            record: { isDeleted: false, organizationId },
+          },
+          select: { fieldId: true, value: true },
+        }),
+        prisma.fieldValueAttachment.findMany({
+          where: {
+            organizationId,
+            fieldValue: {
+              fieldId: { in: fields.map((f) => f.id) },
+              record: { isDeleted: false },
+            },
+          },
+          select: { fieldValue: { select: { fieldId: true } } },
+          distinct: ["fieldValueId"],
+        }),
+      ]
+    );
     // Trimmed to match deleteColumn's guard: if the two disagree, the header
     // hides a Delete the server would have allowed.
     const fieldIdsWithData = new Set(
@@ -188,6 +207,9 @@ export class BoardService {
         .filter((v) => v.value?.trim())
         .map((v) => v.fieldId)
     );
+    for (const a of fieldsWithAttachments) {
+      fieldIdsWithData.add(a.fieldValue.fieldId);
+    }
 
     // Link fields store the target board id; resolve to names for display
     // and keep the ids so the frontend can navigate to the target record.
@@ -266,7 +288,10 @@ export class BoardService {
     const formattedAll = boards.map((b) => {
       const dynamicData = b.values.reduce(
         (acc, curr) => {
-          acc[curr.field.fieldName] = curr.value;
+          acc[curr.field.fieldName] =
+            curr.field.fieldType === BoardFieldType.ATTACHMENT
+              ? String(curr._count.attachments)
+              : curr.value;
           return acc;
         },
         {} as Record<string, string | null>
@@ -1346,6 +1371,12 @@ export class BoardService {
         }
 
         changedField = field;
+
+        if (field.fieldType === BoardFieldType.ATTACHMENT) {
+          throw new BadRequestException(
+            "Attachment fields are updated via /boards/:recordId/attachments"
+          );
+        }
       }
 
       const recordValue = await prisma.$transaction(async (tx) => {
@@ -2953,16 +2984,25 @@ export class BoardService {
     // FieldValue.value is encrypted at rest, so "is it empty" cannot be asked in
     // Postgres — an empty string's ciphertext looks like any other. NULLs skip
     // encryption, so dropping those is the only part SQL can do up front.
-    const values = await prisma.fieldValue.findMany({
-      where: {
-        fieldId: columnId,
-        value: { not: null },
-        record: { organizationId, isDeleted: false },
-      },
-      select: { value: true },
-    });
+    const [values, attachmentCount] = await Promise.all([
+      prisma.fieldValue.findMany({
+        where: {
+          fieldId: columnId,
+          value: { not: null },
+          record: { organizationId, isDeleted: false },
+        },
+        select: { value: true },
+      }),
+      prisma.fieldValueAttachment.count({
+        where: {
+          organizationId,
+          fieldValue: { fieldId: columnId, record: { isDeleted: false } },
+        },
+      }),
+    ]);
 
-    const populated = values.filter((row) => row.value?.trim()).length;
+    const populated =
+      values.filter((row) => row.value?.trim()).length + attachmentCount;
 
     if (populated > 0) {
       throw new BadRequestException(
@@ -3489,6 +3529,164 @@ export class BoardService {
         },
       });
     });
+  }
+
+  async getFieldAttachments(
+    recordId: string,
+    fieldId: string,
+    organizationId: string
+  ) {
+    const field = await prisma.field.findFirst({
+      where: { id: fieldId, organizationId, isDeleted: false },
+      select: { id: true, fieldType: true },
+    });
+    if (!field) throw new NotFoundException("Field not found");
+
+    const fieldValue = await prisma.fieldValue.findUnique({
+      where: { recordId_fieldId: { recordId, fieldId } },
+      select: {
+        attachments: {
+          select: {
+            id: true,
+            fileName: true,
+            fileSize: true,
+            mimeType: true,
+            fileKey: true,
+            createdAt: true,
+            uploadedBy: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    return (fieldValue?.attachments ?? []).map((a) => ({
+      ...a,
+      url: privateViewUrl(a.fileKey),
+    }));
+  }
+
+  async uploadAttachment(
+    recordId: string,
+    fieldId: string,
+    file: Express.Multer.File,
+    organizationId: string,
+    memberId: string,
+    moduleType: string
+  ) {
+    const field = await prisma.field.findFirst({
+      where: { id: fieldId, organizationId, isDeleted: false },
+      select: { id: true, fieldType: true, fieldName: true },
+    });
+    if (!field) throw new NotFoundException("Field not found");
+    if (field.fieldType !== BoardFieldType.ATTACHMENT) {
+      throw new BadRequestException("Field is not an attachment field");
+    }
+
+    // Store result.public_id (the raw S3 key), never result.url or
+    // result.secure_url: those are already privateViewUrl(key) for private
+    // visibility, and re-wrapping them later would double-wrap the link.
+    const { public_id: fileKey } = await this.imageService.uploadImage(
+      file,
+      organizationId,
+      "private"
+    );
+
+    const { attachment, attachmentCount } = await prisma.$transaction(
+      async (tx) => {
+        const fieldValue = await tx.fieldValue.upsert({
+          where: { recordId_fieldId: { recordId, fieldId } },
+          update: {},
+          create: { recordId, fieldId, value: null, organizationId },
+        });
+
+        const attachment = await tx.fieldValueAttachment.create({
+          data: {
+            fieldValueId: fieldValue.id,
+            organizationId,
+            fileName: file.originalname,
+            fileKey,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+            uploadedBy: memberId,
+          },
+        });
+
+        const attachmentCount = await tx.fieldValueAttachment.count({
+          where: { fieldValueId: fieldValue.id },
+        });
+
+        await this.createRecordHistory(
+          recordId,
+          "",
+          file.originalname,
+          memberId,
+          tx,
+          "update",
+          field.fieldName,
+          field.id
+        );
+
+        return { attachment, attachmentCount };
+      }
+    );
+
+    await purgeAllCacheKeys(
+      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+    );
+
+    // Emit the count as a STRING to match every other field's wire type.
+    this.boardGateway.emitRecordValueUpdated(
+      organizationId,
+      recordId,
+      field.fieldName,
+      String(attachmentCount),
+      moduleType
+    );
+
+    return { ...attachment, url: privateViewUrl(fileKey) };
+  }
+
+  async deleteAttachment(
+    attachmentId: string,
+    organizationId: string,
+    moduleType: string
+  ) {
+    const attachment = await prisma.fieldValueAttachment.findFirst({
+      where: { id: attachmentId, organizationId },
+      select: {
+        id: true,
+        fileKey: true,
+        fieldValueId: true,
+        fieldValue: {
+          select: { recordId: true, field: { select: { fieldName: true } } },
+        },
+      },
+    });
+    if (!attachment) throw new NotFoundException("Attachment not found");
+
+    await this.imageService.deleteImage(attachment.fileKey, organizationId);
+
+    const attachmentCount = await prisma.$transaction(async (tx) => {
+      await tx.fieldValueAttachment.delete({ where: { id: attachmentId } });
+      return tx.fieldValueAttachment.count({
+        where: { fieldValueId: attachment.fieldValueId },
+      });
+    });
+
+    await purgeAllCacheKeys(
+      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
+    );
+
+    this.boardGateway.emitRecordValueUpdated(
+      organizationId,
+      attachment.fieldValue.recordId,
+      attachment.fieldValue.field.fieldName,
+      String(attachmentCount),
+      moduleType
+    );
+
+    return { result: "ok" };
   }
 
   async deleteRecordHistory(timelineId: string, organizationId: string) {

@@ -155,7 +155,7 @@ export function AdminSidebar() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const { state, isMobile } = useSidebar();
+  const { isMobile } = useSidebar();
   const user = session?.user;
   const role = (user as { role?: string } | undefined)?.role;
 
