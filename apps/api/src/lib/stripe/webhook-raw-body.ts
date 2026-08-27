@@ -31,11 +31,16 @@ const diagnose = (payload: string, header: string) => {
     expected.length === signature.length &&
     timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 
-  if (matches) return;
+  const bytes = Buffer.byteLength(payload);
+
+  if (matches) {
+    logger.log(`signature verified over ${bytes} raw bytes`);
+    return;
+  }
 
   const skew = Math.round(Math.abs(Date.now() / 1000 - Number(timestamp)));
   logger.error(
-    `signature mismatch over ${Buffer.byteLength(payload)} raw bytes, skew ${skew}s, secret length ${appConfig.STRIPE_WEBHOOK_SECRET?.length ?? 0}`
+    `signature mismatch over ${bytes} raw bytes, skew ${skew}s, secret length ${appConfig.STRIPE_WEBHOOK_SECRET?.length ?? 0}`
   );
 };
 
