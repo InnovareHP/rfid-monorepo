@@ -44,6 +44,7 @@ import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardService } from "./board.service";
 
 const ORG = "org-a";
+const USER = "user-a";
 const FOREIGN = "row-owned-by-org-b";
 
 const db = prisma as unknown as {
@@ -169,7 +170,7 @@ describe("BoardService tenant isolation", () => {
   describe("createRecordFieldOption", () => {
     it("refuses to attach an option to another organization's field", async () => {
       await expect(
-        service.createRecordFieldOption(FOREIGN, "New option", ORG)
+        service.createRecordFieldOption(FOREIGN, "New option", ORG, USER)
       ).rejects.toThrow(NotFoundException);
 
       expect(db.field.findFirst.mock.calls[0][0].where).toMatchObject({

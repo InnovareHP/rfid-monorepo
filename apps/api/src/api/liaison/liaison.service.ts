@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma, TouchpointType } from "@prisma/client";
 import axios from "axios";
 import * as PDFDocument from "pdfkit";
 import * as sharp from "sharp";
@@ -19,6 +19,25 @@ import {
   UpdateMarketingDto,
   UpdateMillageDto,
 } from "./dto/liaison.schema";
+
+type MarketingActivityInput = {
+  touchpoints: TouchpointType[];
+  talkedTo: string;
+  notes?: string | null;
+  reasonForVisit?: string | null;
+};
+
+// The mirrored activity is typed from the first touchpoint, so the rest are named
+// in the description instead of being dropped.
+const toActivityFields = (log: MarketingActivityInput) => ({
+  title: log.reasonForVisit
+    ? `Marketing touchpoint: ${log.reasonForVisit}`
+    : "Marketing touchpoint",
+  description: `${log.touchpoints.join(", ")} - talked to ${log.talkedTo}${
+    log.notes ? ` - ${log.notes}` : ""
+  }`,
+  activityType: TOUCHPOINT_ACTIVITIES[log.touchpoints[0]],
+});
 
 @Injectable()
 export class LiaisonService {
@@ -172,14 +191,9 @@ export class LiaisonService {
     });
   }
 
-  async createMarketing(
-    createMarketingDto: CreateMarketingDto,
-    memberId: string,
-    userId: string,
-    organizationId: string
-  ) {
-    // recordName is encrypted at rest with a random IV, so equality
-    // lookups must compare decrypted values in memory.
+  // recordName is encrypted at rest with a random IV, so equality lookups must
+  // compare decrypted values in memory.
+  private async findFacilityRecord(facility: string, organizationId: string) {
     const leads = await prisma.board.findMany({
       where: {
         organizationId,
@@ -189,16 +203,28 @@ export class LiaisonService {
       select: { id: true, recordName: true },
     });
 
-    const findLeadNameViaName = leads.find(
-      (lead) => lead.recordName === createMarketingDto.facility
-    );
+    const match = leads.find((lead) => lead.recordName === facility);
 
-    if (!findLeadNameViaName) {
+    if (!match) {
       throw new BadRequestException("Lead not found");
     }
 
+    return match;
+  }
+
+  async createMarketing(
+    createMarketingDto: CreateMarketingDto,
+    memberId: string,
+    userId: string,
+    organizationId: string
+  ) {
+    const findLeadNameViaName = await this.findFacilityRecord(
+      createMarketingDto.facility,
+      organizationId
+    );
+
     await prisma.$transaction(async (tx) => {
-      await tx.marketing.create({
+      const marketing = await tx.marketing.create({
         data: {
           facility: createMarketingDto.facility,
           touchpoints: createMarketingDto.touchpoint,
@@ -209,20 +235,21 @@ export class LiaisonService {
           organizationId,
           facilityRecordId: findLeadNameViaName.id,
         },
+        select: { id: true },
       });
 
       await tx.activity.create({
         data: {
-          title: createMarketingDto.reasonForVisit
-            ? `Marketing touchpoint: ${createMarketingDto.reasonForVisit}`
-            : "Marketing touchpoint",
-          description: `Talked to ${createMarketingDto.talkedTo}${
-            createMarketingDto.notes ? ` - ${createMarketingDto.notes}` : ""
-          }`,
-          activityType: TOUCHPOINT_ACTIVITIES[createMarketingDto.touchpoint[0]],
+          ...toActivityFields({
+            touchpoints: createMarketingDto.touchpoint,
+            talkedTo: createMarketingDto.talkedTo,
+            notes: createMarketingDto.notes,
+            reasonForVisit: createMarketingDto.reasonForVisit,
+          }),
           status: "COMPLETED",
           completedAt: new Date(),
           recordId: findLeadNameViaName.id,
+          marketingId: marketing.id,
           createdBy: userId,
           organizationId,
         },
@@ -440,11 +467,44 @@ export class LiaisonService {
   ) {
     await this.assertMarketingInOrg(id, organizationId, memberId);
 
-    await prisma.marketing.update({
-      where: {
-        id,
+    const existing = await prisma.marketing.findUniqueOrThrow({
+      where: { id },
+      select: {
+        facility: true,
+        touchpoints: true,
+        talkedTo: true,
+        notes: true,
+        reasonForVisit: true,
+        activity: { select: { id: true } },
       },
-      data: updateMarketingDto,
+    });
+
+    const facility = updateMarketingDto.facility ?? existing.facility;
+    const facilityRecord = await this.findFacilityRecord(
+      facility,
+      organizationId
+    );
+
+    const log = {
+      touchpoints: updateMarketingDto.touchpoint ?? existing.touchpoints,
+      talkedTo: updateMarketingDto.talkedTo ?? existing.talkedTo,
+      notes: updateMarketingDto.notes ?? existing.notes,
+      reasonForVisit:
+        updateMarketingDto.reasonForVisit ?? existing.reasonForVisit,
+    };
+
+    await prisma.$transaction(async (tx) => {
+      await tx.marketing.update({
+        where: { id },
+        data: { facility, facilityRecordId: facilityRecord.id, ...log },
+      });
+
+      if (!existing.activity) return;
+
+      await tx.activity.update({
+        where: { id: existing.activity.id },
+        data: { ...toActivityFields(log), recordId: facilityRecord.id },
+      });
     });
   }
 
@@ -455,6 +515,7 @@ export class LiaisonService {
   ) {
     await this.assertMarketingInOrg(id, organizationId, memberId);
 
+    // Activity.marketingId cascades, so the mirrored activity goes with the log.
     await prisma.marketing.delete({
       where: {
         id,

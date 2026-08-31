@@ -2975,6 +2975,7 @@ export class BoardService {
     fieldId: string,
     optionName: string,
     organizationId: string,
+    userId: string,
     color?: string
   ) {
     const field = await prisma.field.findFirst({
@@ -2989,6 +2990,7 @@ export class BoardService {
         optionName: optionName,
         fieldId: fieldId,
         organizationId: field.organizationId,
+        createdBy: userId,
         ...(color && { color }),
       },
     });
@@ -3392,16 +3394,66 @@ export class BoardService {
   }
 
   // FieldOption.organizationId is nullable, so ownership goes through Field.
-  async deleteRecordFieldOption(optionId: string, organizationId: string) {
+  // Never a hard delete: records already hold this option's value, so binning
+  // it has to be reversible.
+  async deleteRecordFieldOption(
+    optionId: string,
+    organizationId: string,
+    userId: string
+  ) {
     const option = await prisma.fieldOption.findFirst({
       where: { id: optionId, field: { organizationId } },
-      select: { id: true },
+      select: { id: true, isDeleted: true },
     });
     if (!option) throw new NotFoundException("Field option not found");
+    if (option.isDeleted) {
+      throw new BadRequestException("Field option is already in the trash");
+    }
 
     return await prisma.fieldOption.update({
       where: { id: optionId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedAt: new Date(), deletedBy: userId },
+    });
+  }
+
+  // The trash for one field, newest first. deletedBy is resolved to a name so
+  // the list can say who binned each one.
+  async getDeletedRecordFieldOptions(fieldId: string, organizationId: string) {
+    const field = await prisma.field.findFirst({
+      where: { id: fieldId, organizationId },
+      select: { id: true },
+    });
+    if (!field) throw new NotFoundException("Field not found");
+
+    return prisma.fieldOption.findMany({
+      where: { fieldId, isDeleted: true },
+      orderBy: [{ deletedAt: "desc" }, { optionName: "asc" }],
+      select: {
+        id: true,
+        optionName: true,
+        color: true,
+        deletedAt: true,
+        deleter: { select: { id: true, name: true } },
+        creator: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  // Restoring clears the attribution: who binned it is only meaningful while
+  // it is binned, and a stale deletedBy would misattribute the next delete.
+  async restoreRecordFieldOption(optionId: string, organizationId: string) {
+    const option = await prisma.fieldOption.findFirst({
+      where: { id: optionId, field: { organizationId } },
+      select: { id: true, isDeleted: true },
+    });
+    if (!option) throw new NotFoundException("Field option not found");
+    if (!option.isDeleted) {
+      throw new BadRequestException("Field option is not in the trash");
+    }
+
+    return prisma.fieldOption.update({
+      where: { id: optionId },
+      data: { isDeleted: false, deletedAt: null, deletedBy: null },
     });
   }
 

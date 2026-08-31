@@ -785,6 +785,7 @@ export class BoardController {
         fieldId,
         dto.optionName,
         session.session.activeOrganizationId,
+        session.session.userId,
         dto.color
       );
     } catch (error) {
@@ -982,7 +983,9 @@ export class BoardController {
     }
   }
 
-  @RequirePermission({ field: ["delete"] })
+  // configure, not delete: every role can edit a field's values, but binning an
+  // option changes the pipeline itself, so it stays with owners and admins.
+  @RequirePermission({ field: ["configure"] })
   @Delete("/field/options/:optionId")
   async deleteRecordFieldOption(
     @Param("optionId") optionId: string,
@@ -991,6 +994,41 @@ export class BoardController {
   ) {
     try {
       return await this.boardService.deleteRecordFieldOption(
+        optionId,
+        session.session.activeOrganizationId,
+        session.session.userId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Get("/field/:fieldId/options/trash")
+  async getDeletedRecordFieldOptions(
+    @Param("fieldId") fieldId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getDeletedRecordFieldOptions(
+        fieldId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Patch("/field/options/:optionId/restore")
+  async restoreRecordFieldOption(
+    @Param("optionId") optionId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.restoreRecordFieldOption(
         optionId,
         session.session.activeOrganizationId
       );

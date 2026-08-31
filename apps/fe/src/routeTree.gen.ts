@@ -28,6 +28,7 @@ import { Route as AuthOtpRouteImport } from './routes/_auth/otp'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as TeamTeamIndexRouteImport } from './routes/_team/$team/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/_auth/reset-password/index'
+import { Route as EmbedBookSlugRouteImport } from './routes/embed.book.$slug'
 import { Route as TeamTeamTeamRouteImport } from './routes/_team/$team/team'
 import { Route as TeamTeamSuccessRouteImport } from './routes/_team/$team/success'
 import { Route as TeamTeamSettingsRouteImport } from './routes/_team/$team/settings'
@@ -178,6 +179,11 @@ const AuthResetPasswordIndexRoute = AuthResetPasswordIndexRouteImport.update({
   id: '/reset-password/',
   path: '/reset-password/',
   getParentRoute: () => AuthRoute,
+} as any)
+const EmbedBookSlugRoute = EmbedBookSlugRouteImport.update({
+  id: '/embed/book/$slug',
+  path: '/embed/book/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const TeamTeamTeamRoute = TeamTeamTeamRouteImport.update({
   id: '/$team/team',
@@ -525,6 +531,7 @@ export interface FileRoutesByFullPath {
   '/$team/settings': typeof TeamTeamSettingsRouteWithChildren
   '/$team/success': typeof TeamTeamSuccessRoute
   '/$team/team': typeof TeamTeamTeamRoute
+  '/embed/book/$slug': typeof EmbedBookSlugRoute
   '/reset-password/': typeof AuthResetPasswordIndexRoute
   '/$team/': typeof TeamTeamIndexRoute
   '/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
@@ -601,6 +608,7 @@ export interface FileRoutesByTo {
   '/$team/settings': typeof TeamTeamSettingsRouteWithChildren
   '/$team/success': typeof TeamTeamSuccessRoute
   '/$team/team': typeof TeamTeamTeamRoute
+  '/embed/book/$slug': typeof EmbedBookSlugRoute
   '/reset-password': typeof AuthResetPasswordIndexRoute
   '/$team': typeof TeamTeamIndexRoute
   '/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
@@ -680,6 +688,7 @@ export interface FileRoutesById {
   '/_team/$team/settings': typeof TeamTeamSettingsRouteWithChildren
   '/_team/$team/success': typeof TeamTeamSuccessRoute
   '/_team/$team/team': typeof TeamTeamTeamRoute
+  '/embed/book/$slug': typeof EmbedBookSlugRoute
   '/_auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/_team/$team/': typeof TeamTeamIndexRoute
   '/_team/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
@@ -758,6 +767,7 @@ export interface FileRouteTypes {
     | '/$team/settings'
     | '/$team/success'
     | '/$team/team'
+    | '/embed/book/$slug'
     | '/reset-password/'
     | '/$team/'
     | '/$team/companies/create'
@@ -834,6 +844,7 @@ export interface FileRouteTypes {
     | '/$team/settings'
     | '/$team/success'
     | '/$team/team'
+    | '/embed/book/$slug'
     | '/reset-password'
     | '/$team'
     | '/$team/companies/create'
@@ -912,6 +923,7 @@ export interface FileRouteTypes {
     | '/_team/$team/settings'
     | '/_team/$team/success'
     | '/_team/$team/team'
+    | '/embed/book/$slug'
     | '/_auth/reset-password/'
     | '/_team/$team/'
     | '/_team/$team/companies/create'
@@ -975,6 +987,7 @@ export interface RootRouteChildren {
   LSlugRoute: typeof LSlugRoute
   STokenRoute: typeof STokenRoute
   UTokenRoute: typeof UTokenRoute
+  EmbedBookSlugRoute: typeof EmbedBookSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1111,6 +1124,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password/'
       preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/embed/book/$slug': {
+      id: '/embed/book/$slug'
+      path: '/embed/book/$slug'
+      fullPath: '/embed/book/$slug'
+      preLoaderRoute: typeof EmbedBookSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_team/$team/team': {
       id: '/_team/$team/team'
@@ -1689,6 +1709,7 @@ const rootRouteChildren: RootRouteChildren = {
   LSlugRoute: LSlugRoute,
   STokenRoute: STokenRoute,
   UTokenRoute: UTokenRoute,
+  EmbedBookSlugRoute: EmbedBookSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

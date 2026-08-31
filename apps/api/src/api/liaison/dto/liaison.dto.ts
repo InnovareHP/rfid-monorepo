@@ -36,9 +36,10 @@ export const CreateMarketingSchema = z.object({
 
 export const UpdateMarketingSchema = z.object({
   facility: z.string().optional(),
-  touchpoint: ManualTouchpointType.optional(),
+  touchpoint: z.array(ManualTouchpointType).min(1).optional(),
   talkedTo: z.string().optional(),
   notes: z.string().optional(),
+  reasonForVisit: z.string().optional(),
 });
 
 export const CreateExpenseSchema = z.object({

@@ -29,6 +29,7 @@ import { prisma } from "../../lib/prisma/prisma";
 import { BoardService } from "./board.service";
 
 const ORG = "org-a";
+const USER = "user-a";
 const COUNTY_FIELD = "field-county";
 const LEAD_MODULE = "module-lead";
 const REFERRAL_MODULE = "module-referral";
@@ -121,13 +122,19 @@ describe("referral County as a plain field option column", () => {
         moduleType: "REFERRAL",
       });
 
-      await service.createRecordFieldOption(COUNTY_FIELD, "Riverton", ORG);
+      await service.createRecordFieldOption(
+        COUNTY_FIELD,
+        "Riverton",
+        ORG,
+        USER
+      );
 
       expect(db.fieldOption.create).toHaveBeenCalledWith({
         data: {
           optionName: "Riverton",
           fieldId: COUNTY_FIELD,
           organizationId: ORG,
+          createdBy: USER,
         },
       });
       expect(db.boardCounty.create).not.toHaveBeenCalled();

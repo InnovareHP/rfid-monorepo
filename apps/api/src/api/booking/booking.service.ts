@@ -80,6 +80,7 @@ export class BookingService {
     return {
       ...page,
       publicUrl: this.buildPublicUrl(page.slug),
+      embedUrl: this.buildEmbedUrl(page.slug),
       // Per provider rather than one flag: the settings page only offers the
       // Meet-or-Teams choice when both are connected.
       calendars: { google: google.connected, outlook: outlook.connected },
@@ -96,7 +97,11 @@ export class BookingService {
       where: { id: page.id },
       data,
     });
-    return { ...updated, publicUrl: this.buildPublicUrl(updated.slug) };
+    return {
+      ...updated,
+      publicUrl: this.buildPublicUrl(updated.slug),
+      embedUrl: this.buildEmbedUrl(updated.slug),
+    };
   }
 
   async getOwnAvailability(userId: string, organizationId: string) {
@@ -380,6 +385,11 @@ export class BookingService {
 
   private buildPublicUrl(slug: string): string {
     return `${appConfig.WEBSITE_URL}/book/${slug}`;
+  }
+
+  // Same page without the branded frame, for a host site's iframe.
+  private buildEmbedUrl(slug: string): string {
+    return `${appConfig.WEBSITE_URL}/embed/book/${slug}`;
   }
 
   // Where an invitee reschedules or cancels without an account. The booking id

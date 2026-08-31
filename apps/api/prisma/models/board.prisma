@@ -127,6 +127,7 @@ model FieldValueAttachment {
 
 model FieldOption {
   id             String    @id @default(uuid())
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
   optionName     String
   color          String?
   isDeleted      Boolean   @default(false)
@@ -137,8 +138,23 @@ model FieldOption {
   organizationId String?
   field          Field     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
+  // Who added it and who binned it. Both are user ids rather than member ids:
+  // a member row disappears when someone leaves the organization, and the
+  // attribution on an option that is still in the trash has to outlive that.
+  // SetNull for the same reason History.createdBy uses it - losing the name is
+  // acceptable, losing the option is not.
+  createdBy String?
+  creator   User?   @relation("FieldOptionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  // Soft delete only, so a binned option can be put back. deletedAt is what
+  // orders the trash and what a retention sweep would read.
+  deletedAt DateTime? @db.Timestamptz(3)
+  deletedBy String?
+  deleter   User?     @relation("FieldOptionDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
   @@index([fieldId])
   @@index([organizationId])
+  @@index([fieldId, isDeleted, deletedAt])
   @@schema("board_schema")
 }
 
@@ -263,6 +279,10 @@ model Activity {
 
   recordId String
   record   Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  // Set when the activity mirrors a liaison marketing log, so edits and deletes stay in sync.
+  marketingId String?    @unique
+  marketing   Marketing? @relation(fields: [marketingId], references: [id], onDelete: Cascade)
 
   createdBy String
   creator   User   @relation(fields: [createdBy], references: [id])

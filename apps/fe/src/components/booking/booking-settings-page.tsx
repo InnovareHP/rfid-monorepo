@@ -4,6 +4,7 @@ import {
   RequiredMark,
 } from "@/components/field-marks";
 import { PageHeader } from "@/components/page-header";
+import { BookingEmbedCard } from "@/components/booking/booking-embed-card";
 import { SettingsPageSkeleton } from "@/components/skeletons/page-skeletons";
 import {
   getOwnAvailability,
@@ -318,6 +319,10 @@ export function BookingSettingsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {pageQuery.data && (
+        <BookingEmbedCard embedUrl={pageQuery.data.embedUrl} />
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_471px]">
