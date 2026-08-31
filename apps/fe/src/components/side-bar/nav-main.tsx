@@ -54,12 +54,16 @@ function matchesPath(pathname: string, url: string) {
   return url.split("/").length > 2 && pathname.startsWith(`${url}/`);
 }
 
-// Drives auto-open only: a group counts as containing the route when any row or
-// nested row under it matches. Highlighting stays on the current page's row.
-function subItemIsActive(pathname: string, subItem: NavSubItem) {
+// Drives auto-open only: a group contains the route when the row that actually
+// lights up is one of its own. Subtree matching opened every group whose url is
+// an ancestor too, so a dashboard under /analytics/custom/dashboards sprang the
+// Reports group open alongside Overview.
+function subItemIsActive(activeUrl: string | null, subItem: NavSubItem) {
+  if (!activeUrl) return false;
+
   return (
-    matchesPath(pathname, subItem.url) ||
-    (subItem.items?.some((child) => matchesPath(pathname, child.url)) ?? false)
+    subItem.url === activeUrl ||
+    (subItem.items?.some((child) => child.url === activeUrl) ?? false)
   );
 }
 
@@ -128,7 +132,7 @@ export const NavMain = React.memo(function NavMain({
           }
 
           const hasActiveChild = item.items.some((subItem) =>
-            subItemIsActive(pathname, subItem)
+            subItemIsActive(activeUrl, subItem)
           );
 
           if (state === "collapsed" && !isMobile) {

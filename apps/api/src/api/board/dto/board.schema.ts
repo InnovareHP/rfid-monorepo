@@ -9,7 +9,6 @@ import {
   CreateFieldOptionSchema,
   CreateHistorySchema,
   CreateLocationSchema,
-  CreateRecordCountyAssignmentSchema,
   CreateRecordSchema,
   CsvImportSchema,
   DeleteRecordsSchema,
@@ -17,7 +16,6 @@ import {
   RestoreHistorySchema,
   UpdateActivitySchema,
   UpdateContactSchema,
-  UpdateRecordCountyLiaisonSchema,
   UpdateRecordValueSchema,
 } from "./board.dto";
 
@@ -37,12 +35,6 @@ export class CreateFieldOptionDto extends createZodDto(
 ) {}
 export class CreateHistoryDto extends createZodDto(CreateHistorySchema) {}
 export class DeleteRecordsDto extends createZodDto(DeleteRecordsSchema) {}
-export class CreateRecordCountyAssignmentDto extends createZodDto(
-  CreateRecordCountyAssignmentSchema
-) {}
-export class UpdateRecordCountyLiaisonDto extends createZodDto(
-  UpdateRecordCountyLiaisonSchema
-) {}
 export class CreateActivityDto extends createZodDto(CreateActivitySchema) {}
 export class CreateFaxActivityDto extends createZodDto(
   CreateFaxActivitySchema

@@ -63,6 +63,7 @@ export function generateLeadColumns(
           value={row.original[col.name] ?? ""}
           type={col.type}
           linkTargetId={(row.original as any).linkIds?.[col.name]}
+          columns={columnsFromApi}
         />
       ),
       size: 180,
@@ -105,7 +106,7 @@ export function generateLeadColumns(
           <EditableCell
             id={row.original.id}
             fieldName="Organization"
-            fieldKey="Lead"
+            fieldKey="Record"
             value={row.original.recordName}
             type="TEXT"
           />

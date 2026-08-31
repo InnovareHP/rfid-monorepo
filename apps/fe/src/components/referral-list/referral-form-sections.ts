@@ -9,11 +9,12 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
   {
     title: "Basic Information",
     fields: [
+      // Facility leads the form: it is the first thing a referral is filed under.
+      { name: "Facility", span: "full", required: true },
       { name: RECORD_NAME_FIELD, span: "full", required: true },
       { name: "Referral Date", span: "half", required: true },
       { name: "County", span: "half", required: true },
-      { name: "Facility", span: "half", required: true },
-      { name: "Number", span: "half" },
+      { name: "Number", span: "half", required: true },
     ],
   },
   {
@@ -21,12 +22,12 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
     fields: [
       { name: "Patient Name", span: "half", required: true },
       { name: "Date of Birth", span: "half", required: true },
-      { name: "Payor", span: "half" },
-      { name: "Remote or Onsite", span: "half" },
+      { name: "Payor", span: "half", required: true },
+      { name: "Remote or Onsite", span: "half", required: true },
       { name: "Reason", span: "full", required: true },
       { name: "Status", span: "third", required: true },
-      { name: "Admission Type", span: "third" },
-      { name: "CPAP", span: "third" },
+      { name: "Admission Type", span: "third", required: true },
+      { name: "CPAP", span: "third", required: true },
     ],
   },
   {
@@ -35,6 +36,7 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
       {
         name: "Location",
         span: "full",
+        required: true,
         helperText:
           "Selecting a result auto-fills City, State, and Zip below - you can still edit them after.",
         autoFill: {
@@ -44,23 +46,23 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
           county: "County",
         },
       },
-      { name: "City", span: "third" },
-      { name: "State", span: "third" },
-      { name: "Zip Code", span: "third" },
-      { name: "Assessor", span: "half" },
-      { name: "Wrap Up", span: "half" },
-      { name: "Diagnosis / Behavior", span: "third" },
-      { name: "Action Date (Accepted / Rejected)", span: "third" },
-      { name: "Length of Assessment", span: "third" },
+      { name: "City", span: "third", required: true },
+      { name: "State", span: "third", required: true },
+      { name: "Zip Code", span: "third", required: true },
+      { name: "Assessor", span: "half", required: true },
+      { name: "Wrap Up", span: "half", required: true },
+      { name: "Diagnosis / Behavior", span: "third", required: true },
+      { name: "Action Date (Accepted / Rejected)", span: "third", required: true },
+      { name: "Length of Assessment", span: "third", required: true },
     ],
   },
   {
     title: "Logistics and Notes",
     fields: [
-      { name: "Transport Name", span: "half" },
-      { name: "Referred Out To", span: "half" },
-      { name: "Additional Notes", span: "full", multiline: true },
-      { name: "Assessed", span: "full" },
+      { name: "Transport Name", span: "half", required: true },
+      { name: "Referred Out To", span: "half", required: true },
+      { name: "Additional Notes", span: "full", multiline: true, required: true },
+      { name: "Assessed", span: "full", required: true },
     ],
   },
 ];

@@ -189,8 +189,14 @@ async function main() {
     `${provablyClean} of them cannot have passed through the collapse and are provably intact.`
   );
 
-  show("A. DEFINITE -- duplicate options, one the collapse of the other", definite);
-  show("B. LIKELY -- select value matching no option on its field", orphanSelect);
+  show(
+    "A. DEFINITE -- duplicate options, one the collapse of the other",
+    definite
+  );
+  show(
+    "B. LIKELY -- select value matching no option on its field",
+    orphanSelect
+  );
   show("C. RECOVERED -- History still holds the original value", recovered);
   show(
     "D. SUSPECT -- fixed points of the collapse; an UPPER BOUND, mostly false positives",

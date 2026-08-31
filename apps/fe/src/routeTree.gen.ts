@@ -37,7 +37,6 @@ import { Route as TeamTeamPlansRouteImport } from './routes/_team/$team/plans'
 import { Route as TeamTeamNotificationsRouteImport } from './routes/_team/$team/notifications'
 import { Route as TeamTeamMasterListAnalyticsRouteImport } from './routes/_team/$team/master-list-analytics'
 import { Route as TeamTeamIntegrationsRouteImport } from './routes/_team/$team/integrations'
-import { Route as TeamTeamCountyConfigRouteImport } from './routes/_team/$team/county-config'
 import { Route as TeamTeamCalendarRouteImport } from './routes/_team/$team/calendar'
 import { Route as AuthResetPasswordVerifyRouteImport } from './routes/_auth/reset-password/verify'
 import { Route as AuthEmailVerificationRouteImport } from './routes/_auth/email.verification'
@@ -74,7 +73,6 @@ import { Route as TeamTeamLogMileageIndexRouteImport } from './routes/_team/$tea
 import { Route as TeamTeamLogMarketingIndexRouteImport } from './routes/_team/$team/log/marketing/index'
 import { Route as TeamTeamLogExpenseIndexRouteImport } from './routes/_team/$team/log/expense/index'
 import { Route as TeamTeamHelpCategorySlugIndexRouteImport } from './routes/_team/$team/help/$categorySlug/index'
-import { Route as TeamTeamAnalyticsCustomIndexRouteImport } from './routes/_team/$team/analytics/custom/index'
 import { Route as TeamTeamRecordsModuleKeyCreateRouteImport } from './routes/_team/$team/records/$moduleKey/create'
 import { Route as TeamTeamMarketingLandingPagesPageIdRouteImport } from './routes/_team/$team/marketing/landing-pages/$pageId'
 import { Route as TeamTeamMarketingGroupsGroupIdRouteImport } from './routes/_team/$team/marketing/groups/$groupId'
@@ -82,6 +80,7 @@ import { Route as TeamTeamMarketingFormsFormIdRouteImport } from './routes/_team
 import { Route as TeamTeamMarketingBlastsBlastIdRouteImport } from './routes/_team/$team/marketing/blasts/$blastId'
 import { Route as TeamTeamHelpCategorySlugArticleSlugRouteImport } from './routes/_team/$team/help/$categorySlug/$articleSlug'
 import { Route as TeamTeamReferralListOptionOptionIndexRouteImport } from './routes/_team/$team/referral-list/option/$option/index'
+import { Route as TeamTeamRecordsModuleKeyAnalyticsIndexRouteImport } from './routes/_team/$team/records/$moduleKey/analytics/index'
 import { Route as TeamTeamAnalyticsCustomDashboardsIndexRouteImport } from './routes/_team/$team/analytics/custom/dashboards/index'
 import { Route as TeamTeamMasterListLeadsLeadTimelineRouteImport } from './routes/_team/$team/master-list/leads/$lead/timeline'
 import { Route as TeamTeamAnalyticsCustomDashboardsDashboardIdRouteImport } from './routes/_team/$team/analytics/custom/dashboards/$dashboardId'
@@ -225,11 +224,6 @@ const TeamTeamMasterListAnalyticsRoute =
 const TeamTeamIntegrationsRoute = TeamTeamIntegrationsRouteImport.update({
   id: '/$team/integrations',
   path: '/$team/integrations',
-  getParentRoute: () => TeamRoute,
-} as any)
-const TeamTeamCountyConfigRoute = TeamTeamCountyConfigRouteImport.update({
-  id: '/$team/county-config',
-  path: '/$team/county-config',
   getParentRoute: () => TeamRoute,
 } as any)
 const TeamTeamCalendarRoute = TeamTeamCalendarRouteImport.update({
@@ -430,12 +424,6 @@ const TeamTeamHelpCategorySlugIndexRoute =
     path: '/$team/help/$categorySlug/',
     getParentRoute: () => TeamRoute,
   } as any)
-const TeamTeamAnalyticsCustomIndexRoute =
-  TeamTeamAnalyticsCustomIndexRouteImport.update({
-    id: '/$team/analytics/custom/',
-    path: '/$team/analytics/custom/',
-    getParentRoute: () => TeamRoute,
-  } as any)
 const TeamTeamRecordsModuleKeyCreateRoute =
   TeamTeamRecordsModuleKeyCreateRouteImport.update({
     id: '/$team/records/$moduleKey/create',
@@ -476,6 +464,12 @@ const TeamTeamReferralListOptionOptionIndexRoute =
   TeamTeamReferralListOptionOptionIndexRouteImport.update({
     id: '/$team/referral-list/option/$option/',
     path: '/$team/referral-list/option/$option/',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamRecordsModuleKeyAnalyticsIndexRoute =
+  TeamTeamRecordsModuleKeyAnalyticsIndexRouteImport.update({
+    id: '/$team/records/$moduleKey/analytics/',
+    path: '/$team/records/$moduleKey/analytics/',
     getParentRoute: () => TeamRoute,
   } as any)
 const TeamTeamAnalyticsCustomDashboardsIndexRoute =
@@ -522,7 +516,6 @@ export interface FileRoutesByFullPath {
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
-  '/$team/county-config': typeof TeamTeamCountyConfigRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/notifications': typeof TeamTeamNotificationsRoute
@@ -558,7 +551,6 @@ export interface FileRoutesByFullPath {
   '/$team/marketing/groups/$groupId': typeof TeamTeamMarketingGroupsGroupIdRoute
   '/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/$team/records/$moduleKey/create': typeof TeamTeamRecordsModuleKeyCreateRoute
-  '/$team/analytics/custom/': typeof TeamTeamAnalyticsCustomIndexRoute
   '/$team/help/$categorySlug/': typeof TeamTeamHelpCategorySlugIndexRoute
   '/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
   '/$team/log/marketing/': typeof TeamTeamLogMarketingIndexRoute
@@ -577,6 +569,7 @@ export interface FileRoutesByFullPath {
   '/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/$team/analytics/custom/dashboards/': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/$team/records/$moduleKey/analytics/': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
@@ -599,7 +592,6 @@ export interface FileRoutesByTo {
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
-  '/$team/county-config': typeof TeamTeamCountyConfigRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/notifications': typeof TeamTeamNotificationsRoute
@@ -635,7 +627,6 @@ export interface FileRoutesByTo {
   '/$team/marketing/groups/$groupId': typeof TeamTeamMarketingGroupsGroupIdRoute
   '/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/$team/records/$moduleKey/create': typeof TeamTeamRecordsModuleKeyCreateRoute
-  '/$team/analytics/custom': typeof TeamTeamAnalyticsCustomIndexRoute
   '/$team/help/$categorySlug': typeof TeamTeamHelpCategorySlugIndexRoute
   '/$team/log/expense': typeof TeamTeamLogExpenseIndexRoute
   '/$team/log/marketing': typeof TeamTeamLogMarketingIndexRoute
@@ -654,6 +645,7 @@ export interface FileRoutesByTo {
   '/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/$team/analytics/custom/dashboards': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/$team/records/$moduleKey/analytics': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/$team/referral-list/option/$option': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
@@ -679,7 +671,6 @@ export interface FileRoutesById {
   '/_auth/email/verification': typeof AuthEmailVerificationRoute
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/_team/$team/calendar': typeof TeamTeamCalendarRoute
-  '/_team/$team/county-config': typeof TeamTeamCountyConfigRoute
   '/_team/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/_team/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/_team/$team/notifications': typeof TeamTeamNotificationsRoute
@@ -715,7 +706,6 @@ export interface FileRoutesById {
   '/_team/$team/marketing/groups/$groupId': typeof TeamTeamMarketingGroupsGroupIdRoute
   '/_team/$team/marketing/landing-pages/$pageId': typeof TeamTeamMarketingLandingPagesPageIdRoute
   '/_team/$team/records/$moduleKey/create': typeof TeamTeamRecordsModuleKeyCreateRoute
-  '/_team/$team/analytics/custom/': typeof TeamTeamAnalyticsCustomIndexRoute
   '/_team/$team/help/$categorySlug/': typeof TeamTeamHelpCategorySlugIndexRoute
   '/_team/$team/log/expense/': typeof TeamTeamLogExpenseIndexRoute
   '/_team/$team/log/marketing/': typeof TeamTeamLogMarketingIndexRoute
@@ -734,6 +724,7 @@ export interface FileRoutesById {
   '/_team/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/_team/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/_team/$team/analytics/custom/dashboards/': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/_team/$team/records/$moduleKey/analytics/': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/_team/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/_team/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
@@ -758,7 +749,6 @@ export interface FileRouteTypes {
     | '/email/verification'
     | '/reset-password/verify'
     | '/$team/calendar'
-    | '/$team/county-config'
     | '/$team/integrations'
     | '/$team/master-list-analytics'
     | '/$team/notifications'
@@ -794,7 +784,6 @@ export interface FileRouteTypes {
     | '/$team/marketing/groups/$groupId'
     | '/$team/marketing/landing-pages/$pageId'
     | '/$team/records/$moduleKey/create'
-    | '/$team/analytics/custom/'
     | '/$team/help/$categorySlug/'
     | '/$team/log/expense/'
     | '/$team/log/marketing/'
@@ -813,6 +802,7 @@ export interface FileRouteTypes {
     | '/$team/analytics/custom/dashboards/$dashboardId'
     | '/$team/master-list/leads/$lead/timeline'
     | '/$team/analytics/custom/dashboards/'
+    | '/$team/records/$moduleKey/analytics/'
     | '/$team/referral-list/option/$option/'
     | '/$team/master-list/leads/option/$option/'
   fileRoutesByTo: FileRoutesByTo
@@ -835,7 +825,6 @@ export interface FileRouteTypes {
     | '/email/verification'
     | '/reset-password/verify'
     | '/$team/calendar'
-    | '/$team/county-config'
     | '/$team/integrations'
     | '/$team/master-list-analytics'
     | '/$team/notifications'
@@ -871,7 +860,6 @@ export interface FileRouteTypes {
     | '/$team/marketing/groups/$groupId'
     | '/$team/marketing/landing-pages/$pageId'
     | '/$team/records/$moduleKey/create'
-    | '/$team/analytics/custom'
     | '/$team/help/$categorySlug'
     | '/$team/log/expense'
     | '/$team/log/marketing'
@@ -890,6 +878,7 @@ export interface FileRouteTypes {
     | '/$team/analytics/custom/dashboards/$dashboardId'
     | '/$team/master-list/leads/$lead/timeline'
     | '/$team/analytics/custom/dashboards'
+    | '/$team/records/$moduleKey/analytics'
     | '/$team/referral-list/option/$option'
     | '/$team/master-list/leads/option/$option'
   id:
@@ -914,7 +903,6 @@ export interface FileRouteTypes {
     | '/_auth/email/verification'
     | '/_auth/reset-password/verify'
     | '/_team/$team/calendar'
-    | '/_team/$team/county-config'
     | '/_team/$team/integrations'
     | '/_team/$team/master-list-analytics'
     | '/_team/$team/notifications'
@@ -950,7 +938,6 @@ export interface FileRouteTypes {
     | '/_team/$team/marketing/groups/$groupId'
     | '/_team/$team/marketing/landing-pages/$pageId'
     | '/_team/$team/records/$moduleKey/create'
-    | '/_team/$team/analytics/custom/'
     | '/_team/$team/help/$categorySlug/'
     | '/_team/$team/log/expense/'
     | '/_team/$team/log/marketing/'
@@ -969,6 +956,7 @@ export interface FileRouteTypes {
     | '/_team/$team/analytics/custom/dashboards/$dashboardId'
     | '/_team/$team/master-list/leads/$lead/timeline'
     | '/_team/$team/analytics/custom/dashboards/'
+    | '/_team/$team/records/$moduleKey/analytics/'
     | '/_team/$team/referral-list/option/$option/'
     | '/_team/$team/master-list/leads/option/$option/'
   fileRoutesById: FileRoutesById
@@ -1185,13 +1173,6 @@ declare module '@tanstack/react-router' {
       path: '/$team/integrations'
       fullPath: '/$team/integrations'
       preLoaderRoute: typeof TeamTeamIntegrationsRouteImport
-      parentRoute: typeof TeamRoute
-    }
-    '/_team/$team/county-config': {
-      id: '/_team/$team/county-config'
-      path: '/$team/county-config'
-      fullPath: '/$team/county-config'
-      preLoaderRoute: typeof TeamTeamCountyConfigRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/calendar': {
@@ -1446,13 +1427,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamHelpCategorySlugIndexRouteImport
       parentRoute: typeof TeamRoute
     }
-    '/_team/$team/analytics/custom/': {
-      id: '/_team/$team/analytics/custom/'
-      path: '/$team/analytics/custom'
-      fullPath: '/$team/analytics/custom/'
-      preLoaderRoute: typeof TeamTeamAnalyticsCustomIndexRouteImport
-      parentRoute: typeof TeamRoute
-    }
     '/_team/$team/records/$moduleKey/create': {
       id: '/_team/$team/records/$moduleKey/create'
       path: '/$team/records/$moduleKey/create'
@@ -1500,6 +1474,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/referral-list/option/$option'
       fullPath: '/$team/referral-list/option/$option/'
       preLoaderRoute: typeof TeamTeamReferralListOptionOptionIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/records/$moduleKey/analytics/': {
+      id: '/_team/$team/records/$moduleKey/analytics/'
+      path: '/$team/records/$moduleKey/analytics'
+      fullPath: '/$team/records/$moduleKey/analytics/'
+      preLoaderRoute: typeof TeamTeamRecordsModuleKeyAnalyticsIndexRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/analytics/custom/dashboards/': {
@@ -1572,7 +1553,6 @@ const TeamTeamSettingsRouteWithChildren =
 
 interface TeamRouteChildren {
   TeamTeamCalendarRoute: typeof TeamTeamCalendarRoute
-  TeamTeamCountyConfigRoute: typeof TeamTeamCountyConfigRoute
   TeamTeamIntegrationsRoute: typeof TeamTeamIntegrationsRoute
   TeamTeamMasterListAnalyticsRoute: typeof TeamTeamMasterListAnalyticsRoute
   TeamTeamNotificationsRoute: typeof TeamTeamNotificationsRoute
@@ -1604,7 +1584,6 @@ interface TeamRouteChildren {
   TeamTeamMarketingGroupsGroupIdRoute: typeof TeamTeamMarketingGroupsGroupIdRoute
   TeamTeamMarketingLandingPagesPageIdRoute: typeof TeamTeamMarketingLandingPagesPageIdRoute
   TeamTeamRecordsModuleKeyCreateRoute: typeof TeamTeamRecordsModuleKeyCreateRoute
-  TeamTeamAnalyticsCustomIndexRoute: typeof TeamTeamAnalyticsCustomIndexRoute
   TeamTeamHelpCategorySlugIndexRoute: typeof TeamTeamHelpCategorySlugIndexRoute
   TeamTeamLogExpenseIndexRoute: typeof TeamTeamLogExpenseIndexRoute
   TeamTeamLogMarketingIndexRoute: typeof TeamTeamLogMarketingIndexRoute
@@ -1623,13 +1602,13 @@ interface TeamRouteChildren {
   TeamTeamAnalyticsCustomDashboardsDashboardIdRoute: typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   TeamTeamMasterListLeadsLeadTimelineRoute: typeof TeamTeamMasterListLeadsLeadTimelineRoute
   TeamTeamAnalyticsCustomDashboardsIndexRoute: typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  TeamTeamRecordsModuleKeyAnalyticsIndexRoute: typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   TeamTeamReferralListOptionOptionIndexRoute: typeof TeamTeamReferralListOptionOptionIndexRoute
   TeamTeamMasterListLeadsOptionOptionIndexRoute: typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
 }
 
 const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamCalendarRoute: TeamTeamCalendarRoute,
-  TeamTeamCountyConfigRoute: TeamTeamCountyConfigRoute,
   TeamTeamIntegrationsRoute: TeamTeamIntegrationsRoute,
   TeamTeamMasterListAnalyticsRoute: TeamTeamMasterListAnalyticsRoute,
   TeamTeamNotificationsRoute: TeamTeamNotificationsRoute,
@@ -1663,7 +1642,6 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamMarketingLandingPagesPageIdRoute:
     TeamTeamMarketingLandingPagesPageIdRoute,
   TeamTeamRecordsModuleKeyCreateRoute: TeamTeamRecordsModuleKeyCreateRoute,
-  TeamTeamAnalyticsCustomIndexRoute: TeamTeamAnalyticsCustomIndexRoute,
   TeamTeamHelpCategorySlugIndexRoute: TeamTeamHelpCategorySlugIndexRoute,
   TeamTeamLogExpenseIndexRoute: TeamTeamLogExpenseIndexRoute,
   TeamTeamLogMarketingIndexRoute: TeamTeamLogMarketingIndexRoute,
@@ -1687,6 +1665,8 @@ const TeamRouteChildren: TeamRouteChildren = {
     TeamTeamMasterListLeadsLeadTimelineRoute,
   TeamTeamAnalyticsCustomDashboardsIndexRoute:
     TeamTeamAnalyticsCustomDashboardsIndexRoute,
+  TeamTeamRecordsModuleKeyAnalyticsIndexRoute:
+    TeamTeamRecordsModuleKeyAnalyticsIndexRoute,
   TeamTeamReferralListOptionOptionIndexRoute:
     TeamTeamReferralListOptionOptionIndexRoute,
   TeamTeamMasterListLeadsOptionOptionIndexRoute:

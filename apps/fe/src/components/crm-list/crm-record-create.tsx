@@ -145,7 +145,9 @@ export default function CrmRecordCreate({
           columns={columns}
           isLoadingColumns={isLoadingColumns}
           isSubmitting={createMutation.isPending || isChecking}
-          fetchDropdownOptions={getModuleDropdownOptions}
+          fetchDropdownOptions={(fieldId, search, limit) =>
+            getModuleDropdownOptions(fieldId, search, limit)
+          }
           onSubmit={handleSubmit}
           onBack={onBack}
         />

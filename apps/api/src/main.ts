@@ -85,4 +85,4 @@ async function bootstrap() {
   await app.listen(appConfig.PORT);
 }
 
-bootstrap();
+void bootstrap();

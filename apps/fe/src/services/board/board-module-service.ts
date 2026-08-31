@@ -69,9 +69,20 @@ export const deleteModuleRecords = async (
   return response.data;
 };
 
-export const getModuleDropdownOptions = async (fieldKey: string) => {
+export const getModuleDropdownOptions = async (
+  fieldKey: string,
+  search?: string,
+  limit?: number
+) => {
   const response = await axiosClient.get(
-    `/api/boards/field/${fieldKey}/options`
+    `/api/boards/field/${fieldKey}/options`,
+    {
+      params: {
+        page: limit ? 1 : undefined,
+        limit,
+        search: search || undefined,
+      },
+    }
   );
 
   return response.data;
@@ -110,10 +121,11 @@ export const getRelatedRecords = async (recordId: string) => {
 export const getLinkCandidates = async (
   targetModule: string,
   page = 1,
-  limit = 500
+  limit = 500,
+  search?: string
 ) => {
   const response = await axiosClient.get("/api/boards/records", {
-    params: { moduleType: targetModule, page, limit },
+    params: { moduleType: targetModule, page, limit, search: search || undefined },
   });
 
   return response.data;

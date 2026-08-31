@@ -148,7 +148,7 @@ export default function ReferralAnalyticsDashboard() {
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <PageHeader
-            title="Referral Analytics Dashboard"
+            title="Referral Intelligence Dashboard"
             description="Track key outreach and referral performance metrics."
           />
 

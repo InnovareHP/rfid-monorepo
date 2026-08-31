@@ -1,11 +1,13 @@
-import { moduleIcon } from "@/lib/helper/module-icons";
-import { useModules } from "@/hooks/use-modules";
-import { modulePath } from "@/lib/helper/module-route";
 import { PlanChip } from "@/components/billing/plan-chip";
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
+import { useDashboards } from "@/hooks/use-dashboards";
+import type { CustomAnalyticDashboard } from "@/services/custom-analytics/custom-analytic-dashboard-service";
 import { useEntitlement } from "@/hooks/use-entitlement";
+import { useModules } from "@/hooks/use-modules";
+import { moduleIcon } from "@/lib/helper/module-icons";
+import { moduleParam, modulePath } from "@/lib/helper/module-route";
 import { can } from "@/lib/permissions";
 import {
   Sidebar,
@@ -24,14 +26,15 @@ import {
   Contact,
   CreditCard,
   DollarSign,
+  FileBarChart,
   FileText,
   HistoryIcon,
   LayoutTemplate,
   MailCheck,
   MailPlus,
   Mailbox,
-  MapPin,
   Megaphone,
+  Plus,
   Route,
   Settings,
   ShieldCheck,
@@ -39,11 +42,12 @@ import {
   SquareTerminal,
   Target,
   Upload,
-  Plus,
-  FileBarChart,
   Users,
 } from "lucide-react";
 import * as React from "react";
+
+// Past this the group stops reading as a list and starts scrolling.
+const NAV_DASHBOARD_LIMIT = 5;
 
 const BRAND_WORDMARK =
   "/branding/Wordmark/Refidly%20%5BWordmark%5D%20-%20Colored%20-%20Copy.png";
@@ -70,17 +74,61 @@ export function AppSidebar({
   const canUseAdvancedAnalytics = entitlement.has("advanced_analytics");
 
   const { data: modules = [] } = useModules();
+  const { data: dashboards = [] } = useDashboards({
+    enabled: canUseCustomReporting,
+  });
+  const canManageAnalytics = can(memberData?.role, { analytics: ["manage"] });
 
-  const data = React.useMemo(
-    () => ({
+  const data = React.useMemo(() => {
+    // A module's seeded page always shows; hand-built dashboards fill what is
+    // left, so adding a sixth never pushes the analytics pages out of the nav.
+    const moduleKeyById = new Map(modules.map((m) => [m.id, m.key]));
+    const navDashboards = [
+      ...dashboards.filter((d) => d.isDefault),
+      ...dashboards.filter((d) => !d.isDefault).slice(0, NAV_DASHBOARD_LIMIT),
+    ];
+
+    // A seeded page owns the module analytics route, which also lists that
+    // module's charts; anything else is a plain dashboard view.
+    const dashboardUrl = (dashboard: CustomAnalyticDashboard) => {
+      const moduleKey = dashboard.moduleId
+        ? moduleKeyById.get(dashboard.moduleId)
+        : undefined;
+
+      return dashboard.isDefault && moduleKey
+        ? `/${activeOrganizationId}/records/${moduleParam(moduleKey)}/analytics`
+        : `/${activeOrganizationId}/analytics/custom/dashboards/${dashboard.id}`;
+    };
+
+    return {
       navMain: [
         {
           title: "Overview",
           icon: SquareTerminal,
           // Analytics is a paid feature, so the entries are hidden rather than
           // leading to a lock screen.
-          items: [
-            ...(canUseAdvancedAnalytics
+          // Every analytics page is a dashboard row now, so renaming one renames
+          // the nav entry instead of leaving a hardcoded title beside it.
+          items: canUseCustomReporting
+            ? [
+                ...navDashboards.map((dashboard) => ({
+                  title: dashboard.name,
+                  url: dashboardUrl(dashboard),
+                  icon: dashboard.isDefault ? ChartSpline : LayoutTemplate,
+                })),
+                ...(canManageAnalytics
+                  ? [
+                      {
+                        title: "New Dashboard",
+                        url: `/${activeOrganizationId}/analytics/custom/dashboards?new=true`,
+                        icon: Plus,
+                      },
+                    ]
+                  : []),
+              ]
+            : // Dashboards are Scale-only; a Growth organization keeps the
+              // built-in pages its plan does entitle it to.
+              canUseAdvancedAnalytics
               ? [
                   {
                     title: "Referral Analytics",
@@ -93,17 +141,7 @@ export function AppSidebar({
                     icon: Users,
                   },
                 ]
-              : []),
-            ...(canUseCustomReporting
-              ? [
-                  {
-                    title: "Analytics Dashboards",
-                    url: `/${activeOrganizationId}/analytics/custom/dashboards`,
-                    icon: LayoutTemplate,
-                  },
-                ]
-              : []),
-          ],
+              : [],
         },
         {
           title: "CRM",
@@ -241,7 +279,10 @@ export function AppSidebar({
                         },
                         {
                           title: "Custom Analytics",
-                          url: `/${activeOrganizationId}/analytics/custom`,
+                          // The dashboards list is the front door: a chart is
+                          // created, edited and deleted on the dashboard it
+                          // sits on, so a separate chart registry is gone.
+                          url: `/${activeOrganizationId}/analytics/custom/dashboards`,
                           icon: ChartSpline,
                         },
                       ]
@@ -271,15 +312,13 @@ export function AppSidebar({
               icon: Users,
             },
             {
-              title: "Counties",
-              url: `/${activeOrganizationId}/county-config`,
-              icon: MapPin,
-            },
-            {
               title: "Booking",
               url: `/${activeOrganizationId}/settings/booking`,
               icon: CalendarClock,
             },
+            // Renaming, reordering and deleting dashboards happens here; the
+            // Overview rows are only for opening them.
+
             ...(canUseHipaa
               ? [
                   {
@@ -310,17 +349,18 @@ export function AppSidebar({
           ],
         },
       ],
-    }),
-    [
+    };
+  }, [
       activeOrganizationId,
       memberData?.role,
       canUseHipaa,
       canExport,
       canUseCustomReporting,
       canUseAdvancedAnalytics,
+      canManageAnalytics,
       modules,
-    ]
-  );
+      dashboards,
+  ]);
 
   return (
     <Sidebar

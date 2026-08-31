@@ -28,7 +28,7 @@ const ManualTouchpointType = z.enum(TouchpointType).exclude(["EMAIL_BLAST"]);
 
 export const CreateMarketingSchema = z.object({
   facility: z.string(),
-  touchpoint: z.array(ManualTouchpointType),
+  touchpoint: z.array(ManualTouchpointType).min(1),
   talkedTo: z.string(),
   notes: z.string().optional(),
   reasonForVisit: z.string().optional(),

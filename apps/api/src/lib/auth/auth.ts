@@ -60,7 +60,7 @@ import {
 } from "./passkey-hooks";
 import {
   ac,
-  admission_manager,
+  member,
   liaison,
   admin as orgAdmin,
   owner,
@@ -306,7 +306,7 @@ export const auth = betterAuth({
       roles: {
         owner,
         admin: orgAdmin,
-        admission_manager,
+        member,
         liason: liaison,
       },
       organizationHooks: {

@@ -26,7 +26,7 @@ const service = () =>
 
 const actor = { userId: "user_a", role: "owner", ip: "10.0.0.5" };
 
-const lines = (csv: string) => csv.replace(/^﻿/, "").split("\r\n");
+const lines = (csv: string) => csv.replace(/^\uFEFF/, "").split("\r\n");
 
 describe("BoardExportService", () => {
   beforeEach(() => {

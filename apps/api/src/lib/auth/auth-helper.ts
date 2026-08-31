@@ -325,9 +325,9 @@ export const beforeDeleteOrganization = async ({
   }
 };
 
-export const afterDeleteOrganization = async ({}: {
-  organization: { id: string };
-}) => {
+// Better Auth passes the deleted organization, which nothing here reads. A
+// function taking fewer parameters still satisfies the hook's type.
+export const afterDeleteOrganization = async () => {
   // Board-schema children are removed automatically via `onDelete: Cascade`
   // on the Organization relations (Field, Board, Activity, BoardCounty) and
   // their downstream cascades. No manual cleanup required.

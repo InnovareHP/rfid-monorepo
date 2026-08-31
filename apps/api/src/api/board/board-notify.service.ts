@@ -26,7 +26,7 @@ const LEADERSHIP_EVENTS: BoardNotificationEvent[] = [
   BOARD_NOTIFICATION_EVENT.RESTORED,
 ];
 
-const LEADERSHIP_ROLES: string[] = [ROLES.OWNER, ROLES.ADMISSION_MANAGER];
+const LEADERSHIP_ROLES: string[] = [ROLES.OWNER, ROLES.ADMIN];
 
 const MODULE_LISTS: Record<string, string> = {
   LEAD: "master-list",

@@ -58,6 +58,7 @@ export function generateReferralColumns(
             value={row.original[col.name] ?? ""}
             type={col.type}
             linkTargetId={(row.original as any).linkIds?.[col.name]}
+            columns={columnsFromApi}
           />
         );
       },
@@ -104,7 +105,7 @@ export function generateReferralColumns(
             isReferral={true}
             id={row.original.id}
             fieldName="Referral Name"
-            fieldKey="Referral Name"
+            fieldKey="Record"
             value={row.original.recordName}
             type="TEXT"
           />

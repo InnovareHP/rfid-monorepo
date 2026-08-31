@@ -14,7 +14,7 @@ export const TEAM_COLUMN_WIDTHS = {
 const ROLE_STYLES: Record<string, string> = {
   [ROLES.OWNER]: "bg-[#0D3185]",
   [ROLES.ADMIN]: "bg-[#1B5FBF]",
-  [ROLES.ADMISSION_MANAGER]: "bg-[#64D1F4]",
+  [ROLES.MEMBER]: "bg-[#64D1F4]",
   [ROLES.LIAISON]: "bg-[#2C86D9]",
 };
 

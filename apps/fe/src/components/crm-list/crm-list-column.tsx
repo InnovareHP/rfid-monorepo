@@ -60,6 +60,7 @@ export function generateCrmColumns(
         value={row.original[col.name] ?? ""}
         type={col.type}
         linkTargetId={row.original.linkIds?.[col.name]}
+        columns={columnsFromApi}
       />
     ),
     size: 180,

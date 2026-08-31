@@ -38,8 +38,8 @@ export const admin = ac.newRole({
   ...DOMAIN_ROLE_PERMISSIONS[ROLES.ADMIN],
 });
 
-export const admission_manager = ac.newRole({
-  ...DOMAIN_ROLE_PERMISSIONS[ROLES.ADMISSION_MANAGER],
+export const member = ac.newRole({
+  ...DOMAIN_ROLE_PERMISSIONS[ROLES.MEMBER],
 });
 
 export const liaison = ac.newRole({
@@ -54,6 +54,6 @@ export const support = ac.newRole({
 export const orgRoles = {
   [ROLES.OWNER]: owner,
   [ROLES.ADMIN]: admin,
-  [ROLES.ADMISSION_MANAGER]: admission_manager,
+  [ROLES.MEMBER]: member,
   [ROLES.LIAISON]: liaison,
 };

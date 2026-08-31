@@ -31,13 +31,13 @@ const cases = [
   ["admin", { report: ["read"] }, true],
   ["admin", { outreach: ["send"] }, true],
 
-  ["admission_manager", { report: ["read", "export"] }, true],
-  ["admission_manager", { record: ["create", "read", "update", "delete"] }, true],
-  ["admission_manager", { record: ["import"] }, false],
-  ["admission_manager", { record: ["export"] }, false],
-  ["admission_manager", { outreach: ["send"] }, false],
-  ["admission_manager", { field: ["configure"] }, false],
-  ["admission_manager", { billing: ["manage_billing"] }, false],
+  ["member", { report: ["read", "export"] }, false],
+  ["member", { record: ["create", "read", "update", "delete"] }, true],
+  ["member", { record: ["import"] }, false],
+  ["member", { record: ["export"] }, false],
+  ["member", { outreach: ["send"] }, false],
+  ["member", { field: ["configure"] }, false],
+  ["member", { billing: ["manage_billing"] }, false],
 
   ["liason", { record: ["create", "read", "update", "delete"] }, true],
   ["liason", { log: ["create", "read", "update", "delete"] }, true],
@@ -57,7 +57,10 @@ const cases = [
   // unknown one.
   ["owner", { task: ["create", "read", "update", "delete"] }, true],
   ["admin", { task: ["create", "read", "update", "delete"] }, true],
-  ["admission_manager", { task: ["create", "read", "update", "delete"] }, true],
+  ["member", { task: ["create", "read", "update", "delete"] }, true],
+  // The one grant that separates member from liaison.
+  ["member", { log: ["read"] }, false],
+  ["liason", { log: ["read"] }, true],
   ["liason", { task: ["create", "read", "update", "delete"] }, true],
 ];
 

@@ -4,7 +4,6 @@ import {
   type CustomAnalyticDashboard,
   type CustomAnalyticDashboardDetail,
 } from "@/services/custom-analytics/custom-analytic-dashboard-service";
-import { getCustomAnalytics } from "@/services/custom-analytics/custom-analytics-service";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -21,56 +20,48 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
-import { MultiSelect } from "@dashboard/ui/components/multi-select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LayoutTemplate, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+// Charts are added from inside the dashboard, so creating one only names it.
 const dashboardFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
-  analyticIds: z.array(z.string()),
 });
 
 type DashboardFormValues = z.infer<typeof dashboardFormSchema>;
 
-const emptyValues: DashboardFormValues = { name: "", analyticIds: [] };
+const emptyValues: DashboardFormValues = { name: "" };
 
 type CustomAnalyticDashboardFormDialogProps = {
   open: boolean;
   dashboard: CustomAnalyticDashboard | CustomAnalyticDashboardDetail | null;
   onOpenChange: (open: boolean) => void;
+  // A new dashboard opens straight away, which is where charts are added.
+  onCreated?: (dashboardId: string) => void;
 };
 
 export function CustomAnalyticDashboardFormDialog({
   open,
   dashboard,
   onOpenChange,
+  onCreated,
 }: CustomAnalyticDashboardFormDialogProps) {
   const queryClient = useQueryClient();
 
-  const { data: analytics = [] } = useQuery({
-    queryKey: ["custom-analytics"],
-    queryFn: getCustomAnalytics,
-  });
-
   const form = useForm<DashboardFormValues>({
     resolver: zodResolver(dashboardFormSchema),
-    values: dashboard
-      ? {
-          name: dashboard.name,
-          analyticIds: dashboard.analytics.map((analytic) => analytic.id),
-        }
-      : emptyValues,
+    values: dashboard ? { name: dashboard.name } : emptyValues,
   });
 
   const saveMutation = useMutation({
     mutationFn: (values: DashboardFormValues) =>
       dashboard ? updateDashboard(dashboard.id, values) : createDashboard(values),
-    onSuccess: () => {
-      toast.success(dashboard ? "Dashboard updated" : "Dashboard created");
+    onSuccess: (saved) => {
+      toast.success(dashboard ? "Dashboard renamed" : "Dashboard created");
       queryClient.invalidateQueries({ queryKey: ["custom-analytic-dashboards"] });
       if (dashboard) {
         queryClient.invalidateQueries({
@@ -89,6 +80,7 @@ export function CustomAnalyticDashboardFormDialog({
         // `values` never changes for a create, so RHF would keep the last
         // input on the next open without an explicit reset.
         form.reset(emptyValues);
+        onCreated?.(saved.id);
       }
       onOpenChange(false);
     },
@@ -100,22 +92,17 @@ export function CustomAnalyticDashboardFormDialog({
     },
   });
 
-  const analyticOptions = analytics.map((analytic) => ({
-    label: analytic.name,
-    value: analytic.id,
-  }));
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogFormHeader
           icon={<LayoutTemplate />}
-          title={dashboard ? "Edit Dashboard" : "New Dashboard"}
-          description="Group existing saved charts into one page."
+          title={dashboard ? "Rename Dashboard" : "New Dashboard"}
+          description="Name the page; add charts to it once it opens."
         />
 
         <Form {...form}>
-          <div className="max-h-[60vh] space-y-4 overflow-y-auto px-6 py-5">
+          <div className="space-y-4 px-6 py-5">
             <FormField
               control={form.control}
               name="name"
@@ -124,28 +111,6 @@ export function CustomAnalyticDashboardFormDialog({
                   <FormLabel>Dashboard name</FormLabel>
                   <FormControl>
                     <Input placeholder="Referral overview" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="analyticIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Charts</FormLabel>
-                  <FormControl>
-                    <MultiSelect
-                      options={analyticOptions}
-                      defaultValue={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Add a chart..."
-                      variant="brand"
-                      animationConfig={{ badgeAnimation: "none" }}
-                      className="w-full"
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

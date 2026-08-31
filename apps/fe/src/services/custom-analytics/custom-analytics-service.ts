@@ -1,14 +1,38 @@
 import { axiosClient } from "@/lib/axios-client";
 
-export type CustomAnalyticChartType = "BAR" | "LINE" | "PIE" | "KPI" | "TABLE";
+export type CustomAnalyticChartType =
+  | "BAR"
+  | "LINE"
+  | "PIE"
+  | "KPI"
+  | "TABLE"
+  | "MAP";
+
+// Tile width on a dashboard, over a six-column grid.
+export type CustomAnalyticTileSpan = "THIRD" | "HALF" | "TWO_THIRDS" | "FULL";
 export type CustomAnalyticAggregation =
   | "SUM"
   | "AVG"
   | "COUNT"
   | "MIN"
-  | "MAX";
-export type CustomAnalyticDimensionType = "FIELD" | "OWNER" | "DATE";
+  | "MAX"
+  | "PERCENT";
+export type CustomAnalyticDimensionType =
+  | "FIELD"
+  | "OWNER"
+  | "DATE"
+  | "RELATED_RECORD";
+export type CustomAnalyticRelationType =
+  | "REFERRAL_LINK"
+  | "FACILITY_LINK"
+  | "CONTACT_LINK"
+  | "COMPANY_LINK";
 export type CustomAnalyticDateBucket = "DAY" | "WEEK" | "MONTH";
+
+export type AnalyticFilterInput = {
+  match: "AND" | "OR";
+  conditions: { fieldId: string; operator: string; value: string }[];
+};
 
 export type CustomAnalytic = {
   id: string;
@@ -21,8 +45,20 @@ export type CustomAnalytic = {
   dimensionFieldId: string | null;
   dateBucket: CustomAnalyticDateBucket | null;
   columnIds: string[];
-  filter: Record<string, string>;
+  filter: AnalyticFilterInput;
   rangeDays: number | null;
+  groupLimit: number | null;
+  numeratorFilter: AnalyticFilterInput | null;
+  minGroupSize: number | null;
+  maxGroupSize: number | null;
+  relationType: CustomAnalyticRelationType | null;
+  relationDirection: "OUTGOING" | "INCOMING";
+  relatedFieldId: string | null;
+  metricSource: "FIELD_VALUE" | "DAYS_TO_CHANGE" | "MARKETING_ACTIVITY";
+  marketingMeasure: "INTERACTIONS" | "FACILITIES" | "PEOPLE";
+  marketingGroupBy: "LIAISON" | "FACILITY" | "TOUCHPOINT" | null;
+  durationFieldId: string | null;
+  tileSpan: CustomAnalyticTileSpan;
   module: { key: string; label: string };
 };
 
@@ -35,17 +71,40 @@ export type CustomAnalyticInput = {
   dimensionFieldId: string | null;
   dateBucket: CustomAnalyticDateBucket;
   columnIds: string[];
-  filter: Record<string, string>;
+  filter: AnalyticFilterInput;
   rangeDays: number | null;
+  groupLimit: number | null;
+  numeratorFilter: AnalyticFilterInput;
+  minGroupSize: number | null;
+  maxGroupSize: number | null;
+  relationType: CustomAnalyticRelationType | null;
+  relationDirection: "OUTGOING" | "INCOMING";
+  relatedFieldId: string | null;
+  metricSource: "FIELD_VALUE" | "DAYS_TO_CHANGE" | "MARKETING_ACTIVITY";
+  marketingMeasure: "INTERACTIONS" | "FACILITIES" | "PEOPLE";
+  marketingGroupBy: "LIAISON" | "FACILITY" | "TOUCHPOINT" | null;
+  durationFieldId: string | null;
+  tileSpan: CustomAnalyticTileSpan;
 };
 
-export type SaveCustomAnalyticInput = CustomAnalyticInput & { name: string };
+// dashboardId is create-only: the API attaches the new chart in the same write.
+export type SaveCustomAnalyticInput = CustomAnalyticInput & {
+  name: string;
+  dashboardId?: string | null;
+};
 export type UpdateCustomAnalyticInput = Partial<SaveCustomAnalyticInput>;
 
 export type CustomAnalyticResult =
-  | { chartType: "BAR" | "PIE"; data: { name: string; value: number }[] }
+  | {
+      chartType: "BAR" | "PIE" | "MAP";
+      data: { name: string; value: number; color?: string }[];
+    }
   | { chartType: "LINE"; data: { bucket: string; value: number }[] }
-  | { chartType: "KPI"; value: number }
+  | {
+      chartType: "KPI";
+      value: number;
+      series: { bucket: string; value: number }[];
+    }
   | {
       chartType: "TABLE";
       columns: { id: string; fieldName: string; fieldType: string }[];
@@ -57,10 +116,25 @@ export type CustomAnalyticResult =
       }[];
     };
 
-export const getCustomAnalytics = async () => {
-  const response = await axiosClient.get(`/api/custom-analytics`);
+// moduleKey narrows the list to one module's charts for that module's page.
+export const getCustomAnalytics = async (
+  moduleKey?: string,
+  unfiled = false
+) => {
+  const response = await axiosClient.get(`/api/custom-analytics`, {
+    params: {
+      ...(moduleKey ? { moduleKey } : {}),
+      ...(unfiled ? { unfiled: "true" } : {}),
+    },
+  });
 
   return response.data as CustomAnalytic[];
+};
+
+export const getCustomAnalytic = async (id: string) => {
+  const response = await axiosClient.get(`/api/custom-analytics/${id}`);
+
+  return response.data as CustomAnalytic;
 };
 
 export const runCustomAnalytic = async (

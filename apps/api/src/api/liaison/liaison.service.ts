@@ -10,6 +10,7 @@ import axios from "axios";
 import * as PDFDocument from "pdfkit";
 import * as sharp from "sharp";
 import { prisma } from "../../lib/prisma/prisma";
+import { TOUCHPOINT_ACTIVITIES } from "./liaison-activity.service";
 import {
   CreateExpenseDto,
   CreateMarketingDto,
@@ -210,9 +211,27 @@ export class LiaisonService {
         },
       });
 
+      await tx.activity.create({
+        data: {
+          title: createMarketingDto.reasonForVisit
+            ? `Marketing touchpoint: ${createMarketingDto.reasonForVisit}`
+            : "Marketing touchpoint",
+          description: `Talked to ${createMarketingDto.talkedTo}${
+            createMarketingDto.notes ? ` - ${createMarketingDto.notes}` : ""
+          }`,
+          activityType: TOUCHPOINT_ACTIVITIES[createMarketingDto.touchpoint[0]],
+          status: "COMPLETED",
+          completedAt: new Date(),
+          recordId: findLeadNameViaName.id,
+          createdBy: userId,
+          organizationId,
+        },
+      });
+
       await tx.history.create({
         data: {
           recordId: findLeadNameViaName.id,
+          organizationId,
           column: "marketing",
           newValue:
             "Created a milestone for the organization" +
@@ -562,227 +581,219 @@ export class LiaisonService {
       activeOrganizationId
     );
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        const doc = new PDFDocument({ size: "A4", margin: 40 });
-        const buffers: Buffer[] = [];
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const buffers: Buffer[] = [];
 
-        doc.on("data", buffers.push.bind(buffers));
-        doc.on("end", () => {
-          resolve(Buffer.concat(buffers));
+    // The stream's completion is the promise; the drawing below is ordinary
+    // awaited code rather than an async executor, which would swallow a
+    // rejection thrown after the first await.
+    const rendered = new Promise<Buffer>((resolve, reject) => {
+      doc.on("data", buffers.push.bind(buffers));
+      doc.on("end", () => resolve(Buffer.concat(buffers)));
+      doc.on("error", reject);
+    });
+
+    try {
+      const pageWidth = doc.page.width - 80;
+      const tableTop = 150;
+      const rowHeight = 120;
+      const imageSize = 80;
+
+      // Header
+      doc
+        .fontSize(24)
+        .font("Helvetica-Bold")
+        .text("Expense Report", { align: "center" });
+      doc.moveDown(0.5);
+      doc
+        .fontSize(10)
+        .font("Helvetica")
+        .text(`Generated on ${new Date().toLocaleDateString()}`, {
+          align: "center",
         });
-        doc.on("error", reject);
+      doc.moveDown(2);
 
-        const pageWidth = doc.page.width - 80;
-        const tableTop = 150;
-        const rowHeight = 120;
-        const imageSize = 80;
+      if (!data.length) {
+        doc.fontSize(12).text("No expense records found.", { align: "center" });
+      } else {
+        // Calculate total
+        const totalAmount = data.reduce(
+          (sum, expense) => sum + Number(expense.amount),
+          0
+        );
 
-        // Header
-        doc
-          .fontSize(24)
-          .font("Helvetica-Bold")
-          .text("Expense Report", { align: "center" });
-        doc.moveDown(0.5);
-        doc
-          .fontSize(10)
-          .font("Helvetica")
-          .text(`Generated on ${new Date().toLocaleDateString()}`, {
-            align: "center",
-          });
-        doc.moveDown(2);
+        // Table columns
+        const cols = {
+          image: { x: 40, width: 100 },
+          date: { x: 150, width: 90 },
+          amount: { x: 250, width: 80 },
+          description: { x: 340, width: 120 },
+          notes: { x: 470, width: 100 },
+        };
 
-        if (!data.length) {
+        // Draw table header
+        const drawTableHeader = (y: number) => {
+          doc.rect(40, y, pageWidth, 30).fillAndStroke("#4A90E2", "#2E5C8A");
+
           doc
-            .fontSize(12)
-            .text("No expense records found.", { align: "center" });
-        } else {
-          // Calculate total
-          const totalAmount = data.reduce(
-            (sum, expense) => sum + Number(expense.amount),
-            0
-          );
+            .fontSize(10)
+            .font("Helvetica-Bold")
+            .fillColor("#FFFFFF")
+            .text("Receipt", cols.image.x + 25, y + 10)
+            .text("Date", cols.date.x + 10, y + 10)
+            .text("Amount", cols.amount.x + 10, y + 10)
+            .text("Description", cols.description.x + 10, y + 10)
+            .text("Notes", cols.notes.x + 10, y + 10);
 
-          // Table columns
-          const cols = {
-            image: { x: 40, width: 100 },
-            date: { x: 150, width: 90 },
-            amount: { x: 250, width: 80 },
-            description: { x: 340, width: 120 },
-            notes: { x: 470, width: 100 },
-          };
+          return y + 30;
+        };
 
-          // Draw table header
-          const drawTableHeader = (y: number) => {
-            doc.rect(40, y, pageWidth, 30).fillAndStroke("#4A90E2", "#2E5C8A");
+        let currentY = drawTableHeader(tableTop);
 
-            doc
-              .fontSize(10)
-              .font("Helvetica-Bold")
-              .fillColor("#FFFFFF")
-              .text("Receipt", cols.image.x + 25, y + 10)
-              .text("Date", cols.date.x + 10, y + 10)
-              .text("Amount", cols.amount.x + 10, y + 10)
-              .text("Description", cols.description.x + 10, y + 10)
-              .text("Notes", cols.notes.x + 10, y + 10);
+        // Draw table rows
+        for (let i = 0; i < data.length; i++) {
+          const expense = data[i];
 
-            return y + 30;
-          };
+          // Check if we need a new page
+          if (currentY + rowHeight > doc.page.height - 60) {
+            doc.addPage();
+            currentY = drawTableHeader(60);
+          }
 
-          let currentY = drawTableHeader(tableTop);
+          // Draw row background (alternating colors)
+          doc
+            .rect(40, currentY, pageWidth, rowHeight)
+            .fillAndStroke(i % 2 === 0 ? "#F9F9F9" : "#FFFFFF", "#CCCCCC");
 
-          // Draw table rows
-          for (let i = 0; i < data.length; i++) {
-            const expense = data[i];
+          // Draw vertical lines for columns
+          doc
+            .strokeColor("#CCCCCC")
+            .moveTo(cols.date.x, currentY)
+            .lineTo(cols.date.x, currentY + rowHeight)
+            .moveTo(cols.amount.x, currentY)
+            .lineTo(cols.amount.x, currentY + rowHeight)
+            .moveTo(cols.description.x, currentY)
+            .lineTo(cols.description.x, currentY + rowHeight)
+            .moveTo(cols.notes.x, currentY)
+            .lineTo(cols.notes.x, currentY + rowHeight)
+            .stroke();
 
-            // Check if we need a new page
-            if (currentY + rowHeight > doc.page.height - 60) {
-              doc.addPage();
-              currentY = drawTableHeader(60);
-            }
-
-            // Draw row background (alternating colors)
-            doc
-              .rect(40, currentY, pageWidth, rowHeight)
-              .fillAndStroke(i % 2 === 0 ? "#F9F9F9" : "#FFFFFF", "#CCCCCC");
-
-            // Draw vertical lines for columns
-            doc
-              .strokeColor("#CCCCCC")
-              .moveTo(cols.date.x, currentY)
-              .lineTo(cols.date.x, currentY + rowHeight)
-              .moveTo(cols.amount.x, currentY)
-              .lineTo(cols.amount.x, currentY + rowHeight)
-              .moveTo(cols.description.x, currentY)
-              .lineTo(cols.description.x, currentY + rowHeight)
-              .moveTo(cols.notes.x, currentY)
-              .lineTo(cols.notes.x, currentY + rowHeight)
-              .stroke();
-
-            // Add image if available
-            if (expense.imageUrl) {
-              try {
-                const imageBuffer = await this.fetchImage(expense.imageUrl);
-                doc.image(imageBuffer, cols.image.x + 50, currentY + 50, {
-                  fit: [imageSize, imageSize],
-                  align: "center",
-                  valign: "center",
-                });
-              } catch (error) {
-                this.logger.error(
-                  `Failed to load image for expense ${expense.id}: ${error.message}`
-                );
-                doc
-                  .fontSize(8)
-                  .fillColor("#999999")
-                  .text(
-                    "Image\nUnavailable",
-                    cols.image.x + 10,
-                    currentY + 35,
-                    {
-                      width: imageSize,
-                      align: "center",
-                    }
-                  );
-              }
-            } else {
+          // Add image if available
+          if (expense.imageUrl) {
+            try {
+              const imageBuffer = await this.fetchImage(expense.imageUrl);
+              doc.image(imageBuffer, cols.image.x + 50, currentY + 50, {
+                fit: [imageSize, imageSize],
+                align: "center",
+                valign: "center",
+              });
+            } catch (error) {
+              this.logger.error(
+                `Failed to load image for expense ${expense.id}: ${error.message}`
+              );
               doc
                 .fontSize(8)
                 .fillColor("#999999")
-                .text("No Image", cols.image.x + 10, cols.image.x + 45, {
+                .text("Image\nUnavailable", cols.image.x + 10, currentY + 35, {
                   width: imageSize,
                   align: "center",
                 });
             }
-
-            // Add text content
+          } else {
             doc
-              .fontSize(9)
-              .font("Helvetica")
-              .fillColor("#333333")
-              .text(
-                expense.createdAt.toLocaleDateString(),
-                cols.date.x + 5,
-                currentY + 50,
-                {
-                  width: cols.date.width - 10,
-                  align: "left",
-                }
-              )
-              .text(
-                `$${Number(expense.amount).toFixed(2)}`,
-                cols.amount.x + 5,
-                currentY + 50,
-                {
-                  width: cols.amount.width - 10,
-                  align: "left",
-                }
-              )
-              .text(
-                expense.description || "-",
-                cols.description.x + 5,
-                currentY + 20,
-                {
-                  width: cols.description.width - 10,
-                  height: rowHeight - 30,
-                  align: "left",
-                }
-              )
-              .text(expense.notes || "-", cols.notes.x + 5, currentY + 20, {
-                width: cols.notes.width - 10,
-                height: rowHeight - 30,
-                align: "left",
+              .fontSize(8)
+              .fillColor("#999999")
+              .text("No Image", cols.image.x + 10, cols.image.x + 45, {
+                width: imageSize,
+                align: "center",
               });
-
-            currentY += rowHeight;
           }
 
-          // Add total summary
-          currentY += 10;
-          if (currentY + 40 > doc.page.height - 60) {
-            doc.addPage();
-            currentY = 60;
-          }
-
+          // Add text content
           doc
-            .rect(40, currentY, pageWidth, 35)
-            .fillAndStroke("#E8F4F8", "#4A90E2");
-
-          doc
-            .fontSize(12)
-            .font("Helvetica-Bold")
-            .fillColor("#2E5C8A")
+            .fontSize(9)
+            .font("Helvetica")
+            .fillColor("#333333")
             .text(
-              `Total Expenses: $${totalAmount.toFixed(2)}`,
-              50,
-              currentY + 10
+              expense.createdAt.toLocaleDateString(),
+              cols.date.x + 5,
+              currentY + 50,
+              {
+                width: cols.date.width - 10,
+                align: "left",
+              }
             )
             .text(
-              `Total Records: ${data.length}`,
-              pageWidth - 150,
-              currentY + 10,
-              { align: "right" }
-            );
-        }
-
-        // Add footer
-        const pages = doc.bufferedPageRange();
-        for (let i = 0; i < pages.count; i++) {
-          doc.switchToPage(i);
-          doc
-            .fontSize(8)
-            .fillColor("#999999")
-            .text(`Page ${i + 1} of ${pages.count}`, 40, doc.page.height - 40, {
-              align: "center",
+              `$${Number(expense.amount).toFixed(2)}`,
+              cols.amount.x + 5,
+              currentY + 50,
+              {
+                width: cols.amount.width - 10,
+                align: "left",
+              }
+            )
+            .text(
+              expense.description || "-",
+              cols.description.x + 5,
+              currentY + 20,
+              {
+                width: cols.description.width - 10,
+                height: rowHeight - 30,
+                align: "left",
+              }
+            )
+            .text(expense.notes || "-", cols.notes.x + 5, currentY + 20, {
+              width: cols.notes.width - 10,
+              height: rowHeight - 30,
+              align: "left",
             });
+
+          currentY += rowHeight;
         }
 
-        doc.end();
-      } catch (error) {
-        this.logger.error(`Failed to generate PDF: ${error.message}`);
-        reject(error instanceof Error ? error : new Error(String(error)));
+        // Add total summary
+        currentY += 10;
+        if (currentY + 40 > doc.page.height - 60) {
+          doc.addPage();
+          currentY = 60;
+        }
+
+        doc
+          .rect(40, currentY, pageWidth, 35)
+          .fillAndStroke("#E8F4F8", "#4A90E2");
+
+        doc
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .fillColor("#2E5C8A")
+          .text(`Total Expenses: $${totalAmount.toFixed(2)}`, 50, currentY + 10)
+          .text(
+            `Total Records: ${data.length}`,
+            pageWidth - 150,
+            currentY + 10,
+            { align: "right" }
+          );
       }
-    });
+
+      // Add footer
+      const pages = doc.bufferedPageRange();
+      for (let i = 0; i < pages.count; i++) {
+        doc.switchToPage(i);
+        doc
+          .fontSize(8)
+          .fillColor("#999999")
+          .text(`Page ${i + 1} of ${pages.count}`, 40, doc.page.height - 40, {
+            align: "center",
+          });
+      }
+
+      doc.end();
+    } catch (error) {
+      this.logger.error(`Failed to generate PDF: ${error.message}`);
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+
+    return rendered;
   }
 
   // memberId is null for org admins, who may act on any member's entry.

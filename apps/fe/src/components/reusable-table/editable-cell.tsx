@@ -35,8 +35,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { toFieldOptions } from "@/lib/helper/field-options";
 import { cn } from "@dashboard/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { format, isValid, parseISO } from "date-fns";
 import {
@@ -50,12 +57,22 @@ import {
 import { useState } from "react";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
-import { CountyLiaisonsHint } from "../referral-list/county-liaisons-hint";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
 import { AttachmentCell } from "./attachment-cell";
-import LocationCell from "./location-cell";
+import LocationCell, { type AddressComponents } from "./location-cell";
 import { StatusSelect } from "./status-action";
+
+// Autocomplete carries the long lists, so a picker only needs a first page
+const PICKER_LIMIT = 10;
+
+// Columns an address selection fills in alongside the location itself
+const ADDRESS_COLUMNS: Record<keyof AddressComponents, string> = {
+  city: "City",
+  state: "State",
+  zipCode: "Zip Code",
+  county: "County",
+};
 
 type EditableCellProps = {
   id: string;
@@ -66,6 +83,8 @@ type EditableCellProps = {
   isReferral?: boolean;
   moduleType?: CrmModuleType;
   linkTargetId?: string;
+  // Sibling columns, so picking an address can fill city, state, zip, county
+  columns?: { id: string; name: string; type: string }[];
 };
 
 const validateEmail = (email: string): boolean => {
@@ -122,6 +141,7 @@ export function EditableCell({
   isReferral = false,
   moduleType,
   linkTargetId,
+  columns,
 }: EditableCellProps) {
   const { team } = useParams({ strict: false });
   const [editing, setEditing] = useState(false);
@@ -250,18 +270,26 @@ export function EditableCell({
   const [adding, setAdding] = useState(false);
   const [newOption, setNewOption] = useState("");
 
-  const queryKey = ["dropdown-options", fieldKey];
+  // Shared by the option and link pickers below; the two branches are mutually
+  // exclusive per `type`, so one slot is enough.
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery);
+  const [selectOpen, setSelectOpen] = useState(false);
 
-  const {
-    data: options = [],
-    refetch,
-    isLoading: isLoadingOptions,
-  } = useQuery({
+  const queryKey = ["dropdown-options", fieldKey, debouncedSearch];
+
+  const { data, refetch, isLoading: isLoadingOptions } = useQuery({
     queryKey,
-    queryFn: () => getDropdownOptions(fieldKey),
-    enabled: false,
+    queryFn: () =>
+      isReferral
+        ? getReferralDropdownOptions(fieldKey, 1, PICKER_LIMIT, debouncedSearch)
+        : getDropdownOptions(fieldKey, 1, PICKER_LIMIT, debouncedSearch),
+    enabled: selectOpen || debouncedSearch.length > 0,
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 30,
   });
+
+  const options = toFieldOptions(data);
 
   const { mutate: createDropdownOptionMutation, isPending: isCreatingOption } =
     useMutation({
@@ -289,8 +317,8 @@ export function EditableCell({
         queryKey,
         queryFn: () =>
           isReferral
-            ? getReferralDropdownOptions(fieldKey)
-            : getDropdownOptions(fieldKey),
+            ? getReferralDropdownOptions(fieldKey, 1, PICKER_LIMIT)
+            : getDropdownOptions(fieldKey, 1, PICKER_LIMIT),
       });
     }
   };
@@ -354,17 +382,14 @@ export function EditableCell({
           : "LEAD";
 
   const { data: records, isLoading: isLoadingRecords } = useQuery({
-    queryKey: ["link-records", linkTargetModule, 1, 500],
+    queryKey: ["link-records", linkTargetModule, debouncedSearch],
     queryFn: () =>
       linkTargetModule === "LEAD"
-        ? getLeadRecords(1, 500)
-        : getLinkCandidates(linkTargetModule, 1, 500),
+        ? getLeadRecords(1, PICKER_LIMIT, debouncedSearch)
+        : getLinkCandidates(linkTargetModule, 1, PICKER_LIMIT, debouncedSearch),
     enabled: isLinkType,
+    placeholderData: keepPreviousData,
   });
-
-  // Shared by the DROPDOWN and link-type Select search boxes below - the two
-  // branches are mutually exclusive per `type`, so one state slot is enough.
-  const [searchQuery, setSearchQuery] = useState("");
 
   const [selectedValues, setSelectedValues] = useState<string[]>(
     parseMultiselectValue(val)
@@ -539,24 +564,19 @@ export function EditableCell({
         options.length === 0 ||
         !options.some((opt: OptionsResponse) => opt.value === val));
 
-    const filteredOptions =
-      !!options &&
-      options.length > 0 &&
-      options.filter((opt: OptionsResponse) =>
-        opt.value.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-
-    // Referral counties carry liaison assignments, and the Facility column is
-    // derived from them, so the cell says who a county is covered by.
-    const showCountyLiaisons = isReferral && fieldName === "County";
+    const filteredOptions: OptionsResponse[] = options ?? [];
 
     return (
       <div className="flex items-center gap-1.5">
-        {showCountyLiaisons && <CountyLiaisonsHint county={val} />}
         <Select
           defaultValue={val}
           onValueChange={(v) => handleUpdate(String(v))}
           disabled={isUpdating}
+          open={selectOpen}
+          onOpenChange={(next) => {
+            setSelectOpen(next);
+            if (!next) setSearchQuery("");
+          }}
         >
           <SelectTrigger
             className={cn("w-auto text-sm", isUpdating && "opacity-50")}
@@ -576,18 +596,17 @@ export function EditableCell({
             </div>
           ) : (
             <>
-              {/* Search input for long lists */}
-              {options.length > 5 && (
-                <div className="p-2 border-b">
-                  <Input
-                    placeholder="Search options..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-8 text-xs"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-              )}
+              {/* Filters on the server, so the whole list stays reachable */}
+              <div className="p-2 border-b">
+                <Input
+                  placeholder="Search options..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-8 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </div>
 
               {/* Options list */}
               <div className="max-h-[200px] overflow-y-auto">
@@ -705,20 +724,7 @@ export function EditableCell({
                         + Add more option
                       </div>
 
-                      {/* Referral counties are configured with their liaisons,
-                          not as plain field options. */}
-                      {team &&
-                        (showCountyLiaisons ? (
-                          <Link
-                            to="/$team/county-config"
-                            params={{ team }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer">
-                              Proceed to County Configuration
-                            </div>
-                          </Link>
-                        ) : (
+                      {team && (
                           <Link
                             to={
                               isReferral
@@ -732,7 +738,7 @@ export function EditableCell({
                               Proceed to Option Configuration
                             </div>
                           </Link>
-                        ))}
+                        )}
                     </div>
                   )}
                 </>
@@ -752,12 +758,7 @@ export function EditableCell({
         records.length === 0 ||
         !records.some((record: any) => record.value === val));
 
-    const filteredRecords =
-      !!records &&
-      records.length > 0 &&
-      records.filter((record: any) =>
-        record.value.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    const filteredRecords: { id: string; value: string }[] = records ?? [];
 
     const selectedId =
       (records ?? []).find((record: any) => record.value === val)?.id ?? "";
@@ -797,17 +798,16 @@ export function EditableCell({
             </div>
           ) : (
             <>
-              {records.length > 5 && (
-                <div className="p-2 border-b">
-                  <Input
-                    placeholder="Search options..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-8 text-xs"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-              )}
+              <div className="p-2 border-b">
+                <Input
+                  placeholder="Search options..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-8 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </div>
 
               <div className="max-h-[200px] overflow-y-auto">
                 {filteredRecords.length > 0 ? (
@@ -880,10 +880,32 @@ export function EditableCell({
   }
 
   if (type === "LOCATION") {
+    // Each sibling goes through the same mutation as a manual edit, so the row
+    // patches optimistically and the board socket reconciles other clients.
+    const applyAddressComponents = (components: AddressComponents) => {
+      if (!columns) return;
+
+      (
+        Object.entries(ADDRESS_COLUMNS) as [keyof AddressComponents, string][]
+      ).forEach(([componentKey, columnName]) => {
+        const target = columns.find((column) => column.name === columnName);
+        const componentValue = components[componentKey];
+        if (!target || !componentValue) return;
+
+        updateLeadMutation.mutate({
+          id,
+          field: target.id,
+          fieldName: target.name,
+          value: componentValue,
+        });
+      });
+    };
+
     return (
       <LocationCell
         value={String(value || "")}
         onChange={(newLocation) => handleUpdate(String(newLocation), true)}
+        onSelectComponents={applyAddressComponents}
       />
     );
   }

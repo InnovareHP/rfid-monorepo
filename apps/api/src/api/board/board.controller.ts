@@ -9,7 +9,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -37,7 +36,6 @@ import {
   CreateColumnDto,
   CreateFaxActivityDto,
   CreateFieldOptionDto,
-  CreateRecordCountyAssignmentDto,
   CreateRecordDto,
   CsvImportDto,
   DeleteRecordsDto,
@@ -45,7 +43,6 @@ import {
   RestoreHistoryDto,
   UpdateActivityDto,
   UpdateContactDto,
-  UpdateRecordCountyLiaisonDto,
   UpdateRecordValueDto,
 } from "./dto/board.schema";
 import {
@@ -170,7 +167,8 @@ export class BoardController {
     @Session() session: AuthenticatedSession,
     @Query("moduleType") moduleType?: string,
     @Query("page") page = 1,
-    @Query("limit") limit = 50
+    @Query("limit") limit = 50,
+    @Query("search") search?: string
   ) {
     const organizationId = session.session.activeOrganizationId;
     try {
@@ -178,7 +176,8 @@ export class BoardController {
         organizationId,
         moduleType || "LEAD",
         Number(page),
-        Number(limit)
+        Number(limit),
+        search
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -290,20 +289,6 @@ export class BoardController {
   }
 
   @RequirePermission({ record: ["read"] })
-  @Get("/county/configuration")
-  async getCountyConfiguration(
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-    try {
-      return await this.boardService.getCountyConfiguration(organizationId);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @RequirePermission({ record: ["read"] })
   @Get("/contact-info/:fieldId")
   async getValueIdContact(
     @Param("fieldId") fieldId: string,
@@ -351,7 +336,8 @@ export class BoardController {
     @Session()
     session: AuthenticatedSession,
     @Query("page") page?: number,
-    @Query("limit") limit?: number
+    @Query("limit") limit?: number,
+    @Query("search") search?: string
   ) {
     try {
       const organizationId = session.session.activeOrganizationId;
@@ -359,7 +345,8 @@ export class BoardController {
         fieldId,
         organizationId,
         page ? Number(page) : null,
-        limit ? Number(limit) : null
+        limit ? Number(limit) : null,
+        search
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -741,44 +728,6 @@ export class BoardController {
     }
   }
 
-  @RequirePermission({ record: ["update"] })
-  @Post("/county/assignment")
-  async createRecordCountyAssignment(
-    @Body() dto: CreateRecordCountyAssignmentDto,
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-    try {
-      return await this.boardService.createCountyAssignment(
-        dto.name,
-        organizationId,
-        dto.liaisons
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @RequirePermission({ record: ["update"] })
-  @Put("/county/assignment/:countyId")
-  async updateCountyLiaisons(
-    @Param("countyId") countyId: string,
-    @Body() dto: UpdateRecordCountyLiaisonDto,
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    try {
-      return await this.boardService.updateCountyLiaisons(
-        countyId,
-        session.session.activeOrganizationId,
-        dto.liaisons
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
   @RequireFeature("export")
   @Post("/csv-import")
   @RequirePermission({ record: ["import"] })
@@ -1010,23 +959,6 @@ export class BoardController {
         attachmentId,
         session.session.activeOrganizationId,
         moduleType || "LEAD"
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @RequirePermission({ record: ["update"] })
-  @Delete("/county/assignment/:countyId")
-  async deleteCountyAssignment(
-    @Param("countyId") countyId: string,
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    try {
-      return await this.boardService.deleteCountyAssignment(
-        countyId,
-        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);

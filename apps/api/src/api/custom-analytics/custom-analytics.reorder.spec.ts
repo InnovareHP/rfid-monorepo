@@ -46,7 +46,7 @@ describe("CustomAnalyticsService.reorderDashboardCharts", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mocked.customAnalytic.updateMany.mockResolvedValue({ count: 1 });
-    service = new CustomAnalyticsService();
+    service = new CustomAnalyticsService(null as never);
   });
 
   it("writes a dense 0..N-1 order, org- and dashboard-scoped on every write", async () => {

@@ -2,7 +2,7 @@ export const ROLES = {
   OWNER: "owner",
   ADMIN: "admin",
   LIAISON: "liason",
-  ADMISSION_MANAGER: "admission_manager",
+  MEMBER: "member",
   SUPPORT: "support",
   USER: "user",
   SUPER_ADMIN: "super_admin",
@@ -17,7 +17,7 @@ export const ROLE_LABELS: Record<string, string> = {
   [ROLES.OWNER]: "Owner",
   [ROLES.ADMIN]: "Admin",
   [ROLES.LIAISON]: "Liaison",
-  [ROLES.ADMISSION_MANAGER]: "Admission Manager",
+  [ROLES.MEMBER]: "Member",
 };
 
 // Icon tiles cycle the avatar palette: theme-independent, fixed white foreground.

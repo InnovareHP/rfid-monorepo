@@ -5,16 +5,19 @@ import {
   getDashboards,
   type CustomAnalyticDashboard,
 } from "@/services/custom-analytics/custom-analytic-dashboard-service";
-import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
+import {
+  useNavigate,
+  useParams,
+  useRouteContext,
+  useSearch,
+} from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
-import { Plus } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { CustomAnalyticDashboardCard } from "./custom-analytic-dashboard-card";
 import { CustomAnalyticDashboardCardSkeleton } from "./custom-analytic-dashboard-card-skeleton";
 import { CustomAnalyticDashboardFormDialog } from "./custom-analytic-dashboard-form-dialog";
+import { UnfiledChartsSection } from "./unfiled-charts-section";
 
 const DASHBOARDS_KEY = ["custom-analytic-dashboards"];
 
@@ -22,7 +25,12 @@ export default function CustomAnalyticDashboardsListPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { team } = useParams({ strict: false }) as { team: string };
-  const [formOpen, setFormOpen] = useState(false);
+
+  // Creating lives in the sidebar, so the open state is the url, not local UI
+  // state: the nav row links here with ?new=true and closing drops the param.
+  const { new: creating } = useSearch({
+    from: "/_team/$team/analytics/custom/dashboards/",
+  });
 
   const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
     activeOrganizationId: string;
@@ -68,19 +76,10 @@ export default function CustomAnalyticDashboardsListPage() {
 
   return (
     <div className="page-style">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <PageHeader
-          title="Analytics Dashboards"
-          description="Group saved charts into one page to view together."
-        />
-
-        {canManage && (
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New Dashboard
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Analytics Dashboards"
+        description="Group saved charts into one page to view together."
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {isLoading &&
@@ -105,15 +104,32 @@ export default function CustomAnalyticDashboardsListPage() {
 
         {!isLoading && dashboards.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            No dashboards yet. Group a few charts to get started.
+            No dashboards yet. Use New Dashboard in the sidebar to group a few
+            charts.
           </p>
         )}
       </div>
 
+      <UnfiledChartsSection canManage={canManage} />
+
       <CustomAnalyticDashboardFormDialog
-        open={formOpen}
+        open={canManage && creating === true}
         dashboard={null}
-        onOpenChange={setFormOpen}
+        onCreated={(dashboardId) =>
+          navigate({
+            to: "/$team/analytics/custom/dashboards/$dashboardId",
+            params: { team, dashboardId },
+          })
+        }
+        onOpenChange={(open) => {
+          if (open) return;
+          navigate({
+            to: "/$team/analytics/custom/dashboards",
+            params: { team },
+            search: { new: undefined },
+            replace: true,
+          });
+        }}
       />
     </div>
   );

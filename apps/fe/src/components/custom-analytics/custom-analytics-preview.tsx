@@ -6,14 +6,20 @@ import {
   ReportTable,
   type ReportColumn,
 } from "@/components/reusable-table/report-table";
+import { monthOverMonthDelta } from "@/lib/helper/analytics-chart-data";
 import {
   toCategoryPieRows,
+  toCountyCounts,
+  toKpiSeries,
   toKpiValue,
   toRankedBarRows,
   toTrendLineRows,
 } from "@/lib/helper/custom-analytics-chart-data";
 import type { CustomAnalyticResult } from "@/services/custom-analytics/custom-analytics-service";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+
+// maplibre is far too heavy to sit in the chunk every chart tile imports.
+const CountyHeatMap = lazy(() => import("@/components/analytics/county-heat-map"));
 
 type TableRow = Extract<
   CustomAnalyticResult,
@@ -59,7 +65,40 @@ export function CustomAnalyticsPreview({
     case "LINE":
       return <TrendLine data={toTrendLineRows(result)} compact={isThumbnail} />;
 
-    case "KPI":
+    case "MAP": {
+      const counties = toCountyCounts(result);
+
+      // A thumbnail cannot show geography usefully, and loading maplibre for a
+      // 160px card is not worth it.
+      if (isThumbnail) {
+        return (
+          <div className="flex h-40 flex-col items-center justify-center gap-1">
+            <p className="text-4xl font-bold tabular-nums text-foreground">
+              {counties.length.toLocaleString()}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {counties.length === 1 ? "county" : "counties"}
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <Suspense
+          fallback={
+            <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground sm:h-[450px]">
+              Loading map...
+            </div>
+          }
+        >
+          <CountyHeatMap counties={counties} />
+        </Suspense>
+      );
+    }
+
+    case "KPI": {
+      const series = toKpiSeries(result);
+
       // KpiStatTile renders its own Card, which would double-border inside the
       // list card, and its sizing is built for a full stat row.
       return isThumbnail ? (
@@ -72,8 +111,17 @@ export function CustomAnalyticsPreview({
           <p className="text-sm text-muted-foreground">{name}</p>
         </div>
       ) : (
-        <KpiStatTile label={name} value={String(toKpiValue(result))} />
+        <KpiStatTile
+          label={name}
+          value={toKpiValue(result).toLocaleString(undefined, {
+            maximumFractionDigits: 2,
+          })}
+          seriesLabel={metricLabel}
+          delta={monthOverMonthDelta(series)}
+          series={series}
+        />
       );
+    }
 
     case "TABLE": {
       // A table's at-a-glance signal is how much data matched; a real table at

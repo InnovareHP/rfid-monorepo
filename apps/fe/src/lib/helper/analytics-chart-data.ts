@@ -5,6 +5,8 @@ import { format, parseISO } from "date-fns";
 export type CategoryRow = {
   name: string;
   value: number;
+  // The grouped field option's own colour, when the source has one.
+  color?: string;
 };
 
 export type RankedRow = {

@@ -1,10 +1,55 @@
 import { z } from "zod";
+import { AnalyticFilterSchema } from "../../../lib/analytics/analytic-filter";
 
-export const ChartTypeSchema = z.enum(["BAR", "LINE", "PIE", "KPI", "TABLE"]);
-export const AggregationSchema = z.enum(["SUM", "AVG", "COUNT", "MIN", "MAX"]);
+export const ChartTypeSchema = z.enum([
+  "BAR",
+  "LINE",
+  "PIE",
+  "KPI",
+  "TABLE",
+  "MAP",
+]);
+
+// Tile width on a dashboard grid of six columns.
+export const TileSpanSchema = z.enum(["THIRD", "HALF", "TWO_THIRDS", "FULL"]);
+export const AggregationSchema = z.enum([
+  "SUM",
+  "AVG",
+  "COUNT",
+  "MIN",
+  "MAX",
+  "PERCENT",
+]);
 // Explicit grouping mode and date bucket size, since "group by owner" is a
 // scalar column lookup and "group by date" needs a bucket, not a field id.
-export const DimensionTypeSchema = z.enum(["FIELD", "OWNER", "DATE"]);
+export const DimensionTypeSchema = z.enum([
+  "FIELD",
+  "OWNER",
+  "DATE",
+  "RELATED_RECORD",
+]);
+export const RelationTypeSchema = z.enum([
+  "REFERRAL_LINK",
+  "FACILITY_LINK",
+  "CONTACT_LINK",
+  "COMPANY_LINK",
+]);
+export const RelationDirectionSchema = z.enum(["OUTGOING", "INCOMING"]);
+export const MetricSourceSchema = z.enum([
+  "FIELD_VALUE",
+  "DAYS_TO_CHANGE",
+  "MARKETING_ACTIVITY",
+]);
+export const MarketingMeasureSchema = z.enum([
+  "INTERACTIONS",
+  "FACILITIES",
+  "PEOPLE",
+]);
+export const MarketingGroupBySchema = z.enum([
+  "LIAISON",
+  "FACILITY",
+  "TOUCHPOINT",
+]);
 export const DateBucketSchema = z.enum(["DAY", "WEEK", "MONTH"]);
 
 // Raw field schemas with no .default(), shared by the full (create/preview)
@@ -22,9 +67,20 @@ const dimensionTypeField = DimensionTypeSchema;
 const dimensionFieldIdField = z.string().uuid().nullable();
 const dateBucketField = DateBucketSchema;
 const columnIdsField = z.array(z.string().uuid());
-const filterField = z.record(z.string(), z.string());
+const filterField = AnalyticFilterSchema;
 const rangeDaysField = z.number().int().positive().max(3650).nullable();
+// Capped: the ranked charts stay readable, and the cap bounds the response.
+const groupLimitField = z.number().int().min(1).max(50).nullable();
+const groupSizeField = z.number().int().min(1).max(100000).nullable();
+const relationTypeField = RelationTypeSchema.nullable();
+const relationDirectionField = RelationDirectionSchema;
+const relatedFieldIdField = z.string().uuid().nullable();
+const metricSourceField = MetricSourceSchema;
+const durationFieldIdField = z.string().uuid().nullable();
+const marketingMeasureField = MarketingMeasureSchema;
+const marketingGroupByField = MarketingGroupBySchema.nullable();
 const nameField = z.string().trim().min(1).max(80);
+const tileSpanField = TileSpanSchema;
 
 const base = z.object({
   moduleId: moduleIdField,
@@ -35,8 +91,20 @@ const base = z.object({
   dimensionFieldId: dimensionFieldIdField.default(null),
   dateBucket: dateBucketField.default("DAY"),
   columnIds: columnIdsField.default([]),
-  filter: filterField.default({}),
+  filter: filterField.default({ match: "AND", conditions: [] }),
   rangeDays: rangeDaysField.default(null),
+  groupLimit: groupLimitField.default(null),
+  tileSpan: tileSpanField.default("HALF"),
+  numeratorFilter: filterField.default({ match: "AND", conditions: [] }),
+  minGroupSize: groupSizeField.default(null),
+  maxGroupSize: groupSizeField.default(null),
+  relationType: relationTypeField.default(null),
+  relationDirection: relationDirectionField.default("OUTGOING"),
+  relatedFieldId: relatedFieldIdField.default(null),
+  metricSource: metricSourceField.default("FIELD_VALUE"),
+  durationFieldId: durationFieldIdField.default(null),
+  marketingMeasure: marketingMeasureField.default("INTERACTIONS"),
+  marketingGroupBy: marketingGroupByField.default(null),
 });
 
 // Cross-field rules for a full payload (preview and create always send every
@@ -50,7 +118,7 @@ const withChartRules = <T extends typeof base>(schema: T) =>
         path: ["columnIds"],
       });
     }
-    if (["BAR", "PIE"].includes(value.chartType)) {
+    if (["BAR", "PIE", "MAP"].includes(value.chartType)) {
       if (value.dimensionType === "FIELD" && !value.dimensionFieldId) {
         ctx.addIssue({
           code: "custom",
@@ -65,9 +133,17 @@ const withChartRules = <T extends typeof base>(schema: T) =>
           path: ["dateBucket"],
         });
       }
+      if (value.dimensionType === "RELATED_RECORD" && !value.relationType) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Pick a relation",
+          path: ["relationType"],
+        });
+      }
     }
     if (
       value.metricAggregation !== "COUNT" &&
+      value.metricAggregation !== "PERCENT" &&
       !value.metricFieldId &&
       value.chartType !== "TABLE"
     ) {
@@ -77,11 +153,85 @@ const withChartRules = <T extends typeof base>(schema: T) =>
         path: ["metricFieldId"],
       });
     }
+    if (
+      value.metricAggregation === "PERCENT" &&
+      value.numeratorFilter.conditions.length === 0
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A percentage needs at least one numerator condition",
+        path: ["numeratorFilter"],
+      });
+    }
+    // Outreach rows are Marketing logs, so nothing that points at a board
+    // field applies to them.
+    if (value.metricSource === "MARKETING_ACTIVITY") {
+      if (value.chartType === "TABLE") {
+        ctx.addIssue({
+          code: "custom",
+          message: "An outreach metric cannot be rendered as a table",
+          path: ["chartType"],
+        });
+      }
+      if (value.filter.conditions.length > 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: "An outreach metric cannot filter on board fields",
+          path: ["filter"],
+        });
+      }
+      if (["BAR", "PIE"].includes(value.chartType) && !value.marketingGroupBy) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Pick what to group the outreach by",
+          path: ["marketingGroupBy"],
+        });
+      }
+    }
+    if (value.metricSource === "DAYS_TO_CHANGE") {
+      if (!value.durationFieldId) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Pick the field whose changes are measured",
+          path: ["durationFieldId"],
+        });
+      }
+      if (value.chartType === "TABLE") {
+        ctx.addIssue({
+          code: "custom",
+          message: "A time-to-change metric cannot be rendered as a table",
+          path: ["chartType"],
+        });
+      }
+      if (value.metricAggregation === "PERCENT") {
+        ctx.addIssue({
+          code: "custom",
+          message: "A time-to-change metric has no percentage to compute",
+          path: ["metricAggregation"],
+        });
+      }
+    }
+    if (
+      value.minGroupSize !== null &&
+      value.maxGroupSize !== null &&
+      value.minGroupSize > value.maxGroupSize
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Minimum group size must not exceed the maximum",
+        path: ["minGroupSize"],
+      });
+    }
   });
 
 export const PreviewCustomAnalyticSchema = withChartRules(base);
+// Only on create: a chart built inside a dashboard says so, and the service
+// attaches it in the same write.
 export const SaveCustomAnalyticSchema = withChartRules(
-  base.extend({ name: nameField })
+  base.extend({
+    name: nameField,
+    dashboardId: z.string().uuid().nullable().default(null),
+  })
 );
 
 // zod@4.3.6 throws at runtime ("cannot be used on object schemas containing
@@ -107,6 +257,18 @@ const updateBase = z.object({
   columnIds: columnIdsField.optional(),
   filter: filterField.optional(),
   rangeDays: rangeDaysField.optional(),
+  groupLimit: groupLimitField.optional(),
+  tileSpan: tileSpanField.optional(),
+  numeratorFilter: filterField.optional(),
+  minGroupSize: groupSizeField.optional(),
+  maxGroupSize: groupSizeField.optional(),
+  relationType: relationTypeField.optional(),
+  relationDirection: relationDirectionField.optional(),
+  relatedFieldId: relatedFieldIdField.optional(),
+  metricSource: metricSourceField.optional(),
+  durationFieldId: durationFieldIdField.optional(),
+  marketingMeasure: marketingMeasureField.optional(),
+  marketingGroupBy: marketingGroupByField.optional(),
 });
 
 // Query params for the run endpoints (single analytic and dashboard). Both
@@ -170,7 +332,7 @@ export const UpdateCustomAnalyticSchema = updateBase.superRefine(
 
     if (
       value.chartType !== undefined &&
-      ["BAR", "PIE"].includes(value.chartType) &&
+      ["BAR", "PIE", "MAP"].includes(value.chartType) &&
       value.dimensionType !== undefined
     ) {
       if (
@@ -195,11 +357,23 @@ export const UpdateCustomAnalyticSchema = updateBase.superRefine(
           path: ["dateBucket"],
         });
       }
+      if (
+        value.dimensionType === "RELATED_RECORD" &&
+        value.relationType !== undefined &&
+        !value.relationType
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Pick a relation",
+          path: ["relationType"],
+        });
+      }
     }
 
     if (
       value.metricAggregation !== undefined &&
       value.metricAggregation !== "COUNT" &&
+      value.metricAggregation !== "PERCENT" &&
       value.metricFieldId !== undefined &&
       !value.metricFieldId &&
       value.chartType !== undefined &&

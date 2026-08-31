@@ -72,7 +72,10 @@ function RouteComponent() {
       sections={REFERRAL_FORM_SECTIONS}
       isLoadingColumns={isLoadingColumns}
       isSubmitting={createReferralMutation.isPending}
-      fetchDropdownOptions={getReferralDropdownOptions}
+      fetchDropdownOptions={(fieldId, search, limit) =>
+        getReferralDropdownOptions(fieldId, 1, limit, search)
+      }
+      optionModule="REFERRAL"
       onSubmit={handleSubmit}
       onBack={goBack}
     />

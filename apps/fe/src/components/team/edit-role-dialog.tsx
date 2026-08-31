@@ -45,8 +45,8 @@ export function EditRoleDialog({
             <SelectItem value={ROLES.ADMIN}>
               {ROLE_LABELS[ROLES.ADMIN]}
             </SelectItem>
-            <SelectItem value={ROLES.ADMISSION_MANAGER}>
-              {ROLE_LABELS[ROLES.ADMISSION_MANAGER]}
+            <SelectItem value={ROLES.MEMBER}>
+              {ROLE_LABELS[ROLES.MEMBER]}
             </SelectItem>
           </SelectContent>
         </Select>

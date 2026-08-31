@@ -32,6 +32,8 @@ const TASK_WRITE = ["create", "read", "update", "delete"] as const;
 // Mirrors the deny rules the frontend already applies: reports and history
 // exclude liaisons, import and sending exclude both operational roles, and
 // billing stays owner only. Nothing else is taken away from a role.
+// Building and changing dashboards is owner and admin only; every other role
+// reads them.
 export const DOMAIN_ROLE_PERMISSIONS = {
   [ROLES.OWNER]: {
     record: [...RECORD_WRITE, "import", "export"],
@@ -52,23 +54,24 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     report: ["read", "export"],
     outreach: [...OUTREACH_WRITE, "send"],
     task: [...TASK_WRITE],
-    analytics: ["read"],
-    compliance: ["read", "download"],
-  },
-  [ROLES.ADMISSION_MANAGER]: {
-    record: [...RECORD_WRITE],
-    field: [...FIELD_WRITE],
-    log: [...LOG_WRITE],
-    report: ["read", "export"],
-    outreach: [...OUTREACH_WRITE],
-    task: [...TASK_WRITE],
     analytics: ["read", "manage"],
-    compliance: ["read"],
+    compliance: ["read", "download"],
   },
   [ROLES.LIAISON]: {
     record: [...RECORD_WRITE],
     field: [...FIELD_WRITE],
     log: [...LOG_WRITE],
+    outreach: [...OUTREACH_WRITE],
+    task: [...TASK_WRITE],
+    analytics: ["read"],
+    compliance: ["read"],
+  },
+  // Day-to-day encoding: records, fields, outreach and tasks, and the
+  // referrals those sit on. Everything a liaison has except the expense,
+  // mileage and marketing logs.
+  [ROLES.MEMBER]: {
+    record: [...RECORD_WRITE],
+    field: [...FIELD_WRITE],
     outreach: [...OUTREACH_WRITE],
     task: [...TASK_WRITE],
     analytics: ["read"],

@@ -3,6 +3,12 @@ import { Skeleton } from "@dashboard/ui/components/skeleton";
 import LocationCell, {
   type AddressComponents,
 } from "@/components/reusable-table/location-cell";
+import {
+  SearchableSelect,
+  type SearchableOption,
+} from "@/components/record-create/searchable-select";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { toFieldOptions } from "@/lib/helper/field-options";
 import { placeholderFor } from "@/lib/helper/field-placeholder";
 import { getLinkCandidates } from "@/services/board/board-module-service";
 import { Badge } from "@dashboard/ui/components/badge";
@@ -24,21 +30,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@dashboard/ui/components/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dashboard/ui/components/select";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { cn } from "@dashboard/ui/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  useQuery,
-  useQueryClient,
-  type QueryClient,
-} from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -47,6 +42,7 @@ import {
   Loader2,
   Plus,
 } from "lucide-react";
+import { Link, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useFieldArray, useForm, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -91,10 +87,16 @@ interface RecordCreatePageProps {
   columns: RecordColumn[];
   isLoadingColumns: boolean;
   isSubmitting: boolean;
-  fetchDropdownOptions: (fieldId: string) => Promise<any>;
+  fetchDropdownOptions: (
+    fieldId: string,
+    search: string,
+    limit: number
+  ) => Promise<any>;
   onSubmit: (records: CreatedRecord[]) => void;
   onBack: () => void;
   sections?: RecordFormSection[];
+  // Which option-configuration screen an empty picker should send the user to
+  optionModule?: "LEAD" | "REFERRAL";
 }
 
 type FormValues = { records: Record<string, any>[] };
@@ -119,6 +121,7 @@ const RecordCreatePage = ({
   onSubmit,
   onBack,
   sections,
+  optionModule,
 }: RecordCreatePageProps) => {
   if (isLoadingColumns) {
     return (
@@ -153,38 +156,24 @@ const RecordCreatePage = ({
       onSubmit={onSubmit}
       onBack={onBack}
       sections={sections}
+      optionModule={optionModule}
     />
   );
 };
 
 // One control height for every field type so inputs, selects, and pickers line up
-const FIELD_CONTROL_CLASS = "h-11 w-full";
-const SELECT_CONTROL_CLASS = "w-full data-[size=default]:h-11";
-const LABEL_CLASS = "text-sm font-semibold text-gray-700";
+const FIELD_CONTROL_CLASS = "mt-auto h-11 w-full";
+const FIELD_ITEM_CLASS = "flex h-full flex-col";
+
+// Autocomplete carries the long lists, so a picker only needs a first page
+const PICKER_LIMIT = 10;
+const LABEL_CLASS = "flex-wrap gap-x-2 text-sm font-semibold text-gray-700";
 
 function isOptionBacked(columnType: string) {
   return columnType === "DROPDOWN" || columnType === "STATUS";
 }
 
-// Returns the option whose value matches, so auto-fill never writes an unselectable value
-function matchOption(
-  queryClient: QueryClient,
-  columnId: string,
-  value: string
-): string | null {
-  const options = queryClient.getQueryData<{ value: string }[]>([
-    "record-dropdown-options",
-    columnId,
-  ]);
-  if (!options) return null;
-
-  const match = options.find(
-    (option) => option.value.toLowerCase() === value.toLowerCase()
-  );
-  return match?.value ?? null;
-}
-
-// Appends any column the caller's sections do not mention, so dynamic fields are never dropped
+// Appends any column the caller's sections do not mention, required like the rest
 function resolveSections(
   sections: RecordFormSection[],
   columns: RecordColumn[]
@@ -194,7 +183,11 @@ function resolveSections(
   );
   const leftovers = columns
     .filter((column) => !placed.has(column.name))
-    .map((column) => ({ name: column.name, span: "half" as RecordFieldSpan }));
+    .map((column) => ({
+      name: column.name,
+      span: "half" as RecordFieldSpan,
+      required: true,
+    }));
 
   if (leftovers.length === 0) return sections;
 
@@ -217,6 +210,7 @@ const RecordCreateForm = ({
   onSubmit,
   onBack,
   sections,
+  optionModule,
 }: Omit<RecordCreatePageProps, "isLoadingColumns">) => {
   const resolvedSections = useMemo(
     () => (sections ? resolveSections(sections, columns) : undefined),
@@ -309,7 +303,7 @@ const RecordCreateForm = ({
       control={form.control}
       name={`records.${index}.record_name`}
       render={({ field }) => (
-        <FormItem>
+        <FormItem className={FIELD_ITEM_CLASS}>
           <FormLabel className={LABEL_CLASS}>
             {nameLabel} <span className="text-red-500">*</span>
           </FormLabel>
@@ -342,6 +336,7 @@ const RecordCreateForm = ({
       layout={layout}
       columnsByName={columnsByName}
       fetchDropdownOptions={fetchDropdownOptions}
+      optionModule={optionModule}
     />
   );
 
@@ -413,7 +408,9 @@ const RecordCreateForm = ({
                         variant="ghost"
                         size="icon"
                         aria-label={isExpanded ? "Collapse" : "Expand"}
-                        onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
+                        onClick={() =>
+                          setExpandedIndex(isExpanded ? -1 : index)
+                        }
                         className="hover:bg-blue-100"
                       >
                         <ChevronRight
@@ -428,69 +425,69 @@ const RecordCreateForm = ({
 
                   {isExpanded && (
                     <CardContent className="p-4 sm:p-6 space-y-6 sm:space-y-8">
-                      {resolvedSections
-                        ? resolvedSections.map((section) => (
-                            <section key={section.title} className="space-y-4">
-                              <h3 className="border-b pb-2 text-base font-semibold text-gray-900">
-                                {section.title}
-                              </h3>
-                              <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-6">
-                                {section.fields.map((layout) => {
-                                  const spanClass =
-                                    SPAN_CLASS[layout.span ?? "half"];
+                      {resolvedSections ? (
+                        resolvedSections.map((section) => (
+                          <section key={section.title} className="space-y-4">
+                            <h3 className="border-b pb-2 text-base font-semibold text-gray-900">
+                              {section.title}
+                            </h3>
+                            <div className="grid grid-cols-1 items-stretch gap-x-6 gap-y-4 md:grid-cols-6">
+                              {section.fields.map((layout) => {
+                                const spanClass =
+                                  SPAN_CLASS[layout.span ?? "half"];
 
-                                  if (layout.name === RECORD_NAME_FIELD) {
-                                    return (
-                                      <div
-                                        key={layout.name}
-                                        className={spanClass}
-                                      >
-                                        {renderNameField(index, layout)}
-                                      </div>
-                                    );
-                                  }
-
-                                  const column = columnsByName.get(layout.name);
-                                  if (!column) return null;
-
+                                if (layout.name === RECORD_NAME_FIELD) {
                                   return (
-                                    <div key={column.id} className={spanClass}>
-                                      {renderColumnField(column, index, layout)}
+                                    <div
+                                      key={layout.name}
+                                      className={spanClass}
+                                    >
+                                      {renderNameField(index, layout)}
                                     </div>
                                   );
-                                })}
-                              </div>
-                            </section>
-                          ))
-                        : (
-                          <>
-                            {renderNameField(index)}
+                                }
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                const column = columnsByName.get(layout.name);
+                                if (!column) return null;
+
+                                return (
+                                  <div key={column.id} className={spanClass}>
+                                    {renderColumnField(column, index, layout)}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        ))
+                      ) : (
+                        <>
+                          {renderNameField(index)}
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {columns
+                              .filter((column) => column.type !== "CHECKBOX")
+                              .map((column) => (
+                                <div key={column.id}>
+                                  {renderColumnField(column, index)}
+                                </div>
+                              ))}
+                          </div>
+
+                          {columns.some(
+                            (column) => column.type === "CHECKBOX"
+                          ) && (
+                            <div className="space-y-3">
                               {columns
-                                .filter((column) => column.type !== "CHECKBOX")
+                                .filter((column) => column.type === "CHECKBOX")
                                 .map((column) => (
                                   <div key={column.id}>
                                     {renderColumnField(column, index)}
                                   </div>
                                 ))}
                             </div>
-
-                            {columns.some(
-                              (column) => column.type === "CHECKBOX"
-                            ) && (
-                              <div className="space-y-3">
-                                {columns
-                                  .filter((column) => column.type === "CHECKBOX")
-                                  .map((column) => (
-                                    <div key={column.id}>
-                                      {renderColumnField(column, index)}
-                                    </div>
-                                  ))}
-                              </div>
-                            )}
-                          </>
-                        )}
+                          )}
+                        </>
+                      )}
                     </CardContent>
                   )}
                 </Card>
@@ -548,21 +545,38 @@ const RecordField = ({
   layout,
   columnsByName,
   fetchDropdownOptions,
+  optionModule,
 }: {
   column: RecordColumn;
   index: number;
   form: UseFormReturn<FormValues>;
   layout?: RecordFieldLayout;
   columnsByName: Map<string, RecordColumn>;
-  fetchDropdownOptions: (fieldId: string) => Promise<any>;
+  fetchDropdownOptions: (
+    fieldId: string,
+    search: string,
+    limit: number
+  ) => Promise<any>;
+  optionModule?: "LEAD" | "REFERRAL";
 }) => {
   const fieldName = `records.${index}.${column.id}` as const;
-  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const { team } = useParams({ strict: false });
 
-  const { data: dropdownOptions } = useQuery({
-    queryKey: ["record-dropdown-options", column.id],
-    queryFn: () => fetchDropdownOptions(column.id),
-    enabled: column.type === "DROPDOWN" || column.type === "ASSIGNED_TO",
+  const optionRoute =
+    optionModule === "REFERRAL"
+      ? "/$team/referral-list/option/$option"
+      : optionModule === "LEAD"
+        ? "/$team/master-list/leads/option/$option"
+        : null;
+
+  const { data: dropdownOptions, isFetching: isFetchingOptions } = useQuery({
+    queryKey: ["record-dropdown-options", column.id, debouncedSearch],
+    queryFn: () =>
+      fetchDropdownOptions(column.id, debouncedSearch, PICKER_LIMIT),
+    enabled: isOptionBacked(column.type) || column.type === "ASSIGNED_TO",
+    placeholderData: keepPreviousData,
   });
 
   const linkTargetModule =
@@ -570,18 +584,70 @@ const RecordField = ({
       ? "CONTACT"
       : column.type === "COMPANY_LINK"
         ? "COMPANY"
-        : null;
+        : column.type === "REFERRAL_LINK"
+          ? "LEAD"
+          : null;
 
-  const { data: linkRecords } = useQuery({
-    queryKey: ["link-records", linkTargetModule, 1, 500],
-    queryFn: () => getLinkCandidates(linkTargetModule as string, 1, 500),
+  const { data: linkRecords, isFetching: isFetchingLinks } = useQuery({
+    queryKey: ["link-records", linkTargetModule, debouncedSearch],
+    queryFn: () =>
+      getLinkCandidates(
+        linkTargetModule as string,
+        1,
+        PICKER_LIMIT,
+        debouncedSearch
+      ),
     enabled: !!linkTargetModule,
+    placeholderData: keepPreviousData,
   });
+
+  const optionChoices: SearchableOption[] = toFieldOptions(dropdownOptions).map(
+    (option) => ({
+      id: option.id,
+      label: option.value,
+      value: option.value,
+    })
+  );
+
+  const linkChoices: SearchableOption[] = (linkRecords ?? []).map(
+    (record: { id: string; value: string }) => ({
+      id: record.id,
+      label: record.value,
+      value: record.id,
+    })
+  );
+
+  const hasNoOptions =
+    isOptionBacked(column.type) &&
+    !!dropdownOptions &&
+    optionChoices.length === 0 &&
+    !debouncedSearch;
+
+  const optionsWarning =
+    hasNoOptions && layout?.required ? (
+      <span className="text-xs font-normal text-warning">
+        No options yet -{" "}
+        {optionRoute && team ? (
+          <Link
+            to={optionRoute}
+            params={{ team, option: column.id }}
+            className="font-semibold underline underline-offset-2"
+          >
+            add them in settings
+          </Link>
+        ) : (
+          "add them in settings"
+        )}
+      </span>
+    ) : null;
 
   const label = (
     <FormLabel className={LABEL_CLASS}>
       {column.name}
-      {layout?.required && <span className="text-red-500"> *</span>}
+      {layout?.required && column.type !== "CHECKBOX" && (
+        <span className="text-red-500"> *</span>
+      )}
+      {optionsWarning}
     </FormLabel>
   );
 
@@ -590,38 +656,21 @@ const RecordField = ({
   ) : null;
 
   // A required select with nothing to pick would block submission with no explanation
-  const hasNoOptions =
-    isOptionBacked(column.type) &&
-    !!dropdownOptions &&
-    dropdownOptions.length === 0;
-
-  const optionsWarning =
-    hasNoOptions && layout?.required ? (
-      <p className="text-xs text-amber-600">
-        No {column.name.toLowerCase()} options configured yet - add them in
-        settings before creating.
-      </p>
-    ) : null;
 
   // Address selection fills the sibling columns the caller mapped
   const applyAddressComponents = (components: AddressComponents) => {
     if (!layout?.autoFill) return;
 
-    (Object.entries(layout.autoFill) as [
-      keyof AddressComponents,
-      string,
-    ][]).forEach(([componentKey, columnName]) => {
+    (
+      Object.entries(layout.autoFill) as [keyof AddressComponents, string][]
+    ).forEach(([componentKey, columnName]) => {
       const target = columnsByName.get(columnName);
       const value = components[componentKey];
       if (!target || !value) return;
 
-      // A geocoded value the org has no option for would leave the select blank
-      const resolved = isOptionBacked(target.type)
-        ? matchOption(queryClient, target.id, value)
-        : value;
-      if (!resolved) return;
-
-      form.setValue(`records.${index}.${target.id}`, resolved, {
+      // A geocoded county the organization has no option for is still the right
+      // answer, so it fills as picked rather than being dropped.
+      form.setValue(`records.${index}.${target.id}`, value, {
         shouldValidate: true,
       });
     });
@@ -630,30 +679,29 @@ const RecordField = ({
   switch (column.type) {
     case "CONTACT_LINK":
     case "COMPANY_LINK":
+    case "REFERRAL_LINK":
       return (
         <FormField
           control={form.control}
           name={fieldName}
           render={({ field }) => (
-            <FormItem className="w-full">
+            <FormItem className={cn(FIELD_ITEM_CLASS, "w-full")}>
               {label}
               {helperText}
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className={SELECT_CONTROL_CLASS}>
-                    <SelectValue
-                      placeholder={`Select ${column.name.toLowerCase()}`}
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="w-full">
-                  {linkRecords?.map((record: { id: string; value: string }) => (
-                    <SelectItem key={record.id} value={record.id}>
-                      {record.value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchableSelect
+                  options={linkChoices}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  search={search}
+                  onSearchChange={setSearch}
+                  isLoading={isFetchingLinks}
+                  placeholder={`Select ${column.name.toLowerCase()}`}
+                  searchPlaceholder={`Search ${column.name.toLowerCase()}...`}
+                  emptyText={`No ${column.name.toLowerCase()} found.`}
+                  className={FIELD_CONTROL_CLASS}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -666,7 +714,7 @@ const RecordField = ({
           control={form.control}
           name={fieldName}
           render={({ field }) => (
-            <FormItem>
+            <FormItem className={FIELD_ITEM_CLASS}>
               {label}
               {helperText}
               <Popover>
@@ -707,32 +755,31 @@ const RecordField = ({
       );
 
     case "DROPDOWN":
+    case "STATUS":
     case "ASSIGNED_TO":
       return (
         <FormField
           control={form.control}
           name={fieldName}
           render={({ field }) => (
-            <FormItem className="w-full">
+            <FormItem className={cn(FIELD_ITEM_CLASS, "w-full")}>
               {label}
               {helperText}
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className={SELECT_CONTROL_CLASS}>
-                    <SelectValue
-                      placeholder={`Select ${column.name.toLowerCase()}`}
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="w-full">
-                  {dropdownOptions?.map((option: any) => (
-                    <SelectItem key={option.id} value={option.value}>
-                      {option.value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {optionsWarning}
+              <FormControl>
+                <SearchableSelect
+                  options={optionChoices}
+                  value={field.value ?? ""}
+                  valueLabel={field.value ?? ""}
+                  onChange={field.onChange}
+                  search={search}
+                  onSearchChange={setSearch}
+                  isLoading={isFetchingOptions}
+                  placeholder={`Select ${column.name.toLowerCase()}`}
+                  searchPlaceholder={`Search ${column.name.toLowerCase()}...`}
+                  emptyText={`No ${column.name.toLowerCase()} found.`}
+                  className={FIELD_CONTROL_CLASS}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -745,14 +792,16 @@ const RecordField = ({
           control={form.control}
           name={fieldName}
           render={({ field }) => (
-            <FormItem className="flex h-11 flex-row items-center space-x-3 space-y-0 rounded-md border px-3">
+            <FormItem className="mt-auto flex h-11 flex-row items-center space-x-3 space-y-0 rounded-md border px-3">
               <FormControl>
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel className={cn(LABEL_CLASS, "cursor-pointer leading-none")}>
+              <FormLabel
+                className={cn(LABEL_CLASS, "cursor-pointer leading-none")}
+              >
                 {column.name}
               </FormLabel>
             </FormItem>
@@ -766,7 +815,7 @@ const RecordField = ({
           control={form.control}
           name={fieldName}
           render={({ field }) => (
-            <FormItem>
+            <FormItem className={FIELD_ITEM_CLASS}>
               {label}
               {helperText}
               <FormControl>
@@ -792,7 +841,7 @@ const RecordField = ({
           control={form.control}
           name={fieldName}
           render={({ field }) => (
-            <FormItem>
+            <FormItem className={FIELD_ITEM_CLASS}>
               {label}
               {helperText}
               <FormControl>
@@ -801,7 +850,7 @@ const RecordField = ({
                     {...field}
                     rows={4}
                     placeholder={placeholderFor(column.name, column.type)}
-                    className="min-h-24 w-full"
+                    className="mt-auto min-h-24 w-full"
                   />
                 ) : (
                   <Input

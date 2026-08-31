@@ -1,7 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
 import type {
-  CountyAssignmentPayload,
-  CountyRow,
   ReferralHistoryItem,
   ReferralHistoryResponse,
 } from "@dashboard/shared";
@@ -52,7 +50,8 @@ export const getReferralColumnOptions = async () => {
 export const getReferralDropdownOptions = async (
   fieldKey: string,
   page?: number,
-  limit?: number
+  limit?: number,
+  search?: string
 ) => {
   const response = await axiosClient.get(
     `/api/boards/field/${fieldKey}/options`,
@@ -60,6 +59,7 @@ export const getReferralDropdownOptions = async (
       params: {
         page: page,
         limit: limit,
+        search: search || undefined,
       },
     }
   );
@@ -173,41 +173,6 @@ export const deleteReferralTimeline = async (id: string) => {
   const response = await axiosClient.delete(`/api/boards/timeline/${id}`, {
     data: { moduleType: "REFERRAL" },
   });
-
-  return response.data;
-};
-
-export const getCounties = async (): Promise<CountyRow[]> => {
-  const response = await axiosClient.get("/api/boards/county/configuration");
-
-  return response.data;
-};
-
-export const createCounty = async (data: CountyAssignmentPayload) => {
-  const response = await axiosClient.post(
-    "/api/boards/county/assignment",
-    data
-  );
-
-  return response.data;
-};
-
-export const updateCountyLiaisons = async (
-  countyId: string,
-  liaisons: string[]
-) => {
-  const response = await axiosClient.put(
-    `/api/boards/county/assignment/${countyId}`,
-    { liaisons }
-  );
-
-  return response.data;
-};
-
-export const deleteCounty = async (id: string) => {
-  const response = await axiosClient.delete(
-    `/api/boards/county/assignment/${id}`
-  );
 
   return response.data;
 };

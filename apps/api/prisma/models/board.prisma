@@ -22,6 +22,7 @@ model Module {
   forms           Form[]
   savedReports    SavedReport[]
   customAnalytics CustomAnalytic[]
+  analyticDashboards CustomAnalyticDashboard[]
 
   @@unique([organizationId, key])
   @@index([organizationId, isArchived, moduleOrder])

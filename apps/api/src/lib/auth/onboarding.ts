@@ -5,6 +5,7 @@ import {
   StageType,
   TaskStatusCategory,
 } from "@prisma/client";
+import { seedDefaultAnalytics } from "src/lib/analytics/default-analytics";
 import { emailIndex, normalizeEmail } from "src/lib/crypto/email-index";
 import {
   resolveModuleId,
@@ -780,7 +781,6 @@ const seedOrganization = async (organizationId: string) => {
 
   const ownerId = ownerMember.user.id;
   const ownerMemberId = ownerMember.id;
-  const ownerName = ownerMember.user.name;
 
   //
   // ============================================
@@ -856,23 +856,6 @@ const seedOrganization = async (organizationId: string) => {
       data: { taskId: task.id, memberId: ownerMemberId },
     });
   }
-
-  //
-  // ============================================
-  // COUNTY CONFIGURATION
-  // ============================================
-  //
-  const assignedCounty = await prisma.boardCounty.create({
-    data: { countyName: "Springfield County", organizationId },
-  });
-
-  await prisma.boardCountyAssignedTo.create({
-    data: { assignedTo: ownerName, boardCountyId: assignedCounty.id },
-  });
-
-  await prisma.boardCounty.create({
-    data: { countyName: "Riverton County", organizationId },
-  });
 
   //
   // ============================================
@@ -1082,6 +1065,17 @@ const seedOrganization = async (organizationId: string) => {
       recipientId: ownerMemberId,
     },
   });
+
+  //
+  // ============================================
+  // DEFAULT ANALYTICS
+  // ============================================
+  //
+  // Runs last: the charts resolve field ids, so every module's fields must
+  // already exist. Contacts and companies seed no page, so they are not listed.
+  for (const moduleId of [leadModuleId, referralModuleId]) {
+    await seedDefaultAnalytics(moduleId, organizationId);
+  }
 
   console.log("✅ Seeding complete");
 };

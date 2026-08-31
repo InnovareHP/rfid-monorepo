@@ -176,17 +176,6 @@ export type LeadHistoryItem = {
   message?: string;
 };
 
-export type CountyRow = {
-  id: string;
-  name: string;
-  liaisons: string[];
-};
-
-export type CountyAssignmentPayload = {
-  name: string;
-  liaisons: string[];
-};
-
 export type AnalyticsResponse = {
   totalCounts: TotalCounts;
   statusBreakdown: StatusBreakdownItem[];

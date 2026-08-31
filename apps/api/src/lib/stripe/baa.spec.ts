@@ -52,8 +52,18 @@ describe("BAA terms", () => {
   });
 
   // The clause list is a summary of the document, not the document; a section
-  // added without a summary is the drift this catches.
+  // added without a summary is the drift this catches. Not an equality: the
+  // summary is deliberately more granular than the section headings, so it may
+  // run longer, but it can never fall behind the number of sections.
   it("keeps a summary for every section of the agreement", () => {
-    expect(BAA_CLAUSES).toHaveLength(BAA_SECTIONS.length);
+    expect(BAA_CLAUSES.length).toBeGreaterThanOrEqual(BAA_SECTIONS.length);
+  });
+
+  it("has no blank or repeated clause", () => {
+    for (const clause of BAA_CLAUSES) {
+      expect(clause.trim()).not.toBe("");
+    }
+
+    expect(new Set(BAA_CLAUSES).size).toBe(BAA_CLAUSES.length);
   });
 });

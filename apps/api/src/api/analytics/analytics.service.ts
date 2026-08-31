@@ -564,10 +564,13 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date
   ) {
-    // The read-through was disabled deliberately (the return below it was
-    // commented out), so fetching here only cost a Redis round-trip whose
-    // result was discarded. The write is left in place so re-enabling is one
-    // line, but nothing reads this key today.
+    // Every metric below is a separate scan over the referral board, so the
+    // assembled payload is served from Redis for five minutes rather than
+    // recomputed on each visit.
+    const cacheKey = `analytics:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}`;
+    const cached = await getData(cacheKey);
+    if (cached) return cached;
+
     const [
       totalCounts,
       statusBreakdown,
@@ -620,11 +623,7 @@ export class AnalyticsService {
       denials,
     };
 
-    await cacheData(
-      `analytics:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}`,
-      result,
-      60 * 5
-    );
+    await cacheData(cacheKey, result, 60 * 5);
 
     return result;
   }

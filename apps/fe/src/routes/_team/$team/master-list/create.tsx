@@ -61,7 +61,10 @@ function RouteComponent() {
       sections={FACILITY_FORM_SECTIONS}
       isLoadingColumns={isLoadingColumns}
       isSubmitting={createFacilitiesMutation.isPending}
-      fetchDropdownOptions={getDropdownOptions}
+      fetchDropdownOptions={(fieldId, search, limit) =>
+        getDropdownOptions(fieldId, 1, limit, search)
+      }
+      optionModule="LEAD"
       onSubmit={(records) => createFacilitiesMutation.mutate(records)}
       onBack={goBack}
     />

@@ -35,7 +35,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   email: z.email(),
-  role: z.enum([ROLES.LIAISON, ROLES.ADMIN, ROLES.ADMISSION_MANAGER]),
+  role: z.enum([ROLES.LIAISON, ROLES.ADMIN, ROLES.MEMBER]),
   message: z.string(),
 });
 
@@ -143,8 +143,8 @@ export function InviteMemberDialog({
                         <SelectItem value={ROLES.ADMIN}>
                           {ROLE_LABELS[ROLES.ADMIN]}
                         </SelectItem>
-                        <SelectItem value={ROLES.ADMISSION_MANAGER}>
-                          {ROLE_LABELS[ROLES.ADMISSION_MANAGER]}
+                        <SelectItem value={ROLES.MEMBER}>
+                          {ROLE_LABELS[ROLES.MEMBER]}
                         </SelectItem>
                       </SelectContent>
                     </Select>

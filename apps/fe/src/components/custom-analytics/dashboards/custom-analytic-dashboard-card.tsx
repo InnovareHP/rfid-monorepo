@@ -110,7 +110,7 @@ export function CustomAnalyticDashboardCard({
           {dashboard.analytics.length === 1 ? "" : "s"}
         </CardDescription>
 
-        {canManage && (
+        {canManage && !dashboard.isDefault && (
           <CardAction>
             <Button
               variant="ghost"

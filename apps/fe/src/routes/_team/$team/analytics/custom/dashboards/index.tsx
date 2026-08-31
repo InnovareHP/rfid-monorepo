@@ -4,6 +4,10 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute(
   "/_team/$team/analytics/custom/dashboards/"
 )({
+  // The sidebar's New Dashboard row lands here with the form already open.
+  validateSearch: (search: Record<string, unknown>) => ({
+    new: search.new === true || search.new === "true" ? true : undefined,
+  }),
   component: CustomAnalyticDashboardsListPage,
   errorComponent: () => (
     <div className="page-style">

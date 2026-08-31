@@ -8,6 +8,7 @@ import {
   getDashboard,
   reorderDashboardCharts,
   runDashboard,
+  updateDashboard,
   type CustomAnalyticDashboardDetail,
   type CustomAnalyticDashboardRun,
 } from "@/services/custom-analytics/custom-analytic-dashboard-service";
@@ -16,19 +17,49 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouteContext } from "@tanstack/react-router";
 import type { Member } from "better-auth/plugins/organization";
 import { endOfDay } from "date-fns";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CustomAnalyticDashboardAddChartsDialog } from "./custom-analytic-dashboard-add-charts-dialog";
 import { CustomAnalyticDashboardCardSkeleton } from "./custom-analytic-dashboard-card-skeleton";
 import { CustomAnalyticDashboardChartGrid } from "./custom-analytic-dashboard-chart-grid";
+import { ModuleAnalyticsInsights } from "../module/module-analytics-insights";
+import { useAnalyticChartActions } from "@/hooks/use-analytic-chart-actions";
+import { CustomAnalyticEditSheet } from "./custom-analytic-edit-sheet";
 import { CustomAnalyticDashboardFormDialog } from "./custom-analytic-dashboard-form-dialog";
 
-export default function CustomAnalyticDashboardViewPage() {
+// The id comes from the route for a hand-built dashboard, and from the caller
+// for a module's seeded page, which resolves it by module key first.
+type Props = {
+  dashboardId?: string;
+  description?: string;
+  // A module's seeded page is a report, not a canvas: editing it happens in the
+  // dashboards area, where every dashboard is managed the same way.
+  editable?: boolean;
+  // A module's own page shows the AI panel; a hand-built dashboard does not.
+  insightsLabel?: string;
+};
+
+export default function CustomAnalyticDashboardViewPage({
+  dashboardId: dashboardIdProp,
+  description,
+  editable = true,
+  insightsLabel,
+}: Props = {}) {
   const queryClient = useQueryClient();
-  const { dashboardId } = useParams({ strict: false }) as {
-    dashboardId: string;
+  const params = useParams({ strict: false }) as {
+    dashboardId?: string;
+    team?: string;
   };
+  const dashboardId = dashboardIdProp ?? params.dashboardId ?? "";
   const [formOpen, setFormOpen] = useState(false);
+  // One state, not an id plus an open flag: null is closed, and an entry
+  // whose analyticId is null is a new chart rather than an edit.
+  const [editing, setEditing] = useState<{ analyticId: string | null } | null>(
+    null
+  );
+  const chartActions = useAnalyticChartActions();
+  const [addChartsOpen, setAddChartsOpen] = useState(false);
   const [dateRange, setDateRange] = useState<AnalyticsDateRange>({
     start: null,
     end: null,
@@ -41,7 +72,7 @@ export default function CustomAnalyticDashboardViewPage() {
     "member-data",
     activeOrganizationId,
   ]);
-  const canManage = can(memberData?.role, { analytics: ["manage"] });
+  const canManage = editable && can(memberData?.role, { analytics: ["manage"] });
 
   const RUN_PREFIX = ["custom-analytic-dashboard-run", dashboardId];
   const DETAIL_KEY = ["custom-analytic-dashboard", dashboardId];
@@ -121,6 +152,27 @@ export default function CustomAnalyticDashboardViewPage() {
     },
   });
 
+  // A module's seeded page keeps its name and its charts; only each chart's own
+  // definition is editable.
+  const isFixed = dashboard?.isDefault === true;
+
+  // Membership lives on the page rather than in the edit dialog, so adding and
+  // removing a chart is done where the charts are.
+  const memberIds = (dashboard?.analytics ?? []).map((analytic) => analytic.id);
+
+  const membershipMutation = useMutation({
+    mutationFn: (analyticIds: string[]) =>
+      updateDashboard(dashboardId, { analyticIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DETAIL_KEY });
+      queryClient.invalidateQueries({ queryKey: RUN_PREFIX });
+      queryClient.invalidateQueries({ queryKey: PREVIEW_KEY });
+      queryClient.invalidateQueries({ queryKey: DASHBOARDS_KEY });
+      setAddChartsOpen(false);
+    },
+    onError: () => toast.error("Failed to update the dashboard charts"),
+  });
+
   // The picker hands back local midnight for the end day, which would cut the
   // last day off server-side where the bound is applied as lte.
   const dateWindow =
@@ -145,18 +197,48 @@ export default function CustomAnalyticDashboardViewPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           title={dashboard?.name ?? "Dashboard"}
-          description="A group of saved charts, filtered together."
+          description={
+            description ?? "A group of saved charts, filtered together."
+          }
         />
 
         {canManage && dashboard && (
-          <Button variant="outline" onClick={() => setFormOpen(true)}>
-            <Pencil className="h-4 w-4" />
-            Edit Dashboard
-          </Button>
+          <div className="flex items-center gap-2">
+            {!isFixed && (
+              <>
+                <Button variant="outline" onClick={() => setFormOpen(true)}>
+                  <Pencil className="h-4 w-4" />
+                  Rename
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setAddChartsOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Existing
+                </Button>
+              </>
+            )}
+
+            {/* Allowed on a seeded page too: building a chart here attaches it
+                to this dashboard, where the old create route left it orphaned. */}
+            <Button onClick={() => setEditing({ analyticId: null })}>
+              <Plus className="h-4 w-4" />
+              New Chart
+            </Button>
+          </div>
         )}
       </div>
 
       <AnalyticsDateFilter onChange={setDateRange} />
+
+      {insightsLabel && (
+        <ModuleAnalyticsInsights
+          dashboardId={dashboardId}
+          dateWindow={dateWindow}
+          label={insightsLabel}
+        />
+      )}
 
       {isPending || !result ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -165,20 +247,53 @@ export default function CustomAnalyticDashboardViewPage() {
         </div>
       ) : result.charts.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
-          This dashboard has no charts yet. Edit it to add some.
+          This dashboard has no charts yet. Use Add Chart to put some on it.
         </p>
       ) : (
         <CustomAnalyticDashboardChartGrid
           charts={result.charts}
           canManage={canManage}
           onReorder={(ids) => reorderMutation.mutate(ids)}
+          onRemove={
+            isFixed
+              ? undefined
+              : (id) =>
+                  membershipMutation.mutate(
+                    memberIds.filter((memberId) => memberId !== id)
+                  )
+          }
+          onEdit={(id) => setEditing({ analyticId: id })}
+          onDuplicate={(id) => chartActions.duplicate.mutate(id)}
+          onWidthChange={(id, tileSpan) =>
+            chartActions.setWidth.mutate({ id, tileSpan })
+          }
+          onDelete={(id) => chartActions.remove.mutate(id)}
         />
       )}
+
+      <CustomAnalyticEditSheet
+        analyticId={editing?.analyticId ?? null}
+        open={editing !== null}
+        attachToDashboardId={dashboardId}
+        lockedModuleId={dashboard?.moduleId ?? undefined}
+        onOpenChange={(open) => !open && setEditing(null)}
+        onSaved={() => setEditing(null)}
+      />
 
       <CustomAnalyticDashboardFormDialog
         open={formOpen}
         dashboard={dashboard ?? null}
         onOpenChange={setFormOpen}
+      />
+
+      <CustomAnalyticDashboardAddChartsDialog
+        open={addChartsOpen}
+        memberIds={memberIds}
+        isSaving={membershipMutation.isPending}
+        onOpenChange={setAddChartsOpen}
+        onAdd={(analyticIds) =>
+          membershipMutation.mutate([...memberIds, ...analyticIds])
+        }
       />
     </div>
   );
