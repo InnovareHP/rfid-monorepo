@@ -56,8 +56,7 @@ export const BookingConfirmationEmail = ({
 
       {manageUrl ? (
         <Text style={emailStyles.paragraph}>
-          Need a different time?{" "}
-          <a href={manageUrl}>Reschedule or cancel</a>.
+          Need a different time? <a href={manageUrl}>Reschedule or cancel</a>.
         </Text>
       ) : null}
 

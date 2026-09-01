@@ -190,6 +190,7 @@ module "ses" {
   name_prefix             = local.name_prefix
   region                  = var.region
   sending_domain          = var.ses_sending_domain
+  mail_from_subdomain     = var.ses_mail_from_subdomain
   enable_inbound          = var.enable_ses_inbound
   inbound_domain          = var.ses_inbound_domain
   raw_retention_days      = var.ses_inbound_raw_retention_days

@@ -100,6 +100,20 @@ output "ses_sending_dkim_records" {
   ]
 }
 
+output "ses_mail_from_dns_records" {
+  description = "MX and SPF TXT to publish for the MAIL FROM subdomain."
+  value = var.ses_mail_from_subdomain != "" ? {
+    mx = {
+      name  = var.ses_mail_from_subdomain
+      value = module.ses.mail_from_mx_target
+    }
+    spf_txt = {
+      name  = var.ses_mail_from_subdomain
+      value = "v=spf1 include:amazonses.com ~all"
+    }
+  } : null
+}
+
 output "ses_inbound_dns_records" {
   description = "Verification TXT, DKIM CNAMEs and MX for the ingest domain."
   value = var.enable_ses_inbound && var.ses_inbound_domain != "" ? {

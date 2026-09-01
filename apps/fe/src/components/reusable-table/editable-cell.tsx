@@ -37,6 +37,7 @@ import {
 } from "@dashboard/ui/components/select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { toFieldOptions } from "@/lib/helper/field-options";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
   keepPreviousData,
@@ -202,11 +203,13 @@ export function EditableCell({
       });
       return { previous };
     },
-    onError: (_err, _vars, context: any) => {
+    onError: (err, _vars, context: any) => {
       context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
         queryClient.setQueryData(key as any, data)
       );
-      toast.error("Failed to update.");
+      // The server explains a refused rename - a duplicate name, most often -
+      // and a fixed string here threw that away.
+      toast.error(getApiErrorMessage(err, "Failed to update."));
     },
     // No board-list invalidate: the optimistic write is authoritative locally
     // and the board socket reconciles other clients + server-derived fields.
@@ -215,6 +218,8 @@ export function EditableCell({
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
     },
   });
+
+
 
   const handleUpdate = async (
     newVal: string,
@@ -261,7 +266,7 @@ export function EditableCell({
       // toast.success("Value updated successfully");
     } catch (error) {
       setVal(value); // Revert to original value
-      toast.error("Failed to update value");
+      toast.error(getApiErrorMessage(error, "Failed to update value"));
     } finally {
       setIsUpdating(false);
     }
@@ -279,7 +284,11 @@ export function EditableCell({
 
   const queryKey = ["dropdown-options", fieldKey, debouncedSearch];
 
-  const { data, refetch, isLoading: isLoadingOptions } = useQuery({
+  const {
+    data,
+    refetch,
+    isLoading: isLoadingOptions,
+  } = useQuery({
     queryKey,
     queryFn: () =>
       isReferral
@@ -589,143 +598,145 @@ export function EditableCell({
             <SelectValue placeholder={val || "Select an option"} />
           </SelectTrigger>
 
-        <SelectContent>
-          {isLoadingOptions ? (
-            <div className="flex items-center justify-center p-4">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-gray-500">Loading options...</span>
-            </div>
-          ) : (
-            <>
-              {/* Filters on the server, so the whole list stays reachable */}
-              <div className="p-2 border-b">
-                <Input
-                  placeholder="Search options..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 text-xs"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                />
+          <SelectContent>
+            {isLoadingOptions ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span className="text-sm text-gray-500">
+                  Loading options...
+                </span>
               </div>
+            ) : (
+              <>
+                {/* Filters on the server, so the whole list stays reachable */}
+                <div className="p-2 border-b">
+                  <Input
+                    placeholder="Search options..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-8 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
 
-              {/* Options list */}
-              <div className="max-h-[200px] overflow-y-auto">
-                {filteredOptions.length > 0 ? (
-                  filteredOptions.map((opt: OptionsResponse) => (
-                    <SelectItem key={opt.id} value={opt.value}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{opt.value}</span>
-                        {opt.value === val && (
-                          <Check className="h-3 w-3 ml-2 text-primary" />
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                ) : searchQuery ? (
-                  <div className="flex items-center justify-center p-4">
-                    <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-500">
-                      No matches found
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center p-4">
-                    <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-500">
-                      No options available
-                    </span>
-                  </div>
-                )}
-                {hasCurrentVal && !searchQuery && (
-                  <SelectItem key="current-val" value={val}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{val}</span>
-                      <Check className="h-3 w-3 ml-2 text-primary" />
-                    </div>
-                  </SelectItem>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              <div className="border-t mt-1">
-                {val && (
-                  <div
-                    className="flex items-center gap-2 px-2 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUpdate("");
-                    }}
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Remove value
-                  </div>
-                )}
-
-                <>
-                  {adding ? (
-                    <div className="flex items-center gap-2 px-2 py-2">
-                      <Input
-                        placeholder="New option"
-                        value={newOption}
-                        onChange={(e) => setNewOption(e.target.value)}
-                        onKeyDown={(e) => {
-                          e.stopPropagation();
-
-                          if (e.key === "Enter") handleAddOption();
-                          if (e.key === "Escape") setAdding(false);
-                        }}
-                        className="h-7 text-xs"
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                      />
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddOption();
-                        }}
-                        disabled={isCreatingOption}
-                      >
-                        {isCreatingOption ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            Adding...
-                          </>
-                        ) : (
-                          "Add"
-                        )}
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAdding(false);
-                          setNewOption("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
+                {/* Options list */}
+                <div className="max-h-[200px] overflow-y-auto">
+                  {filteredOptions.length > 0 ? (
+                    filteredOptions.map((opt: OptionsResponse) => (
+                      <SelectItem key={opt.id} value={opt.value}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{opt.value}</span>
+                          {opt.value === val && (
+                            <Check className="h-3 w-3 ml-2 text-primary" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : searchQuery ? (
+                    <div className="flex items-center justify-center p-4">
+                      <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-500">
+                        No matches found
+                      </span>
                     </div>
                   ) : (
-                    <div>
-                      <div
-                        className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAdding(true);
-                        }}
-                      >
-                        + Add more option
+                    <div className="flex items-center justify-center p-4">
+                      <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-500">
+                        No options available
+                      </span>
+                    </div>
+                  )}
+                  {hasCurrentVal && !searchQuery && (
+                    <SelectItem key="current-val" value={val}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{val}</span>
+                        <Check className="h-3 w-3 ml-2 text-primary" />
                       </div>
+                    </SelectItem>
+                  )}
+                </div>
 
-                      {team && (
+                {/* Action buttons */}
+                <div className="border-t mt-1">
+                  {val && (
+                    <div
+                      className="flex items-center gap-2 px-2 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdate("");
+                      }}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Remove value
+                    </div>
+                  )}
+
+                  <>
+                    {adding ? (
+                      <div className="flex items-center gap-2 px-2 py-2">
+                        <Input
+                          placeholder="New option"
+                          value={newOption}
+                          onChange={(e) => setNewOption(e.target.value)}
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+
+                            if (e.key === "Enter") handleAddOption();
+                            if (e.key === "Escape") setAdding(false);
+                          }}
+                          className="h-7 text-xs"
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddOption();
+                          }}
+                          disabled={isCreatingOption}
+                        >
+                          {isCreatingOption ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              Adding...
+                            </>
+                          ) : (
+                            "Add"
+                          )}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAdding(false);
+                            setNewOption("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div
+                          className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAdding(true);
+                          }}
+                        >
+                          + Add more option
+                        </div>
+
+                        {team && (
                           <Link
                             to={
                               isReferral
@@ -740,12 +751,12 @@ export function EditableCell({
                             </div>
                           </Link>
                         )}
-                    </div>
-                  )}
-                </>
-              </div>
-            </>
-          )}
+                      </div>
+                    )}
+                  </>
+                </div>
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -773,109 +784,117 @@ export function EditableCell({
 
     return (
       <div className="flex items-center gap-1 min-w-0">
-      <Select
-        value={selectedId || val || ""}
-        onValueChange={(v) => {
-          const record = (records ?? []).find((r: any) => r.id === v);
-          handleUpdate(String(v), undefined, undefined, undefined, record?.value);
-        }}
-        disabled={isUpdating}
-      >
-        <SelectTrigger
-          className={cn("w-auto text-sm", isUpdating && "opacity-50")}
-          onMouseEnter={handleHover} // prefetch before opening
+        <Select
+          value={selectedId || val || ""}
+          onValueChange={(v) => {
+            const record = (records ?? []).find((r: any) => r.id === v);
+            handleUpdate(
+              String(v),
+              undefined,
+              undefined,
+              undefined,
+              record?.value
+            );
+          }}
+          disabled={isUpdating}
         >
-          {isUpdating ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : null}
-          <SelectValue placeholder="Select an option" />
-        </SelectTrigger>
-
-        <SelectContent>
-          {isLoadingRecords ? (
-            <div className="flex items-center justify-center p-4">
+          <SelectTrigger
+            className={cn("w-auto text-sm", isUpdating && "opacity-50")}
+            onMouseEnter={handleHover} // prefetch before opening
+          >
+            {isUpdating ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-gray-500">Loading options...</span>
-            </div>
-          ) : (
-            <>
-              <div className="p-2 border-b">
-                <Input
-                  placeholder="Search options..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 text-xs"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                />
-              </div>
+            ) : null}
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
 
-              <div className="max-h-[200px] overflow-y-auto">
-                {filteredRecords.length > 0 ? (
-                  filteredRecords.map((record: any) => (
-                    <SelectItem key={record.id} value={record.id}>
+          <SelectContent>
+            {isLoadingRecords ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span className="text-sm text-gray-500">
+                  Loading options...
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="p-2 border-b">
+                  <Input
+                    placeholder="Search options..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-8 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+
+                <div className="max-h-[200px] overflow-y-auto">
+                  {filteredRecords.length > 0 ? (
+                    filteredRecords.map((record: any) => (
+                      <SelectItem key={record.id} value={record.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{record.value}</span>
+                          {record.value === val && (
+                            <Check className="h-3 w-3 ml-2 text-primary" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : searchQuery ? (
+                    <LinkTargetEmpty
+                      targetModule={linkTargetModule}
+                      team={team as string}
+                      search={searchQuery}
+                      fieldLabel={fieldName ?? "record"}
+                    />
+                  ) : (
+                    <LinkTargetEmpty
+                      targetModule={linkTargetModule}
+                      team={team as string}
+                      search=""
+                      fieldLabel={fieldName ?? "record"}
+                    />
+                  )}
+                  {hasCurrentVal && !searchQuery && (
+                    <SelectItem key="current-val" value={val}>
                       <div className="flex items-center justify-between w-full">
-                        <span>{record.value}</span>
-                        {record.value === val && (
-                          <Check className="h-3 w-3 ml-2 text-primary" />
-                        )}
+                        <span>{val}</span>
+                        <Check className="h-3 w-3 ml-2 text-primary" />
                       </div>
                     </SelectItem>
-                  ))
-                ) : searchQuery ? (
-                  <LinkTargetEmpty
-                    targetModule={linkTargetModule}
-                    team={team as string}
-                    search={searchQuery}
-                    fieldLabel={fieldName ?? "record"}
-                  />
-                ) : (
-                  <LinkTargetEmpty
-                    targetModule={linkTargetModule}
-                    team={team as string}
-                    search=""
-                    fieldLabel={fieldName ?? "record"}
-                  />
-                )}
-                {hasCurrentVal && !searchQuery && (
-                  <SelectItem key="current-val" value={val}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{val}</span>
-                      <Check className="h-3 w-3 ml-2 text-primary" />
-                    </div>
-                  </SelectItem>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div className="border-t mt-1">
-                {val && (
-                  <div
-                    className="flex items-center gap-2 px-2 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUpdate("", undefined, undefined, val);
-                    }}
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Remove value
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </SelectContent>
-      </Select>
-      {!!val && !!linkTargetId && (
-        <Link
-          to={linkRoute as any}
-          search={{ q: val } as any}
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 text-gray-400 hover:text-primary"
-          title={`Open ${val}`}
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Link>
-      )}
+                <div className="border-t mt-1">
+                  {val && (
+                    <div
+                      className="flex items-center gap-2 px-2 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdate("", undefined, undefined, val);
+                      }}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Remove value
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </SelectContent>
+        </Select>
+        {!!val && !!linkTargetId && (
+          <Link
+            to={linkRoute as any}
+            search={{ q: val } as any}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 text-gray-400 hover:text-primary"
+            title={`Open ${val}`}
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        )}
       </div>
     );
   }

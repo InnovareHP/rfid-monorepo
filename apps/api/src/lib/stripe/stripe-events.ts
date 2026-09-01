@@ -9,7 +9,7 @@ import { SubscriptionCanceledEmail } from "../../react-email/subscription-cancel
 import { SubscriptionUpdatedEmail } from "../../react-email/subscription-updated-email";
 import { TrialEndingEmail } from "../../react-email/trial-ending-email";
 import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
-import { invalidateOrganizationSessionContext } from "../auth/auth-helper";
+import { invalidateOrganizationSessionContext } from "../auth/session-context";
 import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { runWithTenant } from "../prisma/tenant-context";

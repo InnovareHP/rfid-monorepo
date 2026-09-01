@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { MAX_SEATS, type BillingInterval } from "@dashboard/shared";
 import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
-import { invalidateOrganizationSessionContext } from "../../lib/auth/auth-helper";
+import { invalidateOrganizationSessionContext } from "../../lib/auth/session-context";
 import { prisma } from "../../lib/prisma/prisma";
 import {
   PLANS,

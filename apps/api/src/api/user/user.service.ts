@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { AdminAction, AgreementKind, Prisma } from "@prisma/client";
 import { invalidateSubscriptionCache } from "src/guard/subscription/subscription.guard";
-import { invalidateOrganizationSessionContext } from "src/lib/auth/auth-helper";
+import { invalidateOrganizationSessionContext } from "src/lib/auth/session-context";
 import { auth } from "src/lib/auth/auth";
 import { prisma } from "src/lib/prisma/prisma";
 import { v4 as uuidv4 } from "uuid";

@@ -19,6 +19,10 @@ type BoardNotifyInput = {
   actorUserId?: string | null;
 };
 
+type BoardNotifyRecordsInput = Omit<BoardNotifyInput, "recordId"> & {
+  recordIds: string[];
+};
+
 // Events the whole org leadership cares about even when nobody is assigned yet.
 const LEADERSHIP_EVENTS: BoardNotificationEvent[] = [
   BOARD_NOTIFICATION_EVENT.CREATED,
@@ -103,6 +107,95 @@ export class BoardNotifyService {
     } catch (error) {
       this.logger.error(
         `Board notification failed for ${input.recordId} (${input.event})`,
+        error as Error
+      );
+    }
+  }
+
+  // Bulk equivalent of notifyRecord. A per-record call cost four queries, so a
+  // bulk delete or import ran that many times the row count; this is three
+  // queries whatever the count. Never throws, for the same reason.
+  async notifyRecords(input: BoardNotifyRecordsInput) {
+    try {
+      if (!input.recordIds.length) return;
+
+      const records = await prisma.board.findMany({
+        where: {
+          id: { in: input.recordIds },
+          organizationId: input.organizationId,
+        },
+        select: { id: true, assignedTo: true, recordName: true },
+      });
+
+      if (!records.length) return;
+
+      const wantsLeadership = LEADERSHIP_EVENTS.includes(input.event);
+      const assigneeIds = [
+        ...new Set(
+          records
+            .map((record) => record.assignedTo)
+            .filter((userId): userId is string => Boolean(userId))
+        ),
+      ];
+
+      const members = await prisma.member.findMany({
+        where: {
+          organizationId: input.organizationId,
+          OR: [
+            ...(assigneeIds.length ? [{ userId: { in: assigneeIds } }] : []),
+            ...(wantsLeadership ? [{ role: { in: LEADERSHIP_ROLES } }] : []),
+          ],
+        },
+        select: { id: true, userId: true, role: true },
+      });
+
+      const memberIdsByUser = new Map<string, string[]>();
+      for (const member of members) {
+        memberIdsByUser.set(member.userId, [
+          ...(memberIdsByUser.get(member.userId) ?? []),
+          member.id,
+        ]);
+      }
+
+      const leadershipMemberIds = wantsLeadership
+        ? members
+            .filter((member) => LEADERSHIP_ROLES.includes(member.role))
+            .map((member) => member.id)
+        : [];
+
+      const items = records
+        .map((record) => ({
+          recipientMemberIds: [
+            ...new Set([
+              ...(record.assignedTo
+                ? (memberIdsByUser.get(record.assignedTo) ?? [])
+                : []),
+              ...leadershipMemberIds,
+            ]),
+          ],
+          type: boardNotificationType(input.moduleType, input.event),
+          title: input.title(record.recordName),
+          body: input.body ?? null,
+          link: this.recordLink(
+            input.moduleType,
+            input.organizationId,
+            record.id
+          ),
+          entityType: input.moduleType,
+          entityId: record.id,
+        }))
+        .filter((item) => item.recipientMemberIds.length > 0);
+
+      if (!items.length) return;
+
+      await this.notificationService.notifyBatch({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId ?? null,
+        items,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Board notifications failed for ${input.recordIds.length} records (${input.event})`,
         error as Error
       );
     }

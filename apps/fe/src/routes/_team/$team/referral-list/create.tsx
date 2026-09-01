@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { REFERRAL_FORM_SECTIONS } from "@/components/referral-list/referral-form-sections";
 import RecordCreatePage, {
@@ -42,8 +43,8 @@ function RouteComponent() {
       });
       goBack();
     },
-    onError: () => {
-      toast.error("Failed to create referrals");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Failed to create referrals"));
     },
   });
 

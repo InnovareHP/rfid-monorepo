@@ -1,5 +1,5 @@
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { invalidateOrganizationSessionContext } from "./auth-helper";
+import { invalidateOrganizationSessionContext } from "./session-context";
 
 // Membership and organization changes go through Better Auth's own routes, so
 // there is no service layer to invalidate from. The cached session context

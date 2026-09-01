@@ -1,8 +1,13 @@
 import { GeocodeCommand } from "@aws-sdk/client-geo-places";
-import { BOARD_NOTIFICATION_EVENT, formatPhoneNumber } from "@dashboard/shared";
+import {
+  BOARD_NOTIFICATION_EVENT,
+  formatPhoneNumber,
+  sanitizeUserText,
+} from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -27,6 +32,14 @@ import { v4 as uuidv4 } from "uuid";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { geoPlaces } from "../../lib/geo/geo-places";
 import { resolveModuleId, toModuleType } from "../../lib/module/system-modules";
+import {
+  normalizeRecordNameLoose,
+  recordNameIndexes,
+} from "../../lib/crypto/record-name-index";
+import {
+  NAME_SIMILARITY_THRESHOLD,
+  nameSimilarity,
+} from "../../lib/board/name-similarity";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
@@ -43,6 +56,14 @@ import { EmailDispatchService } from "./email-dispatch.service";
 const ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 const MS_IN_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+// Every candidate is decrypted to be scored, so the similarity pass reads the
+// most recent slice of a module rather than all of it. Beyond this only the
+// hash indexes apply.
+const SIMILARITY_SCAN_LIMIT = 5000;
+
+// The organization role that owns records; spelled as better-auth stores it.
+const LIAISON_ROLE = "liason";
 
 interface BoardFilters {
   filter?: Record<string, string>;
@@ -1294,6 +1315,7 @@ export class BoardService {
       const assignedTo = await prisma.member.findMany({
         where: {
           organizationId: organizationId,
+          role: LIAISON_ROLE,
         },
         select: {
           user: {
@@ -1596,7 +1618,7 @@ export class BoardService {
   ) {
     const { recordId, value, organizationId, memberId, moduleType } = ctx;
 
-    await this.updateAssignedTo(tx, recordId, value, memberId);
+    await this.updateAssignedTo(tx, recordId, value, memberId, organizationId);
     await this.purgeBoardCache(organizationId, moduleType);
 
     this.boardGateway.emitRecordValueUpdated(
@@ -1614,7 +1636,11 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: RecordUpdateContext
   ) {
-    const { recordId, value, organizationId, memberId, moduleType } = ctx;
+    const { recordId, organizationId, memberId, moduleType } = ctx;
+
+    // A pasted name carries zero-width and bidi characters that make two
+    // records look identical on screen while comparing unequal.
+    const value = sanitizeUserText(ctx.value);
 
     await this.updateRecordName(tx, recordId, value, memberId);
     await this.purgeBoardCache(organizationId, moduleType);
@@ -2131,8 +2157,9 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     ctx: FieldUpdateContext
   ) {
-    const { recordId, value, organizationId, memberId, moduleType, field } =
-      ctx;
+    const { recordId, organizationId, memberId, moduleType, field } = ctx;
+
+    const value = sanitizeUserText(ctx.value);
 
     const existingRecordValue = await tx.fieldValue.findUnique({
       where: {
@@ -2269,9 +2296,50 @@ export class BoardService {
     } = params;
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
 
+    const indexes = recordNameIndexes(recordName);
+
+    // REFERRAL is exempt on purpose, matching the unique index: the same
+    // patient can genuinely be referred more than once, so a repeated name
+    // there is data rather than a mistake.
+    const enforcesUniqueName = moduleType !== "REFERRAL";
+
+    if (enforcesUniqueName && indexes.recordNameHash) {
+      const clash = await tx.board.findFirst({
+        where: {
+          organizationId,
+          moduleId: scopedModuleId,
+          isDeleted: false,
+          recordNameHash: indexes.recordNameHash,
+        },
+        select: { id: true },
+      });
+
+      if (clash) {
+        throw new ConflictException(
+          `A record named "${recordName}" already exists on this module.`
+        );
+      }
+
+      // Refused on the same terms as a rename: a name that only looks like an
+      // existing record is how two rows quietly become one facility under two
+      // spellings, and there is no override for it.
+      const [similar] = await this.findSimilarRecordNames(
+        organizationId,
+        scopedModuleId,
+        recordName
+      );
+
+      if (similar) {
+        throw new ConflictException(
+          `"${recordName}" is too similar to the existing record "${similar.recordName}". Use that one, or rename it first.`
+        );
+      }
+    }
+
     const board = await tx.board.create({
       data: {
         recordName: recordName ?? "",
+        ...indexes,
         organizationId: organizationId,
         moduleType: toModuleType(moduleType),
         moduleId: scopedModuleId,
@@ -2477,6 +2545,10 @@ export class BoardService {
       const recordsToCreate = referralItems.map((referralData) => ({
         id: uuidv4(),
         recordName: referralData.referral_name ?? "",
+        // Indexed for duplicate detection on every module; only the account
+        // modules carry the unique constraint that turns a match into a
+        // refusal, since the same patient can genuinely be referred twice.
+        ...recordNameIndexes(referralData.referral_name),
         moduleType: toModuleType(moduleType),
         moduleId: scopedModuleId,
         organizationId: organizationId,
@@ -2666,16 +2738,16 @@ export class BoardService {
         this.buildCreatedRow(board, dynamicData, linkIds),
         moduleType
       );
-
-      await this.boardNotify.notifyRecord({
-        recordId: referral.id,
-        organizationId,
-        moduleType,
-        actorUserId: memberId,
-        event: BOARD_NOTIFICATION_EVENT.CREATED,
-        title: (recordName) => `New ${moduleType.toLowerCase()}: ${recordName}`,
-      });
     }
+
+    await this.boardNotify.notifyRecords({
+      recordIds: result.referrals.map((referral) => referral.id),
+      organizationId,
+      moduleType,
+      actorUserId: memberId,
+      event: BOARD_NOTIFICATION_EVENT.CREATED,
+      title: (recordName) => `New ${moduleType.toLowerCase()}: ${recordName}`,
+    });
 
     return result;
   }
@@ -3113,8 +3185,22 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     recordId: string,
     value: string,
-    memberId: string
+    memberId: string,
+    organizationId: string
   ) {
+    // Analytics group referrals and marketing logs by the assigned user, so a
+    // non-liaison owner would surface as a liaison row that no report expects.
+    const assignee = await tx.member.findFirst({
+      where: { organizationId, userId: value, role: LIAISON_ROLE },
+      select: { id: true },
+    });
+
+    if (!assignee) {
+      throw new BadRequestException(
+        "A record can only be assigned to a liaison in this organization."
+      );
+    }
+
     const existingRecord = await tx.board.findUnique({
       where: { id: recordId },
       select: {
@@ -3163,9 +3249,55 @@ export class BoardService {
       select: { recordName: true },
     });
 
+    const record = await tx.board.findUniqueOrThrow({
+      where: { id: recordId },
+      select: { organizationId: true, moduleId: true },
+    });
+
+    const indexes = recordNameIndexes(value);
+
+    // Renaming onto a name that already exists is the same duplicate the
+    // import refuses, so it is refused here too rather than relying on the
+    // unique index to surface as an opaque write error.
+    if (indexes.recordNameHash) {
+      const clash = await tx.board.findFirst({
+        where: {
+          organizationId: record.organizationId,
+          moduleId: record.moduleId,
+          isDeleted: false,
+          recordNameHash: indexes.recordNameHash,
+          id: { not: recordId },
+        },
+        select: { id: true },
+      });
+
+      if (clash) {
+        throw new ConflictException(
+          `A record named "${value}" already exists on this module.`
+        );
+      }
+
+      // A rename onto a name that only looks like another record is refused
+      // too. Create offers an override for this case; a rename does not,
+      // because renaming an existing record onto a near neighbour is how two
+      // rows quietly become the same facility under different spellings.
+      const [similar] = await this.findSimilarRecordNames(
+        record.organizationId,
+        record.moduleId,
+        value,
+        recordId
+      );
+
+      if (similar) {
+        throw new ConflictException(
+          `"${value}" is too similar to the existing record "${similar.recordName}". Rename that one, or merge the two.`
+        );
+      }
+    }
+
     await tx.board.update({
       where: { id: recordId },
-      data: { recordName: value },
+      data: { recordName: value, ...indexes },
     });
     await this.createRecordHistory(
       recordId,
@@ -3685,32 +3817,33 @@ export class BoardService {
         data: { isDeleted: true },
       });
 
-      for (const record of records) {
-        await this.createRecordHistory(
-          record.id,
-          record.recordName,
-          "",
-          memberId,
-          tx,
-          "delete"
-        );
-      }
+      // One insert rather than two queries per record: createRecordHistory
+      // re-reads the board for its organizationId, and a bulk delete of any
+      // size then outran the five second interactive transaction timeout.
+      await tx.history.createMany({
+        data: records.map((record) => ({
+          recordId: record.id,
+          oldValue: record.recordName,
+          newValue: "",
+          action: "delete",
+          createdBy: memberId,
+          organizationId,
+        })),
+      });
     });
 
     await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
 
     this.boardGateway.emitRecordDeleted(organizationId, column_ids, moduleType);
 
-    for (const recordId of column_ids) {
-      await this.boardNotify.notifyRecord({
-        recordId,
-        organizationId,
-        moduleType,
-        actorUserId: memberId,
-        event: BOARD_NOTIFICATION_EVENT.DELETED,
-        title: (recordName) => `${recordName} was deleted`,
-      });
-    }
+    await this.boardNotify.notifyRecords({
+      recordIds: column_ids,
+      organizationId,
+      moduleType,
+      actorUserId: memberId,
+      event: BOARD_NOTIFICATION_EVENT.DELETED,
+      title: (recordName) => `${recordName} was deleted`,
+    });
   }
 
   async sendBulkEmail(
@@ -4156,11 +4289,21 @@ export class BoardService {
     moduleType: string,
     email?: string,
     phone?: string,
-    excludeRecordId?: string
+    excludeRecordId?: string,
+    recordName?: string
   ) {
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+    // The name check is an indexed hash lookup, so it runs first and cheaply.
+    const nameMatches = await this.findRecordNameMatches(
+      organizationId,
+      scopedModuleId,
+      recordName,
+      excludeRecordId
+    );
+
     if (!email && !phone) {
-      return { duplicates: [] };
+      return { duplicates: [], ...nameMatches };
     }
 
     const fields = await prisma.field.findMany({
@@ -4184,7 +4327,7 @@ export class BoardService {
     });
 
     if (checks.length === 0) {
-      return { duplicates: [] };
+      return { duplicates: [], ...nameMatches };
     }
 
     // FieldValue.value is encrypted at rest, so matching runs on decrypted
@@ -4224,6 +4367,116 @@ export class BoardService {
         matchedValue: match.value,
       }));
 
-    return { duplicates };
+    return { duplicates, ...nameMatches };
+  }
+
+  // recordName is encrypted, so an exact match is found through the blind
+  // index rather than by decrypting the module. exactMatch means the write
+  // will be refused; nearMatches are only probably the same record and are
+  // returned so the form can warn without blocking.
+  private async findRecordNameMatches(
+    organizationId: string,
+    moduleId: string,
+    recordName?: string,
+    excludeRecordId?: string
+  ) {
+    if (!recordName?.trim()) {
+      return { exactMatch: null, nearMatches: [] };
+    }
+
+    const { recordNameHash, recordNameFuzzyHash } =
+      recordNameIndexes(recordName);
+
+    if (!recordNameHash) {
+      return { exactMatch: null, nearMatches: [] };
+    }
+
+    const matches = await prisma.board.findMany({
+      where: {
+        organizationId,
+        moduleId,
+        isDeleted: false,
+        ...(excludeRecordId ? { id: { not: excludeRecordId } } : {}),
+        OR: [
+          { recordNameHash },
+          ...(recordNameFuzzyHash ? [{ recordNameFuzzyHash }] : []),
+        ],
+      },
+      select: { id: true, recordName: true, recordNameHash: true },
+      take: 10,
+    });
+
+    const exact = matches.find(
+      (match) => match.recordNameHash === recordNameHash
+    );
+
+    const similar = exact
+      ? []
+      : await this.findSimilarRecordNames(
+          organizationId,
+          moduleId,
+          recordName,
+          excludeRecordId
+        );
+
+    const seen = new Set([exact?.id, ...matches.map((match) => match.id)]);
+
+    return {
+      exactMatch: exact
+        ? { recordId: exact.id, recordName: exact.recordName }
+        : null,
+      nearMatches: [
+        ...matches
+          .filter((match) => match.recordNameHash !== recordNameHash)
+          .map((match) => ({
+            recordId: match.id,
+            recordName: match.recordName,
+          })),
+        ...similar.filter((match) => !seen.has(match.recordId)),
+      ].slice(0, 10),
+    };
+  }
+
+  // The hashes above only match a name that normalizes identically, so a typo
+  // or an extra word slips past them. This is the pass that catches those: it
+  // decrypts the module's names and scores them, which is why it is capped and
+  // skipped entirely once an exact match has already been found.
+  private async findSimilarRecordNames(
+    organizationId: string,
+    moduleId: string | null,
+    recordName: string,
+    excludeRecordId?: string
+  ) {
+    const target = normalizeRecordNameLoose(recordName);
+    if (!target) return [];
+
+    const candidates = await prisma.board.findMany({
+      where: {
+        organizationId,
+        moduleId,
+        isDeleted: false,
+        ...(excludeRecordId ? { id: { not: excludeRecordId } } : {}),
+      },
+      select: { id: true, recordName: true },
+      orderBy: { createdAt: "desc" },
+      take: SIMILARITY_SCAN_LIMIT,
+    });
+
+    return candidates
+      .map((candidate) => ({
+        recordId: candidate.id,
+        recordName: candidate.recordName,
+        score: nameSimilarity(
+          target,
+          normalizeRecordNameLoose(candidate.recordName)
+        ),
+      }))
+      .filter((candidate) => candidate.score >= NAME_SIMILARITY_THRESHOLD)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map(({ recordId, recordName: name }) => ({
+        recordId,
+        recordName: name,
+      }));
   }
 }

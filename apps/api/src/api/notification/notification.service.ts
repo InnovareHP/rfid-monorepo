@@ -18,6 +18,15 @@ export type NotifyInput = {
   actorUserId?: string | null;
 };
 
+// One notice per entry, all sharing an organization and an actor. Batching
+// exists because a bulk board mutation raised one notice per record, and each
+// one cost its own member lookup and insert.
+export type NotifyBatchInput = {
+  organizationId: string;
+  actorUserId?: string | null;
+  items: Omit<NotifyInput, "organizationId" | "actorUserId">[];
+};
+
 type NotificationRow = Prisma.NotificationGetPayload<{
   include: { actor: { select: { id: true; name: true; image: true } } };
 }>;
@@ -76,6 +85,48 @@ export class NotificationService {
         entityId: input.entityId ?? null,
       })),
     });
+
+    return { created: result.count };
+  }
+
+  // Same rules as notify, resolved once for the whole batch: the recipients are
+  // looked up in a single query and the actor is dropped from every entry.
+  async notifyBatch(input: NotifyBatchInput) {
+    const recipientIds = [
+      ...new Set(input.items.flatMap((item) => item.recipientMemberIds)),
+    ].filter(Boolean);
+    if (!recipientIds.length) return { created: 0 };
+
+    const members = await prisma.member.findMany({
+      where: { id: { in: recipientIds }, organizationId: input.organizationId },
+      select: { id: true, userId: true },
+    });
+
+    const eligible = new Set(
+      members
+        .filter((member) => member.userId !== input.actorUserId)
+        .map((member) => member.id)
+    );
+
+    const data = input.items.flatMap((item) =>
+      [...new Set(item.recipientMemberIds)]
+        .filter((memberId) => eligible.has(memberId))
+        .map((memberId) => ({
+          organizationId: input.organizationId,
+          recipientId: memberId,
+          actorUserId: input.actorUserId ?? null,
+          type: item.type,
+          title: item.title,
+          body: item.body ?? null,
+          link: item.link ?? null,
+          entityType: item.entityType ?? null,
+          entityId: item.entityId ?? null,
+        }))
+    );
+
+    if (!data.length) return { created: 0 };
+
+    const result = await prisma.notification.createMany({ data });
 
     return { created: result.count };
   }

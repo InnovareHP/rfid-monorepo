@@ -157,7 +157,7 @@ export const UpdateContactSchema = z.object({
   value: z.string(),
 });
 
-export const CreateAttachmentSchema = z.object({
+export const CreateRecordAttachmentSchema = z.object({
   fieldId: z.string(),
   moduleType: z.string().default("LEAD"),
 });

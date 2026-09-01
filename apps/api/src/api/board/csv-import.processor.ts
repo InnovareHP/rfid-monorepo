@@ -5,6 +5,7 @@ import {
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
+import { recordNameIndexes } from "../../lib/crypto/record-name-index";
 import { Job } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import { isSelectType } from "src/lib/helper";
@@ -98,13 +99,38 @@ export class CsvImportProcessor extends WorkerHost {
     const recordsToCreate: {
       id: string;
       recordName: string;
+      recordNameHash: string | null;
+      recordNameFuzzyHash: string | null;
       organizationId: string;
       moduleType: ModuleType;
       moduleId: string;
     }[] = [];
 
+    // Names already on this module, so a re-run of the same file adds nothing.
+    // Only the hashes are read: the names themselves stay encrypted.
+    const existing = await prisma.board.findMany({
+      where: { organizationId, moduleId, isDeleted: false },
+      select: { recordNameHash: true, recordNameFuzzyHash: true },
+    });
+
+    const takenExact = new Set(
+      existing
+        .map((record) => record.recordNameHash)
+        .filter((hash): hash is string => hash !== null)
+    );
+    const takenFuzzy = new Set(
+      existing
+        .map((record) => record.recordNameFuzzyHash)
+        .filter((hash): hash is string => hash !== null)
+    );
+
+    const skipped: { row: number; recordName: string }[] = [];
+    const nearMatches: { row: number; recordName: string }[] = [];
+
+    // Keyed by record id, not row index: a skipped duplicate shifts every
+    // later row and would otherwise write its values onto the wrong record.
     const recordValueBuffer: {
-      record_index: number;
+      recordId: string;
       fieldId: string;
       value: string;
     }[] = [];
@@ -116,9 +142,33 @@ export class CsvImportProcessor extends WorkerHost {
         normalizeOptionValue(stringifyCell(row[nameColumn])) ||
         `Untitled ${labelSingular}`;
 
+      const { recordNameHash, recordNameFuzzyHash } =
+        recordNameIndexes(recordName);
+
+      // An exact name match is a duplicate whether it came from the file or is
+      // already on the board, so the row is dropped and reported rather than
+      // creating a second copy.
+      if (recordNameHash && takenExact.has(recordNameHash)) {
+        skipped.push({ row: rowIndex + 1, recordName });
+        return;
+      }
+
+      // A looser match is only probably the same record, so it is imported and
+      // flagged for review instead of being refused.
+      if (recordNameFuzzyHash && takenFuzzy.has(recordNameFuzzyHash)) {
+        nearMatches.push({ row: rowIndex + 1, recordName });
+      }
+
+      if (recordNameHash) takenExact.add(recordNameHash);
+      if (recordNameFuzzyHash) takenFuzzy.add(recordNameFuzzyHash);
+
+      const recordId = uuidv4();
+
       recordsToCreate.push({
-        id: uuidv4(),
+        id: recordId,
         recordName: recordName,
+        recordNameHash,
+        recordNameFuzzyHash,
         organizationId: organizationId,
         moduleType: toModuleType(moduleType),
         moduleId: moduleId,
@@ -161,7 +211,7 @@ export class CsvImportProcessor extends WorkerHost {
         }
 
         recordValueBuffer.push({
-          record_index: rowIndex,
+          recordId,
           fieldId: field.id,
           value,
         });
@@ -204,7 +254,7 @@ export class CsvImportProcessor extends WorkerHost {
         }
 
         const recordValues = recordValueBuffer.map((lv) => ({
-          recordId: recordsToCreate[lv.record_index].id,
+          recordId: lv.recordId,
           fieldId: lv.fieldId,
           value: lv.value,
           organizationId: organizationId,
@@ -231,6 +281,8 @@ export class CsvImportProcessor extends WorkerHost {
       .emit("board:csv-import-complete", {
         jobId: job.id,
         recordsImported: recordsToCreate.length,
+        duplicatesSkipped: skipped.length,
+        nearMatches: nearMatches.length,
         moduleType,
       });
 
@@ -239,9 +291,19 @@ export class CsvImportProcessor extends WorkerHost {
       moduleType,
       actorUserId: job.data.userId,
       event: BOARD_NOTIFICATION_EVENT.IMPORT_FINISHED,
-      title: `Import finished — ${recordsToCreate.length} record(s) added`,
+      title: `Import finished — ${recordsToCreate.length} record(s) added${
+        skipped.length ? `, ${skipped.length} duplicate(s) skipped` : ""
+      }`,
     });
 
-    return { recordsImported: recordsToCreate.length };
+    // Rows are capped so a pathological file cannot return a payload larger
+    // than the import itself; the counts stay exact either way.
+    return {
+      recordsImported: recordsToCreate.length,
+      duplicatesSkipped: skipped.length,
+      nearMatchCount: nearMatches.length,
+      duplicates: skipped.slice(0, 50),
+      nearMatches: nearMatches.slice(0, 50),
+    };
   }
 }

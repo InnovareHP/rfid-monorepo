@@ -35,12 +35,15 @@
     "seed:lead-kanban": "ts-node prisma/scripts/seed-lead-kanban.ts",
     "seed:default-analytics": "ts-node prisma/scripts/seed-default-analytics.ts",
     "backfill:referral-county-options": "ts-node prisma/scripts/backfill-referral-county-options.ts",
+    "cleanup:demo-records": "ts-node prisma/scripts/remove-seeded-demo-records.ts",
     "migrate:cloudinary-s3": "ts-node prisma/scripts/migrate-cloudinary-to-s3.ts",
     "docker:build": "docker build -t dashboard-backend .",
     "auth:generate": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/auth.ts",
     "prepare": "husky",
     "audit:collapsed-values": "ts-node scripts/audit-collapsed-values.ts",
-    "audit:referral-attribution": "ts-node scripts/audit-referral-attribution.ts"
+    "audit:referral-attribution": "ts-node scripts/audit-referral-attribution.ts",
+    "backfill:record-name-hash": "ts-node scripts/backfill-record-name-hash.ts",
+    "audit:duplicate-record-names": "ts-node scripts/audit-duplicate-record-names.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1046.0",

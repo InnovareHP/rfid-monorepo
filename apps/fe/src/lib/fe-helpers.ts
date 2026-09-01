@@ -2,6 +2,13 @@ import type { OptionsResponse } from "@dashboard/shared";
 import { FileTerminal } from "lucide-react";
 import Papa from "papaparse";
 
+// Excel and Sheets evaluate a cell that opens with one of these, so an exported
+// record name would run as a formula. Same guard as the server export.
+const FORMULA_START = /^[=+\-@\t\r]/;
+
+const csvSafe = (value: unknown) =>
+  typeof value === "string" && FORMULA_START.test(value) ? `'${value}` : value;
+
 export const FILETYPE = {
   create: FileTerminal,
   update: FileTerminal,
@@ -23,13 +30,14 @@ export function exportToCSV(
     const formattedRow: any = {};
 
     if (!isReferral) {
-      formattedRow["Organization"] = row["referral_name"] ?? "";
-      formattedRow["Account Manager"] =
-        users.find((user) => user.id === row["assigned_to"])?.value ?? "";
+      formattedRow["Organization"] = csvSafe(row["referral_name"] ?? "");
+      formattedRow["Account Manager"] = csvSafe(
+        users.find((user) => user.id === row["assigned_to"])?.value ?? ""
+      );
     }
 
     validColumns.forEach((col) => {
-      formattedRow[col.name] = row[col.name] ?? "";
+      formattedRow[col.name] = csvSafe(row[col.name] ?? "");
     });
 
     return formattedRow;

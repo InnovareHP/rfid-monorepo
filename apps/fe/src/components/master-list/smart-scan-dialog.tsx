@@ -1,4 +1,5 @@
 import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   createLead,
   scanBusinessCard,
@@ -178,8 +179,10 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
       queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
       toast.success("Lead created from business card");
       handleClose(false);
-    } catch {
-      toast.error("Failed to create lead");
+    } catch (error) {
+      // A scanned card often names a facility that already exists, and the
+      // server says so - a fixed string would hide the reason.
+      toast.error(getApiErrorMessage(error, "Failed to create lead"));
     }
   };
 

@@ -7,6 +7,15 @@ variable "sending_domain" {
   default = ""
 }
 
+# Envelope sender domain. Without one the bounce path stays amazonses.com, so
+# SPF passes for AWS and never aligns with the From domain - DMARC then rests on
+# DKIM alone, which Exchange Online scores lower than both aligned.
+variable "mail_from_subdomain" {
+  type        = string
+  description = "Subdomain of sending_domain used as MAIL FROM, e.g. mail.refidly.com. Empty = SES default."
+  default     = ""
+}
+
 variable "enable_inbound" {
   type    = bool
   default = false

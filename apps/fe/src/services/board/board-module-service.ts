@@ -95,15 +95,33 @@ export type DuplicateMatch = {
   matchedValue: string;
 };
 
+export type NameMatch = {
+  recordId: string;
+  recordName: string;
+};
+
+// exactMatch means the create will be refused server side; nearMatches only
+// look like the same record and are advisory.
+export type DuplicateCheck = {
+  duplicates: DuplicateMatch[];
+  exactMatch: NameMatch | null;
+  nearMatches: NameMatch[];
+};
+
 export const findModuleDuplicates = async (
   moduleType: CrmModuleType,
-  params: { email?: string; phone?: string; excludeRecordId?: string }
+  params: {
+    email?: string;
+    phone?: string;
+    recordName?: string;
+    excludeRecordId?: string;
+  }
 ) => {
   const response = await axiosClient.get("/api/boards/duplicates", {
     params: { ...params, moduleType },
   });
 
-  return response.data as { duplicates: DuplicateMatch[] };
+  return response.data as DuplicateCheck;
 };
 
 export type RelatedRecord = {

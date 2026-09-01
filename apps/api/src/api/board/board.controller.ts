@@ -32,7 +32,7 @@ import {
   BulkEmailDto,
   CompleteActivityDto,
   CreateActivityDto,
-  CreateAttachmentDto,
+  CreateRecordAttachmentDto,
   CreateColumnDto,
   CreateFaxActivityDto,
   CreateFieldOptionDto,
@@ -208,7 +208,8 @@ export class BoardController {
     @Query("moduleType") moduleType?: string,
     @Query("email") email?: string,
     @Query("phone") phone?: string,
-    @Query("excludeRecordId") excludeRecordId?: string
+    @Query("excludeRecordId") excludeRecordId?: string,
+    @Query("recordName") recordName?: string
   ) {
     const organizationId = session.session.activeOrganizationId;
     try {
@@ -217,7 +218,8 @@ export class BoardController {
         moduleType || "CONTACT",
         email,
         phone,
-        excludeRecordId
+        excludeRecordId,
+        recordName
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -513,7 +515,7 @@ export class BoardController {
         throw new BadRequestException("recordName is required");
       }
 
-      return this.boardService.createRecord(
+      return await this.boardService.createRecord(
         dto.recordName,
         organizationId,
         session.user.id,
@@ -522,6 +524,10 @@ export class BoardController {
         dto.personContact
       );
     } catch (error) {
+      // A duplicate name is a 409, not a bad request. Without this the status
+      // survived only because the call above was not awaited, so the rejection
+      // escaped the catch by accident.
+      if (error instanceof HttpException) throw error;
       throw new BadRequestException(error.message);
     }
   }
@@ -651,7 +657,7 @@ export class BoardController {
   async uploadAttachment(
     @Param("recordId") recordId: string,
     @UploadedFile() file: Express.Multer.File,
-    @Body() dto: CreateAttachmentDto,
+    @Body() dto: CreateRecordAttachmentDto,
     @Session() session: AuthenticatedSession
   ) {
     if (!file) {

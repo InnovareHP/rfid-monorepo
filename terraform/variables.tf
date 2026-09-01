@@ -415,6 +415,12 @@ variable "ses_sending_domain" {
   default     = ""
 }
 
+variable "ses_mail_from_subdomain" {
+  type        = string
+  description = "MAIL FROM subdomain, e.g. mail.refidly.com. Empty = SES default, which leaves SPF unaligned."
+  default     = ""
+}
+
 variable "enable_ses_inbound" {
   type        = bool
   description = "Inbound receiving for reply logging (EMAIL_INGEST_DOMAIN). Needs a region where SES inbound is available."

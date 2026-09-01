@@ -5,12 +5,12 @@ import {
   WORK_EMAIL_REQUIRED_MESSAGE,
 } from "@dashboard/shared";
 import { Logger } from "@nestjs/common";
+import { cacheData, getData } from "../redis/redis";
 import {
-  cacheData,
-  deleteData,
-  getData,
-  purgeAllCacheKeys,
-} from "../redis/redis";
+  SESSION_CONTEXT_TTL_SECONDS,
+  sessionContextKey,
+  type CachedSessionContext,
+} from "./session-context";
 import { APIError } from "better-auth/api";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
@@ -78,38 +78,6 @@ export const resolveSessionMembership = async (
       member?.organizationId ?? activeOrganizationId ?? null,
   };
 };
-
-// customSession runs on every getSession(), and the AuthGuard calls that once
-// per guarded request, so this handler's three queries were being paid by every
-// endpoint before its own work started. The org-scoped half is cached; the
-// session and user still come from Better Auth on each call.
-const SESSION_CONTEXT_TTL_SECONDS = 30;
-
-// Organization first so a role change can purge the whole organization with
-// the shared prefix helper.
-const sessionContextKey = (organizationId: string, userId: string) =>
-  `session-context:${organizationId}:${userId}`;
-
-type CachedSessionContext = {
-  membership: ResolvedSessionMembership;
-  member: {
-    id: string;
-    role: string | null;
-    organizationId: string;
-  } | null;
-  organization: unknown;
-  subscription: unknown;
-};
-
-export const invalidateSessionContext = (
-  organizationId: string,
-  userId: string
-) => deleteData(sessionContextKey(organizationId, userId));
-
-// Membership drives the role every permission check reads, so a role change
-// drops every cached context for that organization, not just one user's.
-export const invalidateOrganizationSessionContext = (organizationId: string) =>
-  purgeAllCacheKeys(`session-context:${organizationId}`);
 
 export const customSessionHandler = async ({
   user,

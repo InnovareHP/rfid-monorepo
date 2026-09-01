@@ -58,6 +58,12 @@ model Board {
   createdAt  DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime   @updatedAt @db.Timestamptz(3)
   recordName String
+  // Keyed blind indexes over the normalized recordName: the name itself is
+  // encrypted with a random IV, so duplicate detection cannot use it directly.
+  // Exact blocks a write; fuzzy only flags a likely duplicate, so it is
+  // deliberately not unique.
+  recordNameHash      String?
+  recordNameFuzzyHash String?
   assignedTo String?
   isDeleted  Boolean    @default(false)
   moduleType ModuleType @default(LEAD)
@@ -81,6 +87,8 @@ model Board {
   marketingLogs     Marketing[]
 
   @@index([organizationId, recordName])
+  @@index([organizationId, moduleId, recordNameHash])
+  @@index([organizationId, moduleId, recordNameFuzzyHash])
   @@index([organizationId, moduleType, isDeleted, createdAt])
   @@index([moduleId, isDeleted, createdAt])
   @@index([assignedTo])
