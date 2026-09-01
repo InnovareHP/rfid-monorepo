@@ -98,24 +98,25 @@ export function CustomAnalyticsPreview({
 
     case "KPI": {
       const series = toKpiSeries(result);
+      // A PERCENT chart is a rate, so it reads as one instead of a bare number.
+      const suffix = result.unit === "percent" ? "%" : "";
+      const formatted = `${toKpiValue(result).toLocaleString(undefined, {
+        maximumFractionDigits: 2,
+      })}${suffix}`;
 
       // KpiStatTile renders its own Card, which would double-border inside the
       // list card, and its sizing is built for a full stat row.
       return isThumbnail ? (
         <div className="flex h-40 flex-col items-center justify-center gap-1">
           <p className="text-4xl font-bold tabular-nums text-foreground">
-            {toKpiValue(result).toLocaleString(undefined, {
-              maximumFractionDigits: 2,
-            })}
+            {formatted}
           </p>
           <p className="text-sm text-muted-foreground">{name}</p>
         </div>
       ) : (
         <KpiStatTile
           label={name}
-          value={toKpiValue(result).toLocaleString(undefined, {
-            maximumFractionDigits: 2,
-          })}
+          value={formatted}
           seriesLabel={metricLabel}
           delta={monthOverMonthDelta(series)}
           series={series}

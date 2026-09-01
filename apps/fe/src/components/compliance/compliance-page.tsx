@@ -49,11 +49,11 @@ export function CompliancePage() {
   const canManage = can(role, { compliance: ["manage"] });
   const canDownload = can(role, { compliance: ["download"] });
 
-  // Seeded by _team.tsx, so this reads the cache rather than fetching again.
-  const { data: organizations } = useQuery<{ id: string; name: string }[]>({
-    queryKey: ["organizations"],
-    enabled: false,
-  });
+  // Seeded by _team.tsx. A disabled useQuery with no queryFn logs an error on
+  // every render, so the cache is read directly.
+  const organizations = queryClient.getQueryData<{ id: string; name: string }[]>(
+    ["organizations"]
+  );
 
   const organizationName = organizations?.find(
     (organization) => organization.id === context.activeOrganizationId

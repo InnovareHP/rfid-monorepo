@@ -114,7 +114,7 @@ export function generateLeadColumns(
         <RecordActions
           actions={[
             {
-              label: "View history",
+              label: "Open details",
               icon: HistoryIcon,
               onSelect: () => onOpenMasterListView(row.original.id),
             },

@@ -14,7 +14,7 @@ import {
 } from "@dashboard/ui/components/popover";
 import { cn } from "@dashboard/ui/lib/utils";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 // Option-backed fields submit the option text; link fields submit the target
 // record id and show its name, so label and value are kept apart.
@@ -32,7 +32,9 @@ type SearchableSelectProps = {
   isLoading?: boolean;
   placeholder: string;
   searchPlaceholder: string;
-  emptyText: string;
+  // A node, not a string: a link field's empty state offers a way to create
+  // the missing record rather than just saying it is missing.
+  emptyText: ReactNode;
   className?: string;
 };
 

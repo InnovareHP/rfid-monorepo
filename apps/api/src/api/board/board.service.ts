@@ -42,6 +42,8 @@ import { EmailDispatchService } from "./email-dispatch.service";
 // Trailing window that marks a record as an active partner
 const ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
+const MS_IN_WEEK = 7 * 24 * 60 * 60 * 1000;
+
 interface BoardFilters {
   filter?: Record<string, string>;
   boardDateFrom?: string;
@@ -760,6 +762,71 @@ export class BoardService {
     };
   }
 
+  // Referrals reach a facility through the REFERRAL_LINK relation, not a field,
+  // so the count is a join rather than a value lookup. Tier thresholds mirror
+  // getReferralSourceScorecard in the analytics service.
+  private async getRecordReferralStats(
+    recordId: string,
+    organizationId: string,
+    dateStartDate?: Date,
+    dateEndDate?: Date
+  ) {
+    const links = await prisma.boardRelation.findMany({
+      where: {
+        relationType: "REFERRAL_LINK",
+        targetId: recordId,
+        source: {
+          moduleType: "REFERRAL",
+          organizationId,
+          isDeleted: false,
+          ...(dateStartDate &&
+            dateEndDate && {
+              createdAt: { gte: dateStartDate, lte: dateEndDate },
+            }),
+        },
+      },
+      select: { source: { select: { createdAt: true } } },
+    });
+
+    const dates = links
+      .map((link) => link.source.createdAt)
+      .sort((a, b) => a.getTime() - b.getTime());
+    const count = dates.length;
+
+    if (!count) {
+      return {
+        count: 0,
+        firstReferralAt: null,
+        lastReferralAt: null,
+        perWeek: 0,
+        tier: "Infrequent" as const,
+      };
+    }
+
+    // With no explicit range the rate is measured from the first referral, so a
+    // facility is not punished for the months before it ever sent one.
+    const spanStart = dateStartDate ?? dates[0];
+    const spanEnd = dateEndDate ?? new Date();
+    const weeks = Math.max(
+      1,
+      (spanEnd.getTime() - spanStart.getTime()) / MS_IN_WEEK
+    );
+    const perWeek = count / weeks;
+
+    return {
+      count,
+      firstReferralAt: dates[0],
+      lastReferralAt: dates[count - 1],
+      perWeek: Number(perWeek.toFixed(2)),
+      tier:
+        perWeek > 1
+          ? ("Tier 1" as const)
+          : perWeek >= 0.25
+            ? ("Tier 2" as const)
+            : ("Infrequent" as const),
+    };
+  }
+
   async getRecordAnalyze(
     recordId: string,
     organizationId: string,
@@ -779,12 +846,30 @@ export class BoardService {
       },
     });
 
+    const referrals = await this.getRecordReferralStats(
+      recordId,
+      organizationId,
+      dateStartDate,
+      dateEndDate
+    );
+
+    // Referrals are tracked against the facility itself, so they still stand
+    // when no marketing member owns the lead and there are no visit logs.
     if (!record.assignedUser) {
       return {
         recordId,
         recordName: record.recordName,
         assignedTo: null,
-        summary: null,
+        summary: {
+          totalInteractions: 0,
+          facilitiesCovered: [],
+          touchpointsUsed: [],
+          peopleContacted: [],
+          engagementLevel: "Low",
+          narrative:
+            "No marketing member owns this lead, so no visits have been logged against it.",
+          referrals,
+        },
         message: "Lead is not yet assigned to a marketing member.",
       };
     }
@@ -879,6 +964,12 @@ export class BoardService {
         }, suggesting ${engagementLevel.toLowerCase()} engagement and ongoing follow-ups.`
       : "No marketing interactions have been recorded for this lead.";
 
+    const referralNarrative = referrals.count
+      ? ` This facility has sent ${referrals.count} referral${
+          referrals.count === 1 ? "" : "s"
+        }, the most recent on ${referrals.lastReferralAt?.toISOString().slice(0, 10)}.`
+      : " No referrals have been received from this facility.";
+
     return {
       recordId,
       recordName: record.recordName,
@@ -889,7 +980,8 @@ export class BoardService {
         touchpointsUsed,
         peopleContacted,
         engagementLevel,
-        narrative,
+        narrative: `${narrative}${referralNarrative}`,
+        referrals,
       },
     };
   }
@@ -1370,6 +1462,31 @@ export class BoardService {
 
       await deleteData(`followup:${recordId}`);
 
+      // A referral's county follows the account it is filed under, so it is
+      // rewritten once the link itself is committed.
+      const { linkedTargetId } = recordValue as {
+        linkedTargetId?: string | null;
+      };
+
+      if (moduleType === "REFERRAL" && linkedTargetId) {
+        const county = await this.syncReferralCounty(
+          prisma,
+          recordId,
+          linkedTargetId,
+          organizationId
+        );
+
+        if (county) {
+          this.boardGateway.emitRecordValueUpdated(
+            organizationId,
+            recordId,
+            "County",
+            county,
+            moduleType
+          );
+        }
+      }
+
       await this.notifyValueChange({
         recordId,
         organizationId,
@@ -1548,6 +1665,52 @@ export class BoardService {
       targetModule: "LEAD" as const,
       relation: "REFERRAL_LINK" as const,
     };
+  }
+
+  // A referral is filed under an account, so its county follows the linked
+  // master list record instead of being typed per referral.
+  private async syncReferralCounty(
+    tx: Prisma.TransactionClient,
+    recordId: string,
+    targetId: string,
+    organizationId: string
+  ) {
+    const [countyField, linked] = await Promise.all([
+      tx.field.findFirst({
+        where: {
+          organizationId,
+          moduleType: "REFERRAL",
+          fieldName: "County",
+          isDeleted: false,
+        },
+        select: { id: true },
+      }),
+      tx.fieldValue.findFirst({
+        where: {
+          recordId: targetId,
+          organizationId,
+          field: { fieldName: "County", moduleType: "LEAD", isDeleted: false },
+        },
+        select: { value: true },
+      }),
+    ]);
+
+    if (!countyField || !linked?.value) return null;
+
+    await tx.fieldValue.upsert({
+      where: {
+        recordId_fieldId: { recordId, fieldId: countyField.id },
+      },
+      update: { value: linked.value },
+      create: {
+        recordId,
+        fieldId: countyField.id,
+        value: linked.value,
+        organizationId,
+      },
+    });
+
+    return linked.value;
   }
 
   private isLinkFieldType(fieldType: BoardFieldType) {
@@ -1749,6 +1912,9 @@ export class BoardService {
       return {
         message: "Referral link updated successfully",
         recordValue,
+        // Consumed after the transaction commits: the county sync is three
+        // more round trips and does not belong inside the 5s window.
+        linkedTargetId: relation === "REFERRAL_LINK" ? record.id : null,
       };
     }
   }
@@ -2303,6 +2469,7 @@ export class BoardService {
         Record<string, string | null>
       >();
       const linkIdsByRecord = new Map<string, Record<string, string>>();
+      const referralLinkTargetByRecord = new Map<string, string>();
 
       // One insert instead of one per item: a create per referral is a round
       // trip inside the 5s interactive transaction default, so a large batch
@@ -2363,6 +2530,9 @@ export class BoardService {
                   relationType: relation,
                   organizationId: organizationId,
                 });
+                if (relation === "REFERRAL_LINK") {
+                  referralLinkTargetByRecord.set(recordId, target.id);
+                }
                 const linkIds = linkIdsByRecord.get(recordId) ?? {};
                 linkIds[field.fieldName] = target.id;
                 linkIdsByRecord.set(recordId, linkIds);
@@ -2395,7 +2565,7 @@ export class BoardService {
           newValue: referralData.referral_name,
           action: "create",
           createdBy: memberId,
-          column: moduleType === "REFERRAL" ? "Referral Name" : "Name",
+          column: moduleType === "REFERRAL" ? "Referral Liaison" : "Name",
           organizationId: organizationId,
         });
 
@@ -2404,6 +2574,43 @@ export class BoardService {
           recordId: recordId,
           lastSeen: new Date(),
         });
+      }
+
+      // County follows the linked master list record, so whatever arrived on
+      // the referral itself is replaced before the values are written.
+      const countyField = fields.find((f) => f.fieldName === "County");
+      if (
+        moduleType === "REFERRAL" &&
+        countyField &&
+        referralLinkTargetByRecord.size > 0
+      ) {
+        const countyRows = await tx.fieldValue.findMany({
+          where: {
+            recordId: { in: [...new Set(referralLinkTargetByRecord.values())] },
+            organizationId: organizationId,
+            field: {
+              fieldName: "County",
+              moduleType: "LEAD",
+              isDeleted: false,
+            },
+          },
+          select: { recordId: true, value: true },
+        });
+        const countyByTarget = new Map(
+          countyRows.map((row) => [row.recordId, row.value])
+        );
+
+        for (const entry of allReferralValues) {
+          if (entry.fieldId !== countyField.id) continue;
+
+          const targetId = referralLinkTargetByRecord.get(entry.recordId);
+          const county = targetId ? countyByTarget.get(targetId) : null;
+          if (!county) continue;
+
+          entry.value = county;
+          const row = dynamicDataByRecord.get(entry.recordId);
+          if (row) row[countyField.fieldName] = county;
+        }
       }
 
       // Bulk insert all referral values

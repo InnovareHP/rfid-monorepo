@@ -1,4 +1,5 @@
 import { getLeadAnalysis } from "@/services/lead/lead-service";
+import type { LeadAnalyze } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import {
   Card,
@@ -15,6 +16,7 @@ import {
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Separator } from "@dashboard/ui/components/separator";
 import LoadingSkeleton from "@dashboard/ui/components/skeleton-loader";
+import { ReferralActivityCard } from "./referral-activity-card";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -30,20 +32,6 @@ import {
   Users,
   Video,
 } from "lucide-react";
-
-export type LeadAnalyze = {
-  recordId: string;
-  recordName: string;
-  assignedTo: string;
-  summary: {
-    totalInteractions: number;
-    facilitiesCovered: string[];
-    touchpointsUsed: { type: string; count: number }[];
-    peopleContacted: string[];
-    engagementLevel: string;
-    narrative: string;
-  };
-};
 
 interface AnalyzeLeadDialogProps {
   recordId: string | null;
@@ -112,6 +100,8 @@ export function AnalyzeLeadDialog({
 
   const hasSufficientData = (analysis: LeadAnalyze) => {
     if (!analysis || !analysis.summary) return false;
+
+    if (analysis.summary.referrals.count > 0) return true;
 
     if (analysis.summary.totalInteractions === 0) return false;
 
@@ -190,7 +180,7 @@ export function AnalyzeLeadDialog({
               ) : (
                 <div className="space-y-6 py-6">
                   {/* Top Stats Row with Enhanced Design */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {/* Engagement Level */}
                     <Card className="bg-card">
                       <CardContent className="p-5">
@@ -243,6 +233,23 @@ export function AnalyzeLeadDialog({
                       </CardContent>
                     </Card>
 
+                    {/* Referrals Sent */}
+                    <Card className="bg-card">
+                      <CardContent className="p-5">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Referrals Sent
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-3xl font-semibold text-primary">
+                            {data.summary.referrals.count}
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            {data.summary.referrals.perWeek}/week
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     {/* Assigned To */}
                     <Card className="bg-card">
                       <CardContent className="p-5">
@@ -254,7 +261,7 @@ export function AnalyzeLeadDialog({
                             <UserCheck className="size-4 text-primary" />
                           </div>
                           <span className="truncate text-sm font-medium text-foreground">
-                            {data.assignedTo}
+                            {data.assignedTo ?? "Unassigned"}
                           </span>
                         </div>
                       </CardContent>
@@ -282,6 +289,8 @@ export function AnalyzeLeadDialog({
 
                   {/* Detailed Metrics Grid with Enhanced Cards */}
                   <div className="grid gap-6 md:grid-cols-2">
+                    <ReferralActivityCard referrals={data.summary.referrals} />
+
                     {/* Touchpoints */}
                     <Card>
                       <CardHeader className="pb-4">

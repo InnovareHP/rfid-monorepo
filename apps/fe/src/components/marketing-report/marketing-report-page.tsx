@@ -90,6 +90,11 @@ const facilityColumns: ReportColumn<MarketingFacilityBreakdown>[] = [
   { key: "outreach", header: "Outreach", render: (row) => row.outreach },
   { key: "referrals", header: "Referrals", render: (row) => row.referrals },
   {
+    key: "admissions",
+    header: "Admissions",
+    render: (row) => row.admissions ?? 0,
+  },
+  {
     key: "conversionRate",
     header: "Conversion Rate",
     render: (row) => `${row.conversionRate}%`,
@@ -121,7 +126,9 @@ export default function MarketingReportPage() {
   const totals = data?.totals ?? {
     outreach: 0,
     referrals: 0,
+    admissions: 0,
     conversionRate: 0,
+    admissionRate: 0,
   };
   const facilityBreakdown = data?.facilityBreakdown ?? [];
   const touchpointBreakdown = data?.touchpointBreakdown ?? [];
@@ -198,7 +205,7 @@ export default function MarketingReportPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiStatTile
             label="Total Outreach"
             value={totals.outreach.toLocaleString()}
@@ -207,6 +214,11 @@ export default function MarketingReportPage() {
           <KpiStatTile
             label="Total Referrals Generated"
             value={totals.referrals.toLocaleString()}
+            isLoading={isFetching}
+          />
+          <KpiStatTile
+            label="Total Admissions"
+            value={(totals.admissions ?? 0).toLocaleString()}
             isLoading={isFetching}
           />
           <KpiStatTile
@@ -249,11 +261,6 @@ export default function MarketingReportPage() {
               rows={facilityBreakdown}
               isLoading={isFetching}
               emptyMessage="No facility activity found"
-              currentPage={1}
-              pageSize={facilityBreakdown.length || 1}
-              totalCount={facilityBreakdown.length}
-              onPageChange={() => {}}
-              onPageSizeChange={() => {}}
             />
           </div>
 
@@ -266,11 +273,6 @@ export default function MarketingReportPage() {
               rows={touchpointBreakdown}
               isLoading={isFetching}
               emptyMessage="No touchpoint activity found"
-              currentPage={1}
-              pageSize={touchpointBreakdown.length || 1}
-              totalCount={touchpointBreakdown.length}
-              onPageChange={() => {}}
-              onPageSizeChange={() => {}}
             />
           </div>
         </div>

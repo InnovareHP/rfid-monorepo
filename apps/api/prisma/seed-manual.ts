@@ -611,7 +611,7 @@ async function main() {
           {
             title: "Filter and search",
             content:
-              "Use the date range filters (From / To) and the advanced filter panel to narrow results. The search bar filters by referral name and other text fields.",
+              "Use the date range filters (From / To) and the advanced filter panel to narrow results. The search bar filters by referral liaison and other text fields.",
             order: 1,
           },
           {

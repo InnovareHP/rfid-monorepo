@@ -277,7 +277,9 @@ export default function MasterListPage() {
           toggleVisibility: column.toggleVisibility,
         };
       });
-  }, [table]);
+    // The table instance is reference-stable, so columns has to be a dependency
+    // or this list stays frozen at whatever existed before the API answered.
+  }, [table, columns]);
 
   const totalPages = Math.ceil(
     (data?.pagination.count ?? 0) / filterMeta.limit

@@ -346,17 +346,42 @@ export class LiaisonService {
                 endDate && { createdAt: { gte: startDate, lte: endDate } }),
             },
           },
-          select: { targetId: true },
+          select: {
+            targetId: true,
+            source: {
+              select: {
+                values: {
+                  where: {
+                    field: { fieldName: "Status", moduleType: "REFERRAL" },
+                  },
+                  select: { value: true },
+                },
+              },
+            },
+          },
         })
       : [];
 
     const referrals = referralLinks.length;
 
     const referralCountByFacilityId = new Map<string, number>();
+    const admissionCountByFacilityId = new Map<string, number>();
+    let admissions = 0;
+
     for (const link of referralLinks) {
       referralCountByFacilityId.set(
         link.targetId,
         (referralCountByFacilityId.get(link.targetId) ?? 0) + 1
+      );
+
+      // Status is the referral's own field, so an admission is attributed to
+      // the facility the outreach was logged against.
+      if (!link.source?.values.some((v) => v.value === "Admitted")) continue;
+
+      admissions += 1;
+      admissionCountByFacilityId.set(
+        link.targetId,
+        (admissionCountByFacilityId.get(link.targetId) ?? 0) + 1
       );
     }
 
@@ -386,11 +411,15 @@ export class LiaisonService {
         const groupReferrals = group.facilityRecordId
           ? (referralCountByFacilityId.get(group.facilityRecordId) ?? 0)
           : 0;
+        const groupAdmissions = group.facilityRecordId
+          ? (admissionCountByFacilityId.get(group.facilityRecordId) ?? 0)
+          : 0;
         return {
           facility: group.facility,
           facilityRecordId: group.facilityRecordId,
           outreach: group.outreach,
           referrals: groupReferrals,
+          admissions: groupAdmissions,
           conversionRate: group.outreach
             ? Math.round((groupReferrals / group.outreach) * 100)
             : 0,
@@ -422,7 +451,11 @@ export class LiaisonService {
       totals: {
         outreach: total,
         referrals,
+        admissions,
         conversionRate: total ? Math.round((referrals / total) * 100) : 0,
+        admissionRate: referrals
+          ? Math.round((admissions / referrals) * 100)
+          : 0,
       },
       facilityBreakdown,
       touchpointBreakdown,

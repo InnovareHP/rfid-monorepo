@@ -23,6 +23,7 @@ import {
   auditAdminActions,
   requireImpersonationReason,
 } from "./admin-audit-hook";
+import { invalidateSessionContextAfterMembershipChange } from "./session-context-hook";
 import {
   afterAcceptInvitation,
   afterAddMember,
@@ -123,6 +124,12 @@ export const auth = betterAuth({
     window: 60,
     max: 100,
     customRules: {
+      // Read-only session plumbing: every navigation fires these, so the
+      // shared 100/60s budget ran out during ordinary use and the 429 read
+      // as a signed-out session. Credential routes keep the strict default.
+      "/get-session": { window: 60, max: 600 },
+      "/organization/list": { window: 60, max: 300 },
+      "/one-time-token/generate": { window: 60, max: 300 },
       "/passkey/generate-authenticate-options": { window: 60, max: 10 },
       "/passkey/verify-authentication": { window: 60, max: 10 },
       "/passkey/generate-register-options": { window: 300, max: 10 },
@@ -136,7 +143,10 @@ export const auth = betterAuth({
       blockSessionGrantingEmailPaths(ctx);
       requireImpersonationReason(ctx);
     }),
-    after: auditAdminActions,
+    after: createAuthMiddleware(async (ctx) => {
+      await auditAdminActions(ctx);
+      await invalidateSessionContextAfterMembershipChange(ctx);
+    }),
   },
   databaseHooks: {
     session: {
@@ -262,6 +272,8 @@ export const auth = betterAuth({
     }),
     twoFactor({
       issuer: appConfig.APP_NAME,
+      // Sign-in is passkey-first, so most accounts hold no password to confirm.
+      allowPasswordless: true,
       // Email OTP is the only second factor, so no authenticator app is needed.
       otpOptions: {
         period: 5,

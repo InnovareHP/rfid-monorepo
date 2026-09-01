@@ -1,4 +1,4 @@
-import { LiaisonAnalytics } from "@dashboard/shared";
+import { LiaisonAnalytics, ROLES } from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
@@ -34,12 +34,14 @@ export class AnalyticsService {
   private referralRecordWhere(
     organizationId: string,
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
+    assignedTo?: string | null
   ): Prisma.BoardWhereInput {
     return {
       moduleType: "REFERRAL",
       organizationId,
       isDeleted: false,
+      ...(assignedTo && { assignedTo }),
       ...(startDate &&
         endDate && { createdAt: { gte: startDate, lte: endDate } }),
     };
@@ -65,12 +67,18 @@ export class AnalyticsService {
   private async fetchReferralLinkedLeads(
     organizationId: string,
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
+    userId?: string | null
   ) {
     return prisma.boardRelation.findMany({
       where: {
         relationType: "REFERRAL_LINK",
-        source: this.referralRecordWhere(organizationId, startDate, endDate),
+        source: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
         target: { moduleType: "LEAD", isDeleted: false },
       },
       select: {
@@ -82,12 +90,14 @@ export class AnalyticsService {
   async getTopFacilities(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const links = await this.fetchReferralLinkedLeads(
       organizationId,
       startDate,
-      endDate
+      endDate,
+      userId
     );
     return this.countByValue(
       links.map((l) => ({ value: l.target?.recordName ?? null })),
@@ -98,23 +108,39 @@ export class AnalyticsService {
   async getTopClinicians(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const rows = await prisma.fieldValue.findMany({
       where: {
         field: { fieldName: "Contact" },
-        record: this.referralRecordWhere(organizationId, startDate, endDate),
+        record: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
       },
       select: { value: true },
     });
     return this.countByValue(rows, 10);
   }
 
-  async getTopCounties(organizationId: string, startDate: Date, endDate: Date) {
+  async getTopCounties(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date,
+    userId?: string | null
+  ) {
     const links = await prisma.boardRelation.findMany({
       where: {
         relationType: "REFERRAL_LINK",
-        source: this.referralRecordWhere(organizationId, startDate, endDate),
+        source: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
         target: { moduleType: "LEAD", isDeleted: false },
       },
       select: {
@@ -142,12 +168,18 @@ export class AnalyticsService {
   async getReferralSourceBreakdown(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const rows = await prisma.fieldValue.findMany({
       where: {
         field: { fieldName: "Referral Source Type" },
-        record: this.referralRecordWhere(organizationId, startDate, endDate),
+        record: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
       },
       select: { value: true },
     });
@@ -157,12 +189,14 @@ export class AnalyticsService {
   async getConversionRate(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const recordWhere = this.referralRecordWhere(
       organizationId,
       startDate,
-      endDate
+      endDate,
+      userId
     );
     const [totalReferrals, statusRows] = await Promise.all([
       prisma.board.count({ where: recordWhere }),
@@ -210,13 +244,19 @@ export class AnalyticsService {
   async getAvgTimeTrend(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const rows = await prisma.history.findMany({
       where: {
         column: "Status",
         action: "update",
-        record: this.referralRecordWhere(organizationId, startDate, endDate),
+        record: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
       },
       select: {
         createdAt: true,
@@ -247,14 +287,20 @@ export class AnalyticsService {
   async getAverageTimeByStatus(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     // Time from referral creation to each status change, from History
     const rows = await prisma.history.findMany({
       where: {
         column: "Status",
         action: "update",
-        record: this.referralRecordWhere(organizationId, startDate, endDate),
+        record: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
       },
       select: {
         newValue: true,
@@ -283,12 +329,66 @@ export class AnalyticsService {
       .sort((a, b) => Number(a.averageDays) - Number(b.averageDays));
   }
 
+  // Referral and admission counts per liaison, keyed on Board.assignedTo.
+  // Status is decrypted by the client extension, so admitted is matched here.
+  async getReferralCountsByLiaison(
+    organizationId: string,
+    startDate?: Date,
+    endDate?: Date,
+    userId?: string | null
+  ) {
+    const records = await prisma.board.findMany({
+      where: this.referralRecordWhere(
+        organizationId,
+        startDate,
+        endDate,
+        userId
+      ),
+      select: {
+        assignedTo: true,
+        values: {
+          where: { field: { fieldName: "Status", moduleType: "REFERRAL" } },
+          select: { value: true },
+        },
+      },
+    });
+
+    const byUser = new Map<string, { referrals: number; admissions: number }>();
+    let referrals = 0;
+    let admissions = 0;
+
+    for (const record of records) {
+      const admitted = record.values.some((v) => v.value === "Admitted");
+      referrals += 1;
+      if (admitted) admissions += 1;
+
+      if (!record.assignedTo) continue;
+
+      const entry = byUser.get(record.assignedTo) ?? {
+        referrals: 0,
+        admissions: 0,
+      };
+      entry.referrals += 1;
+      if (admitted) entry.admissions += 1;
+      byUser.set(record.assignedTo, entry);
+    }
+
+    return { byUser, totals: { referrals, admissions } };
+  }
+
   // Total counts for referrals and leads
-  async getTotalCounts(organizationId: string, startDate: Date, endDate: Date) {
+  async getTotalCounts(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date,
+    userId?: string | null
+  ) {
     const dateFilter =
       startDate && endDate
         ? { createdAt: { gte: startDate, lte: endDate } }
         : {};
+
+    const assigned = userId ? { assignedTo: userId } : {};
 
     const [totalReferrals, totalLeads, referralsThisPeriod, leadsThisPeriod] =
       await Promise.all([
@@ -297,6 +397,7 @@ export class AnalyticsService {
             organizationId,
             moduleType: "REFERRAL",
             isDeleted: false,
+            ...assigned,
           },
         }),
         prisma.board.count({
@@ -304,6 +405,7 @@ export class AnalyticsService {
             organizationId,
             moduleType: "LEAD",
             isDeleted: false,
+            ...assigned,
           },
         }),
         prisma.board.count({
@@ -311,6 +413,7 @@ export class AnalyticsService {
             organizationId,
             moduleType: "REFERRAL",
             isDeleted: false,
+            ...assigned,
             ...dateFilter,
           },
         }),
@@ -319,6 +422,7 @@ export class AnalyticsService {
             organizationId,
             moduleType: "LEAD",
             isDeleted: false,
+            ...assigned,
             ...dateFilter,
           },
         }),
@@ -331,7 +435,8 @@ export class AnalyticsService {
   async getStatusBreakdown(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const dateFilter =
       startDate && endDate
@@ -345,6 +450,7 @@ export class AnalyticsService {
           organizationId,
           moduleType: "REFERRAL",
           isDeleted: false,
+          ...(userId && { assignedTo: userId }),
           ...dateFilter,
         },
       },
@@ -378,12 +484,18 @@ export class AnalyticsService {
   async getAdmissionTypeBreakdown(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const rows = await prisma.fieldValue.findMany({
       where: {
         field: { fieldName: "Admission Type" },
-        record: this.referralRecordWhere(organizationId, startDate, endDate),
+        record: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
       },
       select: { value: true },
     });
@@ -391,11 +503,21 @@ export class AnalyticsService {
   }
 
   // 7️⃣ Payer Source Mix
-  async getPayerMix(organizationId: string, startDate: Date, endDate: Date) {
+  async getPayerMix(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date,
+    userId?: string | null
+  ) {
     const rows = await prisma.fieldValue.findMany({
       where: {
         field: { fieldName: "Payor" },
-        record: this.referralRecordWhere(organizationId, startDate, endDate),
+        record: this.referralRecordWhere(
+          organizationId,
+          startDate,
+          endDate,
+          userId
+        ),
       },
       select: { value: true },
     });
@@ -406,7 +528,8 @@ export class AnalyticsService {
   async getOutreachImpact(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const results = await prisma.$queryRaw<{ month: string; total: number }[]>`
     SELECT TO_CHAR(r."createdAt", 'YYYY-MM') AS month, COUNT(*)::int AS total
@@ -414,6 +537,7 @@ export class AnalyticsService {
     WHERE r."organizationId" = ${organizationId}
     AND r."moduleType" = 'REFERRAL'
     AND r."isDeleted" = false
+    ${userId ? Prisma.sql`AND r."assignedTo" = ${userId}` : Prisma.empty}
     ${
       startDate && endDate
         ? Prisma.sql`AND r."createdAt" >= ${startDate} AND r."createdAt" <= ${endDate}`
@@ -428,12 +552,14 @@ export class AnalyticsService {
   async getEmergingSources(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const links = await this.fetchReferralLinkedLeads(
       organizationId,
       startDate,
-      endDate
+      endDate,
+      userId
     );
 
     const counts = new Map<string, number>();
@@ -455,12 +581,14 @@ export class AnalyticsService {
   async getReferralSourceScorecard(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const links = await this.fetchReferralLinkedLeads(
       organizationId,
       startDate,
-      endDate
+      endDate,
+      userId
     );
 
     const byLead = new Map<string, { name: string; count: number }>();
@@ -501,10 +629,16 @@ export class AnalyticsService {
   async getDenialTracking(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     const boards = await prisma.board.findMany({
-      where: this.referralRecordWhere(organizationId, startDate, endDate),
+      where: this.referralRecordWhere(
+        organizationId,
+        startDate,
+        endDate,
+        userId
+      ),
       select: {
         createdAt: true,
         values: {
@@ -562,12 +696,13 @@ export class AnalyticsService {
   async getAllAnalytics(
     organizationId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    userId?: string | null
   ) {
     // Every metric below is a separate scan over the referral board, so the
     // assembled payload is served from Redis for five minutes rather than
     // recomputed on each visit.
-    const cacheKey = `analytics:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}`;
+    const cacheKey = `analytics:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}:${userId ?? "all"}`;
     const cached = await getData(cacheKey);
     if (cached) return cached;
 
@@ -588,21 +723,36 @@ export class AnalyticsService {
       scorecard,
       denials,
     ] = await Promise.all([
-      this.getTotalCounts(organizationId, startDate, endDate),
-      this.getStatusBreakdown(organizationId, startDate, endDate),
-      this.getAverageTimeByStatus(organizationId, startDate, endDate),
-      this.getAvgTimeTrend(organizationId, startDate, endDate),
-      this.getAdmissionTypeBreakdown(organizationId, startDate, endDate),
-      this.getTopFacilities(organizationId, startDate, endDate),
-      this.getTopClinicians(organizationId, startDate, endDate),
-      this.getTopCounties(organizationId, startDate, endDate),
-      this.getReferralSourceBreakdown(organizationId, startDate, endDate),
-      this.getConversionRate(organizationId, startDate, endDate),
-      this.getPayerMix(organizationId, startDate, endDate),
-      this.getOutreachImpact(organizationId, startDate, endDate),
-      this.getEmergingSources(organizationId, startDate, endDate),
-      this.getReferralSourceScorecard(organizationId, startDate, endDate),
-      this.getDenialTracking(organizationId, startDate, endDate),
+      this.getTotalCounts(organizationId, startDate, endDate, userId),
+      this.getStatusBreakdown(organizationId, startDate, endDate, userId),
+      this.getAverageTimeByStatus(organizationId, startDate, endDate, userId),
+      this.getAvgTimeTrend(organizationId, startDate, endDate, userId),
+      this.getAdmissionTypeBreakdown(
+        organizationId,
+        startDate,
+        endDate,
+        userId
+      ),
+      this.getTopFacilities(organizationId, startDate, endDate, userId),
+      this.getTopClinicians(organizationId, startDate, endDate, userId),
+      this.getTopCounties(organizationId, startDate, endDate, userId),
+      this.getReferralSourceBreakdown(
+        organizationId,
+        startDate,
+        endDate,
+        userId
+      ),
+      this.getConversionRate(organizationId, startDate, endDate, userId),
+      this.getPayerMix(organizationId, startDate, endDate, userId),
+      this.getOutreachImpact(organizationId, startDate, endDate, userId),
+      this.getEmergingSources(organizationId, startDate, endDate, userId),
+      this.getReferralSourceScorecard(
+        organizationId,
+        startDate,
+        endDate,
+        userId
+      ),
+      this.getDenialTracking(organizationId, startDate, endDate, userId),
     ]);
 
     const result = {
@@ -633,9 +783,12 @@ export class AnalyticsService {
     startDate: Date | undefined,
     endDate: Date | undefined,
     analytics: any,
-    force = false
+    force = false,
+    userId?: string | null
   ) {
-    const cacheKey = `analytics_summary:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}`;
+    // The summary describes the caller's own slice, so a liaison's cannot be
+    // served from the org-wide key.
+    const cacheKey = `analytics_summary:${organizationId}:${keyPart(startDate)}:${keyPart(endDate)}:${userId ?? "all"}`;
     if (!force) {
       const cached = await getData(cacheKey);
       if (cached) return cached;
@@ -721,6 +874,23 @@ export class AnalyticsService {
       };
     }
 
+    const [referralCounts, liaisonMembers] = await Promise.all([
+      this.getReferralCountsByLiaison(
+        organizationId,
+        startDate,
+        endDate,
+        userId
+      ),
+      prisma.member.findMany({
+        where: {
+          organizationId,
+          role: ROLES.LIAISON,
+          ...(userId && { user: { id: userId } }),
+        },
+        select: { id: true, user: { select: { id: true, name: true } } },
+      }),
+    ]);
+
     const marketingLogs = await prisma.marketing.findMany({
       where: whereClause,
       select: {
@@ -760,26 +930,36 @@ export class AnalyticsService {
       marketingByMember.get(key)!.push(log);
     }
 
+    // Seeded from the liaison roster as well as the logs, so a liaison holding
+    // referrals but no marketing log still gets a card.
+    const seed = (key: string, memberId: string, memberName: string) => {
+      if (analyticsMap.has(key)) return;
+      analyticsMap.set(key, {
+        memberId,
+        memberName,
+        totalLeads: 0,
+        newLeads: 0,
+        totalReferrals: 0,
+        admissions: 0,
+        totalInteractions: 0,
+        engagementLevel: "Low",
+
+        facilitiesCovered: [],
+        peopleContacted: [],
+        touchpointsUsed: [],
+
+        _facilitySet: new Set(),
+        _peopleSet: new Set(),
+        _touchpointMap: new Map(),
+      });
+    };
+
+    for (const member of liaisonMembers) {
+      seed(member.user.id, member.id, member.user.name);
+    }
+
     for (const log of marketingLogs) {
-      const key = log.member.user.id;
-      if (!analyticsMap.has(key)) {
-        analyticsMap.set(key, {
-          memberId: log.memberId,
-          memberName: log.member.user.name,
-          totalLeads: 0,
-          newLeads: 0,
-          totalInteractions: 0,
-          engagementLevel: "Low",
-
-          facilitiesCovered: [],
-          peopleContacted: [],
-          touchpointsUsed: [],
-
-          _facilitySet: new Set(),
-          _peopleSet: new Set(),
-          _touchpointMap: new Map(),
-        });
-      }
+      seed(log.member.user.id, log.memberId, log.member.user.name);
     }
 
     // 5. Apply lead-based metrics (SAFE)
@@ -831,6 +1011,14 @@ export class AnalyticsService {
             : "Low";
     }
 
+    for (const [assignedUserId, counts] of referralCounts.byUser.entries()) {
+      const analytics = analyticsMap.get(assignedUserId);
+      if (!analytics) continue;
+
+      analytics.totalReferrals = counts.referrals;
+      analytics.admissions = counts.admissions;
+    }
+
     for (const analytics of analyticsMap.values()) {
       analytics.facilitiesCovered = Array.from(analytics._facilitySet);
       analytics.peopleContacted = Array.from(analytics._peopleSet);
@@ -852,6 +1040,10 @@ export class AnalyticsService {
     const data = {
       analytics: Array.from(analyticsMap.values()),
       analysis,
+      totals: {
+        referrals: referralCounts.totals.referrals,
+        admissions: referralCounts.totals.admissions,
+      },
     };
 
     await cacheData(

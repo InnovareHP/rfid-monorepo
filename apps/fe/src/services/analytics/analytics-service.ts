@@ -1,5 +1,8 @@
 import { axiosClient } from "@/lib/axios-client";
-import type { AnalyticsResponse } from "@dashboard/shared";
+import type {
+  AnalyticsResponse,
+  MarketingAnalyticsResponse,
+} from "@dashboard/shared";
 
 export const getAnalytics = async (
   start: string | null,
@@ -49,5 +52,5 @@ export const getMarketingList = async (
     },
   });
 
-  return response.data;
+  return response.data as MarketingAnalyticsResponse;
 };

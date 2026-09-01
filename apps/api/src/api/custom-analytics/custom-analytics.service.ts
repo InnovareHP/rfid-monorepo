@@ -58,6 +58,9 @@ type LineResult = {
 type KpiResult = {
   chartType: "KPI";
   value: number;
+  // A PERCENT aggregation is a rate, not a count, so the unit travels with the
+  // value rather than every renderer having to know the aggregation.
+  unit?: "percent";
   // Monthly points behind the headline number, for the tile's sparkline.
   series: { bucket: string; value: number }[];
 };
@@ -1146,6 +1149,9 @@ export class CustomAnalyticsService {
             config.metricAggregation,
             config.numeratorFilter
           ),
+          ...(config.metricAggregation === "PERCENT" && {
+            unit: "percent" as const,
+          }),
           series: [...monthly.entries()]
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([bucket, monthRows]) => ({

@@ -100,6 +100,9 @@ export function HelpCategoryPage({
             ))
           )}
 
+          {/* The count is zero until the query resolves, so the footer would
+              otherwise read "0 article(s)" under the skeleton rows. */}
+          {!articlesQuery.isLoading && (
           <TablePagination
             currentPage={page}
             totalPages={Math.ceil(total / pageSize)}
@@ -113,6 +116,7 @@ export function HelpCategoryPage({
               setPage(1);
             }}
           />
+          )}
         </CardContent>
       </Card>
     </div>

@@ -43,6 +43,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Link, useParams } from "@tanstack/react-router";
+import { LinkTargetEmpty } from "./link-target-empty";
 import { useMemo, useState } from "react";
 import { useFieldArray, useForm, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -698,7 +699,14 @@ const RecordField = ({
                   isLoading={isFetchingLinks}
                   placeholder={`Select ${column.name.toLowerCase()}`}
                   searchPlaceholder={`Search ${column.name.toLowerCase()}...`}
-                  emptyText={`No ${column.name.toLowerCase()} found.`}
+                  emptyText={
+                    <LinkTargetEmpty
+                      targetModule={linkTargetModule ?? ""}
+                      team={team as string}
+                      search={search}
+                      fieldLabel={column.name}
+                    />
+                  }
                   className={FIELD_CONTROL_CLASS}
                 />
               </FormControl>

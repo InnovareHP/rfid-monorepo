@@ -140,7 +140,10 @@ export const NavMain = React.memo(function NavMain({
               <SidebarMenuItem key={item.title}>
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton isActive={hasActiveChild}>
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      isActive={hasActiveChild}
+                    >
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
                     </SidebarMenuButton>

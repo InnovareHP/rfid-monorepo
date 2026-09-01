@@ -45,6 +45,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
+import { LinkTargetEmpty } from "@/components/record-create/link-target-empty";
 import { format, isValid, parseISO } from "date-fns";
 import {
   AlertCircle,
@@ -822,19 +823,19 @@ export function EditableCell({
                     </SelectItem>
                   ))
                 ) : searchQuery ? (
-                  <div className="flex items-center justify-center p-4">
-                    <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-500">
-                      No matches found
-                    </span>
-                  </div>
+                  <LinkTargetEmpty
+                    targetModule={linkTargetModule}
+                    team={team as string}
+                    search={searchQuery}
+                    fieldLabel={fieldName ?? "record"}
+                  />
                 ) : (
-                  <div className="flex items-center justify-center p-4">
-                    <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-500">
-                      No options available
-                    </span>
-                  </div>
+                  <LinkTargetEmpty
+                    targetModule={linkTargetModule}
+                    team={team as string}
+                    search=""
+                    fieldLabel={fieldName ?? "record"}
+                  />
                 )}
                 {hasCurrentVal && !searchQuery && (
                   <SelectItem key="current-val" value={val}>
@@ -1141,11 +1142,11 @@ export function EditableCell({
         )}
       </div>
     ) : (
-      <div className="flex items-center gap-2">
-        <span
-          onClick={() => setEditing(true)}
-          className="cursor-pointer text-sm hover:underline"
-        >
+      <div
+        className="flex w-full cursor-pointer items-center gap-2"
+        onClick={() => setEditing(true)}
+      >
+        <span className="text-sm hover:underline">
           {val || <span className="text-muted-foreground">—</span>}
         </span>
         {isUpdating && (
@@ -1186,11 +1187,11 @@ export function EditableCell({
         )}
       </div>
     ) : (
-      <div className="flex items-center gap-2">
-        <span
-          onClick={() => setEditing(true)}
-          className="cursor-pointer text-sm hover:underline text-primary"
-        >
+      <div
+        className="flex w-full cursor-pointer items-center gap-2"
+        onClick={() => setEditing(true)}
+      >
+        <span className="text-sm hover:underline text-primary">
           {val || <span className="text-muted-foreground">—</span>}
         </span>
         {isUpdating && (
@@ -1246,11 +1247,11 @@ export function EditableCell({
         )}
       </div>
     ) : (
-      <div className="flex items-center gap-2">
-        <span
-          onClick={() => setEditing(true)}
-          className="cursor-pointer text-sm hover:underline"
-        >
+      <div
+        className="flex w-full cursor-pointer items-center gap-2"
+        onClick={() => setEditing(true)}
+      >
+        <span className="text-sm hover:underline">
           {val ? (
             formatPhoneNumber(val)
           ) : (
@@ -1291,12 +1292,17 @@ export function EditableCell({
       )}
     </div>
   ) : (
-    <div className="flex items-center gap-2">
+    <div
+      className={cn(
+        "flex w-full items-center gap-2",
+        fieldName !== "Facility" && "cursor-pointer"
+      )}
+      onClick={() => fieldName !== "Facility" && setEditing(true)}
+    >
       <span
-        onClick={() => fieldName !== "Facility" && setEditing(true)}
         className={cn(
           "text-sm flex items-center gap-1 w-auto",
-          fieldName !== "Facility" && "cursor-pointer hover:underline"
+          fieldName !== "Facility" && "hover:underline"
         )}
       >
         {val || <span className="text-muted-foreground">—</span>}

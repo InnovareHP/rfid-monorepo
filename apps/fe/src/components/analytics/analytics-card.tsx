@@ -23,6 +23,17 @@ function CountPill({ value }: { value: number }) {
   );
 }
 
+function StatBlock({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-border p-3">
+      <p className="text-xl font-semibold tabular-nums text-foreground">
+        {(value ?? 0).toLocaleString()}
+      </p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
 function ProgressBar({ percent }: { percent: number }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-brand/10">
@@ -86,6 +97,11 @@ export function LiaisonAnalyticsCard({ data }: Props) {
             <p className="text-xs text-muted-foreground">Total Interactions</p>
           </div>
           <ProgressBar percent={progressPercentage} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <StatBlock label="Referrals" value={data.totalReferrals} />
+          <StatBlock label="Admissions" value={data.admissions} />
         </div>
 
         <div className="space-y-2">

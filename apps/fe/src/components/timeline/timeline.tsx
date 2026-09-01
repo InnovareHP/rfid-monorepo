@@ -34,9 +34,14 @@ export default function LeadHistoryTimeline() {
   const qc = useQueryClient();
   const user = qc.getQueryData(["user-member"]) as Member;
 
+  // The endpoint answers with a { data, ... } envelope, but every optimistic
+  // update below reads this cache as a plain array, so it is unwrapped here.
   const { data: history = [] } = useQuery({
     queryKey: ["lead-timeline", lead],
-    queryFn: async () => await getLeadTimeline(lead, 10, 1),
+    queryFn: async () => {
+      const response = await getLeadTimeline(lead, 10, 1);
+      return (response.data ?? []) as LeadHistoryItem[];
+    },
   });
 
   const addMutation = useMutation({

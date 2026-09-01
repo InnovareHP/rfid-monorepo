@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import { isOrgAdmin } from "@dashboard/shared";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
   EntitlementGuard,
@@ -39,17 +40,24 @@ export class AnalyticsController {
     @Query("start") start: string,
     @Query("end") end: string,
     @Session()
-    session: AuthenticatedSession
+    session: MemberSession
   ) {
     try {
       const startDate = start ? new Date(start) : undefined;
       const endDate = end ? new Date(end) : undefined;
       const organizationId = session.session.activeOrganizationId;
 
+      // Owner and admin read the whole org; everyone else reads the referrals
+      // assigned to them.
+      const assignedTo = isOrgAdmin(session.session.memberRole)
+        ? null
+        : session.session.userId;
+
       return await this.analyticsService.getAllAnalytics(
         organizationId,
         startDate!,
-        endDate!
+        endDate!,
+        assignedTo
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -65,7 +73,7 @@ export class AnalyticsController {
     @Query("end") end: string,
     @Query("force") force: string,
     @Session()
-    session: AuthenticatedSession
+    session: MemberSession
   ) {
     try {
       const startDate = start ? new Date(start) : undefined;
@@ -77,7 +85,8 @@ export class AnalyticsController {
         startDate,
         endDate,
         analytics,
-        force === "true"
+        force === "true",
+        isOrgAdmin(session.session.memberRole) ? null : session.session.userId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -103,14 +112,19 @@ export class AnalyticsController {
     @Query("end") end: string,
     @Query("userId") userId: string,
     @Session()
-    session: AuthenticatedSession
+    session: MemberSession
   ) {
     try {
       const startDate = start ? new Date(start) : undefined;
       const endDate = end ? new Date(end) : undefined;
 
       const organizationId = session.session.activeOrganizationId;
-      const userIdValue = userId ? userId : null;
+
+      // A liaison reads their own report only, so the client's userId is
+      // ignored rather than trusted for anyone below owner or admin.
+      const userIdValue = isOrgAdmin(session.session.memberRole)
+        ? userId || null
+        : session.session.userId;
       return await this.analyticsService.getMarketingLeadAnalytics(
         organizationId,
         startDate,

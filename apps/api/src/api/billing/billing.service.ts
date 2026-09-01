@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { MAX_SEATS, type BillingInterval } from "@dashboard/shared";
 import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
+import { invalidateOrganizationSessionContext } from "../../lib/auth/auth-helper";
 import { prisma } from "../../lib/prisma/prisma";
 import {
   PLANS,
@@ -205,6 +206,7 @@ export class BillingService {
     // Feature gating reads the cached entitlement, and the seat ceiling lives on
     // it, so a stale key would refuse the member the seat just paid for.
     await invalidateSubscriptionCache(organizationId);
+    await invalidateOrganizationSessionContext(organizationId);
 
     await this.recordSeatChange(
       organizationId,

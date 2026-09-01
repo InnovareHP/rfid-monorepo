@@ -39,9 +39,12 @@ export default function ModuleAnalyticsPage() {
 
   const { data: modules = [] } = useModules({ includeArchived: true });
 
+  // Contacts and companies seed no dashboard by design, so the 404 is the
+  // answer, not a transient failure to retry through.
   const { data: dashboard, isPending } = useQuery({
     queryKey: ["module-default-dashboard", moduleKey],
     queryFn: () => getDefaultDashboard(moduleKey),
+    retry: false,
   });
 
   if (LegacyPage) {

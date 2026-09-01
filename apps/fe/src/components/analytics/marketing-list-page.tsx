@@ -106,6 +106,8 @@ const MarketingListPage = () => {
     (sum, row) => sum + row.totalInteractions,
     0
   );
+  const totalReferrals = data?.totals?.referrals ?? 0;
+  const totalAdmissions = data?.totals?.admissions ?? 0;
 
   const insightSections = data?.analysis
     ? mapAIAnalysisToInsights(data.analysis).map((insight) => ({
@@ -138,13 +140,21 @@ const MarketingListPage = () => {
         </div>
 
         {/* KPI TILES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6">
           <KpiStatTile
-            label="Total Facilities"
+            label="Total Referrals"
+            value={totalReferrals.toLocaleString()}
+          />
+          <KpiStatTile
+            label="Admissions"
+            value={totalAdmissions.toLocaleString()}
+          />
+          <KpiStatTile
+            label="Facilities Visited"
             value={totalFacilities.toLocaleString()}
           />
           <KpiStatTile
-            label="Active Partners"
+            label="People Contacted"
             value={activePartners.toLocaleString()}
           />
           <KpiStatTile

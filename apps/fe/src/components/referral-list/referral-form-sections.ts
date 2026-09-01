@@ -13,7 +13,12 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
       { name: "Facility", span: "full", required: true },
       { name: RECORD_NAME_FIELD, span: "full", required: true },
       { name: "Referral Date", span: "half", required: true },
-      { name: "County", span: "half", required: true },
+      {
+        name: "County",
+        span: "half",
+        helperText:
+          "Leave blank - the county is taken from the Facility's master list record.",
+      },
       { name: "Number", span: "half", required: true },
     ],
   },
@@ -43,7 +48,6 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
           city: "City",
           state: "State",
           zipCode: "Zip Code",
-          county: "County",
         },
       },
       { name: "City", span: "third", required: true },

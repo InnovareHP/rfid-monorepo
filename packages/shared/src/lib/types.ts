@@ -15,6 +15,8 @@ export type LiaisonAnalytics = {
   memberName: string;
   totalLeads: number;
   newLeads: number;
+  totalReferrals: number;
+  admissions: number;
   totalInteractions: number;
   engagementLevel: "High" | "Medium" | "Low";
   facilitiesCovered: string[];
@@ -344,9 +346,19 @@ export type MileageLogRow = {
   reimbursementAmount: number;
 };
 
+export type ReferralSourceTier = "Tier 1" | "Tier 2" | "Infrequent";
+
+export type RecordReferralStats = {
+  count: number;
+  firstReferralAt: string | null;
+  lastReferralAt: string | null;
+  perWeek: number;
+  tier: ReferralSourceTier;
+};
+
 export type LeadAnalyze = {
   recordId: string;
-  assignedTo: string;
+  assignedTo: string | null;
   recordName: string;
   summary: {
     totalInteractions: number;
@@ -355,6 +367,7 @@ export type LeadAnalyze = {
     peopleContacted: string[];
     engagementLevel: string;
     narrative: string;
+    referrals: RecordReferralStats;
   };
 };
 
@@ -363,11 +376,27 @@ export type LiaisonAnalyticsCardData = {
   memberName: string;
   totalLeads: number;
   newLeads: number;
+  totalReferrals: number;
+  admissions: number;
   totalInteractions: number;
   engagementLevel: "Low" | "Medium" | "High";
   facilitiesCovered: string[];
   touchpointsUsed: { type: string; count: number }[];
   peopleContacted: string[];
+};
+
+export type MarketingAiAnalysis = {
+  keyInsights: string[];
+  strengths: string[];
+  weaknesses: string[];
+  actionableRecommendations: string[];
+  engagementOptimizations: string[];
+};
+
+export type MarketingAnalyticsResponse = {
+  analytics: LiaisonAnalyticsCardData[];
+  analysis: MarketingAiAnalysis | null;
+  totals: { referrals: number; admissions: number };
 };
 
 export type MarketLogRow = {
@@ -401,6 +430,7 @@ export type MarketingFacilityBreakdown = {
   facilityRecordId: string | null;
   outreach: number;
   referrals: number;
+  admissions: number;
   conversionRate: number;
 };
 
@@ -415,7 +445,9 @@ export type MarketingReportResponse = {
   totals: {
     outreach: number;
     referrals: number;
+    admissions: number;
     conversionRate: number;
+    admissionRate: number;
   };
   facilityBreakdown: MarketingFacilityBreakdown[];
   touchpointBreakdown: MarketingTouchpointBreakdown[];

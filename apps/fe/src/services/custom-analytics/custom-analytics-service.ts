@@ -103,6 +103,7 @@ export type CustomAnalyticResult =
   | {
       chartType: "KPI";
       value: number;
+      unit?: "percent";
       series: { bucket: string; value: number }[];
     }
   | {

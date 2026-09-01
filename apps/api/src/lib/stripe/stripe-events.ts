@@ -9,6 +9,7 @@ import { SubscriptionCanceledEmail } from "../../react-email/subscription-cancel
 import { SubscriptionUpdatedEmail } from "../../react-email/subscription-updated-email";
 import { TrialEndingEmail } from "../../react-email/trial-ending-email";
 import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
+import { invalidateOrganizationSessionContext } from "../auth/auth-helper";
 import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { runWithTenant } from "../prisma/tenant-context";
@@ -383,6 +384,7 @@ const clearEntitlementCache = async (event: Stripe.Event) => {
   if (!subscription) return;
 
   await invalidateSubscriptionCache(subscription.referenceId);
+  await invalidateOrganizationSessionContext(subscription.referenceId);
 };
 
 export const StripeHelper = async (event: Stripe.Event) => {

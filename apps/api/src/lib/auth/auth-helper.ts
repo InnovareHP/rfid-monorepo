@@ -5,6 +5,13 @@ import {
   WORK_EMAIL_REQUIRED_MESSAGE,
 } from "@dashboard/shared";
 import { Logger } from "@nestjs/common";
+import {
+  cacheData,
+  deleteData,
+  getData,
+  purgeAllCacheKeys,
+} from "../redis/redis";
+import { APIError } from "better-auth/api";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
@@ -72,6 +79,38 @@ export const resolveSessionMembership = async (
   };
 };
 
+// customSession runs on every getSession(), and the AuthGuard calls that once
+// per guarded request, so this handler's three queries were being paid by every
+// endpoint before its own work started. The org-scoped half is cached; the
+// session and user still come from Better Auth on each call.
+const SESSION_CONTEXT_TTL_SECONDS = 30;
+
+// Organization first so a role change can purge the whole organization with
+// the shared prefix helper.
+const sessionContextKey = (organizationId: string, userId: string) =>
+  `session-context:${organizationId}:${userId}`;
+
+type CachedSessionContext = {
+  membership: ResolvedSessionMembership;
+  member: {
+    id: string;
+    role: string | null;
+    organizationId: string;
+  } | null;
+  organization: unknown;
+  subscription: unknown;
+};
+
+export const invalidateSessionContext = (
+  organizationId: string,
+  userId: string
+) => deleteData(sessionContextKey(organizationId, userId));
+
+// Membership drives the role every permission check reads, so a role change
+// drops every cached context for that organization, not just one user's.
+export const invalidateOrganizationSessionContext = (organizationId: string) =>
+  purgeAllCacheKeys(`session-context:${organizationId}`);
+
 export const customSessionHandler = async ({
   user,
   session,
@@ -79,6 +118,29 @@ export const customSessionHandler = async ({
   user: Record<string, any>;
   session: Record<string, any>;
 }) => {
+  const requestedOrganizationId = (session as { activeOrganizationId?: string })
+    .activeOrganizationId;
+
+  if (requestedOrganizationId) {
+    const cached = (await getData(
+      sessionContextKey(requestedOrganizationId, user.id)
+    )) as CachedSessionContext | null;
+
+    if (cached) {
+      return {
+        user,
+        session: {
+          ...session,
+          ...cached.membership,
+          memberRole: cached.membership.role,
+        },
+        member: cached.member,
+        organization: cached.organization,
+        subscription: cached.subscription,
+      };
+    }
+  }
+
   const membership = await resolveSessionMembership(
     user.id,
     (session as { activeOrganizationId?: string }).activeOrganizationId
@@ -130,6 +192,12 @@ export const customSessionHandler = async ({
       orderBy: { periodEnd: "desc" },
     }),
   ]);
+
+  await cacheData(
+    sessionContextKey(activeOrganizationId, user.id),
+    { membership, member, organization, subscription },
+    SESSION_CONTEXT_TTL_SECONDS
+  );
 
   return { user, session: mergedSession, member, organization, subscription };
 };
@@ -351,7 +419,7 @@ const assertWorkEmailIfHipaa = async (
   });
 
   if (organization?.hipaaEnabled) {
-    throw new Error(WORK_EMAIL_REQUIRED_MESSAGE);
+    throw new APIError("BAD_REQUEST", { message: WORK_EMAIL_REQUIRED_MESSAGE });
   }
 };
 
@@ -538,9 +606,9 @@ export const beforeCreateInvitation = async ({
 
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount + pendingInvitations >= maxSeats) {
-    throw new Error(
-      `Cannot send invitation. All ${maxSeats} seats are taken (${memberCount} members, ${pendingInvitations} pending invitations). Add seats to invite more.`
-    );
+    throw new APIError("BAD_REQUEST", {
+      message: `Cannot send invitation. All ${maxSeats} seats are taken (${memberCount} members, ${pendingInvitations} pending invitations). Add seats to invite more.`,
+    });
   }
 
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
@@ -561,9 +629,10 @@ export const beforeAcceptInvitation = async ({
   organization: { id: string };
 }) => {
   if (new Date(invitation.expiresAt) < new Date()) {
-    throw new Error(
-      "This invitation has expired. Please ask the organization admin to send a new one."
-    );
+    throw new APIError("BAD_REQUEST", {
+      message:
+        "This invitation has expired. Please ask the organization admin to send a new one.",
+    });
   }
 
   const [memberCount, subscription] = await Promise.all([
@@ -584,9 +653,10 @@ export const beforeAcceptInvitation = async ({
 
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount >= maxSeats) {
-    throw new Error(
-      "This organization has no seats left. Contact the organization admin."
-    );
+    throw new APIError("BAD_REQUEST", {
+      message:
+        "This organization has no seats left. Contact the organization admin.",
+    });
   }
 };
 

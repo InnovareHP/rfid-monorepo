@@ -39,7 +39,8 @@
     "docker:build": "docker build -t dashboard-backend .",
     "auth:generate": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/auth.ts",
     "prepare": "husky",
-    "audit:collapsed-values": "ts-node scripts/audit-collapsed-values.ts"
+    "audit:collapsed-values": "ts-node scripts/audit-collapsed-values.ts",
+    "audit:referral-attribution": "ts-node scripts/audit-referral-attribution.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1046.0",

@@ -15,11 +15,13 @@ type ReportTableProps<T> = {
   rows: T[];
   isLoading?: boolean;
   emptyMessage?: string;
-  currentPage: number;
-  pageSize: number;
-  totalCount: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
+  // A breakdown table renders every row at once, so it opts out of paging
+  // rather than passing a page size the size picker cannot represent.
+  currentPage?: number;
+  pageSize?: number;
+  totalCount?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
   tableClassName?: string;
 };
 
@@ -41,7 +43,11 @@ export function ReportTable<T>({
   onPageSizeChange,
   tableClassName,
 }: ReportTableProps<T>) {
-  const totalPages = Math.max(Math.ceil(totalCount / pageSize), 1);
+  const paginated = Boolean(onPageChange);
+  const totalPages = Math.max(
+    Math.ceil((totalCount ?? rows.length) / (pageSize || rows.length || 1)),
+    1
+  );
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -110,16 +116,18 @@ export function ReportTable<T>({
         </table>
       </div>
 
-      <TablePagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalCount={totalCount}
-        selectedCount={0}
-        label=""
-        pageSize={pageSize}
-        setCurrentPage={onPageChange}
-        onPageSizeChange={onPageSizeChange}
-      />
+      {paginated && (
+        <TablePagination
+          currentPage={currentPage ?? 1}
+          totalPages={totalPages}
+          totalCount={totalCount ?? rows.length}
+          selectedCount={0}
+          label=""
+          pageSize={pageSize}
+          setCurrentPage={onPageChange!}
+          onPageSizeChange={onPageSizeChange}
+        />
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ const PLACEHOLDER_BY_NAME: Record<string, string> = {
   "contact name": "Jane Doe",
   "company name": "Sunrise Health Group",
   "facility name": "Sunrise Health Group",
-  "referral name": "Jane Doe",
+  "referral liaison": "Jane Doe",
   "patient name": "Jane Doe",
   "full name": "Jane Doe",
   "first name": "Jane",

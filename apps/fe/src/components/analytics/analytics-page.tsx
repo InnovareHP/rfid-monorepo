@@ -188,7 +188,7 @@ export default function ReferralAnalyticsDashboard() {
             series={charts.referralTrend}
           />
           <KpiStatTile
-            label="Converted"
+            label="Admissions"
             value={admitted.toLocaleString()}
             seriesLabel="Admitted"
             delta={charts.convertedDelta}
