@@ -97,10 +97,19 @@ export const SUBSCRIPTION_ACCESS = ["full", "read_only", "locked"] as const;
 
 export type SubscriptionAccess = (typeof SUBSCRIPTION_ACCESS)[number];
 
+// The status a contract row carries. Not a Stripe status: see ACCESS_BY_STATUS.
+export const CONTRACT_STATUS = "contract";
+
 const ACCESS_BY_STATUS: Record<string, SubscriptionAccess> = {
   trialing: "full",
   active: "full",
   past_due: "full",
+  // Not a Stripe status. A negotiated contract is billed by invoice, so there
+  // is no Stripe subscription to report "active", and reusing that word would
+  // make isSubscriptionActive lie about a row Stripe is not collecting on.
+  // Access is granted on the contract, and an unpaid invoice moves the row to
+  // "unpaid" through the same webhook path a card failure uses.
+  [CONTRACT_STATUS]: "full",
   unpaid: "read_only",
   canceled: "read_only",
   paused: "read_only",

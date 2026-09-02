@@ -15,7 +15,11 @@ import {
 } from "@nestjs/common";
 import { AgreementKind } from "@prisma/client";
 import { getOrganizationEntitlement } from "../../guard/subscription/subscription.guard";
-import { invalidateHipaaCache } from "../../guard/hipaa/hipaa.guard";
+import {
+  getHipaaSettings,
+  hasSecondFactor,
+  invalidateHipaaCache,
+} from "../../guard/hipaa/hipaa.guard";
 import { AuditService } from "../../lib/audit/audit.service";
 import { renderBlankBaa, renderExecutedBaa } from "../../lib/documents/baa-pdf";
 import { prisma } from "../../lib/prisma/prisma";
@@ -72,6 +76,23 @@ export class ComplianceService {
       },
       orderBy: { signedAt: "desc" },
     });
+  }
+
+  // Every member reads this, not just the ones who can manage compliance: it
+  // is what tells the app whether to stand in front of the user and ask for a
+  // second factor. It answers with the same rule HipaaGuard enforces, so the
+  // modal cannot disagree with the 403 the API would return.
+  async getSecondFactorRequirement(organizationId: string, userId: string) {
+    const settings = await getHipaaSettings(organizationId);
+
+    if (!settings?.hipaaEnabled) {
+      return { required: false, satisfied: true };
+    }
+
+    return {
+      required: true,
+      satisfied: await hasSecondFactor(userId, true),
+    };
   }
 
   async getStatus(organizationId: string) {

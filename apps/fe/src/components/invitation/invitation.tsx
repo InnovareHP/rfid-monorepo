@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import {
   completeSignup,
   getInvitationContext,
@@ -13,8 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useRouter, useSearch } from "@tanstack/react-router";
 import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   ArrowRight,
@@ -55,7 +54,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
     from: "/invitation/$action",
   });
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const router = useRouter();
   const [state, setState] = useState<PageState>({ step: "loading" });
   const [pending, setPending] = useState(false);
 
@@ -72,7 +71,8 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
       const organizationId = acceptData?.member?.organizationId;
       if (organizationId) {
         await authClient.organization.setActive({ organizationId });
-        await queryClient.invalidateQueries({ queryKey: ["session"] });
+        await refreshSessionCache();
+        await router.invalidate();
         setState({ step: "success", organizationId });
       } else {
         setState({ step: "success", organizationId: "" });

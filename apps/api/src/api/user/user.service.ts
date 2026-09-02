@@ -1,11 +1,14 @@
 import {
+  CONTRACT_STATUS,
   OnboardingStreamEvent,
   resolveEntitlement,
   ROLES,
   toSlug,
+  type SubscriptionLike,
 } from "@dashboard/shared";
 import {
   BadRequestException,
+  Logger,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -14,9 +17,19 @@ import { invalidateSubscriptionCache } from "src/guard/subscription/subscription
 import { invalidateOrganizationSessionContext } from "src/lib/auth/session-context";
 import { auth } from "src/lib/auth/auth";
 import { prisma } from "src/lib/prisma/prisma";
+import { runUnscoped } from "src/lib/prisma/tenant-context";
+import { issueContractInvoice } from "src/lib/stripe/contract-invoice";
+import { stripe } from "src/lib/stripe/stripe";
 import { v4 as uuidv4 } from "uuid";
 import { AdminEntitlementData } from "./dto/user.dto";
 import { OnboardingDto } from "./dto/user.schema";
+
+// Whole dollars unless the contract has cents, which most do not.
+const formatCents = (cents: number) =>
+  `$${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
 
 @Injectable()
 export class UserService {
@@ -566,6 +579,11 @@ export class UserService {
         seats: entitlement.seats,
         features: entitlement.features,
         isCustom: entitlement.isCustom,
+        // Carried so the admin dialog prefills what was negotiated rather than
+        // resetting the price to zero every time it opens.
+        priceCents: subscription?.customPriceCents ?? null,
+        setupFeeCents: subscription?.setupFeeCents ?? null,
+        billingInterval: subscription?.billingInterval ?? null,
       },
       members: org.members.map((m) => ({
         memberId: m.id,
@@ -605,10 +623,12 @@ export class UserService {
     orgId: string,
     input: AdminEntitlementData
   ) {
-    const organization = await prisma.organization.findUnique({
-      where: { id: orgId },
-      select: { id: true, name: true },
-    });
+    const organization = await runUnscoped(() =>
+      prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { id: true, name: true, stripeCustomerId: true },
+      })
+    );
     if (!organization) throw new NotFoundException("Organization not found");
 
     const subscription = await prisma.subscription.findFirst({
@@ -617,15 +637,32 @@ export class UserService {
       orderBy: { periodEnd: "desc" },
     });
 
-    // A contract hangs off a subscription row. Without one there is nothing to
-    // carry it, and inventing a row here would fake a billing relationship.
-    if (!subscription) {
-      throw new BadRequestException(
-        "Organization has no subscription to attach a contract to"
-      );
-    }
-
     const { contract } = input;
+
+    // A contract customer never reaches Stripe checkout, so there is no row to
+    // hang the grant off and nothing to clear. The row is created here instead
+    // of blocking the grant, because waiting on a checkout that will never
+    // happen is what left these organizations parked on the billing screen.
+    if (!subscription) {
+      if (!contract) {
+        throw new BadRequestException("Organization has no contract to clear");
+      }
+
+      const created = await this.createContractSubscription(
+        organization,
+        contract
+      );
+
+      await this.afterEntitlementChange(
+        orgId,
+        organization.name,
+        adminId,
+        adminName,
+        contract
+      );
+
+      return created;
+    }
 
     const updated = await prisma.subscription.update({
       where: { id: subscription.id },
@@ -637,11 +674,17 @@ export class UserService {
               seats: contract.seats,
               features: contract.features,
             },
+            seats: contract.seats,
+            customPriceCents: contract.priceCents,
+            setupFeeCents: contract.setupFeeCents,
+            billingInterval: contract.billingInterval,
           }
         : {
             isCustom: false,
             contractLabel: null,
             customLimits: Prisma.DbNull,
+            customPriceCents: null,
+            setupFeeCents: null,
           },
       select: {
         plan: true,
@@ -652,6 +695,47 @@ export class UserService {
       },
     });
 
+    await this.afterEntitlementChange(
+      orgId,
+      organization.name,
+      adminId,
+      adminName,
+      contract
+    );
+
+    return this.entitlementSummary(updated);
+  }
+
+  private entitlementSummary(
+    subscription: SubscriptionLike & {
+      customPriceCents?: number | null;
+      setupFeeCents?: number | null;
+      billingInterval?: string | null;
+    }
+  ) {
+    const entitlement = resolveEntitlement(subscription);
+
+    return {
+      label: entitlement.label,
+      seats: entitlement.seats,
+      features: entitlement.features,
+      isCustom: entitlement.isCustom,
+      priceCents: subscription.customPriceCents ?? null,
+      setupFeeCents: subscription.setupFeeCents ?? null,
+      billingInterval: subscription.billingInterval ?? null,
+    };
+  }
+
+  // Both caches are cleared in the same call as the write: without that, a
+  // grant sits invisible behind subscription.guard for up to its TTL and reads
+  // as a broken feature flag.
+  private async afterEntitlementChange(
+    orgId: string,
+    orgName: string,
+    adminId: string,
+    adminName: string,
+    contract: AdminEntitlementData["contract"]
+  ) {
     await invalidateSubscriptionCache(orgId);
     await invalidateOrganizationSessionContext(orgId);
 
@@ -661,21 +745,96 @@ export class UserService {
         adminName,
         action: AdminAction.SET_ENTITLEMENT,
         targetOrgId: orgId,
-        targetName: organization.name,
+        targetName: orgName,
         details: contract
-          ? `${contract.label}: ${contract.seats} seats, features [${contract.features.join(", ")}]`
+          ? `${contract.label}: ${contract.seats} seats, ${formatCents(
+              contract.priceCents
+            )} ${contract.billingInterval}${
+              contract.setupFeeCents
+                ? ` plus ${formatCents(contract.setupFeeCents)} setup`
+                : ""
+            }, features [${contract.features.join(", ")}]`
           : "Cleared custom contract, reverted to plan tier",
       },
     });
+  }
 
-    const entitlement = resolveEntitlement(updated);
+  // A contract organization has never been to checkout, so it has no Stripe
+  // customer either. One is created here so the invoice has somewhere to go and
+  // so billing history, which reads the same column, has something to list.
+  private async createContractSubscription(
+    organization: { id: string; name: string; stripeCustomerId: string | null },
+    contract: NonNullable<AdminEntitlementData["contract"]>
+  ) {
+    let customerId = organization.stripeCustomerId;
 
-    return {
-      label: entitlement.label,
-      seats: entitlement.seats,
-      features: entitlement.features,
-      isCustom: entitlement.isCustom,
-    };
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        name: organization.name,
+        metadata: { organizationId: organization.id },
+      });
+      customerId = customer.id;
+
+      await runUnscoped(() =>
+        prisma.organization.update({
+          where: { id: organization.id },
+          data: { stripeCustomerId: customerId },
+        })
+      );
+    }
+
+    const created = await prisma.subscription.create({
+      data: {
+        // Never read while isCustom holds valid limits, but the column is
+        // required and "custom" is the honest value.
+        plan: "custom",
+        referenceId: organization.id,
+        stripeCustomerId: customerId,
+        status: CONTRACT_STATUS,
+        isCustom: true,
+        contractLabel: contract.label,
+        customLimits: {
+          seats: contract.seats,
+          features: contract.features,
+        },
+        seats: contract.seats,
+        customPriceCents: contract.priceCents,
+        setupFeeCents: contract.setupFeeCents,
+        billingInterval: contract.billingInterval,
+      },
+      select: {
+        plan: true,
+        status: true,
+        isCustom: true,
+        contractLabel: true,
+        customLimits: true,
+        seats: true,
+        customPriceCents: true,
+        setupFeeCents: true,
+        billingInterval: true,
+      },
+    });
+
+    // Access is granted by the row above; the invoice is a consequence, not a
+    // precondition. A Stripe failure must not leave the organization locked out
+    // of a contract that was agreed, so it is logged and the grant stands.
+    try {
+      await issueContractInvoice({
+        customerId: customerId,
+        organizationId: organization.id,
+        label: contract.label,
+        priceCents: contract.priceCents,
+        setupFeeCents: contract.setupFeeCents,
+        billingInterval: contract.billingInterval,
+      });
+    } catch (error) {
+      new Logger(UserService.name).error(
+        `Contract invoice failed for ${organization.id}`,
+        error as Error
+      );
+    }
+
+    return this.entitlementSummary(created);
   }
 
   // Serves whichever BAA version the org last executed, not only the current

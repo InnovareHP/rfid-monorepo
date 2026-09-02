@@ -5,7 +5,11 @@ import {
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
-import { recordNameIndexes } from "../../lib/crypto/record-name-index";
+import {
+  normalizeRecordNameLoose,
+  recordNameIndexes,
+} from "../../lib/crypto/record-name-index";
+import { createSimilarNameFinder } from "../../lib/board/name-similarity";
 import { Job } from "bullmq";
 import { v4 as uuidv4 } from "uuid";
 import { isSelectType } from "src/lib/helper";
@@ -107,10 +111,11 @@ export class CsvImportProcessor extends WorkerHost {
     }[] = [];
 
     // Names already on this module, so a re-run of the same file adds nothing.
-    // Only the hashes are read: the names themselves stay encrypted.
+    // The name is read alongside the hash because similarity cannot be scored
+    // against a hash - it needs the plaintext, which the client decrypts here.
     const existing = await prisma.board.findMany({
       where: { organizationId, moduleId, isDeleted: false },
-      select: { recordNameHash: true, recordNameFuzzyHash: true },
+      select: { recordName: true, recordNameHash: true },
     });
 
     const takenExact = new Set(
@@ -118,14 +123,23 @@ export class CsvImportProcessor extends WorkerHost {
         .map((record) => record.recordNameHash)
         .filter((hash): hash is string => hash !== null)
     );
-    const takenFuzzy = new Set(
-      existing
-        .map((record) => record.recordNameFuzzyHash)
-        .filter((hash): hash is string => hash !== null)
-    );
+
+    // Seeded with the board, then grown per accepted row, so the file is
+    // deduplicated against itself as well as against what is already there.
+    const similarNames = createSimilarNameFinder();
+    for (const record of existing) {
+      similarNames.add(
+        record.recordName,
+        normalizeRecordNameLoose(record.recordName)
+      );
+    }
 
     const skipped: { row: number; recordName: string }[] = [];
-    const nearMatches: { row: number; recordName: string }[] = [];
+    const nearMatches: {
+      row: number;
+      recordName: string;
+      matchedName: string;
+    }[] = [];
 
     // Keyed by record id, not row index: a skipped duplicate shifts every
     // later row and would otherwise write its values onto the wrong record.
@@ -153,14 +167,19 @@ export class CsvImportProcessor extends WorkerHost {
         return;
       }
 
-      // A looser match is only probably the same record, so it is imported and
-      // flagged for review instead of being refused.
-      if (recordNameFuzzyHash && takenFuzzy.has(recordNameFuzzyHash)) {
-        nearMatches.push({ row: rowIndex + 1, recordName });
+      // Dropped on the same terms as create and rename, which both refuse a
+      // name that only looks like an existing record. Reported with the name it
+      // matched so the row can be checked rather than guessed at.
+      const loose = normalizeRecordNameLoose(recordName);
+      const matchedName = similarNames.find(loose);
+
+      if (matchedName) {
+        nearMatches.push({ row: rowIndex + 1, recordName, matchedName });
+        return;
       }
 
       if (recordNameHash) takenExact.add(recordNameHash);
-      if (recordNameFuzzyHash) takenFuzzy.add(recordNameFuzzyHash);
+      similarNames.add(recordName, loose);
 
       const recordId = uuidv4();
 
@@ -293,6 +312,10 @@ export class CsvImportProcessor extends WorkerHost {
       event: BOARD_NOTIFICATION_EVENT.IMPORT_FINISHED,
       title: `Import finished — ${recordsToCreate.length} record(s) added${
         skipped.length ? `, ${skipped.length} duplicate(s) skipped` : ""
+      }${
+        nearMatches.length
+          ? `, ${nearMatches.length} similar name(s) skipped`
+          : ""
       }`,
     });
 

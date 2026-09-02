@@ -116,6 +116,10 @@ export type AdminOrganizationEntitlement = {
   seats: number;
   features: string[];
   isCustom: boolean;
+  // Null on a tier plan: only a contract carries a negotiated price.
+  priceCents: number | null;
+  setupFeeCents: number | null;
+  billingInterval: "monthly" | "annual" | null;
 };
 
 export type AdminMetrics = {
@@ -320,6 +324,10 @@ export type EntitlementContract = {
   label: string;
   seats: number;
   features: string[];
+  // Cents, so the invoice amount is exact. Zero is a comped contract.
+  priceCents: number;
+  setupFeeCents: number;
+  billingInterval: "monthly" | "annual";
 };
 
 // Null clears the contract and hands the org back to its plan tier.

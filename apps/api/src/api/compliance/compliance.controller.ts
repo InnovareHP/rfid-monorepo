@@ -52,6 +52,17 @@ export class ComplianceController {
     };
   }
 
+  // Deliberately not behind compliance:read. A liaison has to be told to add a
+  // second factor too, and cannot read the compliance settings themselves.
+  @AllowReadOnly()
+  @Get("second-factor")
+  getSecondFactorRequirement(@Session() session: MemberSession) {
+    return this.complianceService.getSecondFactorRequirement(
+      session.session.activeOrganizationId,
+      session.session.userId
+    );
+  }
+
   @RequirePermission({ compliance: ["read"] })
   @Get("settings")
   getSettings(@Session() session: MemberSession) {

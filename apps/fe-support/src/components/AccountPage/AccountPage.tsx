@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { uploadImage } from "@/services/image/image-service";
 import {
   Avatar,
@@ -83,9 +83,9 @@ export function AccountPage({
     mutationFn: async (data: { image?: string; name?: string }) => {
       return authClient.updateUser(data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["session"] });
-      router.invalidate();
+    onSuccess: async () => {
+      await refreshSessionCache();
+      await router.invalidate();
       toast.success("Profile updated successfully!");
     },
     onError: (error: unknown) => {

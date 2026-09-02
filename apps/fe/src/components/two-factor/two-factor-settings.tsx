@@ -1,6 +1,6 @@
 import { PasswordInput } from "@/components/password-input";
 import { useOtpCooldown } from "@/hooks/use-otp-cooldown";
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Form,
@@ -61,7 +61,15 @@ const FormError = ({ message }: { message?: string }) =>
     </div>
   ) : null;
 
-export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
+export function TwoFactorSettings({
+  enabled,
+  onChange,
+}: {
+  enabled: boolean;
+  // Raised once enrollment finishes, for a caller holding its own copy of
+  // whether this account has a second factor.
+  onChange?: () => void;
+}) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -125,7 +133,8 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
     }
     toast.success("Two-factor authentication disabled");
     reset();
-    router.invalidate();
+    await refreshSessionCache();
+    await router.invalidate();
   };
 
   const afterEnable = async (
@@ -155,12 +164,18 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
         password: values.password,
       });
       if (error || !data) {
-        fail(passwordForm, getApiErrorMessage(error, "Failed to start 2FA setup"));
+        fail(
+          passwordForm,
+          getApiErrorMessage(error, "Failed to start 2FA setup")
+        );
         return;
       }
       await afterEnable(data.backupCodes, passwordForm);
     } catch (error) {
-      fail(passwordForm, getApiErrorMessage(error, "Failed to start 2FA setup"));
+      fail(
+        passwordForm,
+        getApiErrorMessage(error, "Failed to start 2FA setup")
+      );
     }
   };
 
@@ -205,7 +220,8 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
       }
       toast.success("Two-factor authentication disabled");
       reset();
-      router.invalidate();
+      await refreshSessionCache();
+      await router.invalidate();
     } catch (error) {
       fail(passwordForm, getApiErrorMessage(error, "Failed to disable 2FA"));
     }
@@ -216,9 +232,11 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
     toast.success("Backup codes copied");
   };
 
-  const finishEnrollment = () => {
+  const finishEnrollment = async () => {
     reset();
-    router.invalidate();
+    await refreshSessionCache();
+    await router.invalidate();
+    onChange?.();
   };
 
   return (

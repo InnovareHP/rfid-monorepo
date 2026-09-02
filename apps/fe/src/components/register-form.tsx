@@ -1,7 +1,7 @@
 import { AuthPanel } from "@/components/auth-panel";
 import { PasswordInput } from "@/components/password-input";
 import { useOtpCooldown } from "@/hooks/use-otp-cooldown";
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import {
   completeSignup,
@@ -25,7 +25,6 @@ import {
   InputOTPSlot,
 } from "@dashboard/ui/components/input-otp";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Mail, User } from "lucide-react";
 import { useState } from "react";
@@ -58,7 +57,6 @@ export function RegisterForm({
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useRouter();
-  const queryClient = useQueryClient();
   const cooldown = useOtpCooldown();
   const [details, setDetails] = useState<z.infer<typeof detailsSchema> | null>(
     null
@@ -150,8 +148,7 @@ export function RegisterForm({
       // The root route reads the session out of the query cache, which still
       // holds the signed-out value. Without seeding it and re-running the
       // loaders, onboarding sees no user and bounces to the login page.
-      const { data: freshSession } = await authClient.getSession();
-      queryClient.setQueryData(["session"], freshSession);
+      await refreshSessionCache();
       await navigate.invalidate();
 
       await navigate.navigate({ to: "/onboarding", replace: true });

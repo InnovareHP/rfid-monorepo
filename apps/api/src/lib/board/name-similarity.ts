@@ -90,3 +90,58 @@ export const nameSimilarity = (a: string, b: string): number => {
 
   return (bigramScore(a, b) + tokenScore(a, b)) / 2;
 };
+
+// Scoring every candidate against every row is a cross product, which an import
+// cannot afford. A duplicate almost always shares at least one word with its
+// twin, so names are bucketed by word and only the smallest matching bucket is
+// scored: the twin has to be in it, and it is the cheapest one to walk.
+//
+// The blind spot is a name whose every word is misspelled at once. That shares
+// no bucket and is not found.
+export type SimilarNameFinder = {
+  add: (name: string, loose: string) => void;
+  find: (loose: string) => string | null;
+};
+
+export const createSimilarNameFinder = (): SimilarNameFinder => {
+  const entries: { name: string; loose: string }[] = [];
+  const buckets = new Map<string, number[]>();
+
+  const wordsOf = (loose: string) => [
+    ...new Set(loose.split(" ").filter(Boolean)),
+  ];
+
+  return {
+    add: (name, loose) => {
+      if (!loose) return;
+      const index = entries.push({ name, loose }) - 1;
+      for (const word of wordsOf(loose)) {
+        const bucket = buckets.get(word);
+        if (bucket) bucket.push(index);
+        else buckets.set(word, [index]);
+      }
+    },
+
+    find: (loose) => {
+      if (!loose) return null;
+
+      let smallest: number[] | undefined;
+      for (const word of wordsOf(loose)) {
+        const bucket = buckets.get(word);
+        if (!bucket) continue;
+        if (!smallest || bucket.length < smallest.length) smallest = bucket;
+      }
+
+      if (!smallest) return null;
+
+      for (const index of smallest) {
+        const entry = entries[index];
+        if (nameSimilarity(loose, entry.loose) >= NAME_SIMILARITY_THRESHOLD) {
+          return entry.name;
+        }
+      }
+
+      return null;
+    },
+  };
+};

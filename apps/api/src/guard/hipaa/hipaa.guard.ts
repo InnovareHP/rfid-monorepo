@@ -111,7 +111,11 @@ const twoFactorKey = (userId: string) => `hipaa:2fa:${userId}`;
 // A passkey satisfies the requirement on its own: the authenticator proves
 // possession and inherence in one step, and gating on twoFactorEnabled alone
 // would lock every passkey-only user out of PHI.
-const hasSecondFactor = async (userId: string) => {
+export const hasSecondFactor = async (userId: string, fresh = false) => {
+  // The gate is read right after a user enables 2FA, and a stale cache would
+  // keep the modal up for the rest of the TTL.
+  if (fresh) await redis.del(twoFactorKey(userId));
+
   const cached = await redis.get(twoFactorKey(userId));
   if (cached) return cached === "1";
 

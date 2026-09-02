@@ -24,6 +24,7 @@ jest.mock("../../lib/prisma/prisma", () => ({
       count: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
+      update: jest.fn(),
     },
     subscription: {
       count: jest.fn(),
@@ -31,6 +32,7 @@ jest.mock("../../lib/prisma/prisma", () => ({
       findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
+      create: jest.fn(),
     },
     contractAgreement: { findFirst: jest.fn() },
     adminActivityLog: {
@@ -50,6 +52,21 @@ jest.mock("src/guard/subscription/subscription.guard", () => ({
 
 jest.mock("src/lib/auth/auth", () => ({ auth: { api: {} } }));
 
+jest.mock("src/lib/auth/session-context", () => ({
+  invalidateOrganizationSessionContext: jest.fn(),
+}));
+
+jest.mock("src/lib/prisma/tenant-context", () => ({
+  runUnscoped: (fn: () => unknown) => fn(),
+}));
+
+const mockCustomersCreate = jest.fn();
+jest.mock("src/lib/stripe/stripe", () => ({
+  stripe: {
+    customers: { create: (...args: unknown[]) => mockCustomersCreate(...args) },
+  },
+}));
+
 import { prisma } from "../../lib/prisma/prisma";
 import type { AdminEntitlementData } from "./dto/user.dto";
 import { UserController } from "./user.controller";
@@ -61,6 +78,7 @@ const db = prisma as unknown as {
     count: jest.Mock;
     findUnique: jest.Mock;
     findMany: jest.Mock;
+    update: jest.Mock;
   };
   subscription: {
     count: jest.Mock;
@@ -68,6 +86,7 @@ const db = prisma as unknown as {
     findFirst: jest.Mock;
     findMany: jest.Mock;
     update: jest.Mock;
+    create: jest.Mock;
   };
   contractAgreement: { findFirst: jest.Mock };
   adminActivityLog: { create: jest.Mock };
@@ -203,7 +222,7 @@ describe("UserService.getAdminOrganizationById", () => {
 
     const detail = await service.getAdminOrganizationById("org-1");
 
-    expect(detail.entitlement).toEqual({
+    expect(detail.entitlement).toMatchObject({
       label: "Northwind pilot",
       seats: 40,
       features: ["hipaa", "export"],
@@ -276,6 +295,9 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
       label: "Northwind pilot",
       seats: 40,
       features: ["hipaa"],
+      priceCents: 240_000,
+      setupFeeCents: 0,
+      billingInterval: "annual",
     },
   };
 
@@ -328,7 +350,9 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
         action: "SET_ENTITLEMENT",
         targetOrgId: "org-1",
         targetName: "Acme Health",
-        details: "Northwind pilot: 40 seats, features [hipaa]",
+        // The price is part of the record: an entitlement grant is a billing
+        // decision, and the log has to say what was agreed.
+        details: "Northwind pilot: 40 seats, $2,400 annual, features [hipaa]",
       }),
     });
   });
@@ -357,20 +381,62 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
     expect(result).toMatchObject({ label: "growth", isCustom: false });
   });
 
-  it("refuses an organization with no subscription to hang a contract on", async () => {
+  it("creates the row and a Stripe customer when the org never reached checkout", async () => {
+    db.subscription.findFirst.mockResolvedValue(null);
+    db.organization.findUnique.mockResolvedValue({
+      id: "org-1",
+      name: "Northwind",
+      stripeCustomerId: null,
+    });
+    mockCustomersCreate.mockResolvedValue({ id: "cus_new" });
+    db.subscription.create.mockResolvedValue({
+      plan: "custom",
+      status: "contract",
+      isCustom: true,
+      contractLabel: "Northwind pilot",
+      customLimits: { seats: 40, features: ["hipaa"] },
+      seats: 40,
+    });
+
+    const result = await service.setAdminOrganizationEntitlement(
+      "admin-1",
+      "Ada Admin",
+      "org-1",
+      grant
+    );
+
+    expect(mockCustomersCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { organizationId: "org-1" } })
+    );
+    expect(db.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { stripeCustomerId: "cus_new" } })
+    );
+    expect(db.subscription.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "contract",
+          isCustom: true,
+          stripeCustomerId: "cus_new",
+          customPriceCents: 240_000,
+          billingInterval: "annual",
+        }),
+      })
+    );
+    expect(db.subscription.update).not.toHaveBeenCalled();
+    expect(mockInvalidateSubscriptionCache).toHaveBeenCalledWith("org-1");
+    expect(result).toMatchObject({ label: "Northwind pilot", seats: 40 });
+  });
+
+  it("refuses to clear a contract on an org that has no subscription", async () => {
     db.subscription.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.setAdminOrganizationEntitlement(
-        "admin-1",
-        "Ada Admin",
-        "org-1",
-        grant
-      )
-    ).rejects.toThrow(/no subscription/i);
+      service.setAdminOrganizationEntitlement("admin-1", "Ada Admin", "org-1", {
+        contract: null,
+      })
+    ).rejects.toThrow(/no contract/i);
 
-    expect(db.subscription.update).not.toHaveBeenCalled();
-    expect(mockInvalidateSubscriptionCache).not.toHaveBeenCalled();
+    expect(db.subscription.create).not.toHaveBeenCalled();
   });
 
   it("refuses an organization that does not exist", async () => {

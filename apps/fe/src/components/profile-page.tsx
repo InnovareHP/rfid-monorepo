@@ -7,7 +7,7 @@ import {
   TabsTrigger,
 } from "@dashboard/ui/components/tabs";
 import { cn } from "@dashboard/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouteContext, useRouter } from "@tanstack/react-router";
 import type { User as BetterAuthUser } from "better-auth";
 import type { Member } from "better-auth/plugins/organization";
@@ -38,6 +38,7 @@ export function ProfilePage({
   }) as RouteContext;
 
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: sessionData } = authClient.useSession();
 
   const sessionsQuery = useQuery({
@@ -52,6 +53,7 @@ export function ProfilePage({
   const handleSignOut = async () => {
     try {
       await authClient.signOut();
+      queryClient.clear();
       toast.success("Signed out successfully");
       router.navigate({ to: "/login" });
     } catch {

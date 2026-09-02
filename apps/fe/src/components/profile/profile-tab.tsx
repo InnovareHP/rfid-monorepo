@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { uploadImage } from "@/services/image/image-service";
 import {
   Avatar,
@@ -61,10 +61,11 @@ export function ProfileTab({
       const { error } = await authClient.updateUser({ name: value });
       if (error) throw new Error(error.message ?? "Failed to update name");
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Name updated");
       setIsEditingName(false);
-      router.invalidate();
+      await refreshSessionCache();
+      await router.invalidate();
     },
     onError: (error) => toast.error(error.message),
   });
@@ -89,7 +90,8 @@ export function ProfileTab({
       if (error) throw new Error(error.message ?? "Update failed");
 
       toast.success("Profile picture updated!");
-      router.invalidate();
+      await refreshSessionCache();
+      await router.invalidate();
     } catch {
       toast.error("Failed to upload profile picture.");
     } finally {

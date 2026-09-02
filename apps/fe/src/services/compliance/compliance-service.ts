@@ -38,6 +38,19 @@ export type SignBaaPayload = {
   signature: string;
 };
 
+// Whether HIPAA mode obliges this user to hold a second factor, and whether
+// they already do. Readable by every member, unlike the settings themselves.
+export type SecondFactorRequirement = {
+  required: boolean;
+  satisfied: boolean;
+};
+
+export const getSecondFactorRequirement = async () => {
+  const response = await axiosClient.get("/api/compliance/second-factor");
+
+  return response.data as SecondFactorRequirement;
+};
+
 export const getComplianceStatus = async () => {
   const response = await axiosClient.get("/api/compliance/settings");
 

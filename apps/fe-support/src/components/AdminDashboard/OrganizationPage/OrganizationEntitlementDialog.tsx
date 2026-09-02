@@ -23,6 +23,13 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@dashboard/ui/components/select";
 import { Switch } from "@dashboard/ui/components/switch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +45,11 @@ const schema = z
     label: z.string().trim().max(80),
     seats: z.number().int().min(1).max(10000),
     features: z.array(z.enum(PLAN_FEATURES)),
+    // Entered in dollars and sent as cents: nobody negotiates a contract in
+    // cents, and asking for them invites a factor-of-100 mistake.
+    price: z.number().min(0).max(1_000_000),
+    setupFee: z.number().min(0).max(1_000_000),
+    billingInterval: z.enum(["monthly", "annual"]),
   })
   .superRefine((value, ctx) => {
     if (value.isCustom && !value.label) {
@@ -78,6 +90,9 @@ export function OrganizationEntitlementDialog({
         (typeof PLAN_FEATURES)[number] =>
         PLAN_FEATURES.includes(feature as (typeof PLAN_FEATURES)[number])
       ),
+      price: (entitlement.priceCents ?? 0) / 100,
+      setupFee: (entitlement.setupFeeCents ?? 0) / 100,
+      billingInterval: entitlement.billingInterval ?? "annual",
     },
   });
 
@@ -92,6 +107,9 @@ export function OrganizationEntitlementDialog({
               label: values.label,
               seats: values.seats,
               features: values.features,
+              priceCents: Math.round(values.price * 100),
+              setupFeeCents: Math.round(values.setupFee * 100),
+              billingInterval: values.billingInterval,
             }
           : null
       ),
@@ -175,6 +193,81 @@ export function OrganizationEntitlementDialog({
                           value={field.value}
                           onChange={(e) =>
                             field.onChange(e.target.valueAsNumber)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price (USD)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) =>
+                              field.onChange(e.target.valueAsNumber || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="billingInterval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Billed</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="annual">Annually</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="setupFee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>One-off setup fee (USD)</FormLabel>
+                      <FormDescription>
+                        Invoiced once alongside the first period. Leave at 0 for
+                        none.
+                      </FormDescription>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={field.value}
+                          onChange={(e) =>
+                            field.onChange(e.target.valueAsNumber || 0)
                           }
                         />
                       </FormControl>

@@ -15,6 +15,7 @@ import {
 import { createAuthClient } from "better-auth/react";
 import type { Session, User } from "better-auth";
 import { ac, admin, liaison, member, owner } from "./permissions";
+import { queryClient } from "./query-client";
 
 type EnrichedSession = {
   user: User & { isOnboarded: boolean };
@@ -64,6 +65,17 @@ export const authClient = createAuthClient({
     },
   },
 });
+
+// The root loader builds its context from the cached ["session"] query, so a
+// router.invalidate() alone rebuilds it from stale data. Server cookie cache is
+// bypassed too, or a just-changed flag like twoFactorEnabled reads 60s old.
+export const refreshSessionCache = async () => {
+  const { data } = await authClient.getSession({
+    query: { disableCookieCache: true },
+  });
+  queryClient.setQueryData(["session"], data);
+  return data;
+};
 
 export const {
   signIn,

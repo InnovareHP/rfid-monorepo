@@ -1,5 +1,5 @@
 import { useOtpCooldown } from "@/hooks/use-otp-cooldown";
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import {
@@ -12,7 +12,6 @@ import {
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { AlertCircle, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
@@ -45,7 +44,6 @@ const FormError = ({ message }: { message?: string }) =>
 
 export function TwoFactorVerify() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [useBackup, setUseBackup] = useState(false);
   // The code is only emailed on request, so a re-render can never send a second one.
   const [codeSent, setCodeSent] = useState(false);
@@ -70,8 +68,12 @@ export function TwoFactorVerify() {
   };
 
   const continueToApp = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["session"] });
-    const { data: session } = await authClient.getSession();
+    const session = await refreshSessionCache();
+
+    // The root loader ran before verification, so its context has to be
+    // rebuilt or the team guard reads a signed-out session and bounces to /login.
+    await router.invalidate();
+
     const activeOrganizationId = session?.session?.activeOrganizationId;
     if (activeOrganizationId) {
       await router.navigate({

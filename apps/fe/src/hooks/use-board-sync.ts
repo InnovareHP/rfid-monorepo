@@ -4,6 +4,7 @@ import { connectSocket, setTokenGenerator } from "@/lib/socket-io/socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Socket } from "socket.io-client";
+import { toast } from "sonner";
 
 async function generateToken(): Promise<string | null> {
   const { data } = await authClient.oneTimeToken.generate();
@@ -90,7 +91,9 @@ export function useBoardSync() {
             ? {
                 ...r,
                 [fieldName]: value,
-                ...(reason.fieldName ? { [reason.fieldName]: reason.value } : {}),
+                ...(reason.fieldName
+                  ? { [reason.fieldName]: reason.value }
+                  : {}),
                 ...(actionDate.fieldName
                   ? { [actionDate.fieldName]: actionDate.value }
                   : {}),
@@ -131,9 +134,29 @@ export function useBoardSync() {
     };
 
     // Bulk import writes rows the socket never streamed, so refetch that board
-    const handleCsvImportComplete = ({ moduleType }: any) => {
+    const handleCsvImportComplete = ({
+      moduleType,
+      recordsImported,
+      duplicatesSkipped,
+      nearMatches,
+    }: any) => {
       queryClient.invalidateQueries({ queryKey: getQueryKey(moduleType) });
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
+
+      // The counts only exist once the job runs, long after the import panel
+      // reported the upload as queued, so they are announced here instead.
+      const dropped = (duplicatesSkipped ?? 0) + (nearMatches ?? 0);
+
+      if (dropped > 0) {
+        toast.warning(`Import finished — ${dropped} row(s) skipped`, {
+          description: "Rows naming a record you already have were not added.",
+        });
+        return;
+      }
+
+      if (recordsImported > 0) {
+        toast.success(`Import finished — ${recordsImported} record(s) added`);
+      }
     };
 
     const handlers: Record<string, (payload: any) => void> = {

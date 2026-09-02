@@ -11,7 +11,12 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { AuthGuard, Roles, Session } from "@thallesp/nestjs-better-auth";
+import {
+  AllowAnonymous,
+  AuthGuard,
+  Roles,
+  Session,
+} from "@thallesp/nestjs-better-auth";
 import {
   CreateArticleDto,
   CreateCategoryDto,
@@ -28,6 +33,7 @@ export class ManualController {
   constructor(private readonly manualService: ManualService) {}
 
   @Get("/published")
+  @AllowAnonymous()
   async getPublishedArticles(
     @Query("categoryId") categoryId?: string,
     @Query("limit") limit?: number,
@@ -47,6 +53,7 @@ export class ManualController {
   }
 
   @Get("/featured")
+  @AllowAnonymous()
   async getFeaturedArticles(@Query("limit") limit?: number) {
     try {
       return await this.manualService.getFeaturedArticles(limit);
@@ -56,6 +63,7 @@ export class ManualController {
   }
 
   @Get("/published/:slug")
+  @AllowAnonymous()
   async getPublishedArticleBySlug(@Param("slug") slug: string) {
     try {
       return await this.manualService.getPublishedArticleBySlug(slug);
@@ -77,6 +85,7 @@ export class ManualController {
   }
 
   @Get("/categories/published")
+  @AllowAnonymous()
   async getPublishedCategories() {
     try {
       return await this.manualService.getPublishedCategories();
@@ -86,6 +95,7 @@ export class ManualController {
   }
 
   @Get("/categories/slug/:slug")
+  @AllowAnonymous()
   async getCategoryBySlug(@Param("slug") slug: string) {
     try {
       return await this.manualService.getPublishedCategoryBySlug(slug);

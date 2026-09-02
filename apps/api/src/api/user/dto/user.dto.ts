@@ -10,6 +10,11 @@ export const AdminEntitlementSchema = z.object({
       label: z.string().trim().min(1).max(80),
       seats: z.number().int().min(1).max(10000),
       features: z.array(z.enum(PLAN_FEATURES)),
+      // Cents, matching every other money column. Zero is legitimate: a pilot
+      // or a comped account is a contract with no invoice.
+      priceCents: z.number().int().min(0).max(100_000_000),
+      setupFeeCents: z.number().int().min(0).max(100_000_000).default(0),
+      billingInterval: z.enum(["monthly", "annual"]),
     })
     .nullable(),
 });

@@ -1,3 +1,4 @@
+import { CONTRACT_STATUS } from "@dashboard/shared";
 import type * as React from "react";
 import type Stripe from "stripe";
 import { appConfig } from "../../config/app-config";
@@ -195,6 +196,37 @@ const recordInvoiceTransaction = async (
   });
 };
 
+// Only contract rows are touched: a plan subscription carries its status from
+// customer.subscription.* and must not be second-guessed from an invoice.
+const applyContractInvoiceOutcome = async (
+  customerId: string,
+  paid: boolean
+) => {
+  const subscription = await prisma.subscription.findFirst({
+    where: { stripeCustomerId: customerId, isCustom: true },
+    select: { id: true, stripeSubscriptionId: true, status: true },
+  });
+
+  if (!subscription || subscription.stripeSubscriptionId) return;
+
+  const next = paid ? CONTRACT_STATUS : "unpaid";
+  if (subscription.status === next) return;
+
+  await prisma.subscription.update({
+    where: { id: subscription.id },
+    data: { status: next },
+  });
+
+  const organization = await prisma.subscription.findUnique({
+    where: { id: subscription.id },
+    select: { referenceId: true },
+  });
+
+  if (organization) {
+    await invalidateSubscriptionCache(organization.referenceId);
+  }
+};
+
 // The plugin owns every write to the subscription row: it reads the period off
 // items.data[0] and resolves the plan from the price. Duplicating that here is
 // how the row ends up with a hardcoded plan and a wrong period.
@@ -224,6 +256,14 @@ const handleEvent = async (event: Stripe.Event) => {
           invoice,
           kind === "paid" ? "COMPLETED" : "FAILED"
         );
+      }
+
+      // A contract row has no Stripe subscription, so customer.subscription.*
+      // never fires for it and the invoice is the only signal that its access
+      // should change. unpaid maps to read_only, so an unpaid contract keeps
+      // its data visible while it is chased.
+      if (kind !== "upcoming") {
+        await applyContractInvoiceOutcome(customerId, kind === "paid");
       }
 
       await notifyOwners(customerId, kind, invoice);

@@ -2,7 +2,7 @@ import { AuthPanel } from "@/components/auth-panel";
 import { DashboardChoice } from "@/components/dashboard-choice";
 import { DeviceSetupModal } from "@/components/passkeys/device-setup-modal";
 import { PasswordInput } from "@/components/password-input";
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import { ROLES } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
@@ -24,7 +24,6 @@ import {
 import { Input } from "@dashboard/ui/components/input";
 import { Spinner } from "@dashboard/ui/components/spinner";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Fingerprint, HeadphonesIcon, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
@@ -51,7 +50,6 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useRouter();
-  const queryClient = useQueryClient();
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
@@ -78,11 +76,9 @@ export function LoginForm({
   // Shared by both credentials: read the session the sign-in just created and
   // route on role.
   const routeAfterSignIn = async () => {
-    const { data: freshSession } = await authClient.getSession();
-    queryClient.setQueryData(["session"], freshSession);
-
     // The root loader already ran with the signed-out session, so its context
     // has to be rebuilt before any guarded route reads user off it.
+    const freshSession = await refreshSessionCache();
     await navigate.invalidate();
 
     const role = freshSession?.user?.role as string;

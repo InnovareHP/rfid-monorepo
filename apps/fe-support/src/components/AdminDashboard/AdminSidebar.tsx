@@ -161,8 +161,8 @@ export function AdminSidebar() {
 
   const handleLogout = React.useCallback(async () => {
     try {
-      queryClient.clear();
       await authClient.signOut();
+      queryClient.clear();
       router.navigate({ to: "/" });
     } catch (error) {
       console.error("Logout failed:", error);
