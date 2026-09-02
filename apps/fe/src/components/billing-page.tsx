@@ -1,6 +1,7 @@
 import { subscriptionBadgeVariant } from "@/lib/helper/subscription-badge";
 import { BillingAwaitingOwner } from "@/components/billing/billing-awaiting-owner";
 import { BillingTopBar } from "@/components/billing/billing-top-bar";
+import { ContractPlanCard } from "@/components/billing/contract-plan-card";
 import { TransactionsCard } from "@/components/billing/transactions-card";
 import { authClient } from "@/lib/auth-client";
 import { can } from "@/lib/permissions";
@@ -8,6 +9,7 @@ import { SeatStepper } from "@/components/billing/seat-stepper";
 import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   cancelSubscription,
+  getContractCard,
   getPlanCard,
   resumeSubscription,
   updateSeats,
@@ -69,10 +71,17 @@ export function BillingPage({
     context.activeSubscription ??
     null;
 
+  const { data: contract } = useQuery({
+    queryKey: ["billing-contract", activeOrganizationId],
+    queryFn: getContractCard,
+    staleTime: 1000 * 60,
+  });
+
   const memberData =
-    (queryClient.getQueryData(["member-data", activeOrganizationId]) as
-      | Member
-      | null) ?? context.memberData;
+    (queryClient.getQueryData([
+      "member-data",
+      activeOrganizationId,
+    ]) as Member | null) ?? context.memberData;
 
   // The portal button reached every role while every billing endpoint behind it
   // requires manage_billing.
@@ -162,6 +171,28 @@ export function BillingPage({
   const intervalLabel = planCard?.interval === "year" ? "year" : "month";
   const intervalShort = planCard?.interval === "year" ? "yr" : "mo";
 
+  // A contract replaces the plan card outright: its seats and features come from
+  // the agreement, and every control below calls a Stripe checkout endpoint that
+  // has no subscription to act on. The invoice link is the point of the screen.
+  if (contract) {
+    return (
+      <div className={cn("w-full", standalone && "min-h-screen")}>
+        {standalone && <BillingTopBar onLogout={handleLogout} />}
+
+        <div className={cn("w-full space-y-8 p-6", className)} {...props}>
+          <PageHeader
+            title="Billing & Subscription"
+            description="Your contract and any invoice waiting to be paid"
+          />
+
+          <ContractPlanCard contract={contract} />
+
+          {canManageBilling && <TransactionsCard />}
+        </div>
+      </div>
+    );
+  }
+
   // Every plan button calls a manage_billing endpoint, so a non-owner gets told
   // to wait rather than a picker that would 403 on every click.
   if (!billingInfo) {
@@ -182,155 +213,155 @@ export function BillingPage({
           description="Manage your subscription, payment methods, and view billing history"
         />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Current Plan</CardTitle>
-        </CardHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Plan</CardTitle>
+          </CardHeader>
 
-        <CardContent className="space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold">
-                {formatCapitalize(billingInfo.currentPlan)}
-              </span>
-
-              <Badge variant={subscriptionBadgeVariant(billingInfo.status)}>
-                {formatCapitalize(billingInfo.status)}
-              </Badge>
-            </div>
-
-            {isReadOnly ? (
-              <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  {billingInfo.nextBillingDate
-                    ? `Ended ${new Date(
-                        billingInfo.nextBillingDate
-                      ).toLocaleDateString()}`
-                    : "Subscription ended"}
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-2xl font-bold">
+                  {formatCapitalize(billingInfo.currentPlan)}
                 </span>
-              </div>
-            ) : billingInfo.nextBillingDate &&
-              (memberData as Member)?.role === ROLES.OWNER ? (
-              <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  Next billing:{" "}
-                  {new Date(billingInfo.nextBillingDate).toLocaleDateString()}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
-                <span>Contact the owner to upgrade your plan</span>
-              </div>
-            )}
 
-            {isReadOnly && (
-              <p className="mt-3 rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                Your records stay readable and exportable, and nothing is
-                deleted on a schedule. The owner can delete them from the
-                Compliance page whenever you are ready.
-              </p>
-            )}
-          </div>
-
-          {planCard?.pricePerSeat != null && (
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span>
-                  <strong>{planCard.seats}</strong>{" "}
-                  {planCard.seats === 1 ? "seat" : "seats"} at $
-                  {planCard.pricePerSeat} per seat/{intervalLabel}
-                </span>
+                <Badge variant={subscriptionBadgeVariant(billingInfo.status)}>
+                  {formatCapitalize(billingInfo.status)}
+                </Badge>
               </div>
 
-              <p className="text-2xl font-bold">
-                ${planCard.total}
-                <span className="text-sm font-normal text-muted-foreground">
-                  /{intervalShort}
-                </span>
-              </p>
-
-              {canManageBilling && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <SeatStepper
-                    value={seats}
-                    min={Math.max(planCard.memberCount, 1)}
-                    max={planCard.maxSeats}
-                    disabled={seatMutation.isPending}
-                    onChange={setSeatOverride}
-                  />
-
-                  <Button
-                    size="sm"
-                    disabled={
-                      seats === planCard.seats || seatMutation.isPending
-                    }
-                    onClick={() => seatMutation.mutate(seats)}
-                  >
-                    Update seats
-                  </Button>
+              {isReadOnly ? (
+                <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
+                  <Calendar className="w-4 h-4" />
+                  <span>
+                    {billingInfo.nextBillingDate
+                      ? `Ended ${new Date(
+                          billingInfo.nextBillingDate
+                        ).toLocaleDateString()}`
+                      : "Subscription ended"}
+                  </span>
+                </div>
+              ) : billingInfo.nextBillingDate &&
+                (memberData as Member)?.role === ROLES.OWNER ? (
+                <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
+                  <Calendar className="w-4 h-4" />
+                  <span>
+                    Next billing:{" "}
+                    {new Date(billingInfo.nextBillingDate).toLocaleDateString()}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm mt-2 text-muted-foreground">
+                  <span>Contact the owner to upgrade your plan</span>
                 </div>
               )}
 
-              <p className="text-xs text-muted-foreground">
-                {planCard.memberCount} of {planCard.seats} seats used. Seat
-                changes are prorated onto an invoice straight away.
-              </p>
+              {isReadOnly && (
+                <p className="mt-3 rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                  Your records stay readable and exportable, and nothing is
+                  deleted on a schedule. The owner can delete them from the
+                  Compliance page whenever you are ready.
+                </p>
+              )}
             </div>
-          )}
 
-          {planCard?.cancelAtPeriodEnd && (
-            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
-              This subscription is set to cancel at the end of the current
-              period.
-            </div>
-          )}
+            {planCard?.pricePerSeat != null && (
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <span>
+                    <strong>{planCard.seats}</strong>{" "}
+                    {planCard.seats === 1 ? "seat" : "seats"} at $
+                    {planCard.pricePerSeat} per seat/{intervalLabel}
+                  </span>
+                </div>
 
-          {planCard?.pendingInvoice?.hostedInvoiceUrl && (
-            <a
-              href={planCard.pendingInvoice.hostedInvoiceUrl}
-              className="block rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning hover:bg-warning/15"
-            >
-              An invoice is awaiting payment. Open it to complete payment.
-            </a>
-          )}
+                <p className="text-2xl font-bold">
+                  ${planCard.total}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    /{intervalShort}
+                  </span>
+                </p>
 
-          <div className="flex gap-2">
-            {canManageBilling && (
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={openBillingPortal}
-              >
-                Manage Billing
-              </Button>
+                {canManageBilling && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <SeatStepper
+                      value={seats}
+                      min={Math.max(planCard.memberCount, 1)}
+                      max={planCard.maxSeats}
+                      disabled={seatMutation.isPending}
+                      onChange={setSeatOverride}
+                    />
+
+                    <Button
+                      size="sm"
+                      disabled={
+                        seats === planCard.seats || seatMutation.isPending
+                      }
+                      onClick={() => seatMutation.mutate(seats)}
+                    >
+                      Update seats
+                    </Button>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  {planCard.memberCount} of {planCard.seats} seats used. Seat
+                  changes are prorated onto an invoice straight away.
+                </p>
+              </div>
             )}
 
-            {(memberData as Member)?.role === ROLES.OWNER &&
-              (planCard?.cancelAtPeriodEnd ? (
+            {planCard?.cancelAtPeriodEnd && (
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+                This subscription is set to cancel at the end of the current
+                period.
+              </div>
+            )}
+
+            {planCard?.pendingInvoice?.hostedInvoiceUrl && (
+              <a
+                href={planCard.pendingInvoice.hostedInvoiceUrl}
+                className="block rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning hover:bg-warning/15"
+              >
+                An invoice is awaiting payment. Open it to complete payment.
+              </a>
+            )}
+
+            <div className="flex gap-2">
+              {canManageBilling && (
                 <Button
                   variant="outline"
                   className="flex-1"
-                  disabled={resumeMutation.isPending}
-                  onClick={() => resumeMutation.mutate()}
+                  onClick={openBillingPortal}
                 >
-                  Resume Subscription
+                  Manage Billing
                 </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  disabled={cancelMutation.isPending}
-                  onClick={() => cancelMutation.mutate()}
-                >
-                  Cancel Subscription
-                </Button>
-              ))}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+
+              {(memberData as Member)?.role === ROLES.OWNER &&
+                (planCard?.cancelAtPeriodEnd ? (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={resumeMutation.isPending}
+                    onClick={() => resumeMutation.mutate()}
+                  >
+                    Resume Subscription
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={cancelMutation.isPending}
+                    onClick={() => cancelMutation.mutate()}
+                  >
+                    Cancel Subscription
+                  </Button>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Only reachable with manage_billing, which is what both history routes require. */}
         {canManageBilling && <TransactionsCard />}

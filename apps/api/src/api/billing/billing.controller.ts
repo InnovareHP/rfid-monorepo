@@ -39,6 +39,13 @@ export class BillingController {
     return this.billingService.listPlans();
   }
 
+  @Get("contract")
+  getContractCard(@Session() session: MemberSession) {
+    return this.billingService.getContractCard(
+      session.session.activeOrganizationId
+    );
+  }
+
   @RequirePermission({ billing: ["manage_billing"] })
   @Get("plan")
   getPlanCard(@Session() session: MemberSession) {

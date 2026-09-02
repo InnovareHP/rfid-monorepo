@@ -83,6 +83,32 @@ export type TransactionRow = {
   createdAt: string;
 };
 
+// A negotiated contract, billed by invoice rather than by a Stripe
+// subscription. Null when the organization is on an ordinary plan tier.
+export type ContractCard = {
+  label: string | null;
+  status: string | null;
+  seats: number | null;
+  priceCents: number | null;
+  setupFeeCents: number | null;
+  billingInterval: "monthly" | "annual" | null;
+  outstandingInvoice: {
+    id: string;
+    amountDueCents: number;
+    currency: string;
+    dueDate: string | null;
+    hostedInvoiceUrl: string | null;
+    pdfUrl: string | null;
+    status: string | null;
+  } | null;
+};
+
+export const getContractCard = async () => {
+  const response = await axiosClient.get("/api/billing/contract");
+
+  return response.data as ContractCard | null;
+};
+
 export const getPlans = async () => {
   const response = await axiosClient.get("/api/billing/plans");
 

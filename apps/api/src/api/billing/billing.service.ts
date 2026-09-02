@@ -47,6 +47,60 @@ export class BillingService {
 
   // The dashboard gate, not just a plan label: feature flags, the seat list,
   // and any invoice still waiting on first payment.
+  // A contract has no Stripe subscription, so nothing in getPlanCard describes
+  // it and every control on the normal billing page calls a checkout endpoint
+  // that does not apply. This is what the page renders instead, and the open
+  // invoice is the part the customer actually needs: it is how they pay.
+  async getContractCard(organizationId: string) {
+    const subscription = await prisma.subscription.findFirst({
+      where: { referenceId: organizationId, isCustom: true },
+      select: {
+        contractLabel: true,
+        status: true,
+        seats: true,
+        customPriceCents: true,
+        setupFeeCents: true,
+        billingInterval: true,
+        stripeCustomerId: true,
+      },
+    });
+
+    if (!subscription) return null;
+
+    const invoices = await stripe.invoices.list({
+      customer: subscription.stripeCustomerId,
+      limit: 10,
+    });
+
+    // Anything not yet settled is what there is to act on. Paid history is
+    // already served by the invoices route.
+    const outstanding = invoices.data.find((invoice) =>
+      ["open", "uncollectible", "past_due"].includes(invoice.status ?? "")
+    );
+
+    return {
+      label: subscription.contractLabel,
+      status: subscription.status,
+      seats: subscription.seats,
+      priceCents: subscription.customPriceCents,
+      setupFeeCents: subscription.setupFeeCents,
+      billingInterval: subscription.billingInterval,
+      outstandingInvoice: outstanding
+        ? {
+            id: outstanding.id,
+            amountDueCents: outstanding.amount_due,
+            currency: outstanding.currency,
+            dueDate: outstanding.due_date
+              ? new Date(outstanding.due_date * 1000).toISOString()
+              : null,
+            hostedInvoiceUrl: outstanding.hosted_invoice_url ?? null,
+            pdfUrl: outstanding.invoice_pdf ?? null,
+            status: outstanding.status,
+          }
+        : null,
+    };
+  }
+
   async getPlanCard(organizationId: string) {
     const [subscription, members] = await Promise.all([
       this.getSubscription(organizationId),
