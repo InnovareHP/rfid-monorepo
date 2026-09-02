@@ -927,7 +927,7 @@ export class UserService {
     if (contract && !subscription.isCustom) {
       const owes = await this.billContract(
         orgId,
-        subscription.stripeCustomerId,
+        await this.ensureStripeCustomer(organization),
         contract
       );
 
@@ -1079,11 +1079,22 @@ export class UserService {
       );
     }
 
+    const organization = await runUnscoped(() =>
+      prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { id: true, name: true, stripeCustomerId: true },
+      })
+    );
+
+    if (!organization) throw new NotFoundException("Organization not found");
+
+    const customerId = await this.ensureStripeCustomer(organization);
+
     let invoice: Awaited<ReturnType<typeof issueContractInvoice>>;
 
     try {
       invoice = await issueContractInvoice({
-        customerId: subscription.stripeCustomerId,
+        customerId,
         organizationId: orgId,
         label: subscription.contractLabel ?? "Contract",
         priceCents: subscription.customPriceCents ?? 0,
@@ -1107,20 +1118,13 @@ export class UserService {
       throw new BadRequestException(message);
     }
 
-    const organization = await runUnscoped(() =>
-      prisma.organization.findUnique({
-        where: { id: orgId },
-        select: { name: true },
-      })
-    );
-
     await prisma.adminActivityLog.create({
       data: {
         adminId,
         adminName,
         action: AdminAction.SET_ENTITLEMENT,
         targetOrgId: orgId,
-        targetName: organization?.name ?? orgId,
+        targetName: organization.name,
         details: `Issued contract invoice for ${formatCents(
           subscription.customPriceCents ?? 0
         )}`,
@@ -1133,26 +1137,61 @@ export class UserService {
     };
   }
 
+  // Stripe refuses to create a send_invoice invoice for a customer with no
+  // email - it has nowhere to send it - so the owner's address is attached
+  // when the customer is made, and backfilled onto one that predates this.
+  private async ensureStripeCustomer(organization: {
+    id: string;
+    name: string;
+    stripeCustomerId: string | null;
+  }) {
+    const owner = await prisma.member.findFirst({
+      where: { organizationId: organization.id, role: ROLES.OWNER },
+      orderBy: { createdAt: "asc" },
+      select: { user: { select: { email: true, name: true } } },
+    });
+
+    if (!owner?.user.email) {
+      throw new BadRequestException(
+        "Organization has no owner with an email to invoice"
+      );
+    }
+
+    if (organization.stripeCustomerId) {
+      const existing = await stripe.customers.retrieve(
+        organization.stripeCustomerId
+      );
+
+      if (!existing.deleted && !existing.email) {
+        await stripe.customers.update(organization.stripeCustomerId, {
+          email: owner.user.email,
+        });
+      }
+
+      return organization.stripeCustomerId;
+    }
+
+    const customer = await stripe.customers.create({
+      name: organization.name,
+      email: owner.user.email,
+      metadata: { organizationId: organization.id },
+    });
+
+    await runUnscoped(() =>
+      prisma.organization.update({
+        where: { id: organization.id },
+        data: { stripeCustomerId: customer.id },
+      })
+    );
+
+    return customer.id;
+  }
+
   private async createContractSubscription(
     organization: { id: string; name: string; stripeCustomerId: string | null },
     contract: NonNullable<AdminEntitlementData["contract"]>
   ) {
-    let customerId = organization.stripeCustomerId;
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        name: organization.name,
-        metadata: { organizationId: organization.id },
-      });
-      customerId = customer.id;
-
-      await runUnscoped(() =>
-        prisma.organization.update({
-          where: { id: organization.id },
-          data: { stripeCustomerId: customerId },
-        })
-      );
-    }
+    const customerId = await this.ensureStripeCustomer(organization);
 
     const created = await prisma.subscription.create({
       data: {

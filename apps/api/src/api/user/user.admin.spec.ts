@@ -34,6 +34,7 @@ jest.mock("../../lib/prisma/prisma", () => ({
       update: jest.fn(),
       create: jest.fn(),
     },
+    member: { findFirst: jest.fn() },
     contractAgreement: { findFirst: jest.fn() },
     adminActivityLog: {
       findMany: jest.fn(),
@@ -61,9 +62,15 @@ jest.mock("src/lib/prisma/tenant-context", () => ({
 }));
 
 const mockCustomersCreate = jest.fn();
+const mockCustomersRetrieve = jest.fn();
+const mockCustomersUpdate = jest.fn();
 jest.mock("src/lib/stripe/stripe", () => ({
   stripe: {
-    customers: { create: (...args: unknown[]) => mockCustomersCreate(...args) },
+    customers: {
+      create: (...args: unknown[]) => mockCustomersCreate(...args),
+      retrieve: (...args: unknown[]) => mockCustomersRetrieve(...args),
+      update: (...args: unknown[]) => mockCustomersUpdate(...args),
+    },
   },
 }));
 
@@ -88,6 +95,7 @@ const db = prisma as unknown as {
     update: jest.Mock;
     create: jest.Mock;
   };
+  member: { findFirst: jest.Mock };
   contractAgreement: { findFirst: jest.Mock };
   adminActivityLog: { create: jest.Mock };
 };
@@ -281,8 +289,22 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
     db.organization.findUnique.mockResolvedValue({
       id: "org-1",
       name: "Acme Health",
+      stripeCustomerId: "cus_existing",
     });
-    db.subscription.findFirst.mockResolvedValue({ id: "sub-1" });
+    // Stripe will not send an invoice to a customer with no email, so the
+    // owner's address is what every contract path reaches for.
+    db.member.findFirst.mockResolvedValue({
+      user: { email: "owner@acme.test", name: "Olive Owner" },
+    });
+    mockCustomersRetrieve.mockResolvedValue({
+      id: "cus_existing",
+      email: "owner@acme.test",
+    });
+    db.subscription.findFirst.mockResolvedValue({
+      id: "sub-1",
+      isCustom: false,
+      stripeCustomerId: "cus_existing",
+    });
     db.subscription.update.mockResolvedValue({
       plan: "growth",
       status: "active",
