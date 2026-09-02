@@ -1,11 +1,17 @@
 import { CalendarClock } from "lucide-react";
 import { useState } from "react";
 import type { DemoRequestPayload } from "./demo-api";
+import {
+  demoRequestSchema,
+  firstErrors,
+  type DemoFieldErrors,
+  type DemoRequestValues,
+} from "./demo-schema";
 
 const TEAM_SIZES = ["1-5", "6-20", "21-50", "51-200", "200+"];
 
 const FIELD =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20";
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 aria-[invalid=true]:border-destructive";
 
 // Step one exists on its own so an abandoned calendar still leaves a lead.
 export function DemoRequestForm({
@@ -28,19 +34,52 @@ export function DemoRequestForm({
     notes: "",
     website: "",
   });
+  const [errors, setErrors] = useState<DemoFieldErrors>({});
 
-  const set = (key: keyof typeof values) => (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => setValues((current) => ({ ...current, [key]: event.target.value }));
+  const set =
+    (key: keyof typeof values) =>
+    (
+      event: React.ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
+    ) => {
+      setValues((current) => ({ ...current, [key]: event.target.value }));
+      // Clearing on change rather than re-validating: the message goes as soon
+      // as they start fixing it.
+      setErrors((current) =>
+        current[key as keyof DemoRequestValues]
+          ? { ...current, [key]: undefined }
+          : current
+      );
+    };
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const parsed = demoRequestSchema.safeParse(values);
+    if (!parsed.success) {
+      setErrors(firstErrors(parsed.error));
+      return;
+    }
+
+    setErrors({});
+    // Empty optionals are dropped so the API stores nothing rather than "".
+    onSubmit(
+      Object.fromEntries(
+        Object.entries(parsed.data).filter(([, value]) => value !== "")
+      ) as DemoRequestPayload
+    );
+  };
+
+  const fieldError = (key: keyof DemoRequestValues) =>
+    errors[key] ? (
+      <span className="text-xs font-normal text-destructive">
+        {errors[key]}
+      </span>
+    ) : null;
 
   return (
-    <form
-      className="space-y-5"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit(values);
-      }}
-    >
+    <form className="space-y-5" onSubmit={submit} noValidate>
       <div className="space-y-1">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-brand-accent">
           <CalendarClock className="size-3.5" />
@@ -56,44 +95,65 @@ export function DemoRequestForm({
         <label className="space-y-1.5 text-sm">
           <span className="font-medium">Name</span>
           <input
-            required
             className={FIELD}
+            placeholder="Jordan Reyes"
+            aria-invalid={Boolean(errors.name)}
             value={values.name}
             onChange={set("name")}
             autoComplete="name"
           />
+          {fieldError("name")}
         </label>
 
         <label className="space-y-1.5 text-sm">
           <span className="font-medium">Work email</span>
           <input
-            required
             type="email"
             className={FIELD}
+            placeholder="jordan@yourclinic.com"
+            aria-invalid={Boolean(errors.email)}
             value={values.email}
             onChange={set("email")}
             autoComplete="email"
           />
+          {fieldError("email")}
         </label>
 
         <label className="space-y-1.5 text-sm">
-          <span className="font-medium">Organization</span>
+          <span className="font-medium">
+            Organization
+            <span className="ml-1 font-normal text-muted-foreground">
+              optional
+            </span>
+          </span>
           <input
             className={FIELD}
+            placeholder="Reyes Care Group"
+            aria-invalid={Boolean(errors.company)}
             value={values.company}
             onChange={set("company")}
             autoComplete="organization"
           />
+          {fieldError("company")}
         </label>
 
         <label className="space-y-1.5 text-sm">
-          <span className="font-medium">Phone</span>
+          <span className="font-medium">
+            Phone
+            <span className="ml-1 font-normal text-muted-foreground">
+              optional
+            </span>
+          </span>
           <input
+            type="tel"
             className={FIELD}
+            placeholder="(555) 012-3456"
+            aria-invalid={Boolean(errors.phone)}
             value={values.phone}
             onChange={set("phone")}
             autoComplete="tel"
           />
+          {fieldError("phone")}
         </label>
 
         <label className="space-y-1.5 text-sm sm:col-span-2">
@@ -117,9 +177,12 @@ export function DemoRequestForm({
           <textarea
             rows={4}
             className={FIELD}
+            placeholder="We track referrals from twelve hospitals in a spreadsheet and lose the handoff between liaisons. Show us how that looks in one board."
+            aria-invalid={Boolean(errors.notes)}
             value={values.notes}
             onChange={set("notes")}
           />
+          {fieldError("notes")}
         </label>
       </div>
 
