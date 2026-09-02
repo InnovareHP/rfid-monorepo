@@ -1,5 +1,6 @@
 import {
   BOARD_NOTIFICATION_EVENT,
+  normalizeFieldValue,
   normalizeOptionValue,
 } from "@dashboard/shared";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
@@ -200,7 +201,9 @@ export class CsvImportProcessor extends WorkerHost {
         const field = fieldByHeader.get(header);
         if (!field) continue;
 
-        let value = normalizeOptionValue(rawText);
+        // Same normalizer the interactive create and edit paths use, so an
+        // imported row and a typed one land in the same shape.
+        let value = normalizeFieldValue(field.fieldType, rawText);
         if (!value) continue;
 
         if (isSelectType(field.fieldType)) {

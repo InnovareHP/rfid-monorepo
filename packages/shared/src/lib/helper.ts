@@ -24,6 +24,37 @@ export const sanitizeUserText = (value: string) =>
     value.normalize("NFC").replace(INVISIBLE, "").replace(/\u00A0/g, " ")
   );
 
+// Casing is data. A facility filed as "MedStar" is not the same on screen as
+// "MEDSTAR", and folding either way loses what the user actually typed, so
+// nothing here rewrites letters. The exceptions are the values whose canonical
+// form is defined outside this app: an email is case-insensitive by spec, and
+// a phone number carries no letters at all.
+export const normalizeEmailValue = (value: string) =>
+  sanitizeUserText(value).toLowerCase();
+
+// The one place a CRM value is cleaned, whether it arrived by typing, paste,
+// CSV or the public form.
+export const normalizeFieldValue = (fieldType: string, value: string) => {
+  const clean = sanitizeUserText(value);
+
+  if (fieldType === "EMAIL") return clean.toLowerCase();
+  if (fieldType === "PHONE") {
+    const formatted = formatPhoneNumber(clean);
+    // formatPhoneNumber falls back to digits alone, which drops an extension
+    // or a country prefix, so anything it does not recognise stays as typed.
+    return formatted.includes("(") ? formatted : clean;
+  }
+
+  return clean;
+};
+
+// Option and column names are labels the whole organization reads, so they get
+// the same treatment as a value: cleaned, never recased.
+export const normalizeLabel = (value: string) => sanitizeUserText(value);
+
+// What makes two labels the same label. Comparison only - never stored.
+export const labelKey = (value: string) => sanitizeUserText(value).toLowerCase();
+
 export const normalizeKey = (value: string) => {
   return value
     .toLowerCase()

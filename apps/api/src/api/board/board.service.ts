@@ -2,6 +2,10 @@ import { GeocodeCommand } from "@aws-sdk/client-geo-places";
 import {
   BOARD_NOTIFICATION_EVENT,
   formatPhoneNumber,
+  labelKey,
+  normalizeEmailValue,
+  normalizeFieldValue,
+  normalizeLabel,
   sanitizeUserText,
 } from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
@@ -2159,7 +2163,7 @@ export class BoardService {
   ) {
     const { recordId, organizationId, memberId, moduleType, field } = ctx;
 
-    const value = sanitizeUserText(ctx.value);
+    const value = normalizeFieldValue(field.fieldType, ctx.value);
 
     const existingRecordValue = await tx.fieldValue.findUnique({
       where: {
@@ -2287,7 +2291,6 @@ export class BoardService {
     }
   ) {
     const {
-      recordName,
       organizationId,
       memberId,
       moduleType,
@@ -2295,6 +2298,10 @@ export class BoardService {
       personContact,
     } = params;
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+    // Sanitized here as well as on rename: a create that skipped it let two
+    // records differ by nothing but invisible characters.
+    const recordName = sanitizeUserText(params.recordName ?? "");
 
     const indexes = recordNameIndexes(recordName);
 
@@ -2354,12 +2361,17 @@ export class BoardService {
       },
     });
 
-    const fieldValues = fields.map((f) => ({
-      recordId: board.id,
-      fieldId: f.id,
-      value: initialValues?.[f.id] ?? null,
-      organizationId: organizationId,
-    }));
+    const fieldValues = fields.map((f) => {
+      const initial = initialValues?.[f.id];
+
+      return {
+        recordId: board.id,
+        fieldId: f.id,
+        value:
+          initial == null ? null : normalizeFieldValue(f.fieldType, initial),
+        organizationId: organizationId,
+      };
+    });
 
     await tx.fieldValue.createMany({ data: fieldValues });
 
@@ -2378,7 +2390,7 @@ export class BoardService {
           data: {
             fieldValueId: personFieldValue.id,
             contactNumber: formatPhoneNumber(personContact.contactNumber ?? ""),
-            email: personContact.email ?? "",
+            email: normalizeEmailValue(personContact.email ?? ""),
             address: personContact.address ?? "",
           },
         });
@@ -2544,11 +2556,13 @@ export class BoardService {
       // ran out of time part way through.
       const recordsToCreate = referralItems.map((referralData) => ({
         id: uuidv4(),
-        recordName: referralData.referral_name ?? "",
+        recordName: sanitizeUserText(referralData.referral_name ?? ""),
         // Indexed for duplicate detection on every module; only the account
         // modules carry the unique constraint that turns a match into a
         // refusal, since the same patient can genuinely be referred twice.
-        ...recordNameIndexes(referralData.referral_name),
+        ...recordNameIndexes(
+          sanitizeUserText(referralData.referral_name ?? "")
+        ),
         moduleType: toModuleType(moduleType),
         moduleId: scopedModuleId,
         organizationId: organizationId,
@@ -2610,7 +2624,7 @@ export class BoardService {
                 linkIdsByRecord.set(recordId, linkIds);
               }
             } else {
-              value = String(customValue);
+              value = normalizeFieldValue(field.fieldType, String(customValue));
               displayValue = value;
             }
           }
@@ -2931,7 +2945,7 @@ export class BoardService {
 
     const field = await prisma.field.create({
       data: {
-        fieldName: column_name,
+        fieldName: normalizeLabel(column_name),
         fieldType: fieldType,
         fieldOrder: newOrder,
         organizationId: organizationId,
@@ -3324,9 +3338,38 @@ export class BoardService {
 
     if (!field) throw new NotFoundException("Field not found");
 
+    const name = normalizeLabel(optionName);
+    if (!name) throw new BadRequestException("Option name is required");
+
+    // "Assisted Living", "assisted living " and "ASSISTED LIVING" are one
+    // option. Matched in memory rather than SQL because the key also collapses
+    // inner whitespace, and one field holds tens of options, not thousands.
+    const key = labelKey(name);
+    const options = await prisma.fieldOption.findMany({
+      where: { fieldId },
+      select: { id: true, optionName: true, isDeleted: true },
+    });
+    const match = options.find((option) => labelKey(option.optionName) === key);
+
+    if (match) {
+      // A binned option with this name is restored rather than duplicated:
+      // records already carry the value, so a second row would split them.
+      // The stored spelling stays whoever typed it first.
+      if (!match.isDeleted) {
+        return await prisma.fieldOption.findUniqueOrThrow({
+          where: { id: match.id },
+        });
+      }
+
+      return await prisma.fieldOption.update({
+        where: { id: match.id },
+        data: { isDeleted: false, deletedAt: null, deletedBy: null },
+      });
+    }
+
     return await prisma.fieldOption.create({
       data: {
-        optionName: optionName,
+        optionName: name,
         fieldId: fieldId,
         organizationId: field.organizationId,
         createdBy: userId,
