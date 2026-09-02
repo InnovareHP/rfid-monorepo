@@ -29,3 +29,13 @@ export const OnboardingSchema = z.object({
 });
 
 export type OnboardingData = z.infer<typeof OnboardingSchema>;
+
+// Admin provisioning: the account carries no credential, so the new owner
+// enrols their own passkey from the login page. Only what the two rows need.
+export const CreateAdminUserSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().toLowerCase().email(),
+  organizationName: z.string().trim().min(1).max(120),
+});
+
+export type CreateAdminUserData = z.infer<typeof CreateAdminUserSchema>;

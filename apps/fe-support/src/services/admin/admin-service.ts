@@ -1,4 +1,5 @@
 import { authClient, type AdminRole } from "@/lib/auth-client";
+import type { AdminUserCreateStreamEvent } from "@dashboard/shared";
 import { axiosClient } from "@/lib/axios-client";
 
 // ─── User Types ─────────────────────────────────────────────────────
@@ -31,6 +32,9 @@ export type ListUsersParams = {
   take?: number;
   search?: string;
   roleFilter?: string;
+  statusFilter?: string;
+  verifiedFilter?: string;
+  membershipFilter?: string;
   sortBy?: string;
   order?: "asc" | "desc";
 };
@@ -71,6 +75,7 @@ export type ActivityLogParams = {
   take?: number;
   actionFilter?: string;
   adminId?: string;
+  search?: string;
   startDate?: string;
   endDate?: string;
 };
@@ -188,7 +193,17 @@ export type ListOrganizationsParams = {
   take?: number;
   search?: string;
   hipaaOnly?: boolean;
+  accessFilter?: string;
+  contractFilter?: string;
 };
+
+export type CreateUserPayload = {
+  name: string;
+  email: string;
+  organizationName: string;
+};
+
+export type CreateUserResult = { userId: string; organizationId: string };
 
 export type ListOrganizationsResponse = {
   organizations: AdminOrganization[];
@@ -209,6 +224,56 @@ export async function listUsers(
 export async function getUser(userId: string): Promise<AdminUser> {
   const { data } = await axiosClient.get(`/api/user/admin/users/${userId}`);
   return data;
+}
+
+// Provisioning streams its steps, so the dialog can name the one that failed
+// instead of reporting a generic failure after a long wait.
+export async function createUser(
+  payload: CreateUserPayload,
+  onProgress: (label: string) => void
+): Promise<CreateUserResult> {
+  const response = await fetch("/api/user/admin/users", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error("Could not create the user.");
+  }
+
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  let result: CreateUserResult | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += value;
+    const chunks = buffer.split("\n\n");
+    buffer = chunks.pop() ?? "";
+
+    for (const chunk of chunks) {
+      const line = chunk.split("\n").find((part) => part.startsWith("data: "));
+      if (!line) continue;
+
+      const event = JSON.parse(line.slice(6)) as AdminUserCreateStreamEvent;
+
+      if (event.type === "error") throw new Error(event.message);
+      if (event.type === "progress") onProgress(event.label);
+      if (event.type === "done") {
+        result = { userId: event.userId, organizationId: event.organizationId };
+      }
+    }
+  }
+
+  if (!result) {
+    throw new Error("Creation ended before the organization was created.");
+  }
+
+  return result;
 }
 
 // ─── Admin Actions ──────────────────────────────────────────────────
@@ -340,6 +405,15 @@ export async function setOrganizationEntitlement(
     { contract }
   );
   return data;
+}
+
+// Raises the next period's invoice. Separate from the entitlement save so
+// editing a contract never bills the customer again.
+export async function issueContractInvoice(orgId: string) {
+  const { data } = await axiosClient.post(
+    `/api/user/admin/organizations/${orgId}/contract-invoice`
+  );
+  return data as { invoiceId: string | null; hostedInvoiceUrl: string | null };
 }
 
 export async function getMetrics(): Promise<AdminMetrics> {

@@ -22,6 +22,7 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import { FilterSelect } from "../../Reusable/FilterSelect";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
 
 type BadgeVariant = React.ComponentProps<typeof Badge>["variant"];
@@ -34,6 +35,22 @@ const SUBSCRIPTION_VARIANTS: Record<string, BadgeVariant> = {
   incomplete: "secondary",
 };
 
+// Access, not raw Stripe status: it is what the app gates on, and one label
+// covers the several statuses that resolve to it.
+const ACCESS_OPTIONS = [
+  { label: "Any billing", value: "ALL" },
+  { label: "Full access", value: "full" },
+  { label: "Read only", value: "read_only" },
+  { label: "Locked", value: "locked" },
+  { label: "No subscription", value: "none" },
+] as const;
+
+const CONTRACT_OPTIONS = [
+  { label: "Any plan type", value: "ALL" },
+  { label: "Custom contract", value: "custom" },
+  { label: "Standard plan", value: "plan" },
+] as const;
+
 export function OrganizationListPage() {
   const navigate = useNavigate();
 
@@ -42,6 +59,8 @@ export function OrganizationListPage() {
     take: 10,
     search: "",
     hipaaOnly: false,
+    accessFilter: "ALL",
+    contractFilter: "ALL",
   });
 
   const { data, isLoading } = useQuery({
@@ -52,6 +71,12 @@ export function OrganizationListPage() {
         take: filterMeta.take,
         ...(filterMeta.search ? { search: filterMeta.search } : {}),
         ...(filterMeta.hipaaOnly ? { hipaaOnly: true } : {}),
+        ...(filterMeta.accessFilter !== "ALL"
+          ? { accessFilter: filterMeta.accessFilter }
+          : {}),
+        ...(filterMeta.contractFilter !== "ALL"
+          ? { contractFilter: filterMeta.contractFilter }
+          : {}),
       }),
   });
 
@@ -153,6 +178,22 @@ export function OrganizationListPage() {
               className="pl-9"
             />
           </div>
+          <FilterSelect
+            value={filterMeta.accessFilter}
+            onValueChange={(value) =>
+              setFilterMeta({ ...filterMeta, accessFilter: value, page: 1 })
+            }
+            options={ACCESS_OPTIONS}
+            placeholder="Any billing"
+          />
+          <FilterSelect
+            value={filterMeta.contractFilter}
+            onValueChange={(value) =>
+              setFilterMeta({ ...filterMeta, contractFilter: value, page: 1 })
+            }
+            options={CONTRACT_OPTIONS}
+            placeholder="Any plan type"
+          />
           <div className="flex items-center gap-2">
             <Switch
               id="hipaa-only"

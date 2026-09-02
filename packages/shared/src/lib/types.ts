@@ -657,3 +657,8 @@ export type OnboardingStreamEvent =
   | { type: "progress"; step: string; label: string }
   | { type: "done"; organizationId: string }
   | { type: "error"; message: string };
+
+export type AdminUserCreateStreamEvent =
+  | { type: "progress"; step: string; label: string }
+  | { type: "done"; userId: string; organizationId: string }
+  | { type: "error"; message: string };

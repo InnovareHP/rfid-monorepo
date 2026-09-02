@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ClipboardList, Download } from "lucide-react";
+import { ClipboardList, Download, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
@@ -37,6 +37,7 @@ export function ActivityLogPage() {
     take: 20,
     actionFilter: "ALL",
     adminFilter: "ALL",
+    search: "",
     startDate: "",
     endDate: "",
   });
@@ -48,6 +49,7 @@ export function ActivityLogPage() {
     ...(filterMeta.adminFilter !== "ALL"
       ? { adminId: filterMeta.adminFilter }
       : {}),
+    ...(filterMeta.search ? { search: filterMeta.search } : {}),
     ...(filterMeta.startDate ? { startDate: filterMeta.startDate } : {}),
     ...(filterMeta.endDate ? { endDate: filterMeta.endDate } : {}),
   };
@@ -190,6 +192,23 @@ export function ActivityLogPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+          {/* Names come off the row, so a deleted account is still findable. */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+            <Input
+              type="search"
+              placeholder="Search admin, target or detail..."
+              value={filterMeta.search}
+              onChange={(e) =>
+                setFilterMeta({
+                  ...filterMeta,
+                  search: e.target.value,
+                  page: 1,
+                })
+              }
+              className="pl-9"
+            />
+          </div>
           <Select
             value={filterMeta.actionFilter}
             onValueChange={(value) =>

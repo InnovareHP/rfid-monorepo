@@ -41,13 +41,6 @@ import {
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
 import { Input } from "@dashboard/ui/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dashboard/ui/components/select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -62,12 +55,15 @@ import {
   Trash2,
   User,
   UserCog,
+  UserPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { FilterSelect } from "../../Reusable/FilterSelect";
 import { RoleBadge, StatusBadge } from "../../Reusable/StatusBadges";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
 import { BanUserDialog } from "./BanUserDialog";
+import { CreateUserDialog } from "./CreateUserDialog";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { ImpersonateUserDialog } from "./ImpersonateUserDialog";
 
@@ -86,6 +82,26 @@ const ROLE_OPTIONS = [
   { label: "Super Admin", value: ROLES.SUPER_ADMIN },
 ] as const;
 
+const STATUS_OPTIONS = [
+  { label: "Any status", value: "ALL" },
+  { label: "Active", value: "active" },
+  { label: "Banned", value: "banned" },
+] as const;
+
+const VERIFIED_OPTIONS = [
+  { label: "Any email", value: "ALL" },
+  { label: "Verified", value: "verified" },
+  { label: "Unverified", value: "unverified" },
+] as const;
+
+// A signup that never reached onboarding has no membership, which is the only
+// way to spot one from here.
+const MEMBERSHIP_OPTIONS = [
+  { label: "Any membership", value: "ALL" },
+  { label: "In an organization", value: "with-org" },
+  { label: "No organization", value: "no-org" },
+] as const;
+
 export function UserManagementPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -95,6 +111,9 @@ export function UserManagementPage() {
     take: 10,
     search: "",
     roleFilter: "ALL",
+    statusFilter: "ALL",
+    verifiedFilter: "ALL",
+    membershipFilter: "ALL",
   });
 
   const [banTarget, setBanTarget] = useState<AdminUser | null>(null);
@@ -103,6 +122,7 @@ export function UserManagementPage() {
   const [impersonateTarget, setImpersonateTarget] = useState<AdminUser | null>(
     null
   );
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users", filterMeta],
@@ -113,6 +133,15 @@ export function UserManagementPage() {
         ...(filterMeta.search ? { search: filterMeta.search } : {}),
         ...(filterMeta.roleFilter !== "ALL"
           ? { roleFilter: filterMeta.roleFilter }
+          : {}),
+        ...(filterMeta.statusFilter !== "ALL"
+          ? { statusFilter: filterMeta.statusFilter }
+          : {}),
+        ...(filterMeta.verifiedFilter !== "ALL"
+          ? { verifiedFilter: filterMeta.verifiedFilter }
+          : {}),
+        ...(filterMeta.membershipFilter !== "ALL"
+          ? { membershipFilter: filterMeta.membershipFilter }
           : {}),
       }),
   });
@@ -386,13 +415,20 @@ export function UserManagementPage() {
   return (
     <div className="flex flex-1 flex-col">
       <div className="w-full flex-1 space-y-6 px-4 py-6 sm:px-6">
-        <div>
-          <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
-            User Management
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            View, search, and manage platform users
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="page-title text-2xl font-bold tracking-tight sm:text-3xl">
+              User Management
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              View, search, and manage platform users
+            </p>
+          </div>
+
+          <Button onClick={() => setCreateOpen(true)}>
+            <UserPlus className="size-4" />
+            Create user
+          </Button>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
@@ -412,23 +448,38 @@ export function UserManagementPage() {
               className="pl-9"
             />
           </div>
-          <Select
+          <FilterSelect
             value={filterMeta.roleFilter}
             onValueChange={(value) =>
               setFilterMeta({ ...filterMeta, roleFilter: value, page: 1 })
             }
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All roles" />
-            </SelectTrigger>
-            <SelectContent>
-              {ROLE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={ROLE_OPTIONS}
+            placeholder="All roles"
+          />
+          <FilterSelect
+            value={filterMeta.statusFilter}
+            onValueChange={(value) =>
+              setFilterMeta({ ...filterMeta, statusFilter: value, page: 1 })
+            }
+            options={STATUS_OPTIONS}
+            placeholder="Any status"
+          />
+          <FilterSelect
+            value={filterMeta.verifiedFilter}
+            onValueChange={(value) =>
+              setFilterMeta({ ...filterMeta, verifiedFilter: value, page: 1 })
+            }
+            options={VERIFIED_OPTIONS}
+            placeholder="Any email"
+          />
+          <FilterSelect
+            value={filterMeta.membershipFilter}
+            onValueChange={(value) =>
+              setFilterMeta({ ...filterMeta, membershipFilter: value, page: 1 })
+            }
+            options={MEMBERSHIP_OPTIONS}
+            placeholder="Any membership"
+          />
         </div>
 
         <ReusableTable
@@ -445,6 +496,12 @@ export function UserManagementPage() {
           }
         />
       </div>
+
+      <CreateUserDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={invalidateUsers}
+      />
 
       {/* Ban dialog */}
       <BanUserDialog

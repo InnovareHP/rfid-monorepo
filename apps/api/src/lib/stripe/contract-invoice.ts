@@ -1,10 +1,13 @@
 import { stripe } from "./stripe";
 
-// A contract is collected by invoice, not by card on file: there is no Stripe
-// subscription behind it, so nothing renews on its own and each period is
-// invoiced deliberately. That is the point - the customer asked to be billed
-// this way - but it does mean a contract needs a renewal job later, not a
-// webhook.
+// A contract is collected by invoice rather than charged automatically: there
+// is no Stripe subscription behind it, so nothing renews on its own and each
+// period is invoiced deliberately. That means a contract needs a renewal job
+// later, not a webhook.
+//
+// It does not mean cards are out. send_invoice only decides that Stripe will
+// not pull from a saved payment method on its own - the hosted invoice page
+// still takes a card, and the methods below are what it offers.
 const DAYS_UNTIL_DUE = 30;
 
 const periodLabel = (billingInterval: string) =>
@@ -26,6 +29,12 @@ export const issueContractInvoice = async (input: {
     customer: input.customerId,
     collection_method: "send_invoice",
     days_until_due: DAYS_UNTIL_DUE,
+    // Mirrors the checkout session's methods so a contract customer is not
+    // offered less than a self-serve one. Without this the hosted page falls
+    // back to whatever the Stripe dashboard's invoice defaults happen to be.
+    payment_settings: {
+      payment_method_types: ["card", "us_bank_account"],
+    },
     // Line items are attached to this invoice by id rather than swept up from
     // whatever else is pending on the customer.
     pending_invoice_items_behavior: "exclude",

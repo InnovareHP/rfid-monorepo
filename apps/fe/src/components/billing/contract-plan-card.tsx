@@ -46,9 +46,9 @@ export function ContractPlanCard({ contract }: { contract: ContractCard }) {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          This organization is on a negotiated contract, billed by invoice
-          rather than a card on file. Seats and features are set by the
-          agreement, so there is nothing to upgrade here.
+          This organization is on a negotiated contract. Seats and features are
+          set by the agreement, so there is nothing to upgrade here. Invoices
+          are sent each period and can be paid by card or bank transfer.
         </p>
 
         {invoice ? (

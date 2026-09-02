@@ -1,3 +1,4 @@
+import { ROLES } from "@dashboard/shared";
 import {
   Body,
   Controller,
@@ -42,7 +43,8 @@ export class BillingController {
   @Get("contract")
   getContractCard(@Session() session: MemberSession) {
     return this.billingService.getContractCard(
-      session.session.activeOrganizationId
+      session.session.activeOrganizationId,
+      session.session.memberRole === ROLES.OWNER
     );
   }
 

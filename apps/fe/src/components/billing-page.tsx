@@ -1,6 +1,7 @@
 import { subscriptionBadgeVariant } from "@/lib/helper/subscription-badge";
 import { BillingAwaitingOwner } from "@/components/billing/billing-awaiting-owner";
 import { BillingTopBar } from "@/components/billing/billing-top-bar";
+import { ContractAwaitingPayment } from "@/components/billing/contract-awaiting-payment";
 import { ContractPlanCard } from "@/components/billing/contract-plan-card";
 import { TransactionsCard } from "@/components/billing/transactions-card";
 import { authClient } from "@/lib/auth-client";
@@ -174,6 +175,20 @@ export function BillingPage({
   // A contract replaces the plan card outright: its seats and features come from
   // the agreement, and every control below calls a Stripe checkout endpoint that
   // has no subscription to act on. The invoice link is the point of the screen.
+  // A member cannot pay, so a page built around a Pay button would be a dead
+  // end for them. They get told what is happening instead.
+  if (contract && !contract.canManageBilling) {
+    return (
+      <ContractAwaitingPayment
+        contract={contract}
+        onRetry={() =>
+          queryClient.invalidateQueries({ queryKey: ["billing-contract"] })
+        }
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   if (contract) {
     return (
       <div className={cn("w-full", standalone && "min-h-screen")}>

@@ -1,4 +1,4 @@
-import { CONTRACT_STATUS } from "@dashboard/shared";
+import { CONTRACT_STATUS, CONTRACT_UNPAID_STATUS } from "@dashboard/shared";
 import type * as React from "react";
 import type Stripe from "stripe";
 import { appConfig } from "../../config/app-config";
@@ -209,7 +209,16 @@ const applyContractInvoiceOutcome = async (
 
   if (!subscription || subscription.stripeSubscriptionId) return;
 
-  const next = paid ? CONTRACT_STATUS : "unpaid";
+  // A contract that has never been paid stays locked when an invoice fails:
+  // there is no earlier period to keep readable. One that has been paid before
+  // drops to read_only instead, so a failed renewal does not shut a working
+  // organization out of its own records while it is chased.
+  const neverPaid = subscription.status === CONTRACT_UNPAID_STATUS;
+  const next = paid
+    ? CONTRACT_STATUS
+    : neverPaid
+      ? CONTRACT_UNPAID_STATUS
+      : "unpaid";
   if (subscription.status === next) return;
 
   await prisma.subscription.update({

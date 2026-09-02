@@ -51,7 +51,7 @@ export class BillingService {
   // it and every control on the normal billing page calls a checkout endpoint
   // that does not apply. This is what the page renders instead, and the open
   // invoice is the part the customer actually needs: it is how they pay.
-  async getContractCard(organizationId: string) {
+  async getContractCard(organizationId: string, canManageBilling: boolean) {
     const subscription = await prisma.subscription.findFirst({
       where: { referenceId: organizationId, isCustom: true },
       select: {
@@ -85,6 +85,7 @@ export class BillingService {
       priceCents: subscription.customPriceCents,
       setupFeeCents: subscription.setupFeeCents,
       billingInterval: subscription.billingInterval,
+      canManageBilling,
       outstandingInvoice: outstanding
         ? {
             id: outstanding.id,
@@ -93,8 +94,12 @@ export class BillingService {
             dueDate: outstanding.due_date
               ? new Date(outstanding.due_date * 1000).toISOString()
               : null,
-            hostedInvoiceUrl: outstanding.hosted_invoice_url ?? null,
-            pdfUrl: outstanding.invoice_pdf ?? null,
+            // A hosted invoice link is a payment link: anyone holding it can
+            // pay the invoice. Only the role that owns billing gets one.
+            hostedInvoiceUrl: canManageBilling
+              ? (outstanding.hosted_invoice_url ?? null)
+              : null,
+            pdfUrl: canManageBilling ? (outstanding.invoice_pdf ?? null) : null,
             status: outstanding.status,
           }
         : null,

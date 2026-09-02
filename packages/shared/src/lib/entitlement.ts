@@ -97,8 +97,15 @@ export const SUBSCRIPTION_ACCESS = ["full", "read_only", "locked"] as const;
 
 export type SubscriptionAccess = (typeof SUBSCRIPTION_ACCESS)[number];
 
-// The status a contract row carries. Not a Stripe status: see ACCESS_BY_STATUS.
+// The status a contract row carries once it is paid for. Not a Stripe status:
+// see ACCESS_BY_STATUS.
 export const CONTRACT_STATUS = "contract";
+
+// A contract whose first invoice has never been paid. Locked rather than
+// read_only on purpose: there is no earlier period to preserve access to, so
+// the organization is sent to /billing to settle it, the same way an
+// unfinished checkout is.
+export const CONTRACT_UNPAID_STATUS = "contract_unpaid";
 
 const ACCESS_BY_STATUS: Record<string, SubscriptionAccess> = {
   trialing: "full",
@@ -110,6 +117,7 @@ const ACCESS_BY_STATUS: Record<string, SubscriptionAccess> = {
   // Access is granted on the contract, and an unpaid invoice moves the row to
   // "unpaid" through the same webhook path a card failure uses.
   [CONTRACT_STATUS]: "full",
+  [CONTRACT_UNPAID_STATUS]: "locked",
   unpaid: "read_only",
   canceled: "read_only",
   paused: "read_only",
@@ -117,6 +125,19 @@ const ACCESS_BY_STATUS: Record<string, SubscriptionAccess> = {
   incomplete: "locked",
   incomplete_expired: "locked",
 };
+
+export const SUBSCRIPTION_ACCESS_LEVELS = [
+  "full",
+  "read_only",
+  "locked",
+] as const;
+
+// Filtering by access needs the statuses behind it, and reading them off the
+// same map is what keeps the filter honest when a status is added.
+export const statusesForAccess = (access: SubscriptionAccess) =>
+  Object.entries(ACCESS_BY_STATUS)
+    .filter(([, level]) => level === access)
+    .map(([status]) => status);
 
 // A missing or unrecognised status locks, never opens.
 export const accessForStatus = (

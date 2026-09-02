@@ -96,6 +96,8 @@ const rolesOn = (handlerName: string) =>
   mockDeclaredRoles.get(handlerName) ?? [];
 
 const ADMIN_HANDLERS = [
+  "createAdminUser",
+  "issueAdminContractInvoice",
   "getAdminUsers",
   "getAdminUserById",
   "getActivityLog",
@@ -390,6 +392,7 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
     });
     mockCustomersCreate.mockResolvedValue({ id: "cus_new" });
     db.subscription.create.mockResolvedValue({
+      id: "sub-new",
       plan: "custom",
       status: "contract",
       isCustom: true,
@@ -422,7 +425,12 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
         }),
       })
     );
-    expect(db.subscription.update).not.toHaveBeenCalled();
+    // Billable, so the organization is parked on the billing page until the
+    // invoice clears rather than let straight into the dashboard.
+    expect(db.subscription.update).toHaveBeenCalledWith({
+      where: { id: "sub-new" },
+      data: { status: "contract_unpaid" },
+    });
     expect(mockInvalidateSubscriptionCache).toHaveBeenCalledWith("org-1");
     expect(result).toMatchObject({ label: "Northwind pilot", seats: 40 });
   });

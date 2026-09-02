@@ -1,5 +1,10 @@
 import {
+  AdminUserCreateStreamEvent,
   CONTRACT_STATUS,
+  statusesForAccess,
+  SUBSCRIPTION_ACCESS_LEVELS,
+  type SubscriptionAccess,
+  CONTRACT_UNPAID_STATUS,
   OnboardingStreamEvent,
   resolveEntitlement,
   ROLES,
@@ -16,12 +21,16 @@ import { AdminAction, AgreementKind, Prisma } from "@prisma/client";
 import { invalidateSubscriptionCache } from "src/guard/subscription/subscription.guard";
 import { invalidateOrganizationSessionContext } from "src/lib/auth/session-context";
 import { auth } from "src/lib/auth/auth";
+import { renderEmailHtml } from "src/lib/aws/ses";
+import { emailQueue } from "src/lib/queue/email-queue";
 import { prisma } from "src/lib/prisma/prisma";
 import { runUnscoped } from "src/lib/prisma/tenant-context";
 import { issueContractInvoice } from "src/lib/stripe/contract-invoice";
 import { stripe } from "src/lib/stripe/stripe";
 import { v4 as uuidv4 } from "uuid";
-import { AdminEntitlementData } from "./dto/user.dto";
+import { appConfig } from "src/config/app-config";
+import { MemberWelcomeEmail } from "src/react-email/member-welcome-email";
+import { AdminEntitlementData, CreateAdminUserData } from "./dto/user.dto";
 import { OnboardingDto } from "./dto/user.schema";
 
 // Whole dollars unless the contract has cents, which most do not.
@@ -98,13 +107,168 @@ export class UserService {
     yield { type: "done", organizationId: organization.id };
   }
 
+  // Support-side provisioning. Same two rows self-serve signup ends with, in
+  // the same order, minus the credential: the account holds none, so the owner
+  // enrols their own passkey from the login page.
+  async *createAdminUser(
+    dto: CreateAdminUserData,
+    admin: { id: string; name: string }
+  ): AsyncGenerator<AdminUserCreateStreamEvent> {
+    const { email, name, organizationName } = dto;
+    const slug = toSlug(organizationName);
+
+    yield { type: "progress", step: "checking", label: "Checking the email" };
+
+    const existingUser = await prisma.user.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+    if (existingUser) {
+      throw new BadRequestException(
+        "An account already exists for this email."
+      );
+    }
+
+    const existingOrg = await runUnscoped(() =>
+      prisma.organization.findFirst({ where: { slug }, select: { id: true } })
+    );
+    if (existingOrg) {
+      throw new BadRequestException(
+        `An organization named "${organizationName}" already exists.`
+      );
+    }
+
+    yield {
+      type: "progress",
+      step: "creating-user",
+      label: "Creating the account",
+    };
+
+    const user = await prisma.user.create({
+      // The admin vouched for the address, and the welcome email is the proof
+      // of delivery: an unverified owner cannot receive an invitation either.
+      data: { email, name, emailVerified: true },
+      select: { id: true },
+    });
+
+    yield {
+      type: "progress",
+      step: "creating-org",
+      label: "Creating the organization",
+    };
+
+    const organization = await this.createOrganizationFor(user.id, {
+      name: organizationName,
+      slug,
+    });
+
+    yield {
+      type: "progress",
+      step: "saving-profile",
+      label: "Marking the account onboarded",
+    };
+
+    // Onboarded, or the guard sends them through the wizard and they end up
+    // with a second organization on first sign-in.
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isOnboarded: true,
+        onboarding: {
+          create: {
+            id: uuidv4(),
+            hearAbout: "Created by support",
+            howToUse: "",
+            whatToExpect: "",
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    yield {
+      type: "progress",
+      step: "sending-welcome",
+      label: "Emailing the owner",
+    };
+
+    const html = await renderEmailHtml(
+      MemberWelcomeEmail({
+        email,
+        organizationName,
+        role: ROLES.OWNER,
+        loginUrl: `${appConfig.WEBSITE_URL}/login`,
+      })
+    );
+    await emailQueue.add("send", {
+      to: email,
+      subject: `Your ${appConfig.APP_NAME} account is ready`,
+      html,
+      from: `${appConfig.APP_EMAIL}`,
+    });
+
+    await prisma.adminActivityLog.create({
+      data: {
+        adminId: admin.id,
+        adminName: admin.name,
+        action: AdminAction.CREATE_USER,
+        targetUserId: user.id,
+        targetName: name,
+        targetOrgId: organization.id,
+        details: `Created ${email} as owner of ${organizationName}`,
+      },
+    });
+
+    yield { type: "done", userId: user.id, organizationId: organization.id };
+  }
+
+  // Called with no headers, which is how Better Auth recognises a system action
+  // and makes the named user the owner. A failure here would otherwise leave an
+  // account with no organization behind it, so the user row goes with it.
+  private async createOrganizationFor(
+    userId: string,
+    org: { name: string; slug: string }
+  ) {
+    try {
+      const organization = await auth.api.createOrganization({
+        body: {
+          name: org.name,
+          slug: org.slug,
+          metadata: { user_id: userId },
+          userId,
+          keepCurrentActiveOrganization: true,
+        },
+      });
+      if (!organization) throw new Error("Failed to create organization");
+      return organization;
+    } catch (error) {
+      await prisma.user.delete({ where: { id: userId } });
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : "Failed to create the organization"
+      );
+    }
+  }
+
   async getAdminUsers(params: {
     page: number;
     take: number;
     search?: string;
     roleFilter?: string;
+    statusFilter?: string;
+    verifiedFilter?: string;
+    membershipFilter?: string;
   }) {
-    const { page, take, search, roleFilter } = params;
+    const {
+      page,
+      take,
+      search,
+      roleFilter,
+      statusFilter,
+      verifiedFilter,
+      membershipFilter,
+    } = params;
     const skip = (page - 1) * take;
 
     const where: Prisma.UserWhereInput = {
@@ -119,6 +283,16 @@ export class UserService {
           }
         : {}),
       ...(roleFilter ? { role: roleFilter } : {}),
+      // An unrecognised value filters nothing rather than erroring: these
+      // arrive as raw query strings.
+      ...(statusFilter === "banned" ? { banned: true } : {}),
+      ...(statusFilter === "active" ? { banned: false } : {}),
+      ...(verifiedFilter === "verified" ? { emailVerified: true } : {}),
+      ...(verifiedFilter === "unverified" ? { emailVerified: false } : {}),
+      // A signup that never finished onboarding belongs to no organization,
+      // which is the only way to find those.
+      ...(membershipFilter === "with-org" ? { members: { some: {} } } : {}),
+      ...(membershipFilter === "no-org" ? { members: { none: {} } } : {}),
     };
 
     const [users, total] = await Promise.all([
@@ -246,15 +420,30 @@ export class UserService {
     take: number;
     actionFilter?: string;
     adminId?: string;
+    search?: string;
     startDate?: string;
     endDate?: string;
   }) {
-    const { page, take, actionFilter, adminId, startDate, endDate } = params;
+    const { page, take, actionFilter, adminId, search, startDate, endDate } =
+      params;
     const skip = (page - 1) * take;
 
     const where: Prisma.AdminActivityLogWhereInput = {
       ...(actionFilter ? { action: actionFilter as AdminAction } : {}),
       ...(adminId ? { adminId } : {}),
+      // Names, not ids: the row keeps the name so a deleted account is still
+      // searchable, and details is where a reason or a contract label lands.
+      ...(search
+        ? {
+            OR: [
+              {
+                targetName: { contains: search, mode: "insensitive" as const },
+              },
+              { adminName: { contains: search, mode: "insensitive" as const } },
+              { details: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
       ...(startDate || endDate
         ? {
             createdAt: {
@@ -319,17 +508,54 @@ export class UserService {
 
   // ─── Organization Admin ─────────────────────────────────────────────
 
+  // Subscriptions live in their own schema keyed by referenceId, with no
+  // relation to filter through, so the matching organizations are resolved
+  // first and the list narrows to them.
+  private async organizationIdsForBilling(filters: {
+    accessFilter?: string;
+    contractFilter?: string;
+  }) {
+    const { accessFilter, contractFilter } = filters;
+    const access = SUBSCRIPTION_ACCESS_LEVELS.find(
+      (level) => level === accessFilter
+    );
+
+    if (!access && accessFilter !== "none" && !contractFilter) return null;
+
+    const rows = await prisma.subscription.findMany({
+      where: {
+        ...(access ? { status: { in: statusesForAccess(access) } } : {}),
+        ...(contractFilter === "custom" ? { isCustom: true } : {}),
+        ...(contractFilter === "plan" ? { isCustom: false } : {}),
+      },
+      select: { referenceId: true },
+    });
+    const ids = [...new Set(rows.map((row) => row.referenceId))];
+
+    // "none" is the inverse: every organization Stripe has never billed.
+    return accessFilter === "none" ? { notIn: ids } : { in: ids };
+  }
+
   async getAdminOrganizations(params: {
     page: number;
     take: number;
     search?: string;
     hipaaOnly?: boolean;
+    accessFilter?: string;
+    contractFilter?: string;
   }) {
-    const { page, take, search, hipaaOnly } = params;
+    const { page, take, search, hipaaOnly, accessFilter, contractFilter } =
+      params;
     const skip = (page - 1) * take;
+
+    const billingIds = await this.organizationIdsForBilling({
+      accessFilter,
+      contractFilter,
+    });
 
     const where: Prisma.OrganizationWhereInput = {
       ...(hipaaOnly ? { hipaaEnabled: true } : {}),
+      ...(billingIds ? { id: billingIds } : {}),
       ...(search
         ? {
             OR: [
@@ -633,7 +859,7 @@ export class UserService {
 
     const subscription = await prisma.subscription.findFirst({
       where: { referenceId: orgId },
-      select: { id: true },
+      select: { id: true, isCustom: true, stripeCustomerId: true },
       orderBy: { periodEnd: "desc" },
     });
 
@@ -694,6 +920,25 @@ export class UserService {
         customLimits: true,
       },
     });
+
+    // Only the transition into a contract bills. An org that already held one
+    // is being edited - seats corrected, a feature added - and re-invoicing on
+    // every save would bill the customer again for a period they have paid.
+    // Later periods are a renewal job's problem, not this endpoint's.
+    if (contract && !subscription.isCustom) {
+      const owes = await this.billContract(
+        orgId,
+        subscription.stripeCustomerId,
+        contract
+      );
+
+      if (owes) {
+        await prisma.subscription.update({
+          where: { id: subscription.id },
+          data: { status: CONTRACT_UNPAID_STATUS },
+        });
+      }
+    }
 
     await this.afterEntitlementChange(
       orgId,
@@ -762,6 +1007,116 @@ export class UserService {
   // A contract organization has never been to checkout, so it has no Stripe
   // customer either. One is created here so the invoice has somewhere to go and
   // so billing history, which reads the same column, has something to list.
+  // Access is granted by the row, not by the payment: a Stripe failure must not
+  // leave an organization locked out of a contract that was agreed, so it is
+  // logged and the grant stands.
+  private async billContract(
+    organizationId: string,
+    customerId: string,
+    contract: NonNullable<AdminEntitlementData["contract"]>
+  ) {
+    try {
+      const invoice = await issueContractInvoice({
+        customerId,
+        organizationId,
+        label: contract.label,
+        priceCents: contract.priceCents,
+        setupFeeCents: contract.setupFeeCents,
+        billingInterval: contract.billingInterval,
+      });
+
+      return Boolean(invoice);
+    } catch (error) {
+      new Logger(UserService.name).error(
+        `Contract invoice failed for ${organizationId}`,
+        error as Error
+      );
+
+      // Access still turns on whether the contract is chargeable, not on
+      // whether Stripe answered: a lost invoice must not hand out a free one.
+      return contract.priceCents > 0 || contract.setupFeeCents > 0;
+    }
+  }
+
+  // Editing an entitlement must not bill, so issuing a later period's invoice
+  // is a separate deliberate action. This is also what a renewal job will call.
+  async issueAdminContractInvoice(
+    adminId: string,
+    adminName: string,
+    orgId: string
+  ) {
+    const subscription = await prisma.subscription.findFirst({
+      where: { referenceId: orgId, isCustom: true },
+      select: {
+        id: true,
+        contractLabel: true,
+        seats: true,
+        customPriceCents: true,
+        setupFeeCents: true,
+        billingInterval: true,
+        stripeCustomerId: true,
+      },
+    });
+
+    if (!subscription) {
+      throw new BadRequestException("Organization is not on a contract");
+    }
+
+    if (!subscription.customPriceCents && !subscription.setupFeeCents) {
+      throw new BadRequestException("This contract has nothing to invoice");
+    }
+
+    // Two open invoices for one period is a support ticket, so the existing one
+    // has to be settled or voided in Stripe before another is raised.
+    const open = await stripe.invoices.list({
+      customer: subscription.stripeCustomerId,
+      status: "open",
+      limit: 1,
+    });
+
+    if (open.data.length) {
+      throw new BadRequestException(
+        "An invoice is already outstanding for this organization"
+      );
+    }
+
+    const invoice = await issueContractInvoice({
+      customerId: subscription.stripeCustomerId,
+      organizationId: orgId,
+      label: subscription.contractLabel ?? "Contract",
+      priceCents: subscription.customPriceCents ?? 0,
+      // The setup fee belongs to the first invoice only, and this route raises
+      // later ones.
+      setupFeeCents: 0,
+      billingInterval: subscription.billingInterval ?? "annual",
+    });
+
+    const organization = await runUnscoped(() =>
+      prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { name: true },
+      })
+    );
+
+    await prisma.adminActivityLog.create({
+      data: {
+        adminId,
+        adminName,
+        action: AdminAction.SET_ENTITLEMENT,
+        targetOrgId: orgId,
+        targetName: organization?.name ?? orgId,
+        details: `Issued contract invoice for ${formatCents(
+          subscription.customPriceCents ?? 0
+        )}`,
+      },
+    });
+
+    return {
+      invoiceId: invoice?.invoiceId ?? null,
+      hostedInvoiceUrl: invoice?.hostedInvoiceUrl ?? null,
+    };
+  }
+
   private async createContractSubscription(
     organization: { id: string; name: string; stripeCustomerId: string | null },
     contract: NonNullable<AdminEntitlementData["contract"]>
@@ -803,6 +1158,7 @@ export class UserService {
         billingInterval: contract.billingInterval,
       },
       select: {
+        id: true,
         plan: true,
         status: true,
         isCustom: true,
@@ -815,23 +1171,13 @@ export class UserService {
       },
     });
 
-    // Access is granted by the row above; the invoice is a consequence, not a
-    // precondition. A Stripe failure must not leave the organization locked out
-    // of a contract that was agreed, so it is logged and the grant stands.
-    try {
-      await issueContractInvoice({
-        customerId: customerId,
-        organizationId: organization.id,
-        label: contract.label,
-        priceCents: contract.priceCents,
-        setupFeeCents: contract.setupFeeCents,
-        billingInterval: contract.billingInterval,
+    const owes = await this.billContract(organization.id, customerId, contract);
+
+    if (owes) {
+      await prisma.subscription.update({
+        where: { id: created.id },
+        data: { status: CONTRACT_UNPAID_STATUS },
       });
-    } catch (error) {
-      new Logger(UserService.name).error(
-        `Contract invoice failed for ${organization.id}`,
-        error as Error
-      );
     }
 
     return this.entitlementSummary(created);

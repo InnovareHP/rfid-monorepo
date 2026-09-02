@@ -92,6 +92,9 @@ export type ContractCard = {
   priceCents: number | null;
   setupFeeCents: number | null;
   billingInterval: "monthly" | "annual" | null;
+  // False for every role but the one that owns billing, which is also the only
+  // role handed the invoice links.
+  canManageBilling: boolean;
   outstandingInvoice: {
     id: string;
     amountDueCents: number;
