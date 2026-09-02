@@ -10,7 +10,7 @@ export function AuthPanel({
   return (
     <div
       className={cn(
-        "[--panelw:clamp(26rem,30vw,34rem)] [--gapw:1rem] xl:[--gapw:1.5rem] [--framew:2rem] xl:[--framew:3rem] p-0 lg:p-4 xl:p-6",
+        "[--panelw:clamp(26rem,30vw,34rem)] [--gapw:1rem] xl:[--gapw:1.5rem] [--framew:2rem] xl:[--framew:3rem] p-0 lg:p-4 xl:p-6 lg:flex lg:min-h-svh lg:items-center lg:justify-center",
         className
       )}
       {...props}

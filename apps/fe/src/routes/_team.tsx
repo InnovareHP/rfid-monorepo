@@ -5,6 +5,7 @@ import { WriteAccessProvider } from "@/components/write-gate";
 import { NotificationBell } from "@/components/notification/notification-bell";
 import { AppSidebar } from "@/components/side-bar/app-sidebar";
 import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
+import { GlobalSearch } from "@/components/search/global-search";
 import { SidebarSkeleton } from "@/components/side-bar/sidebar-skeleton";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
@@ -137,7 +138,14 @@ function TeamLayout() {
             <DynamicBreadcrumb />
           </div>
 
-          <div className="ml-auto flex items-center px-4">
+          <div className="ml-auto flex items-center gap-2 px-4">
+            {sidebarsReady && (
+              <GlobalSearch
+                activeOrganizationId={activeOrganizationId}
+                memberData={memberData as Member}
+              />
+            )}
+
             <NotificationBell />
           </div>
         </header>

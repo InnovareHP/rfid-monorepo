@@ -28,19 +28,19 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import * as React from "react";
 
-type NavLeafItem = {
+export type NavLeafItem = {
   title: string;
   url: string;
   icon?: LucideIcon;
 };
 
-type NavSubItem = NavLeafItem & {
+export type NavSubItem = NavLeafItem & {
   // A third level expands in place under its row rather than in a floating
   // panel; the row keeps its own link and the chevron toggles the children.
   items?: NavLeafItem[];
 };
 
-type NavItem = {
+export type NavItem = {
   title: string;
   url?: string;
   icon?: LucideIcon;
