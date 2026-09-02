@@ -1,9 +1,15 @@
 import type { Subscription } from "@dashboard/shared";
+import { Badge } from "@dashboard/ui/components/badge";
+import { Button } from "@dashboard/ui/components/button";
+import { Card } from "@dashboard/ui/components/card";
 import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { useEffect } from "react";
+
+const BRAND_LOCKUP_WHITE =
+  "/branding/Full/Refidly%20%5BFull%5D%20-%20White-no-bg.png";
 
 interface RouteContext {
   activeSubscription: Subscription | null;
@@ -14,6 +20,7 @@ export const Route = createFileRoute("/_team/$team/success")({
 });
 
 function RouteComponent() {
+  const { team } = Route.useParams();
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const activeSubscription = ctx?.activeSubscription;
 
@@ -42,57 +49,51 @@ function RouteComponent() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
+    <div className="flex min-h-[80vh] items-center justify-center px-6 py-10">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="mb-6"
+        className="w-full max-w-md"
       >
-        <CheckCircle2 className="h-20 w-20 text-green-600" />
-      </motion.div>
+        <Card className="gap-0 overflow-hidden p-0 text-center shadow-lg">
+          {/* Same gradient family as the nav rail and the auth panel. */}
+          <div className="from-brand-rail-from via-brand-rail-mid to-brand-rail-via bg-gradient-to-br px-8 py-6">
+            <img
+              src={BRAND_LOCKUP_WHITE}
+              alt="Refidly"
+              className="mx-auto w-32"
+            />
+          </div>
 
-      <motion.h1
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.15 }}
-        className="text-4xl font-bold tracking-tight text-foreground"
-      >
-        Congratulations! 🎉
-      </motion.h1>
+          <div className="px-8 py-8">
+            <div className="bg-primary/10 mx-auto flex size-14 items-center justify-center rounded-full">
+              <Check className="text-primary size-7" strokeWidth={2.5} />
+            </div>
 
-      <motion.p
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.25 }}
-        className="mt-4 max-w-xl text-lg text-muted-foreground leading-relaxed"
-      >
-        Your plan has been successfully activated. You now have full access to
-        all premium features. We're excited to help your team grow!
-      </motion.p>
+            <h1 className="text-foreground mt-5 text-2xl font-semibold tracking-tight">
+              Congratulations!
+            </h1>
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, delay: 0.35 }}
-        className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2 font-medium text-primary"
-      >
-        <Sparkles className="h-4 w-4" />
-        {activeSubscription?.plan} Activated
-      </motion.div>
+            <p className="text-muted-foreground mx-auto mt-2 max-w-xs text-sm leading-relaxed">
+              Your plan is active. You now have full access to every premium
+              feature.
+            </p>
 
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.45 }}
-        className="mt-10"
-      >
-        <Link
-          to="/"
-          className="inline-flex items-center rounded-lg bg-primary px-6 py-3 text-white font-medium shadow-lg hover:shadow-xl transition duration-200"
-        >
-          Go to Dashboard
-        </Link>
+            {activeSubscription?.plan && (
+              <Badge variant="success" className="mt-5 gap-1.5">
+                <Sparkles className="size-3.5" />
+                {activeSubscription.plan} activated
+              </Badge>
+            )}
+
+            <Button asChild className="mt-7 w-full">
+              <Link to="/$team" params={{ team }}>
+                Go to Dashboard
+              </Link>
+            </Button>
+          </div>
+        </Card>
       </motion.div>
     </div>
   );
