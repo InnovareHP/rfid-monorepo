@@ -7,7 +7,12 @@ import { stripe } from "./stripe";
 //
 // It does not mean cards are out. send_invoice only decides that Stripe will
 // not pull from a saved payment method on its own - the hosted invoice page
-// still takes a card, and the methods below are what it offers.
+// still takes a card.
+//
+// payment_method_types is deliberately not set: naming us_bank_account here
+// makes Stripe reject the whole invoice unless ACH debits are enabled on the
+// account, which turned an admin action into a 500. Unset means the account's
+// own invoice defaults apply, which is what every other invoice it sends uses.
 const DAYS_UNTIL_DUE = 30;
 
 const periodLabel = (billingInterval: string) =>
@@ -29,12 +34,6 @@ export const issueContractInvoice = async (input: {
     customer: input.customerId,
     collection_method: "send_invoice",
     days_until_due: DAYS_UNTIL_DUE,
-    // Mirrors the checkout session's methods so a contract customer is not
-    // offered less than a self-serve one. Without this the hosted page falls
-    // back to whatever the Stripe dashboard's invoice defaults happen to be.
-    payment_settings: {
-      payment_method_types: ["card", "us_bank_account"],
-    },
     // Line items are attached to this invoice by id rather than swept up from
     // whatever else is pending on the customer.
     pending_invoice_items_behavior: "exclude",

@@ -1,6 +1,7 @@
 import { ROLES } from "@dashboard/shared";
 import {
   BadRequestException,
+  HttpException,
   Body,
   Controller,
   Get,
@@ -227,11 +228,20 @@ export class UserController {
     @Param("orgId") orgId: string,
     @Session() session: UserSession
   ) {
-    return await this.userService.issueAdminContractInvoice(
-      session.user.id,
-      session.user.name,
-      orgId
-    );
+    try {
+      return await this.userService.issueAdminContractInvoice(
+        session.user.id,
+        session.user.name,
+        orgId
+      );
+    } catch (error) {
+      // Rethrown as-is when the service already said why; anything else would
+      // otherwise reach the client as a bare 500.
+      if (error instanceof HttpException) throw error;
+      throw new BadRequestException(
+        error instanceof Error ? error.message : "Could not issue the invoice"
+      );
+    }
   }
 
   @Get("admin/organizations/:orgId/baa")

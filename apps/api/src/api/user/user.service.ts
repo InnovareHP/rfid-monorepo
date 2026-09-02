@@ -3,7 +3,6 @@ import {
   CONTRACT_STATUS,
   statusesForAccess,
   SUBSCRIPTION_ACCESS_LEVELS,
-  type SubscriptionAccess,
   CONTRACT_UNPAID_STATUS,
   OnboardingStreamEvent,
   resolveEntitlement,
@@ -1080,16 +1079,33 @@ export class UserService {
       );
     }
 
-    const invoice = await issueContractInvoice({
-      customerId: subscription.stripeCustomerId,
-      organizationId: orgId,
-      label: subscription.contractLabel ?? "Contract",
-      priceCents: subscription.customPriceCents ?? 0,
-      // The setup fee belongs to the first invoice only, and this route raises
-      // later ones.
-      setupFeeCents: 0,
-      billingInterval: subscription.billingInterval ?? "annual",
-    });
+    let invoice: Awaited<ReturnType<typeof issueContractInvoice>>;
+
+    try {
+      invoice = await issueContractInvoice({
+        customerId: subscription.stripeCustomerId,
+        organizationId: orgId,
+        label: subscription.contractLabel ?? "Contract",
+        priceCents: subscription.customPriceCents ?? 0,
+        // The setup fee belongs to the first invoice only, and this route
+        // raises later ones.
+        setupFeeCents: 0,
+        billingInterval: subscription.billingInterval ?? "annual",
+      });
+    } catch (error) {
+      // Stripe's message names the actual problem - an unconfigured payment
+      // method, a deleted customer - and the admin is the person who can fix
+      // it. Swallowing it into a 500 wastes that.
+      const message =
+        error instanceof Error ? error.message : "Stripe rejected the invoice";
+
+      new Logger(UserService.name).error(
+        `Contract invoice failed for ${orgId}`,
+        error as Error
+      );
+
+      throw new BadRequestException(message);
+    }
 
     const organization = await runUnscoped(() =>
       prisma.organization.findUnique({
