@@ -35,7 +35,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   email: z.email(),
-  role: z.enum([ROLES.LIAISON, ROLES.ADMIN, ROLES.ADMISSION_MANAGER]),
+  role: z.enum([ROLES.LIAISON, ROLES.ADMIN, ROLES.MEMBER]),
   message: z.string(),
 });
 
@@ -54,6 +54,8 @@ type InviteMemberDialogProps = {
   organizationName?: string;
   // Set when the organization runs in HIPAA mode.
   workEmailOnly?: boolean;
+  seatsUsed: number;
+  seatLimit: number;
   onInvite: (values: InviteFormValues, reset: () => void) => Promise<void>;
 };
 
@@ -62,8 +64,13 @@ export function InviteMemberDialog({
   onOpenChange,
   organizationName,
   workEmailOnly = false,
+  seatsUsed,
+  seatLimit,
   onInvite,
 }: InviteMemberDialogProps) {
+  // Members plus pending invitations already fill the plan, so the send would be
+  // refused by the API. Saying so here beats a failed submit.
+  const seatsFull = seatsUsed >= seatLimit;
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(workEmailOnly ? hipaaFormSchema : formSchema),
     defaultValues: {
@@ -102,6 +109,13 @@ export function InviteMemberDialog({
             )}
           >
             <div className="space-y-4 px-6 py-5">
+              {seatsFull && (
+                <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  All {seatLimit} {seatLimit === 1 ? "seat is" : "seats are"}{" "}
+                  taken ({seatsUsed} members and pending invitations). Add seats
+                  on the billing page to invite more.
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="email"
@@ -143,8 +157,8 @@ export function InviteMemberDialog({
                         <SelectItem value={ROLES.ADMIN}>
                           {ROLE_LABELS[ROLES.ADMIN]}
                         </SelectItem>
-                        <SelectItem value={ROLES.ADMISSION_MANAGER}>
-                          {ROLE_LABELS[ROLES.ADMISSION_MANAGER]}
+                        <SelectItem value={ROLES.MEMBER}>
+                          {ROLE_LABELS[ROLES.MEMBER]}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -180,9 +194,8 @@ export function InviteMemberDialog({
                 Cancel
               </Button>
               <Button
-                disabled={form.formState.isSubmitting}
+                disabled={form.formState.isSubmitting || seatsFull}
                 type="submit"
-               
               >
                 <Send className="h-4 w-4" />
                 {form.formState.isSubmitting ? "Sending..." : "Send Invitation"}

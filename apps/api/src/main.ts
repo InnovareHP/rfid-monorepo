@@ -8,6 +8,7 @@ import { appConfig } from "./config/app-config";
 import { AllExceptionsFilter } from "./filter/filter";
 import { LoggerMiddleware } from "./filter/logger";
 import { tenantContextMiddleware } from "./filter/tenant-context";
+import { stripeWebhookRawBody } from "./lib/stripe/webhook-raw-body";
 import { SocketIoAdapter } from "./lib/socket";
 
 async function bootstrap() {
@@ -30,13 +31,20 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [appConfig.WEBSITE_URL, appConfig.SUPPORT_URL],
+    origin: [
+      appConfig.WEBSITE_URL,
+      appConfig.SUPPORT_URL,
+      ...(appConfig.LANDING_URL ? [appConfig.LANDING_URL] : []),
+    ],
     methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Content-Length"],
     maxAge: 600,
     credentials: true,
   });
+
+  // Stripe signs the exact bytes it sent, so this path never reaches a JSON parser.
+  app.use("/api/auth/stripe/webhook", stripeWebhookRawBody);
 
   // A drawn signature is larger than the 100kb default the auth module's parser
   // applies everywhere else, and parsing here leaves that parser a no-op.
@@ -77,4 +85,4 @@ async function bootstrap() {
   await app.listen(appConfig.PORT);
 }
 
-bootstrap();
+void bootstrap();

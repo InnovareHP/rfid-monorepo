@@ -46,6 +46,9 @@ model User {
   customAnalytics           CustomAnalytic[]            @relation("CustomAnalyticCreatedBy")
   customAnalyticDashboards  CustomAnalyticDashboard[]   @relation("CustomAnalyticDashboardCreatedBy")
   taskAttachments           TaskAttachment[]            @relation("TaskAttachmentUploadedBy")
+  FieldValueAttachment      FieldValueAttachment[]      @relation("FieldValueAttachmentUploadedBy")
+  fieldOptionsCreated       FieldOption[]               @relation("FieldOptionCreatedBy")
+  fieldOptionsDeleted       FieldOption[]               @relation("FieldOptionDeletedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
   notificationsActed        Notification[]              @relation("NotificationActor")
@@ -234,6 +237,8 @@ enum AdminAction {
   REVOKE_SESSIONS
   UPDATE_USER
   SET_ENTITLEMENT
+  UPDATE_DEMO_REQUEST
+  SET_DEMO_HOST
 
   @@schema("auth_schema")
 }

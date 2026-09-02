@@ -24,7 +24,16 @@ export const SignBaaSchema = z.object({
   signature: z.string().startsWith("data:image/png;base64,").max(SIGNATURE_MAX),
 });
 
+// Typing the organization name is the confirmation; the service compares it
+// against the stored name before deleting anything.
+export const PurgeOrganizationDataSchema = z.object({
+  confirmation: z.string().trim().min(1).max(200),
+});
+
 export type UpdateComplianceSettingsInput = z.infer<
   typeof UpdateComplianceSettingsSchema
 >;
 export type SignBaaInput = z.infer<typeof SignBaaSchema>;
+export type PurgeOrganizationDataInput = z.infer<
+  typeof PurgeOrganizationDataSchema
+>;

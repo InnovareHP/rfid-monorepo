@@ -69,7 +69,7 @@ function toSlices(data: CategoryRow[]): PieSlice[] {
     color:
       row.name === OTHER_LABEL
         ? OTHER_COLOR
-        : sequentialRampColor(index, rows.length),
+        : (row.color ?? sequentialRampColor(index, rows.length)),
   }));
 }
 

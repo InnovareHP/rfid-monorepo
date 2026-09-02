@@ -20,8 +20,10 @@ import {
 } from "./dto/manual.schema";
 import { ManualService } from "./manual.service";
 
+// The published reads are the customer knowledge base and stay open: a visitor
+// has to be able to search it before signing in. Every write, and the unfiltered
+// category list, carries its own guard below.
 @Controller("manual")
-@UseGuards(AuthGuard)
 export class ManualController {
   constructor(private readonly manualService: ManualService) {}
 
@@ -62,7 +64,10 @@ export class ManualController {
     }
   }
 
+  // Unfiltered, so it includes unpublished categories: staff only.
   @Get("/categories")
+  @UseGuards(AuthGuard)
+  @Roles([ROLES.SUPPORT, ROLES.SUPER_ADMIN])
   async getCategories() {
     try {
       return await this.manualService.getCategories();

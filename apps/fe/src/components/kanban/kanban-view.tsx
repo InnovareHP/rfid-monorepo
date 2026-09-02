@@ -1,3 +1,4 @@
+import { useCanWrite } from "@/hooks/use-can-write";
 import { KanbanSummaryTile } from "@/components/kanban/kanban-summary-tile";
 import { updateLead } from "@/services/lead/lead-service";
 import {
@@ -32,6 +33,7 @@ export default function KanbanView({
   onCardOpen: (recordId: string) => void;
 }) {
   const queryClient = useQueryClient();
+  const canWrite = useCanWrite();
   const [dragging, setDragging] = useState<DragState | null>(null);
 
   const {
@@ -195,7 +197,7 @@ export default function KanbanView({
                 {cards.map((card) => (
                   <button
                     key={card.id}
-                    draggable
+                    draggable={canWrite}
                     onDragStart={() => setDragging({ card, stageId: stage.id })}
                     onDragEnd={() => setDragging(null)}
                     onClick={() => onCardOpen(card.id)}

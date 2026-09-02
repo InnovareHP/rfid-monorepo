@@ -21,7 +21,7 @@ describe("AdminRoleGuard", () => {
 
   it.each([
     ROLES.LIAISON,
-    ROLES.ADMISSION_MANAGER,
+    ROLES.MEMBER,
     ROLES.SUPPORT,
     ROLES.USER,
     ROLES.SUPER_ADMIN,
@@ -72,7 +72,7 @@ describe("OwnerRoleGuard", () => {
     ).toThrow(ForbiddenException);
   });
 
-  it.each([ROLES.LIAISON, ROLES.ADMISSION_MANAGER, ROLES.SUPER_ADMIN])(
+  it.each([ROLES.LIAISON, ROLES.MEMBER, ROLES.SUPER_ADMIN])(
     "rejects %s",
     (role) => {
       expect(() =>

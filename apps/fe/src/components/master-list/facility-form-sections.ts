@@ -11,7 +11,7 @@ export const FACILITY_FORM_SECTIONS: RecordFormSection[] = [
     fields: [
       { name: RECORD_NAME_FIELD, span: "full", required: true },
       { name: "Type of Facility", span: "half", required: true },
-      { name: "Number of Beds", span: "half" },
+      { name: "Number of Beds", span: "half", required: true },
     ],
   },
   {
@@ -40,17 +40,17 @@ export const FACILITY_FORM_SECTIONS: RecordFormSection[] = [
     title: "Contact Information",
     fields: [
       { name: "Phone", span: "half", required: true },
-      { name: "Fax", span: "half" },
-      { name: "Medical Director", span: "third" },
-      { name: "Director of Nursing", span: "third" },
-      { name: "Admissions/Marketing", span: "third" },
+      { name: "Fax", span: "half", required: true },
+      { name: "Medical Director", span: "third", required: true },
+      { name: "Director of Nursing", span: "third", required: true },
+      { name: "Admissions/Marketing", span: "third", required: true },
     ],
   },
   {
     title: "Additional Details",
     fields: [
-      { name: "Psychiatric Services", span: "full" },
-      { name: "Notes", span: "full", multiline: true },
+      { name: "Psychiatric Services", span: "full", required: true },
+      { name: "Notes", span: "full", multiline: true, required: true },
     ],
   },
 ];

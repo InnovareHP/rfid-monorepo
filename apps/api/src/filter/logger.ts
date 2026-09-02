@@ -12,7 +12,7 @@ export class LoggerMiddleware implements NestMiddleware {
 
     res.on("finish", () => {
       const duration = Date.now() - startTime;
-      const reqId = res.getHeader("x-request-id") ?? "-";
+      const reqId = String(res.getHeader("x-request-id") ?? "-");
       logger.log(
         `${req.method} ${path} ${res.statusCode} ${duration}ms id=${reqId}`
       );

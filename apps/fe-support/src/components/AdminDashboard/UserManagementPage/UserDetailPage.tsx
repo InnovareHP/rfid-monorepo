@@ -91,7 +91,6 @@ const MEMBER_ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   member: "Member",
   liason: "Liaison",
-  admission_manager: "Admission Manager",
 };
 
 function RoleBadge({ role }: { role: string }) {

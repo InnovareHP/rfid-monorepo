@@ -34,6 +34,17 @@ resource "aws_sesv2_email_identity" "sending" {
   }
 }
 
+# REJECT_MESSAGE is deliberate: on a DNS failure the alternative silently falls
+# back to amazonses.com, and unaligned mail that looks fine is worse than a
+# bounce that says so.
+resource "aws_sesv2_email_identity_mail_from_attributes" "sending" {
+  count            = var.sending_domain != "" && var.mail_from_subdomain != "" ? 1 : 0
+  email_identity   = aws_sesv2_email_identity.sending[0].email_identity
+  mail_from_domain = var.mail_from_subdomain
+
+  behavior_on_mx_failure = "REJECT_MESSAGE"
+}
+
 # ── Inbound ────────────────────────────────────────────────
 # Raw MIME holds PHI and the parsed copy already lives in the database, so the
 # bucket expires objects quickly and is never a long-term store.

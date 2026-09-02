@@ -1,3 +1,4 @@
+import { useOtpCooldown } from "@/hooks/use-otp-cooldown";
 import { authClient } from "@/lib/auth-client";
 import {
   sendMigrationOtp,
@@ -35,6 +36,7 @@ export function DeviceSetupModal({
   const [code, setCode] = useState("");
   const [enrollmentCode, setEnrollmentCode] = useState("");
   const [pending, setPending] = useState(false);
+  const cooldown = useOtpCooldown();
 
   const reset = () => {
     setStep("choose");
@@ -70,12 +72,26 @@ export function DeviceSetupModal({
     setPending(true);
     try {
       await sendMigrationOtp(email.trim());
+      cooldown.start();
       setStep("code");
       toast.success("If that account can be set up, a code is on its way.");
     } catch {
       toast.error("Could not send a code right now.");
     }
     setPending(false);
+  };
+
+  // The cooldown starts on the click so a double press cannot mail two codes.
+  const handleResendCode = async () => {
+    if (cooldown.isCooling) return;
+
+    cooldown.start();
+    try {
+      await sendMigrationOtp(email.trim());
+      toast.success("A new code is on its way.");
+    } catch {
+      toast.error("Could not send a code right now.");
+    }
   };
 
   const handleVerifyCode = async () => {
@@ -211,6 +227,16 @@ export function DeviceSetupModal({
               ) : (
                 "Register this device"
               )}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={pending || cooldown.isCooling}
+              onClick={handleResendCode}
+            >
+              {cooldown.isCooling
+                ? `Resend code in ${cooldown.remaining}s`
+                : "Resend code"}
             </Button>
           </div>
         )}

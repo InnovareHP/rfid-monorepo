@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
+import { useEntitlement } from "@/hooks/use-entitlement";
 import { authClient } from "@/lib/auth-client";
 import { getComplianceStatus } from "@/services/compliance/compliance-service";
 import { listMembers } from "@/services/team/team-service";
@@ -60,6 +61,7 @@ const TeamPage = () => {
     organizationData?.id,
   ]);
   const canManageTeam = isOrgAdmin(memberData?.role);
+  const { seats: seatLimit } = useEntitlement(organizationData?.id ?? "");
 
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [memberTableField, setMemberTableField] = useState({
@@ -107,42 +109,40 @@ const TeamPage = () => {
     data: InviteFormValues,
     resetForm: () => void
   ) => {
-    try {
-      await authClient.organization.inviteMember({
-        email: data.email,
-        role: data.role as any,
-        organizationId: organizationData?.id ?? "",
-        resend: true,
-      });
-      setIsInviteDialogOpen(false);
+    // The client returns the API error rather than throwing it, so a seat limit
+    // or a HIPAA work-email refusal only reaches the owner if it is read here.
+    const { error } = await authClient.organization.inviteMember({
+      email: data.email,
+      role: data.role as any,
+      organizationId: organizationData?.id ?? "",
+      resend: true,
+    });
 
-      resetForm();
-
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
-      toast.success("Invitation sent successfully");
-    } catch (error) {
-      // The API refuses consumer mailboxes in HIPAA mode and states why, so the
-      // reason has to reach the owner rather than a generic failure.
-      toast.error(
-        error instanceof Error ? error.message : "Failed to send invitation"
-      );
+    if (error) {
+      toast.error(error.message ?? "Failed to send invitation");
+      return;
     }
+
+    setIsInviteDialogOpen(false);
+    resetForm();
+    queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    toast.success("Invitation sent successfully");
   };
 
   const handleResendInvitation = async (data: InvitationRow) => {
-    try {
-      await authClient.organization.inviteMember({
-        email: data.email,
-        role: data.role as any,
-        organizationId: data.organizationId,
-        resend: true,
-      });
-      toast.success("Invitation sent successfully");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to send invitation"
-      );
+    const { error } = await authClient.organization.inviteMember({
+      email: data.email,
+      role: data.role as any,
+      organizationId: data.organizationId,
+      resend: true,
+    });
+
+    if (error) {
+      toast.error(error.message ?? "Failed to send invitation");
+      return;
     }
+
+    toast.success("Invitation sent successfully");
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
@@ -200,6 +200,13 @@ const TeamPage = () => {
 
   const members = employees?.members ?? [];
 
+  // The API counts members plus pending invitations against the plan seats, so
+  // the invite form gates on the same number instead of failing on submit.
+  const pendingSeats =
+    invitations?.filter((invitation: InvitationRow) => invitation.status === "pending")
+      .length ?? 0;
+  const seatsUsed = (employees?.total ?? 0) + pendingSeats;
+
   return (
     <div className="page-style rounded-xl">
       <div className="space-y-8">
@@ -214,6 +221,8 @@ const TeamPage = () => {
               onOpenChange={setIsInviteDialogOpen}
               workEmailOnly={compliance?.hipaaEnabled ?? false}
               organizationName={organizationData?.name}
+              seatsUsed={seatsUsed}
+              seatLimit={seatLimit}
               onInvite={handleInvite}
             />
           )}

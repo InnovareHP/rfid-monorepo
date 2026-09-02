@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { CalendarSkeleton } from "@/components/booking/booking-skeleton";
 import {
   CalendarToolbar,
@@ -176,15 +177,17 @@ export function CalendarPage() {
         }
       >
         {hasConnection && (
-          <Button
-            onClick={() => {
-              setDefaultEventDate(new Date());
-              setShowCreateEvent(true);
-            }}
-          >
-            <Plus className="size-4" />
-            New Event
-          </Button>
+          <WriteGate>
+            <Button
+              onClick={() => {
+                setDefaultEventDate(new Date());
+                setShowCreateEvent(true);
+              }}
+            >
+              <Plus className="size-4" />
+              New Event
+            </Button>
+          </WriteGate>
         )}
       </PageHeader>
 

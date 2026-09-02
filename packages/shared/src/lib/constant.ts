@@ -2,7 +2,7 @@ export const ROLES = {
   OWNER: "owner",
   ADMIN: "admin",
   LIAISON: "liason",
-  ADMISSION_MANAGER: "admission_manager",
+  MEMBER: "member",
   SUPPORT: "support",
   USER: "user",
   SUPER_ADMIN: "super_admin",
@@ -17,7 +17,7 @@ export const ROLE_LABELS: Record<string, string> = {
   [ROLES.OWNER]: "Owner",
   [ROLES.ADMIN]: "Admin",
   [ROLES.LIAISON]: "Liaison",
-  [ROLES.ADMISSION_MANAGER]: "Admission Manager",
+  [ROLES.MEMBER]: "Member",
 };
 
 // Icon tiles cycle the avatar palette: theme-independent, fixed white foreground.
@@ -86,28 +86,6 @@ export const KNOWLEDGE_BASE_ITEMS = [
   },
 ];
 
-export const RESOURCE_LINKS = [
-  {
-    title: "Refidly Learning",
-    description:
-      "Courses, videos, and learning paths designed to help you master Refidly",
-  },
-  {
-    title: "Refidly Webinars & Events",
-    description:
-      "Discover upcoming Refidly webinars and events and watch on-demand sessions",
-  },
-  {
-    title: "Developers",
-    description:
-      "Use our API references and tutorials to build solutions fitting your needs",
-  },
-  {
-    title: "Integrations",
-    description: "Extend Refidly with integrations and third-party solutions",
-  },
-];
-
 export const FOOTER_LINKS = [
   "Feedback",
   "Privacy",
@@ -147,7 +125,6 @@ export const AI_STEP_FALLBACK_LABEL = "Working on it...";
 // Support portal page – copy & section titles
 export const SEARCH_PLACEHOLDER = "Search for articles";
 export const KNOWLEDGE_BASE_SECTION_TITLE = "Browse our knowledge base";
-export const RESOURCE_LINKS_SECTION_TITLE = "Resource Links";
 export const FOOTER_COPYRIGHT = "© Refidly. All rights reserved.";
 export const LOGO_ALT_TEXT = "Refidly";
 

@@ -27,12 +27,22 @@ model SavedReport {
   @@schema("board_schema")
 }
 
+enum CustomAnalyticTileSpan {
+  THIRD
+  HALF
+  TWO_THIRDS
+  FULL
+
+  @@schema("board_schema")
+}
+
 enum CustomAnalyticChartType {
   BAR
   LINE
   PIE
   KPI
   TABLE
+  MAP
 
   @@schema("board_schema")
 }
@@ -43,6 +53,9 @@ enum CustomAnalyticAggregation {
   COUNT
   MIN
   MAX
+  // Share of the group's records that also match numeratorFilter, as a
+  // percentage. This is how a conversion rate is expressed.
+  PERCENT
 
   @@schema("board_schema")
 }
@@ -54,6 +67,50 @@ enum CustomAnalyticDimensionType {
   FIELD
   OWNER
   DATE
+  // Groups by a record on the other side of a BoardRelation, so a referral
+  // chart can group by the facility it came from.
+  RELATED_RECORD
+
+  @@schema("board_schema")
+}
+
+// Where a chart's numbers come from: field values on the record, or the time a
+// tracked field took to change, read from History.
+enum CustomAnalyticMetricSource {
+  FIELD_VALUE
+  DAYS_TO_CHANGE
+  // Liaison outreach, read from Marketing rather than the board. The rows are
+  // outreach logs, so no board field applies to them.
+  MARKETING_ACTIVITY
+
+  @@schema("board_schema")
+}
+
+// What a MARKETING_ACTIVITY chart counts. The measure decides the aggregation,
+// so metricAggregation is not read for this source.
+enum CustomAnalyticMarketingMeasure {
+  // One per outreach log.
+  INTERACTIONS
+  // Distinct facilities visited.
+  FACILITIES
+  // Distinct people talked to.
+  PEOPLE
+
+  @@schema("board_schema")
+}
+
+enum CustomAnalyticMarketingGroupBy {
+  LIAISON
+  FACILITY
+  TOUCHPOINT
+
+  @@schema("board_schema")
+}
+
+// Which end of the relation this module's records sit on.
+enum CustomAnalyticRelationDirection {
+  OUTGOING
+  INCOMING
 
   @@schema("board_schema")
 }
@@ -78,16 +135,46 @@ model CustomAnalytic {
   metricFieldId     String?
   metricAggregation CustomAnalyticAggregation @default(COUNT)
 
+  // DAYS_TO_CHANGE measures days from record creation to each change of
+  // durationFieldId, so the rows it aggregates are History events, not records.
+  metricSource    CustomAnalyticMetricSource @default(FIELD_VALUE)
+  durationFieldId String?
+
+  // MARKETING_ACTIVITY only. A null groupBy means the chart is ungrouped (KPI)
+  // or bucketed by date (LINE).
+  marketingMeasure CustomAnalyticMarketingMeasure @default(INTERACTIONS)
+  marketingGroupBy CustomAnalyticMarketingGroupBy?
+
   // dimensionFieldId is required only when dimensionType is FIELD; dateBucket
   // is used when dimensionType is DATE, and always for LINE.
   dimensionType    CustomAnalyticDimensionType @default(FIELD)
   dimensionFieldId String?
   dateBucket       CustomAnalyticDateBucket?
 
+  // RELATED_RECORD only. relatedFieldId belongs to the module on the other side
+  // of the relation, so it is never checked against this analytic's module;
+  // null groups by the related record's name.
+  relationType      RelationType?
+  relationDirection CustomAnalyticRelationDirection @default(OUTGOING)
+  relatedFieldId    String?
+
   // Only used when chartType is TABLE; same shape as SavedReport.columnIds.
   columnIds String[]
   filter    Json
   rangeDays Int?
+
+  // How many groups a BAR or PIE keeps after ranking. Null means the default
+  // ten, which is what every chart used before this was configurable.
+  groupLimit Int?
+
+  // Numerator for the PERCENT aggregation, same shape as `filter`. Ignored by
+  // every other aggregation.
+  numeratorFilter Json?
+
+  // Drops groups outside these bounds after aggregating, by record count. Both
+  // null means every group is kept.
+  minGroupSize Int?
+  maxGroupSize Int?
 
   moduleId String
   module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -105,6 +192,10 @@ model CustomAnalytic {
   // 0) when dashboardId is null.
   dashboardOrder Int @default(0)
 
+  // Width of the tile on a dashboard, over a six-column grid. Half is what
+  // every chart rendered as before this was configurable.
+  tileSpan CustomAnalyticTileSpan @default(HALF)
+
   @@index([organizationId, moduleId])
   @@index([organizationId, dashboardId, dashboardOrder])
   @@schema("board_schema")
@@ -118,6 +209,15 @@ model CustomAnalyticDashboard {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   name      String
 
+  // A dashboard scoped to one module is that module's analytics page. Null
+  // means a hand-built dashboard that mixes modules, which stays supported.
+  moduleId String?
+  module   Module? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  // The seeded page a module opens on. At most one per module, enforced by the
+  // partial unique index in the migration rather than by application code.
+  isDefault Boolean @default(false)
+
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -127,5 +227,6 @@ model CustomAnalyticDashboard {
   analytics CustomAnalytic[]
 
   @@index([organizationId])
+  @@index([organizationId, moduleId])
   @@schema("board_schema")
 }

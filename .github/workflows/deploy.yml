@@ -114,6 +114,9 @@ jobs:
                 --build-arg "VITE_DASHBOARD_URL=$VITE_DASHBOARD_URL"
               )
               ;;
+            landing)
+              BUILD_ARGS=()
+              ;;
           esac
 
           docker build \

@@ -8,4 +8,10 @@ const SYSTEM_MODULE_PATHS: Record<string, string> = {
 };
 
 export const modulePath = (moduleKey: string) =>
-  SYSTEM_MODULE_PATHS[moduleKey] ?? `records/${moduleKey}`;
+  SYSTEM_MODULE_PATHS[moduleKey] ?? `records/${moduleParam(moduleKey)}`;
+
+// Urls stay lowercase; module keys are uppercase. Reading a param through
+// moduleKeyFromParam keeps older mixed-case links working.
+export const moduleParam = (moduleKey: string) => moduleKey.toLowerCase();
+
+export const moduleKeyFromParam = (param: string) => param.toUpperCase();

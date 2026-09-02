@@ -9,6 +9,8 @@ type BookingConfirmationEmailProps = {
   hostName: string;
   locationLabel?: string | null;
   meetingUrl?: string | null;
+  // Invitee copies only. The host manages bookings from the dashboard.
+  manageUrl?: string | null;
 };
 
 export const BookingConfirmationEmail = ({
@@ -18,6 +20,7 @@ export const BookingConfirmationEmail = ({
   hostName,
   locationLabel,
   meetingUrl,
+  manageUrl,
 }: BookingConfirmationEmailProps) => {
   return (
     <EmailLayout preview={`Your booking for ${title} is confirmed`}>
@@ -50,6 +53,12 @@ export const BookingConfirmationEmail = ({
           ) : null}
         </Text>
       </Section>
+
+      {manageUrl ? (
+        <Text style={emailStyles.paragraph}>
+          Need a different time? <a href={manageUrl}>Reschedule or cancel</a>.
+        </Text>
+      ) : null}
 
       <Text style={emailStyles.muted}>
         Best regards,

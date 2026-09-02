@@ -9,7 +9,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -33,10 +32,10 @@ import {
   BulkEmailDto,
   CompleteActivityDto,
   CreateActivityDto,
+  CreateRecordAttachmentDto,
   CreateColumnDto,
   CreateFaxActivityDto,
   CreateFieldOptionDto,
-  CreateRecordCountyAssignmentDto,
   CreateRecordDto,
   CsvImportDto,
   DeleteRecordsDto,
@@ -44,7 +43,6 @@ import {
   RestoreHistoryDto,
   UpdateActivityDto,
   UpdateContactDto,
-  UpdateRecordCountyLiaisonDto,
   UpdateRecordValueDto,
 } from "./dto/board.schema";
 import {
@@ -169,7 +167,8 @@ export class BoardController {
     @Session() session: AuthenticatedSession,
     @Query("moduleType") moduleType?: string,
     @Query("page") page = 1,
-    @Query("limit") limit = 50
+    @Query("limit") limit = 50,
+    @Query("search") search?: string
   ) {
     const organizationId = session.session.activeOrganizationId;
     try {
@@ -177,7 +176,8 @@ export class BoardController {
         organizationId,
         moduleType || "LEAD",
         Number(page),
-        Number(limit)
+        Number(limit),
+        search
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -208,7 +208,8 @@ export class BoardController {
     @Query("moduleType") moduleType?: string,
     @Query("email") email?: string,
     @Query("phone") phone?: string,
-    @Query("excludeRecordId") excludeRecordId?: string
+    @Query("excludeRecordId") excludeRecordId?: string,
+    @Query("recordName") recordName?: string
   ) {
     const organizationId = session.session.activeOrganizationId;
     try {
@@ -217,7 +218,8 @@ export class BoardController {
         moduleType || "CONTACT",
         email,
         phone,
-        excludeRecordId
+        excludeRecordId,
+        recordName
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -289,20 +291,6 @@ export class BoardController {
   }
 
   @RequirePermission({ record: ["read"] })
-  @Get("/county/configuration")
-  async getCountyConfiguration(
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-    try {
-      return await this.boardService.getCountyConfiguration(organizationId);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @RequirePermission({ record: ["read"] })
   @Get("/contact-info/:fieldId")
   async getValueIdContact(
     @Param("fieldId") fieldId: string,
@@ -350,7 +338,8 @@ export class BoardController {
     @Session()
     session: AuthenticatedSession,
     @Query("page") page?: number,
-    @Query("limit") limit?: number
+    @Query("limit") limit?: number,
+    @Query("search") search?: string
   ) {
     try {
       const organizationId = session.session.activeOrganizationId;
@@ -358,7 +347,8 @@ export class BoardController {
         fieldId,
         organizationId,
         page ? Number(page) : null,
-        limit ? Number(limit) : null
+        limit ? Number(limit) : null,
+        search
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -393,6 +383,24 @@ export class BoardController {
         recordId,
         organizationId,
         moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ record: ["read"] })
+  @Get("/:recordId/attachments/:fieldId")
+  async getRecordAttachments(
+    @Param("recordId") recordId: string,
+    @Param("fieldId") fieldId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getFieldAttachments(
+        recordId,
+        fieldId,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -507,7 +515,7 @@ export class BoardController {
         throw new BadRequestException("recordName is required");
       }
 
-      return this.boardService.createRecord(
+      return await this.boardService.createRecord(
         dto.recordName,
         organizationId,
         session.user.id,
@@ -516,6 +524,10 @@ export class BoardController {
         dto.personContact
       );
     } catch (error) {
+      // A duplicate name is a 409, not a bad request. Without this the status
+      // survived only because the call above was not awaited, so the rejection
+      // escaped the catch by accident.
+      if (error instanceof HttpException) throw error;
       throw new BadRequestException(error.message);
     }
   }
@@ -634,6 +646,39 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ record: ["update"] })
+  @Post("/:recordId/attachments")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 20 * 1024 * 1024 },
+    })
+  )
+  async uploadAttachment(
+    @Param("recordId") recordId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateRecordAttachmentDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    if (!file) {
+      throw new BadRequestException(
+        'No file uploaded. Use multipart/form-data with the "file" field.'
+      );
+    }
+    try {
+      return await this.boardService.uploadAttachment(
+        recordId,
+        dto.fieldId,
+        file,
+        session.session.activeOrganizationId,
+        session.session.userId,
+        dto.moduleType
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @RequirePermission({ log: ["update"] })
   @Post("/activities/:activityId/complete")
   async completeActivity(
@@ -683,44 +728,6 @@ export class BoardController {
       return this.boardService.setRecordNotificationState(
         dto.recordId,
         session.session.activeOrganizationId
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @RequirePermission({ record: ["update"] })
-  @Post("/county/assignment")
-  async createRecordCountyAssignment(
-    @Body() dto: CreateRecordCountyAssignmentDto,
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    const organizationId = session.session.activeOrganizationId;
-    try {
-      return await this.boardService.createCountyAssignment(
-        dto.name,
-        organizationId,
-        dto.liaisons
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  @RequirePermission({ record: ["update"] })
-  @Put("/county/assignment/:countyId")
-  async updateCountyLiaisons(
-    @Param("countyId") countyId: string,
-    @Body() dto: UpdateRecordCountyLiaisonDto,
-    @Session()
-    session: AuthenticatedSession
-  ) {
-    try {
-      return await this.boardService.updateCountyLiaisons(
-        countyId,
-        session.session.activeOrganizationId,
-        dto.liaisons
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -784,6 +791,7 @@ export class BoardController {
         fieldId,
         dto.optionName,
         session.session.activeOrganizationId,
+        session.session.userId,
         dto.color
       );
     } catch (error) {
@@ -947,16 +955,17 @@ export class BoardController {
   }
 
   @RequirePermission({ record: ["update"] })
-  @Delete("/county/assignment/:countyId")
-  async deleteCountyAssignment(
-    @Param("countyId") countyId: string,
-    @Session()
-    session: AuthenticatedSession
+  @Delete("/attachments/:attachmentId")
+  async deleteAttachment(
+    @Param("attachmentId") attachmentId: string,
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
   ) {
     try {
-      return await this.boardService.deleteCountyAssignment(
-        countyId,
-        session.session.activeOrganizationId
+      return await this.boardService.deleteAttachment(
+        attachmentId,
+        session.session.activeOrganizationId,
+        moduleType || "LEAD"
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -980,7 +989,9 @@ export class BoardController {
     }
   }
 
-  @RequirePermission({ field: ["delete"] })
+  // configure, not delete: every role can edit a field's values, but binning an
+  // option changes the pipeline itself, so it stays with owners and admins.
+  @RequirePermission({ field: ["configure"] })
   @Delete("/field/options/:optionId")
   async deleteRecordFieldOption(
     @Param("optionId") optionId: string,
@@ -989,6 +1000,41 @@ export class BoardController {
   ) {
     try {
       return await this.boardService.deleteRecordFieldOption(
+        optionId,
+        session.session.activeOrganizationId,
+        session.session.userId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Get("/field/:fieldId/options/trash")
+  async getDeletedRecordFieldOptions(
+    @Param("fieldId") fieldId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getDeletedRecordFieldOptions(
+        fieldId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Patch("/field/options/:optionId/restore")
+  async restoreRecordFieldOption(
+    @Param("optionId") optionId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.restoreRecordFieldOption(
         optionId,
         session.session.activeOrganizationId
       );

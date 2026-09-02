@@ -1,3 +1,4 @@
+import { MAX_SEATS } from "@dashboard/shared";
 import { z } from "zod";
 
 export const TRANSACTION_TYPES = [
@@ -17,4 +18,10 @@ export const ListTransactionsQuerySchema = z.object({
 
 export const ListInvoicesQuerySchema = z.object({
   startingAfter: z.string().min(1).optional(),
+});
+
+// The lower bound against current head count is a data check, so it lives in the
+// service; this only bounds the number itself.
+export const UpdateSeatsSchema = z.object({
+  seats: z.number().int().min(1).max(MAX_SEATS),
 });

@@ -19,6 +19,7 @@ import {
 import { uploadImage } from "@/services/image/image-service";
 import { TASK_PRIORITY } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
+import { DatePicker } from "@dashboard/ui/components/date-picker";
 import { Card } from "@dashboard/ui/components/card";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
 import { Input } from "@dashboard/ui/components/input";
@@ -276,17 +277,13 @@ const TaskDetail = () => {
 
               <div className="space-y-2">
                 <Label>Start Date</Label>
-                <Input
-                  key={`start-${task.updatedAt}`}
-                  type="date"
-                  defaultValue={toDateInputValue(task.startDate)}
-                  onBlur={(event) =>
+                <DatePicker
+                  value={toDateInputValue(task.startDate)}
+                  onChange={(value) =>
                     updateTaskMutation.mutate({
                       id: task.id,
                       data: {
-                        startDate: event.target.value
-                          ? new Date(event.target.value).toISOString()
-                          : null,
+                        startDate: value ? new Date(value).toISOString() : null,
                       },
                     })
                   }
@@ -295,17 +292,13 @@ const TaskDetail = () => {
 
               <div className="space-y-2">
                 <Label>Due Date</Label>
-                <Input
-                  key={`due-${task.updatedAt}`}
-                  type="date"
-                  defaultValue={toDateInputValue(task.dueDate)}
-                  onBlur={(event) =>
+                <DatePicker
+                  value={toDateInputValue(task.dueDate)}
+                  onChange={(value) =>
                     updateTaskMutation.mutate({
                       id: task.id,
                       data: {
-                        dueDate: event.target.value
-                          ? new Date(event.target.value).toISOString()
-                          : null,
+                        dueDate: value ? new Date(value).toISOString() : null,
                       },
                     })
                   }

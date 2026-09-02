@@ -5,6 +5,8 @@ import { format, parseISO } from "date-fns";
 export type CategoryRow = {
   name: string;
   value: number;
+  // The grouped field option's own colour, when the source has one.
+  color?: string;
 };
 
 export type RankedRow = {
@@ -42,6 +44,9 @@ export type DenialReasonRow = {
 export type TrendDelta = {
   percent: number;
   direction: "up" | "down" | "flat";
+  // Set when the prior period was zero: a percentage off a zero baseline is
+  // undefined, so the tile reports the absolute change instead.
+  absolute?: number;
 };
 
 type CountedItem = {
@@ -200,7 +205,11 @@ export function countDelta(
   current: number,
   previous: number
 ): TrendDelta | undefined {
-  if (previous === 0) return undefined;
+  if (previous === 0) {
+    if (current === 0) return { percent: 0, direction: "flat" };
+
+    return { percent: 0, direction: "up", absolute: current };
+  }
 
   const percent = ((current - previous) / previous) * 100;
 

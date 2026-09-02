@@ -361,10 +361,10 @@ export function MasterListFilters({
             <div className="mt-6 space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-900">
-                  {isReferral ? "Referral Name" : "Facility"}
+                  {isReferral ? "Referral Liaison" : "Facility"}
                 </label>
                 <Input
-                  placeholder={`Filter by ${isReferral ? "referral name" : "facility"}`}
+                  placeholder={`Filter by ${isReferral ? "referral liaison" : "facility"}`}
                   value={pendingFilters.recordName ?? ""}
                   onChange={(e) =>
                     setPendingFilters((prev: any) => ({

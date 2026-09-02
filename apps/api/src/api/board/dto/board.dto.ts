@@ -105,15 +105,6 @@ export const DeleteRecordsSchema = z.object({
   moduleType: z.string().optional(),
 });
 
-export const CreateRecordCountyAssignmentSchema = z.object({
-  name: z.string().min(1),
-  liaisons: z.array(z.string().min(1)).min(1),
-});
-
-export const UpdateRecordCountyLiaisonSchema = z.object({
-  liaisons: z.array(z.string().min(1)),
-});
-
 export const CreateActivitySchema = z.object({
   recordId: z.string(),
   title: z.string().min(1),
@@ -164,4 +155,9 @@ export const UpdateContactSchema = z.object({
   email: z.email("Invalid email address").or(z.literal("")),
   address: z.string(),
   value: z.string(),
+});
+
+export const CreateRecordAttachmentSchema = z.object({
+  fieldId: z.string(),
+  moduleType: z.string().default("LEAD"),
 });

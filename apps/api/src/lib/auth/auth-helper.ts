@@ -5,6 +5,13 @@ import {
   WORK_EMAIL_REQUIRED_MESSAGE,
 } from "@dashboard/shared";
 import { Logger } from "@nestjs/common";
+import { cacheData, getData } from "../redis/redis";
+import {
+  SESSION_CONTEXT_TTL_SECONDS,
+  sessionContextKey,
+  type CachedSessionContext,
+} from "./session-context";
+import { APIError } from "better-auth/api";
 import { User } from "better-auth";
 import { ReferralDashboardEmail } from "src/react-email/confirmation-email";
 import { appConfig } from "../../config/app-config";
@@ -79,6 +86,29 @@ export const customSessionHandler = async ({
   user: Record<string, any>;
   session: Record<string, any>;
 }) => {
+  const requestedOrganizationId = (session as { activeOrganizationId?: string })
+    .activeOrganizationId;
+
+  if (requestedOrganizationId) {
+    const cached = (await getData(
+      sessionContextKey(requestedOrganizationId, user.id)
+    )) as CachedSessionContext | null;
+
+    if (cached) {
+      return {
+        user,
+        session: {
+          ...session,
+          ...cached.membership,
+          memberRole: cached.membership.role,
+        },
+        member: cached.member,
+        organization: cached.organization,
+        subscription: cached.subscription,
+      };
+    }
+  }
+
   const membership = await resolveSessionMembership(
     user.id,
     (session as { activeOrganizationId?: string }).activeOrganizationId
@@ -121,13 +151,21 @@ export const customSessionHandler = async ({
         createdAt: true,
       },
     }),
+    // Whatever its status, and ordered the same way the subscription guard
+    // orders it: filtering to live rows here would hand the client the same
+    // null for a canceled organization as for one that never subscribed, and
+    // the two need different screens.
     prisma.subscription.findFirst({
-      where: {
-        referenceId: activeOrganizationId,
-        status: { in: ["active", "trialing"] },
-      },
+      where: { referenceId: activeOrganizationId },
+      orderBy: { periodEnd: "desc" },
     }),
   ]);
+
+  await cacheData(
+    sessionContextKey(activeOrganizationId, user.id),
+    { membership, member, organization, subscription },
+    SESSION_CONTEXT_TTL_SECONDS
+  );
 
   return { user, session: mergedSession, member, organization, subscription };
 };
@@ -323,9 +361,9 @@ export const beforeDeleteOrganization = async ({
   }
 };
 
-export const afterDeleteOrganization = async ({}: {
-  organization: { id: string };
-}) => {
+// Better Auth passes the deleted organization, which nothing here reads. A
+// function taking fewer parameters still satisfies the hook's type.
+export const afterDeleteOrganization = async () => {
   // Board-schema children are removed automatically via `onDelete: Cascade`
   // on the Organization relations (Field, Board, Activity, BoardCounty) and
   // their downstream cascades. No manual cleanup required.
@@ -349,7 +387,7 @@ const assertWorkEmailIfHipaa = async (
   });
 
   if (organization?.hipaaEnabled) {
-    throw new Error(WORK_EMAIL_REQUIRED_MESSAGE);
+    throw new APIError("BAD_REQUEST", { message: WORK_EMAIL_REQUIRED_MESSAGE });
   }
 };
 
@@ -368,6 +406,7 @@ export const beforeAddMember = async ({
       where: { referenceId: organization.id },
       select: {
         plan: true,
+        seats: true,
         isCustom: true,
         contractLabel: true,
         customLimits: true,
@@ -381,13 +420,12 @@ export const beforeAddMember = async ({
 
   await assertWorkEmailIfHipaa(organization.id, user?.email);
 
-  // Seats bill per member, so subscription.seats tracks the current head count
-  // and can never be the ceiling. The resolved entitlement is — a negotiated
-  // contract carries its own seat count rather than a tier's.
+  // Seats are purchased, so the ceiling is what the organization bought — a
+  // negotiated contract carries its own count rather than a tier's.
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount >= maxSeats) {
     throw new Error(
-      `Organization has reached its plan limit of ${maxSeats} members. Upgrade your plan to add more.`
+      `Organization has used all ${maxSeats} of its seats. Add seats to invite more members.`
     );
   }
 
@@ -524,6 +562,7 @@ export const beforeCreateInvitation = async ({
       where: { referenceId: organization.id },
       select: {
         plan: true,
+        seats: true,
         isCustom: true,
         contractLabel: true,
         customLimits: true,
@@ -535,9 +574,9 @@ export const beforeCreateInvitation = async ({
 
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount + pendingInvitations >= maxSeats) {
-    throw new Error(
-      `Cannot send invitation. Organization has reached its plan limit of ${maxSeats} members (${memberCount} members, ${pendingInvitations} pending invitations).`
-    );
+    throw new APIError("BAD_REQUEST", {
+      message: `Cannot send invitation. All ${maxSeats} seats are taken (${memberCount} members, ${pendingInvitations} pending invitations). Add seats to invite more.`,
+    });
   }
 
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
@@ -558,9 +597,10 @@ export const beforeAcceptInvitation = async ({
   organization: { id: string };
 }) => {
   if (new Date(invitation.expiresAt) < new Date()) {
-    throw new Error(
-      "This invitation has expired. Please ask the organization admin to send a new one."
-    );
+    throw new APIError("BAD_REQUEST", {
+      message:
+        "This invitation has expired. Please ask the organization admin to send a new one.",
+    });
   }
 
   const [memberCount, subscription] = await Promise.all([
@@ -571,6 +611,7 @@ export const beforeAcceptInvitation = async ({
       where: { referenceId: organization.id },
       select: {
         plan: true,
+        seats: true,
         isCustom: true,
         contractLabel: true,
         customLimits: true,
@@ -580,9 +621,10 @@ export const beforeAcceptInvitation = async ({
 
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount >= maxSeats) {
-    throw new Error(
-      "This organization has reached its member limit. Contact the organization admin."
-    );
+    throw new APIError("BAD_REQUEST", {
+      message:
+        "This organization has no seats left. Contact the organization admin.",
+    });
   }
 };
 

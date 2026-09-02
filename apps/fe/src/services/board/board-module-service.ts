@@ -69,9 +69,20 @@ export const deleteModuleRecords = async (
   return response.data;
 };
 
-export const getModuleDropdownOptions = async (fieldKey: string) => {
+export const getModuleDropdownOptions = async (
+  fieldKey: string,
+  search?: string,
+  limit?: number
+) => {
   const response = await axiosClient.get(
-    `/api/boards/field/${fieldKey}/options`
+    `/api/boards/field/${fieldKey}/options`,
+    {
+      params: {
+        page: limit ? 1 : undefined,
+        limit,
+        search: search || undefined,
+      },
+    }
   );
 
   return response.data;
@@ -84,15 +95,33 @@ export type DuplicateMatch = {
   matchedValue: string;
 };
 
+export type NameMatch = {
+  recordId: string;
+  recordName: string;
+};
+
+// exactMatch means the create will be refused server side; nearMatches only
+// look like the same record and are advisory.
+export type DuplicateCheck = {
+  duplicates: DuplicateMatch[];
+  exactMatch: NameMatch | null;
+  nearMatches: NameMatch[];
+};
+
 export const findModuleDuplicates = async (
   moduleType: CrmModuleType,
-  params: { email?: string; phone?: string; excludeRecordId?: string }
+  params: {
+    email?: string;
+    phone?: string;
+    recordName?: string;
+    excludeRecordId?: string;
+  }
 ) => {
   const response = await axiosClient.get("/api/boards/duplicates", {
     params: { ...params, moduleType },
   });
 
-  return response.data as { duplicates: DuplicateMatch[] };
+  return response.data as DuplicateCheck;
 };
 
 export type RelatedRecord = {
@@ -110,10 +139,11 @@ export const getRelatedRecords = async (recordId: string) => {
 export const getLinkCandidates = async (
   targetModule: string,
   page = 1,
-  limit = 500
+  limit = 500,
+  search?: string
 ) => {
   const response = await axiosClient.get("/api/boards/records", {
-    params: { moduleType: targetModule, page, limit },
+    params: { moduleType: targetModule, page, limit, search: search || undefined },
   });
 
   return response.data;

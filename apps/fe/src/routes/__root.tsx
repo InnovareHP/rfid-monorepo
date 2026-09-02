@@ -33,7 +33,9 @@ function App() {
         {session?.impersonatedBy && <ImpersonationBanner />}
         <Outlet />
       </main>
-      <Toaster />
+      {/* Explicit duration rather than sonner's implicit default, plus a
+          manual dismiss for the case where its timer is paused. */}
+      <Toaster duration={4000} closeButton />
     </QueryClientProvider>
   );
 }
@@ -43,7 +45,15 @@ export const Route = createRootRoute({
     const sessionQuery = {
       queryKey: ["session"],
       queryFn: async () => {
-        const { data } = await authClient.getSession();
+        const { data, error } = await authClient.getSession();
+
+        // No session is data: null with no error. A transport failure, a 429
+        // or a 5xx must not read as signed out, or the team guard sends a
+        // still-authenticated user to /login.
+        if (error && error.status !== 401) {
+          throw new Error(error.message ?? "Failed to load session");
+        }
+
         return data as SessionData;
       },
       staleTime: 5 * 60 * 1000,

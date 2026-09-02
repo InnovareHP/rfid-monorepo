@@ -1,11 +1,8 @@
-import { moduleIcon } from "@/lib/helper/module-icons";
-import { useModules } from "@/hooks/use-modules";
-import { modulePath } from "@/lib/helper/module-route";
+import { PlanChip } from "@/components/billing/plan-chip";
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
-import { useEntitlement } from "@/hooks/use-entitlement";
-import { can } from "@/lib/permissions";
+import { useNavItems } from "@/hooks/use-nav-items";
 import {
   Sidebar,
   SidebarContent,
@@ -15,33 +12,6 @@ import {
 import { Link } from "@tanstack/react-router";
 import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
-import {
-  CalendarClock,
-  ChartSpline,
-  CircuitBoard,
-  ClipboardList,
-  Contact,
-  CreditCard,
-  DollarSign,
-  FileText,
-  HistoryIcon,
-  LayoutTemplate,
-  MailCheck,
-  MailPlus,
-  Mailbox,
-  MapPin,
-  Megaphone,
-  Route,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  SquareTerminal,
-  Target,
-  Upload,
-  Plus,
-  FileBarChart,
-  Users,
-} from "lucide-react";
 import * as React from "react";
 
 const BRAND_WORDMARK =
@@ -60,266 +30,7 @@ export function AppSidebar({
   user,
   ...props
 }: AppSidebarProps) {
-  // HIPAA mode and the BAA are a Scale feature, so the tab is hidden rather
-  // than shown leading to an upsell the plan cannot act on.
-  const entitlement = useEntitlement(activeOrganizationId);
-  const canUseHipaa = entitlement.has("hipaa");
-  const canExport = entitlement.has("export");
-  const canUseCustomReporting = entitlement.has("custom_reporting");
-  const canUseAdvancedAnalytics = entitlement.has("advanced_analytics");
-
-  const { data: modules = [] } = useModules();
-
-  const data = React.useMemo(
-    () => ({
-      navMain: [
-        {
-          title: "Overview",
-          icon: SquareTerminal,
-          // Analytics is a paid feature, so the entries are hidden rather than
-          // leading to a lock screen.
-          items: [
-            ...(canUseAdvancedAnalytics
-              ? [
-                  {
-                    title: "Referral Analytics",
-                    url: `/${activeOrganizationId}`,
-                    icon: FileText,
-                  },
-                  {
-                    title: "Master Marketing List Analytics",
-                    url: `/${activeOrganizationId}/master-list-analytics`,
-                    icon: Users,
-                  },
-                ]
-              : []),
-            ...(canUseCustomReporting
-              ? [
-                  {
-                    title: "Analytics Dashboards",
-                    url: `/${activeOrganizationId}/analytics/custom/dashboards`,
-                    icon: LayoutTemplate,
-                  },
-                ]
-              : []),
-          ],
-        },
-        {
-          title: "CRM",
-          icon: Contact,
-          // New Module sits last so the group reads as the modules you have,
-          // then the way to add one.
-          items: [
-            ...modules.map((module) => ({
-              title: module.label,
-              url: `/${activeOrganizationId}/${modulePath(module.key)}`,
-              icon: moduleIcon(module.icon),
-            })),
-            {
-              title: "New Module",
-              url: `/${activeOrganizationId}/records/new`,
-              icon: Plus,
-            },
-          ],
-        },
-        {
-          title: "Tasks",
-          url: `/${activeOrganizationId}/tasks`,
-          icon: ClipboardList,
-        },
-        {
-          title: "Marketing Hub",
-          icon: MailPlus,
-          items: [
-            {
-              title: "Forms",
-              url: `/${activeOrganizationId}/marketing/forms`,
-              icon: FileText,
-            },
-            {
-              title: "Campaigns",
-              url: `/${activeOrganizationId}/marketing/campaigns`,
-              icon: Megaphone,
-              // Audience and sending identity are what a campaign is built from,
-              // so they hang off it instead of sitting as siblings.
-              items: [
-                {
-                  title: "Groups",
-                  url: `/${activeOrganizationId}/marketing/groups`,
-                  icon: Users,
-                },
-                {
-                  title: "Subscribers",
-                  url: `/${activeOrganizationId}/marketing/subscribers`,
-                  icon: Mailbox,
-                },
-                {
-                  title: "Senders",
-                  url: `/${activeOrganizationId}/marketing/senders`,
-                  icon: MailCheck,
-                },
-              ],
-            },
-            {
-              title: "Blasts",
-              url: `/${activeOrganizationId}/marketing/blasts`,
-              icon: MailPlus,
-            },
-            {
-              title: "Landing Pages",
-              url: `/${activeOrganizationId}/marketing/landing-pages`,
-              icon: LayoutTemplate,
-            },
-          ],
-        },
-        ...(can(memberData?.role, { report: ["read"] })
-          ? [
-              {
-                title: "History",
-                url: `/${activeOrganizationId}/history`,
-                icon: HistoryIcon,
-              },
-            ]
-          : []),
-        // Renamed from "Marketing": these are the field logs, and two sibling
-        // categories both called Marketing gave no way to tell them apart.
-        ...(can(memberData?.role, { log: ["create"] })
-          ? [
-              {
-                title: "Logs",
-                icon: CircuitBoard,
-                items: [
-                  {
-                    title: "Mileage Log",
-                    url: `/${activeOrganizationId}/log/mileage`,
-                    icon: Route,
-                  },
-                  {
-                    title: "Marketing Log",
-                    url: `/${activeOrganizationId}/log/marketing`,
-                    icon: Target,
-                  },
-                  {
-                    title: "Expense Log",
-                    url: `/${activeOrganizationId}/log/expense`,
-                    icon: DollarSign,
-                  },
-                ],
-              },
-            ]
-          : []),
-        ...(can(memberData?.role, { report: ["read"] })
-          ? [
-              {
-                title: "Reports",
-                icon: FileText,
-                items: [
-                  {
-                    title: "Mileage Report",
-                    url: `/${activeOrganizationId}/report/mileage`,
-                    icon: Route,
-                  },
-                  {
-                    title: "Marketing Report",
-                    url: `/${activeOrganizationId}/report/marketing`,
-                    icon: Target,
-                  },
-                  {
-                    title: "Expense Report",
-                    url: `/${activeOrganizationId}/report/expense`,
-                    icon: DollarSign,
-                  },
-                  // Scale only, so the entry is hidden rather than leading to a
-                  // refusal the plan cannot act on.
-                  ...(canUseCustomReporting
-                    ? [
-                        {
-                          title: "Custom Reports",
-                          url: `/${activeOrganizationId}/report/custom`,
-                          icon: FileBarChart,
-                        },
-                        {
-                          title: "Custom Analytics",
-                          url: `/${activeOrganizationId}/analytics/custom`,
-                          icon: ChartSpline,
-                        },
-                      ]
-                    : []),
-                ],
-              },
-            ]
-          : []),
-        ...(canExport && can(memberData?.role, { record: ["import"] })
-          ? [
-              {
-                title: "Import",
-                url: `/${activeOrganizationId}/import`,
-                icon: Upload,
-              },
-            ]
-          : []),
-        {
-          title: "Settings",
-          icon: Settings,
-          // No row for /settings itself: that route is a layout with a bare
-          // Outlet and no index child, so it renders blank.
-          items: [
-            {
-              title: "Team",
-              url: `/${activeOrganizationId}/team`,
-              icon: Users,
-            },
-            {
-              title: "Counties",
-              url: `/${activeOrganizationId}/county-config`,
-              icon: MapPin,
-            },
-            {
-              title: "Booking",
-              url: `/${activeOrganizationId}/settings/booking`,
-              icon: CalendarClock,
-            },
-            ...(canUseHipaa
-              ? [
-                  {
-                    title: "Compliance",
-                    url: `/${activeOrganizationId}/settings/compliance`,
-                    icon: ShieldCheck,
-                  },
-                ]
-              : []),
-            ...(can(memberData?.role, { billing: ["manage_billing"] })
-              ? [
-                  {
-                    title: "Billing",
-                    url: `/${activeOrganizationId}/settings/billing`,
-                    icon: CreditCard,
-                    // Changing plan is something you do from billing, not a
-                    // separate settings destination.
-                    items: [
-                      {
-                        title: "Plans",
-                        url: `/${activeOrganizationId}/plans`,
-                        icon: Sparkles,
-                      },
-                    ],
-                  },
-                ]
-              : []),
-          ],
-        },
-      ],
-    }),
-    [
-      activeOrganizationId,
-      memberData?.role,
-      canUseHipaa,
-      canExport,
-      canUseCustomReporting,
-      canUseAdvancedAnalytics,
-      modules,
-    ]
-  );
+  const navMain = useNavItems(activeOrganizationId, memberData);
 
   return (
     <Sidebar
@@ -352,9 +63,11 @@ export function AppSidebar({
         {/* {open && <AddRow isReferral={false} onAdd={handleAddNewLead} />} */}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
+        <PlanChip organizationId={activeOrganizationId} />
+
         <NavUser user={user} activeOrganizationId={activeOrganizationId} />
       </SidebarFooter>
     </Sidebar>

@@ -18,14 +18,12 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   useSidebar,
 } from "@dashboard/ui/components/sidebar";
-import { cn } from "@dashboard/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -40,7 +38,6 @@ import {
   SquareTerminal,
 } from "lucide-react";
 import * as React from "react";
-
 const LOGO_WORDMARK_PATH = "/branding/Wordmark/refidly-wordmark-colored.png";
 const LOGO_ICON_PATH = "/branding/Icon/refidly-icon-colored.png";
 
@@ -55,7 +52,7 @@ export function DashboardSidebar() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const { state, isMobile } = useSidebar();
+  const { isMobile } = useSidebar();
   const user = session?.user;
   const lang = (params as { lang?: string }).lang ?? "en";
   const base = `/${lang}`;
@@ -82,19 +79,9 @@ export function DashboardSidebar() {
     };
   }, []);
 
-  const logoSrc = React.useMemo(
-    () => (state === "collapsed" ? LOGO_ICON_PATH : LOGO_WORDMARK_PATH),
-    [state]
-  );
-
-  const logoClassName = cn(
-    "cursor-pointer transition-all duration-300 object-contain object-center",
-    state === "collapsed" ? "h-12 w-8" : "h-auto w-[70%]"
-  );
-
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      {/* <SidebarHeader>
         <div className="mb-2 w-full overflow-hidden flex items-center justify-center">
           <Link
             to={base}
@@ -109,7 +96,7 @@ export function DashboardSidebar() {
             />
           </Link>
         </div>
-      </SidebarHeader>
+      </SidebarHeader> */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Platform</SidebarGroupLabel>

@@ -1,9 +1,12 @@
 import { axiosClient } from "@/lib/axios-client";
+import type { BillingInterval } from "@dashboard/shared";
 
 export type PlanSummary = {
   name: string;
   label: string;
-  pricePerSeat: number;
+  monthly: number;
+  // Null when no yearly price is configured, which hides the yearly toggle.
+  yearly: number | null;
   limits: {
     seats: number;
     ai: number;
@@ -11,20 +14,23 @@ export type PlanSummary = {
     prioritySupport: number;
   };
   freeTrialDays: number;
+  defaultSeats: number;
 };
 
 export type PlanCard = {
   plan: string | null;
   label: string | null;
   status: string | null;
+  interval: BillingInterval;
   pricePerSeat: number | null;
   seats: number;
-  monthlyTotal: number | null;
+  total: number | null;
   periodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   trialEnd: string | null;
   limits: PlanSummary["limits"];
-  memberOverCap: boolean;
+  memberCount: number;
+  maxSeats: number;
   members: { id: string; role: string; email: string; name: string }[];
   pendingInvoice: {
     id: string;
@@ -107,6 +113,12 @@ export const getTransactions = async (params: {
   });
 
   return response.data as { data: TransactionRow[]; total: number };
+};
+
+export const updateSeats = async (seats: number) => {
+  const response = await axiosClient.post("/api/billing/seats", { seats });
+
+  return response.data as { seats: number };
 };
 
 export const cancelSubscription = async () => {

@@ -1,27 +1,18 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
+import { WriteGate } from "@/components/write-gate";
+import { DuplicateWarningDialog } from "@/components/record-create/duplicate-warning-dialog";
+import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import RecordCreatePage, {
   type CreatedRecord,
   type RecordColumn,
 } from "@/components/record-create/record-create-page";
 import {
   createModuleRecords,
-  findModuleDuplicates,
   getModuleColumns,
   getModuleDropdownOptions,
   type CrmModuleType,
-  type DuplicateMatch,
 } from "@/services/board/board-module-service";
-import { Button } from "@dashboard/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@dashboard/ui/components/dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
-import { useState } from "react";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
 
@@ -46,11 +37,6 @@ export default function CrmRecordCreate({
 }: CrmRecordCreateProps) {
   const queryClient = useQueryClient();
   const queryKey = boardQueryKey(moduleType);
-  const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
-  const [pendingRecords, setPendingRecords] = useState<CreatedRecord[] | null>(
-    null
-  );
-  const [isChecking, setIsChecking] = useState(false);
 
   const { data: columnsData, isLoading: isLoadingColumns } = useQuery({
     queryKey: [...queryKey, "columns"],
@@ -77,128 +63,48 @@ export default function CrmRecordCreate({
       queryClient.invalidateQueries({ queryKey });
       onBack();
     },
-    onError: () => {
-      toast.error(`Failed to create ${entityLabel.toLowerCase()}(s)`);
+    onError: (error) => {
+      toast.error(
+        getApiErrorMessage(
+          error,
+          `Failed to create ${entityLabel.toLowerCase()}(s)`
+        )
+      );
     },
   });
 
-  const handleSubmit = async (records: CreatedRecord[]) => {
-    const emailColumn = columns.find((col) => col.type === "EMAIL");
-    const phoneColumn = columns.find((col) => col.type === "PHONE");
-
-    if (!emailColumn && !phoneColumn) {
-      createMutation.mutate(records);
-      return;
-    }
-
-    setIsChecking(true);
-    try {
-      const results = await Promise.all(
-        records.map((record) => {
-          const email = emailColumn
-            ? record.values[emailColumn.id]?.trim()
-            : undefined;
-          const phone = phoneColumn
-            ? record.values[phoneColumn.id]?.trim()
-            : undefined;
-          if (!email && !phone) {
-            return Promise.resolve({ duplicates: [] as DuplicateMatch[] });
-          }
-          return findModuleDuplicates(moduleType, { email, phone });
-        })
-      );
-
-      const found = results.flatMap((result) => result.duplicates);
-      if (found.length > 0) {
-        setDuplicates(found);
-        setPendingRecords(records);
-        return;
-      }
-
-      createMutation.mutate(records);
-    } catch {
-      // Dedupe is advisory only, never block the save on a failed check
-      createMutation.mutate(records);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  const handleCreateAnyway = () => {
-    if (pendingRecords) {
-      createMutation.mutate(pendingRecords);
-    }
-    setDuplicates([]);
-    setPendingRecords(null);
-  };
+  const duplicateCheck = useDuplicateCheck({
+    moduleType,
+    columns,
+    onCreate: (records) => createMutation.mutate(records),
+  });
 
   return (
     <>
-      <RecordCreatePage
-        title={title}
-        description={description}
-        entityLabel={entityLabel}
-        entityLabelPlural={entityLabelPlural}
-        nameLabel={nameLabel}
-        columns={columns}
-        isLoadingColumns={isLoadingColumns}
-        isSubmitting={createMutation.isPending || isChecking}
-        fetchDropdownOptions={getModuleDropdownOptions}
-        onSubmit={handleSubmit}
-        onBack={onBack}
-      />
-
-      <Dialog
-        open={duplicates.length > 0}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDuplicates([]);
-            setPendingRecords(null);
+      <WriteGate>
+        <RecordCreatePage
+          title={title}
+          description={description}
+          entityLabel={entityLabel}
+          entityLabelPlural={entityLabelPlural}
+          nameLabel={nameLabel}
+          columns={columns}
+          isLoadingColumns={isLoadingColumns}
+          isSubmitting={createMutation.isPending || duplicateCheck.isChecking}
+          fetchDropdownOptions={(fieldId, search, limit) =>
+            getModuleDropdownOptions(fieldId, search, limit)
           }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Possible duplicate {entityLabel.toLowerCase()}
-            </DialogTitle>
-            <DialogDescription>
-              A record with the same email or phone already exists. You can
-              still create it if this is intentional.
-            </DialogDescription>
-          </DialogHeader>
+          onSubmit={duplicateCheck.submit}
+          onBack={onBack}
+        />
+      </WriteGate>
 
-          <div className="max-h-48 overflow-y-auto space-y-2">
-            {duplicates.map((duplicate) => (
-              <div
-                key={`${duplicate.recordId}-${duplicate.matchedField}`}
-                className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm"
-              >
-                <p className="font-semibold text-gray-900">
-                  {duplicate.recordName}
-                </p>
-                <p className="text-gray-600">
-                  {duplicate.matchedField}: {duplicate.matchedValue}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDuplicates([]);
-                setPendingRecords(null);
-              }}
-            >
-              Go back and edit
-            </Button>
-            <Button onClick={handleCreateAnyway}>Create anyway</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DuplicateWarningDialog
+        findings={duplicateCheck.findings}
+        entityLabel={entityLabel}
+        onCancel={duplicateCheck.dismiss}
+        onCreateAnyway={duplicateCheck.createAnyway}
+      />
     </>
   );
 }

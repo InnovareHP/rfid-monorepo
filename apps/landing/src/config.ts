@@ -6,6 +6,7 @@ export const NAV_LINKS = [
   { href: "/#why", label: "Why Refidly" },
   { href: "/#how-it-works", label: "How It Works" },
   { href: "/security", label: "Security" },
+  { href: "/demo", label: "Book a Demo" },
 ];
 
 export const LEGAL_ENTITY = "InnovareHP";

@@ -18,19 +18,23 @@ import { Route as LangLangIndexRouteImport } from './routes/_lang/$lang/index'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin/index'
 import { Route as LangLangDashboardRouteImport } from './routes/_lang/$lang/dashboard'
 import { Route as LangLangAccountRouteImport } from './routes/_lang/$lang/account'
+import { Route as AdminAdminDemoRequestsRouteImport } from './routes/_admin/admin/demo-requests'
 import { Route as AdminAdminActivityLogRouteImport } from './routes/_admin/admin/activity-log'
 import { Route as SupportSupportTicketsIndexRouteImport } from './routes/_support/support/tickets/index'
 import { Route as SupportSupportRatingsIndexRouteImport } from './routes/_support/support/ratings/index'
 import { Route as SupportSupportManualIndexRouteImport } from './routes/_support/support/manual/index'
 import { Route as LangLangRequestIndexRouteImport } from './routes/_lang/$lang/request/index'
+import { Route as LangLangManualIndexRouteImport } from './routes/_lang/$lang/manual/index'
 import { Route as AdminAdminUsersIndexRouteImport } from './routes/_admin/admin/users/index'
 import { Route as AdminAdminOrganizationsIndexRouteImport } from './routes/_admin/admin/organizations/index'
 import { Route as SupportSupportKpiTeamRouteImport } from './routes/_support/support/kpi.team'
 import { Route as SupportSupportKpiMyRouteImport } from './routes/_support/support/kpi.my'
 import { Route as SupportSupportTicketsTicketNumberIndexRouteImport } from './routes/_support/support/tickets/$ticketNumber/index'
 import { Route as LangLangRequestTicketNumberIndexRouteImport } from './routes/_lang/$lang/request/$ticketNumber/index'
+import { Route as LangLangManualCategorySlugIndexRouteImport } from './routes/_lang/$lang/manual/$categorySlug/index'
 import { Route as AdminAdminUsersUserIdIndexRouteImport } from './routes/_admin/admin/users/$userId/index'
 import { Route as AdminAdminOrganizationsOrgIdIndexRouteImport } from './routes/_admin/admin/organizations/$orgId/index'
+import { Route as LangLangManualArticleSlugIndexRouteImport } from './routes/_lang/$lang/manual/article/$slug/index'
 
 const SupportRoute = SupportRouteImport.update({
   id: '/_support',
@@ -74,6 +78,11 @@ const LangLangAccountRoute = LangLangAccountRouteImport.update({
   path: '/$lang/account',
   getParentRoute: () => LangRoute,
 } as any)
+const AdminAdminDemoRequestsRoute = AdminAdminDemoRequestsRouteImport.update({
+  id: '/admin/demo-requests',
+  path: '/admin/demo-requests',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAdminActivityLogRoute = AdminAdminActivityLogRouteImport.update({
   id: '/admin/activity-log',
   path: '/admin/activity-log',
@@ -100,6 +109,11 @@ const SupportSupportManualIndexRoute =
 const LangLangRequestIndexRoute = LangLangRequestIndexRouteImport.update({
   id: '/$lang/request/',
   path: '/$lang/request/',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangLangManualIndexRoute = LangLangManualIndexRouteImport.update({
+  id: '/$lang/manual/',
+  path: '/$lang/manual/',
   getParentRoute: () => LangRoute,
 } as any)
 const AdminAdminUsersIndexRoute = AdminAdminUsersIndexRouteImport.update({
@@ -135,6 +149,12 @@ const LangLangRequestTicketNumberIndexRoute =
     path: '/$lang/request/$ticketNumber/',
     getParentRoute: () => LangRoute,
   } as any)
+const LangLangManualCategorySlugIndexRoute =
+  LangLangManualCategorySlugIndexRouteImport.update({
+    id: '/$lang/manual/$categorySlug/',
+    path: '/$lang/manual/$categorySlug/',
+    getParentRoute: () => LangRoute,
+  } as any)
 const AdminAdminUsersUserIdIndexRoute =
   AdminAdminUsersUserIdIndexRouteImport.update({
     id: '/admin/users/$userId/',
@@ -147,10 +167,17 @@ const AdminAdminOrganizationsOrgIdIndexRoute =
     path: '/admin/organizations/$orgId/',
     getParentRoute: () => AdminRoute,
   } as any)
+const LangLangManualArticleSlugIndexRoute =
+  LangLangManualArticleSlugIndexRouteImport.update({
+    id: '/$lang/manual/article/$slug/',
+    path: '/$lang/manual/article/$slug/',
+    getParentRoute: () => LangRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/activity-log': typeof AdminAdminActivityLogRoute
+  '/admin/demo-requests': typeof AdminAdminDemoRequestsRoute
   '/$lang/account': typeof LangLangAccountRoute
   '/$lang/dashboard': typeof LangLangDashboardRoute
   '/admin/': typeof AdminAdminIndexRoute
@@ -160,18 +187,22 @@ export interface FileRoutesByFullPath {
   '/support/kpi/team': typeof SupportSupportKpiTeamRoute
   '/admin/organizations/': typeof AdminAdminOrganizationsIndexRoute
   '/admin/users/': typeof AdminAdminUsersIndexRoute
+  '/$lang/manual/': typeof LangLangManualIndexRoute
   '/$lang/request/': typeof LangLangRequestIndexRoute
   '/support/manual/': typeof SupportSupportManualIndexRoute
   '/support/ratings/': typeof SupportSupportRatingsIndexRoute
   '/support/tickets/': typeof SupportSupportTicketsIndexRoute
   '/admin/organizations/$orgId/': typeof AdminAdminOrganizationsOrgIdIndexRoute
   '/admin/users/$userId/': typeof AdminAdminUsersUserIdIndexRoute
+  '/$lang/manual/$categorySlug/': typeof LangLangManualCategorySlugIndexRoute
   '/$lang/request/$ticketNumber/': typeof LangLangRequestTicketNumberIndexRoute
   '/support/tickets/$ticketNumber/': typeof SupportSupportTicketsTicketNumberIndexRoute
+  '/$lang/manual/article/$slug/': typeof LangLangManualArticleSlugIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/activity-log': typeof AdminAdminActivityLogRoute
+  '/admin/demo-requests': typeof AdminAdminDemoRequestsRoute
   '/$lang/account': typeof LangLangAccountRoute
   '/$lang/dashboard': typeof LangLangDashboardRoute
   '/admin': typeof AdminAdminIndexRoute
@@ -181,14 +212,17 @@ export interface FileRoutesByTo {
   '/support/kpi/team': typeof SupportSupportKpiTeamRoute
   '/admin/organizations': typeof AdminAdminOrganizationsIndexRoute
   '/admin/users': typeof AdminAdminUsersIndexRoute
+  '/$lang/manual': typeof LangLangManualIndexRoute
   '/$lang/request': typeof LangLangRequestIndexRoute
   '/support/manual': typeof SupportSupportManualIndexRoute
   '/support/ratings': typeof SupportSupportRatingsIndexRoute
   '/support/tickets': typeof SupportSupportTicketsIndexRoute
   '/admin/organizations/$orgId': typeof AdminAdminOrganizationsOrgIdIndexRoute
   '/admin/users/$userId': typeof AdminAdminUsersUserIdIndexRoute
+  '/$lang/manual/$categorySlug': typeof LangLangManualCategorySlugIndexRoute
   '/$lang/request/$ticketNumber': typeof LangLangRequestTicketNumberIndexRoute
   '/support/tickets/$ticketNumber': typeof SupportSupportTicketsTicketNumberIndexRoute
+  '/$lang/manual/article/$slug': typeof LangLangManualArticleSlugIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,6 +231,7 @@ export interface FileRoutesById {
   '/_lang': typeof LangRouteWithChildren
   '/_support': typeof SupportRouteWithChildren
   '/_admin/admin/activity-log': typeof AdminAdminActivityLogRoute
+  '/_admin/admin/demo-requests': typeof AdminAdminDemoRequestsRoute
   '/_lang/$lang/account': typeof LangLangAccountRoute
   '/_lang/$lang/dashboard': typeof LangLangDashboardRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
@@ -206,20 +241,24 @@ export interface FileRoutesById {
   '/_support/support/kpi/team': typeof SupportSupportKpiTeamRoute
   '/_admin/admin/organizations/': typeof AdminAdminOrganizationsIndexRoute
   '/_admin/admin/users/': typeof AdminAdminUsersIndexRoute
+  '/_lang/$lang/manual/': typeof LangLangManualIndexRoute
   '/_lang/$lang/request/': typeof LangLangRequestIndexRoute
   '/_support/support/manual/': typeof SupportSupportManualIndexRoute
   '/_support/support/ratings/': typeof SupportSupportRatingsIndexRoute
   '/_support/support/tickets/': typeof SupportSupportTicketsIndexRoute
   '/_admin/admin/organizations/$orgId/': typeof AdminAdminOrganizationsOrgIdIndexRoute
   '/_admin/admin/users/$userId/': typeof AdminAdminUsersUserIdIndexRoute
+  '/_lang/$lang/manual/$categorySlug/': typeof LangLangManualCategorySlugIndexRoute
   '/_lang/$lang/request/$ticketNumber/': typeof LangLangRequestTicketNumberIndexRoute
   '/_support/support/tickets/$ticketNumber/': typeof SupportSupportTicketsTicketNumberIndexRoute
+  '/_lang/$lang/manual/article/$slug/': typeof LangLangManualArticleSlugIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/admin/activity-log'
+    | '/admin/demo-requests'
     | '/$lang/account'
     | '/$lang/dashboard'
     | '/admin/'
@@ -229,18 +268,22 @@ export interface FileRouteTypes {
     | '/support/kpi/team'
     | '/admin/organizations/'
     | '/admin/users/'
+    | '/$lang/manual/'
     | '/$lang/request/'
     | '/support/manual/'
     | '/support/ratings/'
     | '/support/tickets/'
     | '/admin/organizations/$orgId/'
     | '/admin/users/$userId/'
+    | '/$lang/manual/$categorySlug/'
     | '/$lang/request/$ticketNumber/'
     | '/support/tickets/$ticketNumber/'
+    | '/$lang/manual/article/$slug/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin/activity-log'
+    | '/admin/demo-requests'
     | '/$lang/account'
     | '/$lang/dashboard'
     | '/admin'
@@ -250,14 +293,17 @@ export interface FileRouteTypes {
     | '/support/kpi/team'
     | '/admin/organizations'
     | '/admin/users'
+    | '/$lang/manual'
     | '/$lang/request'
     | '/support/manual'
     | '/support/ratings'
     | '/support/tickets'
     | '/admin/organizations/$orgId'
     | '/admin/users/$userId'
+    | '/$lang/manual/$categorySlug'
     | '/$lang/request/$ticketNumber'
     | '/support/tickets/$ticketNumber'
+    | '/$lang/manual/article/$slug'
   id:
     | '__root__'
     | '/'
@@ -265,6 +311,7 @@ export interface FileRouteTypes {
     | '/_lang'
     | '/_support'
     | '/_admin/admin/activity-log'
+    | '/_admin/admin/demo-requests'
     | '/_lang/$lang/account'
     | '/_lang/$lang/dashboard'
     | '/_admin/admin/'
@@ -274,14 +321,17 @@ export interface FileRouteTypes {
     | '/_support/support/kpi/team'
     | '/_admin/admin/organizations/'
     | '/_admin/admin/users/'
+    | '/_lang/$lang/manual/'
     | '/_lang/$lang/request/'
     | '/_support/support/manual/'
     | '/_support/support/ratings/'
     | '/_support/support/tickets/'
     | '/_admin/admin/organizations/$orgId/'
     | '/_admin/admin/users/$userId/'
+    | '/_lang/$lang/manual/$categorySlug/'
     | '/_lang/$lang/request/$ticketNumber/'
     | '/_support/support/tickets/$ticketNumber/'
+    | '/_lang/$lang/manual/article/$slug/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -356,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangLangAccountRouteImport
       parentRoute: typeof LangRoute
     }
+    '/_admin/admin/demo-requests': {
+      id: '/_admin/admin/demo-requests'
+      path: '/admin/demo-requests'
+      fullPath: '/admin/demo-requests'
+      preLoaderRoute: typeof AdminAdminDemoRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/activity-log': {
       id: '/_admin/admin/activity-log'
       path: '/admin/activity-log'
@@ -389,6 +446,13 @@ declare module '@tanstack/react-router' {
       path: '/$lang/request'
       fullPath: '/$lang/request/'
       preLoaderRoute: typeof LangLangRequestIndexRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/_lang/$lang/manual/': {
+      id: '/_lang/$lang/manual/'
+      path: '/$lang/manual'
+      fullPath: '/$lang/manual/'
+      preLoaderRoute: typeof LangLangManualIndexRouteImport
       parentRoute: typeof LangRoute
     }
     '/_admin/admin/users/': {
@@ -433,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangLangRequestTicketNumberIndexRouteImport
       parentRoute: typeof LangRoute
     }
+    '/_lang/$lang/manual/$categorySlug/': {
+      id: '/_lang/$lang/manual/$categorySlug/'
+      path: '/$lang/manual/$categorySlug'
+      fullPath: '/$lang/manual/$categorySlug/'
+      preLoaderRoute: typeof LangLangManualCategorySlugIndexRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/_admin/admin/users/$userId/': {
       id: '/_admin/admin/users/$userId/'
       path: '/admin/users/$userId'
@@ -447,11 +518,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminOrganizationsOrgIdIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_lang/$lang/manual/article/$slug/': {
+      id: '/_lang/$lang/manual/article/$slug/'
+      path: '/$lang/manual/article/$slug'
+      fullPath: '/$lang/manual/article/$slug/'
+      preLoaderRoute: typeof LangLangManualArticleSlugIndexRouteImport
+      parentRoute: typeof LangRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
   AdminAdminActivityLogRoute: typeof AdminAdminActivityLogRoute
+  AdminAdminDemoRequestsRoute: typeof AdminAdminDemoRequestsRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminOrganizationsIndexRoute: typeof AdminAdminOrganizationsIndexRoute
   AdminAdminUsersIndexRoute: typeof AdminAdminUsersIndexRoute
@@ -461,6 +540,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminActivityLogRoute: AdminAdminActivityLogRoute,
+  AdminAdminDemoRequestsRoute: AdminAdminDemoRequestsRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
   AdminAdminOrganizationsIndexRoute: AdminAdminOrganizationsIndexRoute,
   AdminAdminUsersIndexRoute: AdminAdminUsersIndexRoute,
@@ -475,16 +555,22 @@ interface LangRouteChildren {
   LangLangAccountRoute: typeof LangLangAccountRoute
   LangLangDashboardRoute: typeof LangLangDashboardRoute
   LangLangIndexRoute: typeof LangLangIndexRoute
+  LangLangManualIndexRoute: typeof LangLangManualIndexRoute
   LangLangRequestIndexRoute: typeof LangLangRequestIndexRoute
+  LangLangManualCategorySlugIndexRoute: typeof LangLangManualCategorySlugIndexRoute
   LangLangRequestTicketNumberIndexRoute: typeof LangLangRequestTicketNumberIndexRoute
+  LangLangManualArticleSlugIndexRoute: typeof LangLangManualArticleSlugIndexRoute
 }
 
 const LangRouteChildren: LangRouteChildren = {
   LangLangAccountRoute: LangLangAccountRoute,
   LangLangDashboardRoute: LangLangDashboardRoute,
   LangLangIndexRoute: LangLangIndexRoute,
+  LangLangManualIndexRoute: LangLangManualIndexRoute,
   LangLangRequestIndexRoute: LangLangRequestIndexRoute,
+  LangLangManualCategorySlugIndexRoute: LangLangManualCategorySlugIndexRoute,
   LangLangRequestTicketNumberIndexRoute: LangLangRequestTicketNumberIndexRoute,
+  LangLangManualArticleSlugIndexRoute: LangLangManualArticleSlugIndexRoute,
 }
 
 const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)

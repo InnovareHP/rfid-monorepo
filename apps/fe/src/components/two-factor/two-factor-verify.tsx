@@ -1,3 +1,4 @@
+import { useOtpCooldown } from "@/hooks/use-otp-cooldown";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import { Checkbox } from "@dashboard/ui/components/checkbox";
@@ -49,6 +50,7 @@ export function TwoFactorVerify() {
   // The code is only emailed on request, so a re-render can never send a second one.
   const [codeSent, setCodeSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const cooldown = useOtpCooldown();
 
   const otpForm = useForm<OtpValues>({
     resolver: zodResolver(otpSchema),
@@ -83,6 +85,8 @@ export function TwoFactorVerify() {
   };
 
   const sendCode = async () => {
+    if (sending || cooldown.isCooling) return;
+
     setSending(true);
     otpForm.clearErrors("root");
     try {
@@ -91,6 +95,7 @@ export function TwoFactorVerify() {
         fail(otpForm, error.message ?? "Could not email your code");
         return;
       }
+      cooldown.start();
       setCodeSent(true);
       toast.success("Code sent to your email");
     } catch (error) {
@@ -237,11 +242,15 @@ export function TwoFactorVerify() {
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={sending}
+                  disabled={sending || cooldown.isCooling}
                   onClick={sendCode}
                   className="w-full"
                 >
-                  {sending ? "Sending..." : "Resend code"}
+                  {sending
+                    ? "Sending..."
+                    : cooldown.isCooling
+                      ? `Resend code in ${cooldown.remaining}s`
+                      : "Resend code"}
                 </Button>
               </>
             )}

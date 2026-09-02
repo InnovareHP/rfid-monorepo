@@ -2,6 +2,7 @@ import { toSlug } from "@dashboard/shared";
 import { ModuleType } from "@prisma/client";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { isSelectType } from "../../lib/helper";
+import { seedDefaultAnalytics } from "../../lib/analytics/default-analytics";
 import { prisma } from "../../lib/prisma/prisma";
 import { CreateModuleDto } from "./dto/module.dto";
 
@@ -66,7 +67,7 @@ export class ModuleService {
       );
     }
 
-    return prisma.module.create({
+    const created = await prisma.module.create({
       data: {
         key,
         label: dto.label,
@@ -96,5 +97,10 @@ export class ModuleService {
       },
       select: { id: true, key: true, label: true, labelSingular: true },
     });
+
+    // A new module opens on an analytics page rather than a blank one.
+    await seedDefaultAnalytics(created.id, organizationId);
+
+    return created;
   }
 }

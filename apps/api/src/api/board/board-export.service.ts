@@ -7,6 +7,12 @@ import { BoardService } from "./board.service";
 // a field quoted only when it contains a delimiter, a quote or a newline.
 const QUOTE_IF = /[",\r\n]/;
 
+// Excel and Sheets evaluate a cell that opens with one of these, so a record
+// named =HYPERLINK(...) runs on whoever opens the export. Only text is guarded:
+// a number keeps its minus sign because it never reaches the parser as a
+// formula. Prefixing an apostrophe is the standard fix and Excel hides it.
+const FORMULA_START = /^[=+\-@\t\r]/;
+
 // A LOCATION or TIMELINE value arrives as an object, and the default
 // stringification would write "[object Object]" into the cell.
 const text = (value: unknown): string => {
@@ -26,7 +32,9 @@ const text = (value: unknown): string => {
 
 const cell = (value: unknown): string => {
   if (value === null || value === undefined) return "";
-  const rendered = text(value);
+  const raw = text(value);
+  const rendered =
+    typeof value === "string" && FORMULA_START.test(raw) ? `'${raw}` : raw;
   if (!QUOTE_IF.test(rendered)) return rendered;
   return `"${rendered.replace(/"/g, '""')}"`;
 };

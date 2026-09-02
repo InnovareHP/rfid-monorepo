@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import {
   getBlastAudienceCount,
   sendTestBlast,
@@ -114,6 +115,7 @@ export const BlastReviewSend = ({
         </Button>
 
         <div className="flex items-center gap-2">
+          <WriteGate>
           <Button
             type="button"
             disabled={testMutation.isPending}
@@ -126,15 +128,19 @@ export const BlastReviewSend = ({
             )}
             Send Test Email
           </Button>
+          </WriteGate>
+
           {canSend && (
-            <Button type="button" disabled={isSending} onClick={onSend}>
-              {isSending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
-              Send Blast
-            </Button>
+            <WriteGate>
+              <Button type="button" disabled={isSending} onClick={onSend}>
+                {isSending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+                Send Blast
+              </Button>
+            </WriteGate>
           )}
         </div>
       </div>

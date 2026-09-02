@@ -118,6 +118,8 @@ variable "waf_body_inspection_exempt_paths" {
     "/api/expense",
     "/api/support",
     "/api/organization",
+    # Stripe payloads carry URLs in the body, which GenericRFI_BODY reads as injection.
+    "/api/auth/stripe/webhook",
   ]
 }
 
@@ -410,6 +412,12 @@ variable "alert_emails" {
 variable "ses_sending_domain" {
   type        = string
   description = "Domain that outbound mail is sent from. Empty = no SES identity, config set only."
+  default     = ""
+}
+
+variable "ses_mail_from_subdomain" {
+  type        = string
+  description = "MAIL FROM subdomain, e.g. mail.refidly.com. Empty = SES default, which leaves SPF unaligned."
   default     = ""
 }
 

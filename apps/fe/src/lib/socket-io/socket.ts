@@ -2,64 +2,42 @@ import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 let tokenGenerator: (() => Promise<string | null>) | null = null;
-let isReconnecting = false;
 
 export function setTokenGenerator(fn: () => Promise<string | null>) {
   tokenGenerator = fn;
 }
 
-function createSocket(token: string): Socket {
-  return io(import.meta.env.VITE_API_URL, {
-    path: "/ws/socket.io",
+export function connectSocket(): Socket {
+  if (socket) return socket;
+
+  socket = io(import.meta.env.VITE_API_URL, {
+    // Must match the gateway's path exactly; socket.io appends its own
+    // handshake query, not a /socket.io segment.
+    path: "/ws",
     transports: ["websocket"],
-    auth: { token },
+    // The token is single-use, so it is minted per attempt rather than once
+    // per socket: a reconnect replaying a spent token is rejected as
+    // Unauthorized.
+    auth: (cb) => {
+      const generate = tokenGenerator?.() ?? Promise.resolve(null);
+      generate
+        .then((token) => cb({ token: token ?? "" }))
+        .catch(() => cb({ token: "" }));
+    },
     reconnection: true,
-    reconnectionAttempts: 5,
+    // A capped count meant one backend blip ended realtime for the rest of the
+    // page session with nothing in the UI to say so. The delay backs off, so
+    // retrying indefinitely costs one attempt every 30s at worst.
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 10000,
+    reconnectionDelayMax: 30000,
   });
-}
 
-export async function connectSocket(
-  sessionToken: string,
-  onSocketReplaced?: (socket: Socket) => void
-): Promise<Socket> {
-  if (socket?.connected) return socket;
-
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
-
-  socket = createSocket(sessionToken);
-  attachErrorHandler(socket, onSocketReplaced);
+  socket.on("connect_error", (err) => {
+    console.error("Socket error:", err.message);
+  });
 
   return socket;
-}
-
-// A fresh token means a fresh socket, so subscribers must rebind their listeners
-function attachErrorHandler(
-  target: Socket,
-  onSocketReplaced?: (socket: Socket) => void
-) {
-  target.on("connect_error", async (err) => {
-    console.error("Socket error:", err.message);
-
-    if (!tokenGenerator || isReconnecting) return;
-    isReconnecting = true;
-
-    try {
-      const newToken = await tokenGenerator();
-      if (!newToken) return;
-
-      socket?.disconnect();
-      socket = createSocket(newToken);
-      attachErrorHandler(socket, onSocketReplaced);
-      onSocketReplaced?.(socket);
-    } finally {
-      isReconnecting = false;
-    }
-  });
 }
 
 export function disconnectSocket(): void {

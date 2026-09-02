@@ -37,25 +37,63 @@ describe("RELATION_MODELS", () => {
     }
   );
 
-  // The map is flat, so one relation name cannot mean two different models.
-  it("has no relation key that resolves to more than one model", () => {
+  // The map is flat, so one relation name cannot mean two encrypted models.
+  // A key shared with models that encrypt nothing is harmless: the extension
+  // resolves it to the mapped model and looks for that model's encrypted
+  // columns, which the others do not have. That stops being true the moment a
+  // sibling gains a column of the same name, which is what this checks.
+  it("has no relation key that resolves to more than one encrypted model", () => {
     const ambiguous: string[] = [];
 
     for (const [key, mapped] of Object.entries(RELATION_MODELS)) {
-      const targets = new Set(
-        Prisma.dmmf.datamodel.models.flatMap((model) =>
-          model.fields
-            .filter((f) => f.name === key && f.kind === "object")
-            .map((f) => f.type)
-        )
-      );
+      const targets = [
+        ...new Set(
+          Prisma.dmmf.datamodel.models.flatMap((model) =>
+            model.fields
+              .filter((f) => f.name === key && f.kind === "object")
+              .map((f) => f.type)
+          )
+        ),
+      ];
 
-      if (targets.size > 1)
-        ambiguous.push(`${key} -> ${[...targets].join(", ")}`);
-      if (targets.size === 1 && !targets.has(mapped)) {
+      if (targets.length === 1 && targets[0] !== mapped) {
         ambiguous.push(
-          `${key} mapped to ${mapped} but schema says ${[...targets][0]}`
+          `${key} mapped to ${mapped} but schema says ${targets[0]}`
         );
+        continue;
+      }
+
+      if (targets.length <= 1) continue;
+      if (!targets.includes(mapped)) {
+        ambiguous.push(`${key} -> ${targets.join(", ")}, none is ${mapped}`);
+        continue;
+      }
+
+      const encryptedSiblings = targets.filter(
+        (target) => target !== mapped && target in ENCRYPTED_FIELDS
+      );
+      if (encryptedSiblings.length > 0) {
+        ambiguous.push(
+          `${key} -> ${mapped} and encrypted ${encryptedSiblings.join(", ")}`
+        );
+        continue;
+      }
+
+      // The mapped model's encrypted columns must not exist on a sibling, or
+      // the extension would encrypt that sibling's column by accident.
+      const guarded = ENCRYPTED_FIELDS[mapped] ?? [];
+      for (const target of targets) {
+        if (target === mapped) continue;
+
+        const clashing = (models.get(target)?.fields ?? [])
+          .filter((f) => guarded.includes(f.name))
+          .map((f) => f.name);
+
+        if (clashing.length > 0) {
+          ambiguous.push(
+            `${key} -> ${target} shares encrypted column(s) ${clashing.join(", ")} with ${mapped}`
+          );
+        }
       }
     }
 

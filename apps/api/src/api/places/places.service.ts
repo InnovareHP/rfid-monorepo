@@ -29,6 +29,10 @@ type PlaceDetail = {
 const stripCountySuffix = (value: string) =>
   value.replace(/ county$/i, "").trim();
 
+// Every label ends in the country, which is noise when the filter is USA-only.
+const stripCountry = (label: string) =>
+  label.replace(/,\s*United States$/i, "").trim();
+
 export const toComponents = (
   address: Address | undefined
 ): PlaceComponents => ({
@@ -38,29 +42,64 @@ export const toComponents = (
   county: stripCountySuffix(address?.SubRegion?.Name ?? ""),
 });
 
+// Autocomplete only completes partial text, so a typed house number is dropped
+// and every match comes back street-level; Geocode resolves the full address.
+const hasHouseNumber = (input: string) => /^\s*\d/.test(input);
+
+type PlaceResultItem = {
+  PlaceId?: string;
+  Title?: string;
+  Address?: Address;
+};
+
+const toPredictions = (items: PlaceResultItem[] = []): PlacePrediction[] =>
+  items
+    .filter((item) => item.PlaceId)
+    .map((item) => ({
+      description: stripCountry(item.Address?.Label ?? item.Title ?? ""),
+      place_id: item.PlaceId as string,
+    }));
+
 @Injectable()
 export class PlacesService {
   async autocomplete(input: string): Promise<PlacePrediction[]> {
     if (input.length < 2) return [];
+    if (hasHouseNumber(input)) return this.geocodeAddress(input);
 
     const response = await geoPlaces.send(
       new AutocompleteCommand({
         QueryText: input,
-        MaxResults: 5,
+        MaxResults: 10,
         IntendedUse: "SingleUse",
         Filter: {
           IncludeCountries: ["USA"],
-          IncludePlaceTypes: ["Locality", "PostalCode", "Street", "Region"],
+          // Address types keep partial house-number input matching real places.
+          IncludePlaceTypes: [
+            "PointAddress",
+            "InterpolatedAddress",
+            "Street",
+            "Locality",
+            "PostalCode",
+            "Region",
+          ],
         },
       })
     );
 
-    return (response.ResultItems ?? [])
-      .filter((item) => item.PlaceId)
-      .map((item) => ({
-        description: item.Address?.Label ?? item.Title ?? "",
-        place_id: item.PlaceId as string,
-      }));
+    return toPredictions(response.ResultItems);
+  }
+
+  private async geocodeAddress(input: string): Promise<PlacePrediction[]> {
+    const response = await geoPlaces.send(
+      new GeocodeCommand({
+        QueryText: input,
+        MaxResults: 10,
+        IntendedUse: "SingleUse",
+        Filter: { IncludeCountries: ["USA"] },
+      })
+    );
+
+    return toPredictions(response.ResultItems);
   }
 
   async getPlaceDetails(placeId: string): Promise<PlaceDetail> {
@@ -72,7 +111,9 @@ export class PlacesService {
     );
 
     return {
-      formatted_address: response.Address?.Label ?? response.Title ?? "",
+      formatted_address: stripCountry(
+        response.Address?.Label ?? response.Title ?? ""
+      ),
       place_id: placeId,
       components: toComponents(response.Address),
     };

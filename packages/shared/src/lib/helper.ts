@@ -9,6 +9,21 @@ export const normalizeOptionValue = (value: string) => {
     .trim();
 };
 
+// Characters that render as nothing or reorder what follows them: C0/C1
+// controls, soft hyphen, zero-width spaces, bidi overrides, byte-order mark.
+// They make two values look identical on screen while comparing unequal, which
+// is the whole problem with pasted data.
+const INVISIBLE =
+  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\u206A-\u206F\uFEFF]/g;
+
+// Strips what cannot be seen and settles the encoding, then collapses runs of
+// whitespace. Visible punctuation is left alone - a facility really is called
+// "St. Mary's Health & Rehab, Inc." and rewriting that corrupts user data.
+export const sanitizeUserText = (value: string) =>
+  normalizeOptionValue(
+    value.normalize("NFC").replace(INVISIBLE, "").replace(/\u00A0/g, " ")
+  );
+
 export const normalizeKey = (value: string) => {
   return value
     .toLowerCase()

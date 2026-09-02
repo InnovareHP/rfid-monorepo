@@ -11,6 +11,7 @@ export const ENCRYPTED_FIELDS: FieldMap = {
   GoogleCalendarToken: ["accessToken", "refreshToken", "email"],
   OutlookCalendarToken: ["accessToken", "refreshToken", "email"],
   FieldPersonInformation: ["contactNumber", "email", "address"],
+  FieldValueAttachment: ["fileName"],
   TwoFactor: ["secret", "backupCodes"],
   OrgIntegration: ["apiKey"],
   Activity: [
@@ -61,6 +62,7 @@ export const RELATION_MODELS: Record<string, string> = {
   emailSubscribers: "EmailSubscriber",
   values: "FieldValue",
   contactValue: "FieldPersonInformation",
+  attachments: "FieldValueAttachment",
   fieldvalue: "FieldValue",
   record: "Board",
   history: "History",

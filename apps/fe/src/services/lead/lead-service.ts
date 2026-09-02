@@ -122,7 +122,8 @@ export const getLeadAnalysis = async (leadId: string, moduleType?: string) => {
 export const getDropdownOptions = async (
   fieldKey: string,
   page?: number,
-  limit?: number
+  limit?: number,
+  search?: string
 ) => {
   const response = await axiosClient.get(
     `/api/boards/field/${fieldKey}/options`,
@@ -130,6 +131,7 @@ export const getDropdownOptions = async (
       params: {
         page: page,
         limit: limit,
+        search: search || undefined,
       },
     }
   );
@@ -171,12 +173,17 @@ export const getSpecificLead = async (leadId: string, moduleType?: string) => {
   return response.data;
 };
 
-export const getLeadRecords = async (page: number, limit: number) => {
+export const getLeadRecords = async (
+  page: number,
+  limit: number,
+  search?: string
+) => {
   const response = await axiosClient.get("/api/boards/records", {
     params: {
       page: page,
       limit: limit,
       moduleType: "LEAD",
+      search: search || undefined,
     },
   });
   return response.data;

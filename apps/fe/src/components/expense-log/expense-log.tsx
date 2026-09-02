@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { formatCurrency } from "@/lib/helper/helper";
 import {
   createExpenseLog,
@@ -161,10 +162,12 @@ const ExpenseLogPage = () => {
           title="Expense Log"
           description="Track expenses and receipts for reimbursement"
         >
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Log Expense
-          </Button>
+          <WriteGate>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Log Expense
+            </Button>
+          </WriteGate>
         </PageHeader>
 
         <div className="grid gap-4 sm:grid-cols-3">

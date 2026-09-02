@@ -2,6 +2,7 @@ import { createZodDto } from "nestjs-zod";
 import {
   ListInvoicesQuerySchema,
   ListTransactionsQuerySchema,
+  UpdateSeatsSchema,
 } from "./billing.dto";
 
 export class ListTransactionsQueryDto extends createZodDto(
@@ -10,3 +11,4 @@ export class ListTransactionsQueryDto extends createZodDto(
 export class ListInvoicesQueryDto extends createZodDto(
   ListInvoicesQuerySchema
 ) {}
+export class UpdateSeatsDto extends createZodDto(UpdateSeatsSchema) {}

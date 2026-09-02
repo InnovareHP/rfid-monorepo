@@ -5,7 +5,7 @@ import {
   StageType,
   TaskStatusCategory,
 } from "@prisma/client";
-import { emailIndex, normalizeEmail } from "src/lib/crypto/email-index";
+import { seedDefaultAnalytics } from "src/lib/analytics/default-analytics";
 import {
   resolveModuleId,
   seedSystemModules,
@@ -14,6 +14,9 @@ import { prisma } from "src/lib/prisma/prisma";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 
 export const LEAD_STATUS_FIELD = "Status";
+
+// Doubles as the marker that the starter workspace has already been created.
+const STARTER_PROJECT = "Getting Started";
 
 type ReferralStatusOption = {
   name: string;
@@ -155,33 +158,6 @@ const seedOrganization = async (organizationId: string) => {
     ]);
 
   //
-  // ✅ Seed referral records
-  //
-  await prisma.board.createMany({
-    data: [
-      {
-        recordName: "John Doe",
-        moduleType: "REFERRAL",
-        moduleId: referralModuleId,
-        organizationId,
-      },
-      {
-        recordName: "Jane Smith",
-        moduleType: "REFERRAL",
-        moduleId: referralModuleId,
-        organizationId,
-      },
-      {
-        recordName: "Alice Johnson",
-        moduleType: "REFERRAL",
-        moduleId: referralModuleId,
-        organizationId,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  //
   // ✅ Create referral fields
   //
   const referralFieldData = [
@@ -293,111 +269,6 @@ const seedOrganization = async (organizationId: string) => {
     });
   }
 
-  const referrals = await prisma.board.findMany({
-    where: { organizationId, moduleType: "REFERRAL" },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const allReferralOptions = await prisma.fieldOption.findMany({
-    where: { fieldId: { in: referralFields.map((f) => f.id) } },
-  });
-
-  const today = new Date().toISOString().split("T")[0];
-  const pick = (samples: string[], index: number) =>
-    samples[index % samples.length];
-
-  const referralTextSamples: Record<string, string[]> = {
-    Reason: [
-      "Behavioral health evaluation",
-      "Post-surgery rehab placement",
-      "Memory care assessment",
-    ],
-    CPAP: ["No", "Yes", "No"],
-    Assessor: ["M. Reyes", "K. Thompson", "D. Alvarez"],
-    "Wrap Up": [
-      "Awaiting insurance verification",
-      "Family touring facility",
-      "Approved for admission",
-    ],
-    "Diagnosis / Behavior": [
-      "Anxiety, mild agitation",
-      "Dementia, wandering risk",
-      "Depression, stable",
-    ],
-    "Length of Assessment": ["45 minutes", "1 hour", "30 minutes"],
-    "Transport Name": ["MedTrans LLC", "CareRide", "Family transport"],
-    "Additional Notes": [
-      "Family requests morning contact",
-      "Prefers private room",
-      "Needs Spanish interpreter",
-    ],
-    "Referred Out To": ["", "Lakeside Health Center", ""],
-  };
-
-  const dobSamples = ["1948-03-12", "1955-11-02", "1962-07-24"];
-  const phoneSamples = ["(555) 201-4567", "(555) 318-9920", "(555) 476-1183"];
-  const locationSamples = [
-    "1420 W Elm St, Springfield, IL",
-    "88 Harbor View Dr, Riverton, OH",
-    "301 Cedar Ridge Rd, Cedar Falls, IA",
-  ];
-
-  const referralValues: Prisma.FieldValueCreateManyInput[] = [];
-
-  referrals.forEach((referral, index) => {
-    for (const field of referralFields) {
-      let value: string | null = null;
-
-      switch (field.fieldType) {
-        case "TEXT":
-          value = referralTextSamples[field.fieldName]
-            ? pick(referralTextSamples[field.fieldName], index)
-            : "";
-          break;
-        case "DATE":
-          value =
-            field.fieldName === "Date of Birth"
-              ? pick(dobSamples, index)
-              : today;
-          break;
-        case "PHONE":
-          value = pick(phoneSamples, index);
-          break;
-        case "PERSON":
-          value = referral.recordName;
-          break;
-        case "CHECKBOX":
-          value = index % 2 === 0 ? "true" : "false";
-          break;
-        case "LOCATION":
-          value = pick(locationSamples, index);
-          break;
-        case "STATUS":
-        case "DROPDOWN": {
-          const fieldOptions = allReferralOptions.filter(
-            (o) => o.fieldId === field.id
-          );
-          value = fieldOptions.length
-            ? fieldOptions[index % fieldOptions.length].optionName
-            : null;
-          break;
-        }
-      }
-
-      referralValues.push({
-        recordId: referral.id,
-        fieldId: field.id,
-        value,
-        organizationId,
-      });
-    }
-  });
-
-  await prisma.fieldValue.createMany({
-    data: referralValues,
-    skipDuplicates: true,
-  });
-
   //
   // ============================================
   // LEADS
@@ -436,119 +307,8 @@ const seedOrganization = async (organizationId: string) => {
 
   await configureLeadKanban(organizationId);
 
-  //
-  // Seed Leads
-  //
-  await prisma.board.createMany({
-    data: [
-      {
-        recordName: "Sunrise Care Facility",
-        moduleType: "LEAD",
-        moduleId: leadModuleId,
-        organizationId,
-      },
-      {
-        recordName: "Lakeside Health Center",
-        moduleType: "LEAD",
-        moduleId: leadModuleId,
-        organizationId,
-      },
-      {
-        recordName: "Maple Grove Nursing",
-        moduleType: "LEAD",
-        moduleId: leadModuleId,
-        organizationId,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  const leads = await prisma.board.findMany({
-    where: { organizationId, moduleType: "LEAD" },
-    orderBy: { createdAt: "asc" },
-  });
-
   const dbLeadFields = await prisma.field.findMany({
     where: { organizationId, moduleType: "LEAD" },
-  });
-
-  const leadFieldOptions = await prisma.fieldOption.findMany({
-    where: { fieldId: { in: dbLeadFields.map((f) => f.id) } },
-  });
-
-  const leadTextSamples: Record<string, string[]> = {
-    "Number of Beds": ["120", "85", "64"],
-    City: ["Springfield", "Riverton", "Cedar Falls"],
-    State: ["IL", "OH", "IA"],
-    "Zip Code": ["62704", "45802", "50613"],
-    Fax: ["(555) 201-9001", "(555) 318-9002", "(555) 476-9003"],
-    "Psychiatric Services": ["Yes", "No", "Yes"],
-    Notes: [
-      "Strong referral partner, monthly check-in",
-      "New contact, intro call scheduled",
-      "Toured facility last quarter",
-    ],
-  };
-
-  const personSamples = [
-    "Dr. Sarah Mitchell",
-    "Robert Chen, RN",
-    "Angela Torres",
-  ];
-
-  const leadValues: Prisma.FieldValueCreateManyInput[] = [];
-
-  leads.forEach((lead, index) => {
-    for (const field of dbLeadFields) {
-      let value: string | null = null;
-
-      switch (field.fieldType) {
-        case "TEXT":
-        case "NUMBER":
-          value = leadTextSamples[field.fieldName]
-            ? pick(leadTextSamples[field.fieldName], index)
-            : "";
-          break;
-        case "EMAIL":
-          value =
-            lead.recordName.toLowerCase().replace(/\s+/g, ".") + "@example.com";
-          break;
-        case "PHONE":
-          value = pick(phoneSamples, index);
-          break;
-        case "CONTACT_LINK":
-          value = pick(personSamples, index + field.fieldOrder);
-          break;
-        case "TIMELINE":
-          value = JSON.stringify(["Created"]);
-          break;
-        case "LOCATION":
-          value = pick(locationSamples, index);
-          break;
-        case "STATUS":
-        case "DROPDOWN": {
-          const fieldOptions = leadFieldOptions.filter(
-            (o) => o.fieldId === field.id
-          );
-          value = fieldOptions.length
-            ? fieldOptions[index % fieldOptions.length].optionName
-            : null;
-          break;
-        }
-      }
-
-      leadValues.push({
-        recordId: lead.id,
-        fieldId: field.id,
-        value: field.fieldName === "County" ? "" : value,
-        organizationId,
-      });
-    }
-  });
-
-  await prisma.fieldValue.createMany({
-    data: leadValues,
-    skipDuplicates: true,
   });
 
   //
@@ -640,114 +400,6 @@ const seedOrganization = async (organizationId: string) => {
     });
   }
 
-  //
-  // Seed contact and company records
-  //
-  await prisma.board.createMany({
-    data: [
-      ...personSamples.map((name) => ({
-        recordName: name,
-        moduleType: "CONTACT" as const,
-        moduleId: contactModuleId,
-        organizationId,
-      })),
-      {
-        recordName: "CarePoint Group",
-        moduleType: "COMPANY" as const,
-        moduleId: companyModuleId,
-        organizationId,
-      },
-      {
-        recordName: "Harbor Health Partners",
-        moduleType: "COMPANY" as const,
-        moduleId: companyModuleId,
-        organizationId,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  const contacts = await prisma.board.findMany({
-    where: { organizationId, moduleType: "CONTACT" },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const contactFieldRows = crmFields.filter((f) => f.moduleType === "CONTACT");
-  const contactValues: Prisma.FieldValueCreateManyInput[] = [];
-
-  contacts.forEach((contact, index) => {
-    for (const field of contactFieldRows) {
-      let value: string | null = null;
-
-      if (field.fieldType === BoardFieldType.EMAIL) {
-        value =
-          contact.recordName.toLowerCase().replace(/[^a-z]+/g, ".") +
-          "@example.com";
-      }
-      if (field.fieldType === BoardFieldType.PHONE) {
-        value = pick(phoneSamples, index);
-      }
-      if (value === null) continue;
-
-      contactValues.push({
-        recordId: contact.id,
-        fieldId: field.id,
-        value,
-        organizationId,
-      });
-    }
-  });
-
-  await prisma.fieldValue.createMany({
-    data: contactValues,
-    skipDuplicates: true,
-  });
-
-  //
-  // Link lead contact fields to seeded contact records
-  //
-  const contactByName = new Map(contacts.map((c) => [c.recordName, c.id]));
-  const contactLinkFieldIds = new Set(
-    dbLeadFields
-      .filter((f) => f.fieldType === BoardFieldType.CONTACT_LINK)
-      .map((f) => f.id)
-  );
-
-  const leadContactValues = leadValues.filter(
-    (v) => contactLinkFieldIds.has(v.fieldId) && v.value
-  );
-
-  const leadContactRelations = leadContactValues
-    .map((v) => ({
-      sourceId: v.recordId,
-      targetId: contactByName.get(v.value as string) as string,
-      relationType: "CONTACT_LINK" as const,
-      organizationId,
-    }))
-    .filter((r) => r.targetId);
-
-  if (leadContactRelations.length > 0) {
-    await prisma.boardRelation.createMany({
-      data: leadContactRelations,
-      skipDuplicates: true,
-    });
-  }
-
-  // Link values store the target board id, not the display name
-  for (const v of leadContactValues) {
-    const targetId = contactByName.get(v.value as string);
-    if (!targetId) continue;
-    await prisma.fieldValue.update({
-      where: {
-        recordId_fieldId: {
-          recordId: v.recordId,
-          fieldId: v.fieldId,
-        },
-      },
-      data: { value: targetId },
-    });
-  }
-
   await prisma.taskStatus.createMany({
     data: DEFAULT_TASK_STATUSES.map((status) => ({
       ...status,
@@ -758,7 +410,19 @@ const seedOrganization = async (organizationId: string) => {
 
   //
   // ============================================
-  // DEMO CONTENT FOR TASKS, MARKETING, BOOKING, LOGS
+  // DEFAULT ANALYTICS
+  // ============================================
+  //
+  // Every module's fields exist by now, which is all the charts need to
+  // resolve. seedDefaultAnalytics skips a module that already has a default
+  // dashboard. Contacts and companies seed no page, so they are not listed.
+  for (const moduleId of [leadModuleId, referralModuleId]) {
+    await seedDefaultAnalytics(moduleId, organizationId);
+  }
+
+  //
+  // ============================================
+  // STARTER WORKSPACE: TASKS, MARKETING, BOOKING
   // ============================================
   //
   // The rest of this function needs the org creator's identity, so every
@@ -778,9 +442,20 @@ const seedOrganization = async (organizationId: string) => {
     return;
   }
 
+  // Everything below is created rather than upserted, so a second run would
+  // duplicate it. The starter project is the marker that says it already ran.
+  const scaffolded = await prisma.taskProject.findFirst({
+    where: { organizationId, name: STARTER_PROJECT },
+    select: { id: true },
+  });
+
+  if (scaffolded) {
+    console.log("✅ Seeding complete");
+    return;
+  }
+
   const ownerId = ownerMember.user.id;
   const ownerMemberId = ownerMember.id;
-  const ownerName = ownerMember.user.name;
 
   //
   // ============================================
@@ -788,7 +463,7 @@ const seedOrganization = async (organizationId: string) => {
   // ============================================
   //
   const taskProject = await prisma.taskProject.create({
-    data: { name: "Getting Started", sortOrder: 0, organizationId },
+    data: { name: STARTER_PROJECT, sortOrder: 0, organizationId },
   });
 
   const taskList = await prisma.taskList.create({
@@ -821,10 +496,10 @@ const seedOrganization = async (organizationId: string) => {
         "Link Google or Outlook Calendar from Integrations to sync your meetings.",
     },
     {
-      name: "Explore your first lead",
-      statusName: "Completed",
+      name: "Add your first facility",
+      statusName: "To Do",
       description:
-        "You already have three sample leads - edit one or add your own.",
+        "Open the Master Marketing List and add a facility, or import your list from a spreadsheet.",
     },
   ];
 
@@ -856,23 +531,6 @@ const seedOrganization = async (organizationId: string) => {
       data: { taskId: task.id, memberId: ownerMemberId },
     });
   }
-
-  //
-  // ============================================
-  // COUNTY CONFIGURATION
-  // ============================================
-  //
-  const assignedCounty = await prisma.boardCounty.create({
-    data: { countyName: "Springfield County", organizationId },
-  });
-
-  await prisma.boardCountyAssignedTo.create({
-    data: { assignedTo: ownerName, boardCountyId: assignedCounty.id },
-  });
-
-  await prisma.boardCounty.create({
-    data: { countyName: "Riverton County", organizationId },
-  });
 
   //
   // ============================================
@@ -965,22 +623,6 @@ const seedOrganization = async (organizationId: string) => {
     },
   });
 
-  const subscriberSeeds = [
-    { email: "referrals@example.com", name: "Referral Desk" },
-    { email: "intake@example.com", name: "Intake Team" },
-  ];
-
-  for (const subscriber of subscriberSeeds) {
-    const email = normalizeEmail(subscriber.email);
-    const emailHash = emailIndex(email);
-
-    await prisma.emailSubscriber.upsert({
-      where: { organizationId_emailHash: { organizationId, emailHash } },
-      create: { email, emailHash, name: subscriber.name, organizationId },
-      update: {},
-    });
-  }
-
   const blast = await prisma.blast.create({
     data: {
       name: "Monthly Newsletter",
@@ -1031,43 +673,6 @@ const seedOrganization = async (organizationId: string) => {
 
   //
   // ============================================
-  // MILEAGE AND MARKETING VISIT LOGS
-  // ============================================
-  //
-  await prisma.marketing.create({
-    data: {
-      facility: "Sunrise Care Facility",
-      touchpoints: ["IN_PERSON_MEETING"],
-      talkedTo: "Dr. Sarah Mitchell",
-      reasonForVisit: "Quarterly relationship check-in",
-      notes: "Discussed upcoming bed availability.",
-      memberId: ownerMemberId,
-      organizationId,
-    },
-  });
-
-  const mileageBeginning = 10250;
-  const mileageEnding = 10287;
-  const mileageTotal = mileageEnding - mileageBeginning;
-  const mileageRate = 0.67;
-
-  await prisma.mileage.create({
-    data: {
-      destination: "Sunrise Care Facility",
-      countiesMarketed: "Springfield County",
-      beginningMileage: mileageBeginning,
-      endingMileage: mileageEnding,
-      totalMiles: mileageTotal,
-      rateType: "FEDERAL",
-      ratePerMile: mileageRate,
-      reimbursementAmount: Number((mileageTotal * mileageRate).toFixed(2)),
-      memberId: ownerMemberId,
-      organizationId,
-    },
-  });
-
-  //
-  // ============================================
   // WELCOME NOTIFICATION
   // ============================================
   //
@@ -1075,7 +680,7 @@ const seedOrganization = async (organizationId: string) => {
     data: {
       type: "welcome",
       title: "Welcome to your new workspace",
-      body: "We've pre-loaded sample leads, referrals, and a starter marketing campaign so you can explore before adding your own data.",
+      body: "Your workspace is ready. Add your first facility or import your list to get started.",
       entityType: "organization",
       entityId: organizationId,
       organizationId,

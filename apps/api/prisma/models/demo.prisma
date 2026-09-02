@@ -1,0 +1,47 @@
+// Prospect-side demo requests for the product itself, not tenant data. A demo
+// request is marketing data, never PHI, so nothing here is encrypted at rest.
+
+model DemoRequest {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  name        String
+  email       String
+  company     String?
+  phone       String?
+  teamSize    String?
+  notes       String?
+
+  // Where the request came in from, for attribution on the admin table.
+  source      String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  status DemoRequestStatus @default(NEW)
+
+  // Set once a slot is picked. A request with no booking is the abandon case
+  // capture-first exists to keep.
+  bookingId      String?
+  assignedUserId String?
+  scheduledAt    DateTime? @db.Timestamptz(3)
+
+  // Filled by an admin after the call, so the table is a pipeline not a log.
+  outcomeNotes String?
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@schema("demo_schema")
+}
+
+enum DemoRequestStatus {
+  NEW
+  SCHEDULED
+  COMPLETED
+  NO_SHOW
+  DISQUALIFIED
+  CANCELED
+
+  @@schema("demo_schema")
+}

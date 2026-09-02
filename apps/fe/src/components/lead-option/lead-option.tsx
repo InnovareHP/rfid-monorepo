@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import {
   createDropdownOption,
   getDropdownOptions,
@@ -204,12 +205,14 @@ export default function LeadOption() {
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button className="flex items-center gap-2 shadow-sm">
-          <Plus className="h-4 w-4" />
-          Add Option
-        </Button>
-      </DialogTrigger>
+      <WriteGate>
+        <DialogTrigger asChild>
+          <Button className="flex items-center gap-2 shadow-sm">
+            <Plus className="h-4 w-4" />
+            Add Option
+          </Button>
+        </DialogTrigger>
+      </WriteGate>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Options</DialogTitle>

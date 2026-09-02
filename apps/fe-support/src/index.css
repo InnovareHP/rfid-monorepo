@@ -95,14 +95,18 @@ body {
   --chart-seq-2: #2c86d9;
   --chart-seq-3: #0d3185;
   --chart-seq-4: #01184d;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: var(--brand);
-  --sidebar-primary-foreground: var(--brand-foreground);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: var(--brand);
+  /* The admin rail is brand artwork, not a themed surface, so it carries the
+     rail's navy and its white ink in both themes. Every sidebar primitive reads
+     these, which is why none of them needs a colour in JSX. */
+  --sidebar: var(--brand-rail-mid);
+  --sidebar-foreground: var(--brand-rail-foreground);
+  /* Inverted against the rail: the active item is white on navy, not navy on navy. */
+  --sidebar-primary: var(--brand-rail-foreground);
+  --sidebar-primary-foreground: var(--brand-rail-mid);
+  --sidebar-accent: oklch(1 0 0 / 18%);
+  --sidebar-accent-foreground: var(--brand-rail-foreground);
+  --sidebar-border: oklch(1 0 0 / 15%);
+  --sidebar-ring: var(--brand-rail-to);
 }
 
 .dark {
@@ -137,14 +141,15 @@ body {
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #64a9ea;
-  --sidebar-primary-foreground: #06183f;
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #64a9ea;
+  /* Same rail in dark: it is artwork, so it does not follow the surface. */
+  --sidebar: var(--brand-rail-from);
+  --sidebar-foreground: var(--brand-rail-foreground);
+  --sidebar-primary: var(--brand-rail-foreground);
+  --sidebar-primary-foreground: var(--brand-rail-from);
+  --sidebar-accent: oklch(1 0 0 / 16%);
+  --sidebar-accent-foreground: var(--brand-rail-foreground);
+  --sidebar-border: oklch(1 0 0 / 14%);
+  --sidebar-ring: var(--brand-rail-to);
 }
 
 @theme inline {

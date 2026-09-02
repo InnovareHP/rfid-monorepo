@@ -1,5 +1,6 @@
 import { AuthPanel } from "@/components/auth-panel";
 import { PasswordInput } from "@/components/password-input";
+import { useOtpCooldown } from "@/hooks/use-otp-cooldown";
 import { authClient } from "@/lib/auth-client";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/legal-links";
 import {
@@ -58,6 +59,7 @@ export function RegisterForm({
 }: React.ComponentProps<"div">) {
   const navigate = useRouter();
   const queryClient = useQueryClient();
+  const cooldown = useOtpCooldown();
   const [details, setDetails] = useState<z.infer<typeof detailsSchema> | null>(
     null
   );
@@ -82,8 +84,24 @@ export function RegisterForm({
   const handleSendCode = async (values: z.infer<typeof detailsSchema>) => {
     try {
       await sendSignupOtp(values.email);
+      cooldown.start();
       setDetails(values);
       toast.success("We sent a verification code to your email.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not send a code."
+      );
+    }
+  };
+
+  // The cooldown starts on the click so a double press cannot mail two codes.
+  const handleResendCode = async () => {
+    if (!details || cooldown.isCooling) return;
+
+    cooldown.start();
+    try {
+      await sendSignupOtp(details.email);
+      toast.success("We sent a new code to your email.");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not send a code."
@@ -300,6 +318,18 @@ export function RegisterForm({
               <p className="text-center text-xs text-muted-foreground">
                 We sent a 6-digit code to {details.email}.
               </p>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={cooldown.isCooling}
+                onClick={handleResendCode}
+                className="w-full h-10 xl:h-12 text-sm font-semibold rounded-lg"
+              >
+                {cooldown.isCooling
+                  ? `Resend code in ${cooldown.remaining}s`
+                  : "Resend code"}
+              </Button>
 
               <div className="text-center text-sm text-muted-foreground pt-1">
                 <button

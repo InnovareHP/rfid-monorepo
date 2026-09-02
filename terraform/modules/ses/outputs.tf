@@ -7,6 +7,11 @@ output "sending_dkim_tokens" {
   value       = var.sending_domain != "" ? aws_sesv2_email_identity.sending[0].dkim_signing_attributes[0].tokens : []
 }
 
+output "mail_from_mx_target" {
+  description = "MX value for the MAIL FROM subdomain, priority 10."
+  value       = var.mail_from_subdomain != "" ? "feedback-smtp.${var.region}.amazonses.com" : ""
+}
+
 output "inbound_bucket_name" {
   value = local.inbound_on ? aws_s3_bucket.inbound[0].bucket : ""
 }

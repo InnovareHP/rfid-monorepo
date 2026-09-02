@@ -1,15 +1,10 @@
 import { ImpersonationBanner } from "@/components/AdminDashboard/UserManagementPage/ImpersonationBanner";
 import { getSession } from "@/lib/auth-client";
+import { queryClient } from "@/lib/query-client";
 import { LOGO_ALT_TEXT } from "@dashboard/shared";
 import { Toaster } from "@dashboard/ui/components/sonner";
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
-
-const queryClient = new QueryClient();
 
 const sessionQueryOptions = {
   queryKey: ["session"],

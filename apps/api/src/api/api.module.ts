@@ -6,6 +6,7 @@ import { BillingModule } from "./billing/billing.module";
 import { BoardExportModule } from "./board/board-export.module";
 import { BoardModule } from "./board/board.module";
 import { BookingModule } from "./booking/booking.module";
+import { DemoModule } from "./demo/demo.module";
 import { CalendarModule } from "./calendar/calendar.module";
 import { ComplianceModule } from "./compliance/compliance.module";
 import { CustomAnalyticsModule } from "./custom-analytics/custom-analytics.module";
@@ -46,6 +47,7 @@ import { UserModule } from "./user/user.module";
     BoardExportModule,
     BoardModule,
     BookingModule,
+    DemoModule,
     CalendarModule,
     AnalyticsModule,
     OptionsModule,

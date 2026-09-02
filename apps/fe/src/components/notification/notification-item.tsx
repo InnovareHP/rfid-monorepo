@@ -20,7 +20,7 @@ export const NotificationItem = ({
     <div
       className={cn(
         "group flex items-start gap-2 border-b px-3 py-2.5 last:border-b-0",
-        isUnread ? "bg-accent/40" : "bg-transparent"
+        isUnread ? "bg-accent" : "bg-transparent"
       )}
     >
       <button

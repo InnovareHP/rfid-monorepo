@@ -206,7 +206,7 @@ export default function ReferralListPage() {
         // already the real field name.
         const label =
           accessorKey === "record_name"
-            ? "Referral Name"
+            ? "Referral Liaison"
             : (accessorKey ?? column.id ?? "Unnamed Column");
 
         return {
@@ -217,7 +217,9 @@ export default function ReferralListPage() {
           toggleVisibility: column.toggleVisibility,
         };
       });
-  }, [table]);
+    // The table instance is reference-stable, so columns has to be a dependency
+    // or this list stays frozen at whatever existed before the API answered.
+  }, [table, columns]);
 
   const totalPages = Math.ceil(
     (data?.pagination.count ?? 0) / filterMeta.limit

@@ -3,7 +3,9 @@ import {
   RequiredLegend,
   RequiredMark,
 } from "@/components/field-marks";
+import { EmbedShell } from "@/components/embed-shell";
 import { PublicShell } from "@/components/public-shell";
+import { useEmbedAutoHeight } from "@/hooks/use-embed-auto-height";
 import type { BookingLocation } from "@/services/booking/booking-public-service";
 import {
   createPublicBooking,
@@ -57,10 +59,16 @@ const startOfToday = () => {
 export function PublicBookingPage({
   slug,
   boardId,
+  embed = false,
 }: {
   slug: string;
   boardId?: string;
+  embed?: boolean;
 }) {
+  // An embed drops the branded frame and reports its height to the host page.
+  const Shell = embed ? EmbedShell : PublicShell;
+  useEmbedAutoHeight(embed);
+
   const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [location, setLocation] = useState<BookingLocation | null>(null);
@@ -121,27 +129,27 @@ export function PublicBookingPage({
 
   if (confirmed) {
     return (
-      <PublicShell>
+      <Shell>
         <BookingConfirmation {...confirmed} />
-      </PublicShell>
+      </Shell>
     );
   }
 
   if (pageQuery.isLoading) {
     return (
-      <PublicShell>
+      <Shell>
         <BookingPageSkeleton />
-      </PublicShell>
+      </Shell>
     );
   }
 
   if (pageQuery.isError || !pageQuery.data) {
     return (
-      <PublicShell>
+      <Shell>
         <p className="rounded-[10px] bg-white px-6 py-4 text-muted-foreground shadow-lg">
           This booking page is not available.
         </p>
-      </PublicShell>
+      </Shell>
     );
   }
 
@@ -149,7 +157,7 @@ export function PublicBookingPage({
 
   if (!page.acceptingBookings) {
     return (
-      <PublicShell>
+      <Shell>
         <div className="max-w-md rounded-[10px] bg-white px-6 py-5 text-center shadow-lg">
           <p className="font-semibold text-brand">{page.title}</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -157,7 +165,7 @@ export function PublicBookingPage({
             out directly to arrange a time.
           </p>
         </div>
-      </PublicShell>
+      </Shell>
     );
   }
 
@@ -188,7 +196,7 @@ export function PublicBookingPage({
     });
 
   return (
-    <PublicShell>
+    <Shell>
       <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
         <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-6 sm:p-8 lg:w-[396px]">
           <div className="flex items-center space-x-4">
@@ -397,6 +405,6 @@ export function PublicBookingPage({
           )}
         </section>
       </div>
-    </PublicShell>
+    </Shell>
   );
 }

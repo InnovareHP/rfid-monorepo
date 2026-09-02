@@ -19,6 +19,18 @@ const ACTIVITY_TOUCHPOINTS: Record<ActivityType, TouchpointType> = {
   FAX: TouchpointType.OTHER,
 };
 
+// Reverse of ACTIVITY_TOUCHPOINTS, used to mirror a marketing log back onto the board.
+export const TOUCHPOINT_ACTIVITIES: Record<TouchpointType, ActivityType> = {
+  PHONE: ActivityType.CALL,
+  EMAIL: ActivityType.EMAIL,
+  EMAIL_BLAST: ActivityType.EMAIL,
+  IN_PERSON_MEETING: ActivityType.MEETING,
+  TEXT: ActivityType.NOTE,
+  LINKED_IN: ActivityType.NOTE,
+  FACEBOOK: ActivityType.NOTE,
+  OTHER: ActivityType.NOTE,
+};
+
 @Injectable()
 export class LiaisonActivityService {
   private readonly logger = new Logger(LiaisonActivityService.name);

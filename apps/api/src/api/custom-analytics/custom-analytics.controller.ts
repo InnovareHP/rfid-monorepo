@@ -55,10 +55,16 @@ export class CustomAnalyticsController {
 
   @RequirePermission({ analytics: ["read"] })
   @Get("/")
-  async getAll(@Session() session: AuthenticatedSession) {
+  async getAll(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleKey") moduleKey?: string,
+    @Query("unfiled") unfiled?: string
+  ) {
     try {
       return await this.customAnalyticsService.getAnalytics(
-        session.session.activeOrganizationId
+        session.session.activeOrganizationId,
+        moduleKey,
+        unfiled === "true"
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -165,6 +171,24 @@ export class CustomAnalyticsController {
     }
   }
 
+  // Declared before /dashboards/:id — Nest matches in order, so "default"
+  // would otherwise be read as a dashboard id.
+  @RequirePermission({ analytics: ["read"] })
+  @Get("/dashboards/default")
+  async getDefaultDashboard(
+    @Query("moduleKey") moduleKey: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.customAnalyticsService.getDefaultDashboard(
+        moduleKey,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @RequirePermission({ analytics: ["read"] })
   @Get("/dashboards/:id")
   async getDashboard(
@@ -194,6 +218,45 @@ export class CustomAnalyticsController {
         session.session.activeOrganizationId,
         toDateWindow(query),
         query.limit ?? null
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  // A POST because generating an insight is a model call, not a cached read.
+  @RequirePermission({ analytics: ["read"] })
+  @Post("/dashboards/:id/insights")
+  async dashboardInsights(
+    @Param("id") id: string,
+    @Query() query: RunDashboardQueryDto,
+    @Query("force") force: string | undefined,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.customAnalyticsService.getDashboardInsights(
+        id,
+        session.session.activeOrganizationId,
+        toDateWindow(query),
+        force === "true"
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  // Declared after every /dashboards route: Nest matches in order, so a
+  // bare :id placed earlier would capture "dashboards" itself.
+  @RequirePermission({ analytics: ["read"] })
+  @Get("/:id")
+  async getOne(
+    @Param("id") id: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.customAnalyticsService.getAnalytic(
+        id,
+        session.session.activeOrganizationId
       );
     } catch (error) {
       throw new BadRequestException(error.message);

@@ -160,9 +160,6 @@ export function useBoardSync() {
       bound = null;
     };
 
-    // A reconnect swaps the socket, so rebinding goes through here rather than
-    // React state: this hook sits in the team layout and setState would re-render
-    // every sidebar and page under it on each connect_error.
     const bind = (next: Socket) => {
       if (bound === next) return;
       unbind();
@@ -172,17 +169,11 @@ export function useBoardSync() {
       }
     };
 
-    let cancelled = false;
-
-    const connect = async () => {
-      const token = await generateToken();
-      if (!token || cancelled) return;
-      bind(await connectSocket(token, bind));
-    };
-    connect();
+    // The socket instance is stable across reconnects now that the token is
+    // minted per attempt, so listeners bind once.
+    bind(connectSocket());
 
     return () => {
-      cancelled = true;
       unbind();
     };
   }, [queryClient]);

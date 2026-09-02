@@ -1,12 +1,14 @@
 import CrmListPage from "@/components/crm-list/crm-list-page";
 import CrmRecordCreate from "@/components/crm-list/crm-record-create";
 import { useModules } from "@/hooks/use-modules";
+import { moduleKeyFromParam, moduleParam } from "@/lib/helper/module-route";
 import { Spinner } from "@dashboard/ui/components/spinner";
 import { useNavigate, useParams } from "@tanstack/react-router";
 
 // Both generic record routes need the same module lookup, so the fetch and the
 // not-found branch live here rather than being written twice in routes/.
-function useModule(moduleKey: string) {
+function useModule(moduleKeyParam: string) {
+  const moduleKey = moduleKeyFromParam(moduleKeyParam);
   const { data: modules = [], isLoading } = useModules({
     includeArchived: true,
   });
@@ -65,7 +67,7 @@ export function ModuleCreateRoute() {
       onBack={() =>
         navigate({
           to: "/$team/records/$moduleKey",
-          params: { team, moduleKey: module.key },
+          params: { team, moduleKey: moduleParam(module.key) },
         })
       }
     />

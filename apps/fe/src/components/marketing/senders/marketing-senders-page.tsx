@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
   deleteSender,
@@ -91,13 +92,15 @@ export const MarketingSendersPage = () => {
           description="Where campaign email comes from, and where replies land."
         />
 
-        <Button
-          onClick={() => setSetupOpen(true)}
-          className="bg-brand text-white hover:bg-brand/90"
-        >
-          <Plus className="h-4 w-4" />
-          Add Sender
-        </Button>
+        <WriteGate>
+          <Button
+            onClick={() => setSetupOpen(true)}
+            className="bg-brand text-white hover:bg-brand/90"
+          >
+            <Plus className="h-4 w-4" />
+            Add Sender
+          </Button>
+        </WriteGate>
       </div>
 
       {isLoading && <Skeleton className="h-40 w-full" />}

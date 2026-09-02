@@ -14,6 +14,8 @@ export interface BookingPage {
   minNoticeHours: number;
   isActive: boolean;
   publicUrl: string;
+  // Same page stripped of the branded frame, for a host site's iframe.
+  embedUrl: string;
   // No connected calendar means the public page takes no bookings at all.
   calendars: { google: boolean; outlook: boolean };
   // Decides Meet vs Teams when the host connected both calendars.

@@ -1,4 +1,5 @@
 import { PasswordInput } from "@/components/password-input";
+import { useOtpCooldown } from "@/hooks/use-otp-cooldown";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -64,6 +65,7 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const cooldown = useOtpCooldown();
 
   const passwordForm = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
@@ -140,6 +142,7 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
       return;
     }
 
+    cooldown.start();
     setBackupCodes(codes);
     form.reset();
     setStep("verify");
@@ -179,7 +182,10 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
   };
 
   const handleResend = async () => {
+    if (cooldown.isCooling) return;
+
     codeForm.clearErrors("root");
+    cooldown.start();
     const { error } = await authClient.twoFactor.sendOtp();
     if (error) {
       fail(codeForm, getApiErrorMessage(error, "Could not email a new code"));
@@ -346,8 +352,15 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
                   "Verify & Enable"
                 )}
               </Button>
-              <Button type="button" variant="outline" onClick={handleResend}>
-                Resend code
+              <Button
+                type="button"
+                variant="outline"
+                disabled={cooldown.isCooling}
+                onClick={handleResend}
+              >
+                {cooldown.isCooling
+                  ? `Resend in ${cooldown.remaining}s`
+                  : "Resend code"}
               </Button>
               <Button type="button" variant="outline" onClick={reset}>
                 Cancel

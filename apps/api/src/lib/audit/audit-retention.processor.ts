@@ -36,14 +36,16 @@ export class AuditRetentionProcessor
   }
 
   async process() {
-    const outcome = await this.retention.run();
+    const outcomes = await this.retention.run();
 
-    if (!outcome.exhausted && outcome.eligible > 0) {
-      this.logger.warn(
-        `Retention run did not clear the backlog: ${outcome.deleted} of ${outcome.eligible} removed. The next run continues.`
-      );
+    for (const outcome of outcomes) {
+      if (!outcome.exhausted && outcome.eligible > 0) {
+        this.logger.warn(
+          `Retention run did not clear the ${outcome.table} backlog: ${outcome.deleted} of ${outcome.eligible} removed. The next run continues.`
+        );
+      }
     }
 
-    return outcome;
+    return outcomes;
   }
 }

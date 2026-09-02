@@ -1,14 +1,18 @@
 // routes/_team/$team/route.tsx
 
+import { SubscriptionBanner } from "@/components/billing/subscription-banner";
+import { WriteAccessProvider } from "@/components/write-gate";
 import { NotificationBell } from "@/components/notification/notification-bell";
 import { AppSidebar } from "@/components/side-bar/app-sidebar";
 import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
+import { GlobalSearch } from "@/components/search/global-search";
 import { SidebarSkeleton } from "@/components/side-bar/sidebar-skeleton";
 import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
 import { useIdleLogout } from "@/hooks/use-idle-logout";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/lib/query-client";
+import { accessForStatus, type SubscriptionAccess } from "@dashboard/shared";
 import type { SessionMember, Subscription } from "@dashboard/shared";
 import { Separator } from "@dashboard/ui/components/separator";
 import {
@@ -39,11 +43,12 @@ export const Route = createFileRoute("/_team")({
       throw redirect({ to: `/${session.activeOrganizationId}` as any });
     }
 
-    // No paid seat means no team routes; billing is outside this layout so this cannot loop.
-    if (
-      !subscription ||
-      (subscription.status !== "active" && subscription.status !== "trialing")
-    ) {
+    // Locked is an organization that never finished checkout, so there is
+    // nothing behind this layout to show it. read_only still renders: the API
+    // guard refuses the writes and the banner says why. Billing sits outside
+    // this layout, so the redirect cannot loop.
+    const access = accessForStatus(subscription?.status);
+    if (access === "locked") {
       throw redirect({ to: "/billing" });
     }
 
@@ -64,6 +69,7 @@ export const Route = createFileRoute("/_team")({
       member,
       memberData,
       subscription,
+      access,
       activeOrganizationId: session.activeOrganizationId,
     };
   },
@@ -72,11 +78,12 @@ export const Route = createFileRoute("/_team")({
 });
 
 function TeamLayout() {
-  const { user, activeOrganizationId, memberData } =
+  const { user, activeOrganizationId, memberData, access } =
     Route.useRouteContext() as {
       user: User;
       activeOrganizationId: string;
       memberData: (Member & { memberRole: string }) | null;
+      access: SubscriptionAccess;
     };
 
   useBoardSync();
@@ -131,13 +138,24 @@ function TeamLayout() {
             <DynamicBreadcrumb />
           </div>
 
-          <div className="ml-auto flex items-center px-4">
+          <div className="ml-auto flex items-center gap-2 px-4">
+            {sidebarsReady && (
+              <GlobalSearch
+                activeOrganizationId={activeOrganizationId}
+                memberData={memberData as Member}
+              />
+            )}
+
             <NotificationBell />
           </div>
         </header>
 
+        <SubscriptionBanner organizationId={activeOrganizationId} />
+
         <div className="flex-1 overflow-auto">
-          <Outlet />
+          <WriteAccessProvider canWrite={access === "full"}>
+            <Outlet />
+          </WriteAccessProvider>
         </div>
       </SidebarInset>
     </SidebarProvider>

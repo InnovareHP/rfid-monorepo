@@ -2,8 +2,9 @@ import { SendEmailCommand, SESv2Client } from "@aws-sdk/client-sesv2";
 import { render } from "@react-email/render";
 import { appConfig } from "../../config/app-config";
 
+const AWS_REGION = "us-east-1";
 const ses = new SESv2Client({
-  region: appConfig.AWS_REGION,
+  region: AWS_REGION,
   ...(appConfig.AWS_ACCESS_KEY_ID && appConfig.AWS_SECRET_ACCESS_KEY
     ? {
         credentials: {

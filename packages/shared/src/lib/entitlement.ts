@@ -28,6 +28,8 @@ export type PlanEntitlement = {
   features: readonly PlanFeature[];
 };
 
+// Seats are purchased, so a tier's number is the stepper's starting point and
+// never a ceiling. The ceiling is subscription.seats, resolved below.
 export const PLAN_ENTITLEMENTS = {
   essentials: { seats: 10, features: [] },
   growth: { seats: 25, features: ["ai", "export", "advanced_analytics"] },
@@ -71,14 +73,50 @@ export const hasFeature = (
 export const seatCap = (name: string | null | undefined) =>
   entitlementFor(name).seats;
 
-// Only these keep a paid seat working. past_due is excluded deliberately, so a
-// failed renewal closes feature access while the billing routes stay reachable.
-export const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"] as const;
+// ─── Seats and billing interval ──────────────────────────────────────
 
+export const BILLING_INTERVALS = ["month", "year"] as const;
+
+export type BillingInterval = (typeof BILLING_INTERVALS)[number];
+
+// A yearly seat costs ten percent less than twelve monthly ones.
+export const ANNUAL_DISCOUNT = 0.1;
+
+// Sanity ceiling on a purchased seat count, not a plan limit.
+export const MAX_SEATS = 500;
+
+// ─── Access from the Stripe status ───────────────────────────────────
+// Stripe owns the lifecycle. past_due means it is still retrying the card, and
+// its own subscription settings move the row to canceled or unpaid once the
+// retries run out, so nothing here adds a grace window on top of that.
+//
+// read_only keeps the organization's own records reachable after Stripe stops
+// collecting: the data is theirs, and export is how they leave.
+
+export const SUBSCRIPTION_ACCESS = ["full", "read_only", "locked"] as const;
+
+export type SubscriptionAccess = (typeof SUBSCRIPTION_ACCESS)[number];
+
+const ACCESS_BY_STATUS: Record<string, SubscriptionAccess> = {
+  trialing: "full",
+  active: "full",
+  past_due: "full",
+  unpaid: "read_only",
+  canceled: "read_only",
+  paused: "read_only",
+  // Checkout never completed, so there is no organization data to preserve.
+  incomplete: "locked",
+  incomplete_expired: "locked",
+};
+
+// A missing or unrecognised status locks, never opens.
+export const accessForStatus = (
+  status: string | null | undefined
+): SubscriptionAccess => ACCESS_BY_STATUS[status ?? ""] ?? "locked";
+
+// A live plan is one Stripe is still collecting on, past_due included.
 export const isSubscriptionActive = (status: string | null | undefined) =>
-  ACTIVE_SUBSCRIPTION_STATUSES.includes(
-    status as (typeof ACTIVE_SUBSCRIPTION_STATUSES)[number]
-  );
+  accessForStatus(status) === "full";
 
 // ─── Custom contracts ────────────────────────────────────────────────
 // A negotiated contract stores its entitlements on the subscription row rather
@@ -93,6 +131,9 @@ export type CustomLimits = {
 
 export type SubscriptionLike = {
   plan: string | null;
+  // Seats bought at checkout or through the seat endpoint. This is the member
+  // ceiling, so any query feeding a resolver has to select it.
+  seats?: number | null;
   isCustom?: boolean | null;
   contractLabel?: string | null;
   customLimits?: unknown;
@@ -147,8 +188,12 @@ export const resolveEntitlement = (
   }
 
   const tier = entitlementFor(subscription?.plan);
+  const purchased = subscription?.seats ?? 0;
+
   return {
-    seats: tier.seats,
+    // Purchased seats are the ceiling; the tier number only covers a row that
+    // predates seat purchasing or was never checked out.
+    seats: purchased > 0 ? purchased : tier.seats,
     features: tier.features,
     label: resolvePlan(subscription?.plan),
     isCustom: false,

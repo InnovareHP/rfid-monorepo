@@ -1,3 +1,4 @@
+import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
   archiveCampaign,
@@ -248,13 +249,15 @@ export const MarketingCampaignsListPage = () => {
         description="Group forms, blasts, and landing pages together."
       />
 
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="bg-brand text-white hover:bg-brand/90"
-        >
-          <Plus className="h-4 w-4" />
-          New Campaign
-        </Button>
+        <WriteGate>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-brand text-white hover:bg-brand/90"
+          >
+            <Plus className="h-4 w-4" />
+            New Campaign
+          </Button>
+        </WriteGate>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

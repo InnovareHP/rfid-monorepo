@@ -15,6 +15,7 @@ model Marketing {
   member         Member       @relation(fields: [memberId], references: [id])
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   facilityRecord Board?       @relation(fields: [facilityRecordId], references: [id], onDelete: SetNull)
+  activity       Activity?
 
   @@index([memberId])
   @@index([organizationId])

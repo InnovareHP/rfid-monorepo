@@ -1,5 +1,389 @@
 # Activity Log
 
+## 2026-08-27 — Audit trail is actually append-only
+
+`HIPAA-PHI-PLAN.md` claimed an append-only trigger lived in
+`prisma/migrations/audit_log_append_only/`. The folder was not there, the base
+migration creates `AuditLog` as a plain table, and
+`audit-retention.service.ts` was calling `set_config('audit.purge','on',true)`
+to satisfy a guard that did not exist. UPDATE and DELETE on the audit trail both
+succeeded.
+
+- `prisma/migrations/audit_log_append_only/migration.sql` (new, apply manually):
+  one `auth_schema.audit_append_only()` trigger function on `AuditLog` and
+  `AdminActivityLog`. UPDATE and TRUNCATE always refused. DELETE refused unless
+  the transaction has opted in and the row is past 2190 days, which the trigger
+  re-checks itself so a bug in the job cannot shorten retention. Idempotent.
+- Not `History`: it doubles as the user-editable record timeline and the board
+  legitimately updates and deletes it. Not `ContractAgreement`: it cascades from
+  `Organization`, so locking it would block organization deletion.
+- `audit-retention.service.ts`: the purge now covers both trigger-protected
+  tables rather than only `AuditLog`. Locking a table with no way to expire it
+  would have left `AdminActivityLog` growing forever. `run()` returns one
+  outcome per table, the table name is a `Prisma.raw` identifier drawn from a
+  closed `AUDIT_TABLES` list, and the audit row it writes names the table it
+  purged.
+- The spec renders interpolated values so the assertion still sees which table
+  the DELETE hit, and covers the second table.
+
+Still open on audit logging, now recorded in the plan's limitations rather than
+implied done: `AuditService.verify()` runs only in its spec, nothing in
+`src/api/` reads `AuditLog` (fe-support's "Activity Log" is the unrelated
+`AdminActivityLog`), and list endpoints log `boards.read` with no resource ids.
+
+## 2026-08-27 — Demo flow: invitee self-service, reminders, timezones
+
+Closed the five client-facing gaps in the booking and demo flow.
+
+Correction to an earlier note: `booking-reminder-email.tsx` and
+`booking-rescheduled-email.tsx` do exist unused, but their props are
+liaison-domain (`liaisonName`, `facility`), so they belong to an unbuilt
+facility-visit feature, not to booking pages. Wrote
+`booking-upcoming-email.tsx` for the invitee reminder instead and left those
+two alone.
+
+Schema (`add_booking_reminder_and_invitee_timezone`, additive):
+`Booking.inviteeTimezone` and `Booking.reminderSentAt`, plus a partial index on
+`startTime WHERE reminderSentAt IS NULL AND status = 'CONFIRMED'` for the sweep.
+
+Timezones. `sendBookingEmails` formatted both copies in the host's zone with
+`timeStyle: "short"`, which prints no zone at all — an invitee two zones over
+read "3:00 PM" and had nothing to anchor it to. Added `formatInZone` with
+`timeZoneName: "short"` and each recipient now reads their own zone;
+cancellation emails do the same. The landing island sends the browser zone and
+renders slots with no `timeZone` option, so the prospect sees their own clock.
+
+Invitee self-service. There was no way for an invitee to change anything —
+`cancelOwnBooking` is host-authed and the confirmation carried no link. Added
+`getPublicBooking`, `cancelPublicBooking` and `reschedulePublicBooking` on
+`BookingService`, three throttled routes on the public controller, a `manageUrl`
+on the confirmation template, and `apps/fe/routes/booking.$bookingId.tsx` with
+`ManageBookingPage`. The booking id is the only credential: a v4 uuid, never
+listed, reaching the invitee by email — the same trust model as the page slug.
+`getPublicBooking` returns a deliberately narrow view, never the organization or
+the host's other bookings. Reschedule reuses the create path's conflict checks,
+drops and re-creates the calendar event through `syncBookingToCalendar`, and
+clears `reminderSentAt` because the old reminder no longer applies. Extracted
+`deleteCalendarEvent` so the host and invitee cancel paths share it.
+
+Reminders. `BookingReminderService.sweep()` plus a BullMQ processor on a
+`*/15 * * * *` scheduler, mirroring `audit-retention.processor.ts` including
+`upsertJobScheduler` so replicas converge on one schedule. Sends 24h ahead,
+skips anything inside 30 minutes, batches 100. `reminderSentAt` is claimed with
+a conditional `updateMany` *before* the send, so a mail failure cannot leave the
+row eligible and re-mail on every later sweep.
+
+Demo silence. A request that could not be scheduled — no host in the rotation,
+or the host has no calendar — told the prospect "we will email you" and sent
+nothing. Now sends `demo-request-received-email.tsx` to the prospect and
+`demo-request-alert-email.tsx` to every super admin with the prospect's details
+and the reason, since nobody watches an empty rotation. Both wrapped: the row is
+already saved, so a mail failure must not surface as an error.
+
+Rotation flaw, mine. `assignHost` stamped `demoLastAssignedAt` at capture, so an
+abandoned form consumed a host's turn. Renamed to `pickHost`, and the stamp
+moved into `book()` after a real booking.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `pnpm --filter fe exec tsc
+--noEmit` and `pnpm --filter landing build` all clean. `pnpm test:fe` 60/60.
+API jest 381/382 — the one failure is the pre-existing `baa.spec.ts`
+clause/section drift. `pnpm lint`: api 13 errors, all pre-existing, zero in any
+booking, demo or react-email file; fe 690 warnings 0 errors, baseline; landing
+0 styling warnings.
+
+Not verified: migration not applied, no browser pass, no email sent, no reminder
+sweep actually run, and the reschedule conflict path has no test. `apps/api` has
+no test for any of this — the service is only exercised through the compiler.
+
+## 2026-08-26 — Support portal front page reads the real manual
+
+The portal front page was a mockup. The search input had no state and no
+handler, the eight knowledge-base cards came from a hardcoded
+`KNOWLEDGE_BASE_ITEMS` in shared and carried `cursor-pointer` with no `onClick`,
+and the four `RESOURCE_LINKS` advertised a learning site, a webinar programme and
+a developer portal that do not exist. Only the AI chat column was real.
+
+Behind it the manual was already complete: support staff author categories and
+articles at `/support/manual`, the API serves `/published` (with search over
+title and summary), `/featured`, `/published/:slug`, `/categories/published` and
+`/categories/slug/:slug`, and the assistant already retrieves the same
+`manualArticle` rows. The only missing piece was that `fe-support`'s
+manual-service wrapped the admin endpoints and nothing else, so agents were
+writing articles the AI could quote but no reader could open.
+
+- `manual.controller.ts`: the class-level `AuthGuard` is gone. A knowledge base
+  a visitor cannot read before signing in is not one. Every write already
+  carried its own `@UseGuards(AuthGuard)` and `@Roles`, so the only route that
+  needed one adding is `GET /categories`, which is unfiltered and includes
+  unpublished categories. The chat stays authenticated.
+- `services/manual/manual-service.ts`: the five published readers.
+- `components/KnowledgeBase/` (new): `ManualCard` is the single card shell so a
+  category tile, a featured article and a search hit cannot drift apart;
+  `ManualSearch` debounces into the existing search endpoint; `CategoryGrid`
+  colours categories by position from the avatar tints rather than asking an
+  editor to pick; `ArticleList`, `CategoryPage`, `ArticlePage` (steps rendered in
+  order, `whitespace-pre-wrap` since step content is a plain textarea),
+  `ManualIndexPage`, `ManualSection`.
+- `lib/manual-icons.ts` (new): editors type a lucide name by hand, so this is an
+  allowlist with a `BookOpen` fallback. A dynamic lookup would ship the whole
+  icon set to every visitor.
+- `hooks/use-debounced-value.ts` (new): a timer is genuinely imperative, and it
+  is what keeps the search box off the network on every keystroke.
+- New routes `/$lang/manual`, `/$lang/manual/$categorySlug`,
+  `/$lang/manual/article/$slug`.
+- `SupportPortalPage.tsx` rewritten: search, featured articles and real
+  categories on the left, chat column untouched on the right.
+- Deleted `components/support-portal-page.tsx` (692 lines, imported by nothing)
+  and, from shared, `RESOURCE_LINKS` and `RESOURCE_LINKS_SECTION_TITLE`.
+  `KNOWLEDGE_BASE_ITEMS` stays: it is still a seed corpus for `assistant-rag.ts`.
+
+## 2026-08-26 — Superadmin dashboard branding and refetch storm
+
+Two fixes on the admin shell, plus front-page demo CTAs.
+
+Refetching: `apps/fe-support` built its client with a bare `new QueryClient()`,
+so every query ran at `staleTime: 0` with `refetchOnWindowFocus: true`. Every
+admin table refetched on each mount and again on every return to the tab, which
+is what read as the layout constantly reloading. Added
+`src/lib/query-client.ts` mirroring the dashboard's defaults (5 min stale,
+30 min gc, no focus refetch) and wired it into `__root.tsx`, which was also
+using the local const in its `beforeLoad`. `keepPreviousData` on the demo
+requests query so paging and typing no longer blank the table to a spinner.
+
+Branding: the tokens and the `.bg-brand-rail` utility already existed in
+`index.css` — the admin sidebar simply was not using them, rendering the default
+near-white `--sidebar`. Remapped `--sidebar*` to the brand rail family in both
+`:root` and `.dark`; the rail is artwork, not a themed surface, so it stays navy
+with white ink in both. Every sidebar primitive reads those tokens, so no colour
+went into JSX. Sidebar logos switched to the existing `-white` variants, which
+otherwise would have been navy on navy.
+
+Not done: the gradient itself. `packages/ui/sidebar.tsx` hardcodes `bg-sidebar`
+on the inner container and passes `className` to an outer wrapper, so a
+four-stop gradient would have meant editing a component `apps/fe` also renders.
+The rail is a solid brand navy instead.
+
+CTAs: `/demo` was reachable only from the footer. Added it to `NAV_LINKS` in
+`landing/src/config.ts`, which feeds both the desktop nav and `MobileMenu`, and
+replaced the `mailto:` "Talk To Us" secondary in `ClosingCta.astro` with
+"Book A Demo". Hero left alone — its secondary is the `#how-it-works` scroll
+cue. Note the closing copy still reads "no sales call" directly above a demo
+button.
+
+Verified: `pnpm --filter fe-support exec tsc --noEmit` and `vite build` clean;
+`pnpm --filter fe-support lint` 48 warnings 0 errors, unchanged from before.
+Landing builds 10 pages, 0 styling warnings. Not verified: no browser pass, so
+the navy rail and the white logos have not been looked at in either theme.
+
+## 2026-08-26 — Public demo scheduler and superadmin pipeline
+
+Goal: replace the `mailto:` "Request a Demo" link with a real scheduler, owned
+by the app owner, with the rotation groundwork for a second host later.
+
+Decision: auto-schedule rather than an email-construction form, because
+`api/booking/` already owns the hard parts — timezone slot math with no date
+library, Google and Outlook busy reads, Meet/Teams link minting, confirmation
+and cancellation email, and a partial unique index on
+(bookingPageId, startTime) among CONFIRMED rows that makes double booking a
+database error. A mail form would have been a second, worse path.
+
+Capture then schedule: `POST /api/demo/requests` writes the row before a slot is
+picked, so an abandoned calendar still leaves a lead. The admin table shows
+those as "Not booked".
+
+Rotation is two columns, not a pool. `BookingPage.demoEnabled` and
+`demoLastAssignedAt`; the resolver takes the enabled page with the oldest
+timestamp, nulls first. One host means always that host, a second turns round
+robin on with no code change. Union availability and retry-down-the-pool were
+deliberately left out — they only earn their keep at two-plus hosts.
+
+The host is pinned at capture, not at booking. Rotation runs once, in
+`assignHost`, and both the slot list and the booking read the same
+`assignedUserId`, so a prospect can never be shown one calendar and booked
+against another.
+
+- `prisma/models/demo.prisma`: `DemoRequest` in a new `demo_schema`, plus the
+  `DemoRequestStatus` enum. Prospect data, not PHI, so nothing is encrypted.
+  `booking.prisma` gains the two rotation columns; `AdminAction` gains
+  `UPDATE_DEMO_REQUEST` and `SET_DEMO_HOST`.
+- `migrations/add_demo_requests/migration.sql`: additive and idempotent, apply
+  manually per the convention.
+- `packages/shared/lib/demo.ts`: statuses, labels, and the admin-settable
+  outcome subset, so the API enum and the admin filter cannot disagree.
+- `api/demo/`: `demo-public.controller.ts` is anonymous, `@CrossTenant()` and
+  throttled 5/min on both writes, copying the booking public controller
+  including its rethrow that keeps 404/409 and never echoes an unexpected
+  message. `demo.controller.ts` is `@Roles([ROLES.SUPER_ADMIN])`.
+  `demo.service.ts` delegates the actual booking to `BookingService`, so
+  calendar sync, invitee email and host notification all come from the one path
+  that already does them. `BookingModule` now exports `BookingService`.
+- Honeypot `website` field: non-empty returns the same shape as success and
+  writes nothing, so a bot cannot tell it was refused.
+- No `runUnscoped` in the service. Both controllers carry `@CrossTenant()`,
+  which sets the store unscoped for the request, and that is how the existing
+  booking public path already reads org-scoped rows with no active org. A scoped
+  caller would hit `TenantScopeError` rather than silently reading one org.
+- `fe-support`: `_admin/admin/demo-requests` with a requests table (status,
+  host, source, scheduled-or-not, outcome select) and a `DemoHostsCard` that
+  shows who is next up and warns when the rotation is empty. Sidebar entry
+  added.
+- `apps/landing`: `pages/demo.astro` plus a React island in `components/demo/`.
+  This is the landing app's first API call ever, so `LANDING_URL` was added to
+  the API CORS origins and the island reads `PUBLIC_API_URL`. Footer
+  "Request a Demo" now points at `/demo`.
+
+Setup still required before this works: the owner needs an internal
+organization, a booking page with availability, a connected Google or Outlook
+calendar, and `demoEnabled` switched on. Without a calendar the demo page
+renders and takes nothing — `acceptingBookings` is false and the island says so
+rather than showing an empty calendar.
+
+Verified: `pnpm build:api`, `pnpm build:fe`, `pnpm build:shared`,
+`pnpm --filter fe-support exec tsc --noEmit` and `pnpm --filter landing build`
+(10 pages, up from 9) all clean. `pnpm test:fe` 60/60. `pnpm --filter api jest`
+381/382 — the one failure is the pre-existing `baa.spec.ts` clause/section
+drift, untouched here. `pnpm lint` reports no error in any new file; the 13
+remaining API errors are all pre-existing. Not verified: migration not applied,
+no browser pass, no real booking made, no Stripe or calendar call.
+
+## 2026-08-26 — Subscription lifecycle follows Stripe
+
+Goal: stop treating every non-active Stripe status as a total lockout, and make
+the state visible in the app instead of only in email.
+
+Stripe owns the lifecycle. `past_due` means Stripe is still retrying the card,
+and Stripe's own subscription settings move the row to `canceled` or `unpaid`
+when the retries run out, so nothing here adds a grace window on top of that.
+
+- `packages/shared/lib/entitlement.ts`: new `accessForStatus` maps a Stripe
+  status to `full` / `read_only` / `locked`. `trialing`, `active` and `past_due`
+  are full; `unpaid`, `canceled` and `paused` are read only; `incomplete`,
+  `incomplete_expired` and anything unrecognised are locked.
+  `isSubscriptionActive` is now defined as `accessForStatus(...) === "full"`, so
+  there is one table rather than two. Behaviour change: `past_due` used to close
+  feature access on the first failed renewal, while Stripe was still retrying.
+- `subscription.guard.ts`: locked throws `SUBSCRIPTION_LOCKED`, read only throws
+  `SUBSCRIPTION_READ_ONLY` on any non-GET and passes reads through, so an
+  organization keeps seeing and exporting its own records after cancellation.
+  `request.subscriptionAccess` is set alongside `request.entitlement`.
+- `auth-helper.ts`: `getSession` no longer filters the subscription to live
+  statuses and orders by `periodEnd` the way the guard does. Filtering there
+  handed the client the same `null` for a canceled organization as for one that
+  never subscribed, and the two need different screens.
+- `_team.tsx`: redirects to `/billing` only when access is locked. A read-only
+  organization renders the app; the API guard refuses the writes.
+- `hooks/use-subscription-state.ts` (new): derives access, `canWrite` and which
+  banner to show from the subscription `_team.tsx` seeds, the same way
+  `useEntitlement` reads it. No state, no second fetch.
+- `components/billing/subscription-banner.tsx` (new): one banner under the
+  header for read only, past due, cancel-at-period-end and a trial inside seven
+  days. Tone colours the icon and surface only, since `destructive` and
+  `warning` are too light in the light theme to carry small text on a tint of
+  themselves.
+- `axios-client.ts`: a 403 carrying either subscription code toasts one message,
+  so every mutation reports the same reason without parsing a string.
+- `billing-page.tsx`: the status badge is toned per status rather than
+  active-or-not, so `past_due` reads as a retry in progress.
+
+Follow-up in the same session, closing the three items left open above.
+
+Write gating in the UI:
+
+- `hooks/use-can-write.ts` (new): the context alone, split out so
+  `write-gate.tsx` exports components only and keeps fast refresh working.
+- `components/write-gate.tsx` (new): `WriteAccessProvider`, seeded once in
+  `_team.tsx`, and `WriteGate`, which keeps a control visible but inert with a
+  tooltip saying why. No feature threads an organization id to reach it.
+- Applied to the primary write entry points: board and CRM record create,
+  create column, kanban card drag (`draggable={canWrite}`), tasks, expense and
+  marketing logs, county config, lead options, calendar, and every marketing
+  list page plus the blast send and test-send buttons. Anything past those still
+  fails at the guard and toasts, which is the fallback rather than the plan.
+
+Plan chip:
+
+- `components/billing/plan-chip.tsx` (new) in the `AppSidebar` footer: plan label
+  plus a status badge, linking to billing, hidden while the sidebar is a rail.
+- `lib/helper/subscription-badge.ts` (new) holds the status tone map, which the
+  billing page now shares instead of keeping its own copy.
+
+Retention:
+
+- Nothing deletes itself. Under a BAA the covered entity decides when its PHI is
+  destroyed, and its own retention rules may require years, so a scheduler would
+  be destroying records a customer is obliged to keep.
+- `POST /api/compliance/purge`, owner only, confirmation is the organization name
+  checked against the stored name. Audited before the delete so an interrupted
+  purge still leaves the intent and the actor on the record. One transaction,
+  children before parents. Members, the signed agreement and the billing ledger
+  are kept: the first two are who the organization is, the third is a financial
+  record neither side may destroy on request.
+- `AllowReadOnly()` on the subscription guard, which the purge route is so far
+  the only user of. Refusing this particular write to a canceled organization
+  would hold its records hostage to a subscription.
+- `components/compliance/purge-data-card.tsx` (new): owner-only card with a typed
+  confirmation dialog. The billing page shows the ended date rather than a
+  billing date that has already passed, plus a line saying the records stay
+  until someone asks for them.
+
+## 2026-08-26 — Yearly plans and purchased seats
+
+Goal: offer a yearly billing interval at ten percent off, and let an owner buy
+seats with a stepper instead of the seat count tracking head count.
+
+Core switch: `BETTER_AUTH_PLANS` no longer sets `seatPriceId`. That field is
+what puts the better-auth stripe plugin in auto-managed mode, where the item
+quantity is forced to the member count and the `seats` argument on
+`subscription.upgrade` is ignored. The price id is unchanged (it was already the
+same value as `priceId`), so existing Stripe subscriptions keep the same single
+line item and need no migration — they simply stop auto-syncing to head count.
+
+- `packages/shared/lib/entitlement.ts`: `SubscriptionLike` gained `seats`, and
+  `resolveEntitlement` prefers purchased seats over the tier number. Tier seats
+  are now only the stepper's starting point and the fallback for a row that
+  never went through checkout. Added `BILLING_INTERVALS`, `BillingInterval`,
+  `ANNUAL_DISCOUNT` (0.1) and `MAX_SEATS` (500).
+- `lib/stripe/plans.ts`: `Plan` carries `monthly` and `yearly` `PlanPrice`
+  objects rather than one `pricePerSeat`/`seatPriceId` pair. Yearly per seat is
+  216 / 529 / 853 (ten percent off twelve monthly seats, rounded down). Added
+  `priceForInterval` and `findPlanByPriceId`. Plugin plans now pass
+  `annualDiscountPriceId`.
+- `app-config.ts`: `STRIPE_PRICE_{ESSENTIALS,GROWTH,SCALE}_SEAT_ANNUAL`. All
+  optional — an unset yearly price hides the yearly toggle rather than checking
+  out against an empty price id.
+- `lib/stripe/stripe-events.ts`: plan lookup by price id now matches either
+  interval, and the subscription-updated email prices the correct interval.
+- `auth-helper.ts`, `subscription.guard.ts`: the three seat guards and the
+  cached entitlement read now select `seats`. Guard copy changed from "plan
+  limit" to seats used, since upgrading a tier no longer raises the ceiling.
+- `billing.service.ts`: `listPlans` returns both intervals plus `defaultSeats`;
+  `getPlanCard` returns `interval`, `total`, `memberCount` and `maxSeats` in
+  place of `monthlyTotal` and `memberOverCap`. New `updateSeats` writes the
+  quantity to Stripe with `proration_behavior: "always_invoice"`, updates the
+  row, clears the Redis entitlement cache, and logs a `SEAT_CHANGE` ledger row
+  as PENDING (the invoice webhook still writes the settlement row).
+- `POST /api/billing/seats` behind `manage_billing`. Its own endpoint rather
+  than `subscription.upgrade({ seats })`: with no `seatPriceId` the plugin
+  routes an existing subscription through the Stripe billing portal confirm
+  page, and it also writes `seats: memberCount`, which is 0 on this path.
+- FE: `billing/seat-stepper.tsx` is new. `plans-page.tsx` reads prices from
+  `/api/billing/plans` instead of hardcoding them, adds a Monthly/Yearly tab
+  and one seat stepper above the grid, and passes `annual` and `seats` to
+  `subscription.upgrade`. `billing-page.tsx` gained a seat stepper with an
+  Update seats button.
+
+Note: a plan switch on an existing subscription now lands on Stripe's billing
+portal confirm page, because the plugin only updates items in place when a price
+map or line-item delta is non-empty. Seat-only changes go through our endpoint
+and stay in-app.
+
+Verified: `pnpm build:shared`, `pnpm build:api`, `pnpm build:fe` and
+`pnpm --filter fe exec tsc --noEmit` all clean. `pnpm test:fe` 60/60. API
+`entitlement.spec.ts` 18/18 including new purchased-seat and interval cases.
+`pnpm lint` leaves no error in any touched file. Not verified: no browser pass,
+no Stripe call made — the three yearly price ids do not exist yet, and
+`.env.example` was not edited (`.env*` reads are denied by settings.json).
+
 ## 2026-07-24 — CRM record linking (CONTACT_LINK / COMPANY_LINK)
 
 Goal: connect leads, contacts, and companies instead of storing people as orphan PERSON blobs.
@@ -1244,3 +1628,52 @@ Verified: `pnpm --filter fe exec tsc --noEmit` and `pnpm --filter api exec tsc
 --noEmit` exit 0; eslint clean on the touched frontend files. Not verified: no
 migration applied (`prisma migrate dev` is interactive — user runs it), no
 browser pass, no real email sent.
+
+## Stripe webhook 400 investigation (2026-08-28)
+
+Symptom: `POST /api/auth/stripe/webhook` returns
+`{"code":"FAILED_TO_CONSTRUCT_STRIPE_EVENT"}` for every sandbox delivery
+(`checkout.session.completed`, `livemode: false`).
+
+Ruled out:
+
+- WAF. The response body is the app's own JSON, so the request reached NestJS.
+  A `block {}` in `terraform/modules/waf/main.tf` has no custom response and
+  returns AWS's 403 HTML page. WAF is pass-or-block and never rewrites a body,
+  so it cannot break an HMAC. Adding the path to
+  `waf_body_inspection_exempt_paths` did not change the result.
+- Missing secret. An absent `stripeWebhookSecret` returns 500 at
+  `@better-auth/stripe` `index.mjs:1555`, not 400.
+- Wrong mount path. A bad mount is 404, not 400.
+- Downstream handler throwing. For `checkout.session.completed`,
+  `onCheckoutSessionCompleted` catches and only logs (`index.mjs:242`), and
+  `StripeHelper` is a no-op for that event type (`clearEntitlementCache`
+  returns early on the type prefix, `handleEvent` falls to `default`).
+
+That leaves `constructEventAsync` at `index.mjs:1563`, whose only inputs are
+the payload bytes and the secret.
+
+Body chain audited, clean on static reading:
+
+- `bodyParser: false` at `NestFactory.create`, and the two `json()` mounts in
+  `main.ts` are path-scoped to non-auth routes.
+- `SkipBodyParsingMiddleware` skips when `req.baseUrl.startsWith("/api/auth")`.
+  Verified against Express 5.2.1 that a wildcard mount sets `baseUrl` to the
+  full request path, so the guard fires.
+- `better-call` `router.mjs:68` — `disableBody: true` on the webhook endpoint
+  means the router never reads the body, so `ctx.request.text()` sees the
+  original stream.
+
+Landmine found but not confirmed as the cause: `better-call`
+`adapters/node/request.mjs:110-118` falls back to `JSON.stringify(req.body)`
+when the node stream is already consumed. Routing and parsing still succeed, so
+every other auth route works while only signature verification breaks. Silent
+by design.
+
+Second landmine: `STRIPE_WEBHOOK_SECRET` is `z.string().min(1).optional()` in
+`app-config.ts:45` with no `.trim()`, so a trailing newline or a wrapping quote
+in the Secrets Manager JSON passes validation and reaches Stripe verbatim.
+
+Not verified: no runtime probe deployed, so the split between "wrong secret
+bytes" and "body re-serialized" is still open. Terraform not validated
+(`terraform` CLI absent from the dev machine).
