@@ -207,7 +207,7 @@ const applyContractInvoiceOutcome = async (
     select: { id: true, stripeSubscriptionId: true, status: true },
   });
 
-  if (!subscription || subscription.stripeSubscriptionId) return;
+  if (!subscription) return;
 
   // A contract that has never been paid stays locked when an invoice fails:
   // there is no earlier period to keep readable. One that has been paid before
@@ -406,14 +406,36 @@ const periodBoundsOf = (subscription: Stripe.Subscription) => {
 
 // Writes dates and status only. Never plan, seats or customLimits: those are
 // the contract, and Stripe is not the source of truth for them.
+//
+// A contract awaiting its first payment is excluded from the status write.
+// Stripe activates a send_invoice subscription the moment it is created, so
+// copying its status here would report "active" and let an unpaid organization
+// straight into the dashboard. The first invoice.payment_succeeded is what
+// clears that, below.
 const refreshCustomSubscription = async (subscription: Stripe.Subscription) => {
   const { start, end } = periodBoundsOf(subscription);
 
   await prisma.subscription.updateMany({
-    where: { stripeSubscriptionId: subscription.id, isCustom: true },
+    where: {
+      stripeSubscriptionId: subscription.id,
+      isCustom: true,
+      status: { not: CONTRACT_UNPAID_STATUS },
+    },
     data: {
       status: subscription.status,
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      ...(start ? { periodStart: new Date(start * 1000) } : {}),
+      ...(end ? { periodEnd: new Date(end * 1000) } : {}),
+    },
+  });
+
+  await prisma.subscription.updateMany({
+    where: {
+      stripeSubscriptionId: subscription.id,
+      isCustom: true,
+      status: CONTRACT_UNPAID_STATUS,
+    },
+    data: {
       ...(start ? { periodStart: new Date(start * 1000) } : {}),
       ...(end ? { periodEnd: new Date(end * 1000) } : {}),
     },

@@ -1,3 +1,4 @@
+import { ROLES } from "@dashboard/shared";
 import {
   Body,
   Controller,
@@ -59,7 +60,8 @@ export class ComplianceController {
   getSecondFactorRequirement(@Session() session: MemberSession) {
     return this.complianceService.getSecondFactorRequirement(
       session.session.activeOrganizationId,
-      session.session.userId
+      session.session.userId,
+      session.session.memberRole === ROLES.OWNER
     );
   }
 

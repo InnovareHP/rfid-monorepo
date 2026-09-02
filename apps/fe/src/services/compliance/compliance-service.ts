@@ -43,6 +43,8 @@ export type SignBaaPayload = {
 export type SecondFactorRequirement = {
   required: boolean;
   satisfied: boolean;
+  baaCurrent: boolean;
+  canSignBaa: boolean;
 };
 
 export const getSecondFactorRequirement = async () => {

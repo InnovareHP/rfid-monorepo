@@ -20,7 +20,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@dashboard/ui/components/sidebar";
-import { SecondFactorGate } from "@/components/compliance/second-factor-gate";
+import { HipaaGate } from "@/components/compliance/hipaa-gate";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import type { Session, User } from "better-auth";
@@ -153,7 +153,7 @@ function TeamLayout() {
 
         <SubscriptionBanner organizationId={activeOrganizationId} />
 
-        <SecondFactorGate />
+        <HipaaGate />
 
         <div className="flex-1 overflow-auto">
           <WriteAccessProvider canWrite={access === "full"}>

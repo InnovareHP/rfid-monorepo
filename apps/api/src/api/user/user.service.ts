@@ -24,7 +24,10 @@ import { renderEmailHtml } from "src/lib/aws/ses";
 import { emailQueue } from "src/lib/queue/email-queue";
 import { prisma } from "src/lib/prisma/prisma";
 import { runUnscoped } from "src/lib/prisma/tenant-context";
-import { issueContractInvoice } from "src/lib/stripe/contract-invoice";
+import {
+  createContractSubscription as createStripeContractSubscription,
+  issueContractAdjustment,
+} from "src/lib/stripe/contract-subscription";
 import { stripe } from "src/lib/stripe/stripe";
 import { v4 as uuidv4 } from "uuid";
 import { appConfig } from "src/config/app-config";
@@ -925,16 +928,19 @@ export class UserService {
     // every save would bill the customer again for a period they have paid.
     // Later periods are a renewal job's problem, not this endpoint's.
     if (contract && !subscription.isCustom) {
-      const owes = await this.billContract(
+      const billing = await this.billContract(
         orgId,
         await this.ensureStripeCustomer(organization),
         contract
       );
 
-      if (owes) {
+      if (billing) {
         await prisma.subscription.update({
           where: { id: subscription.id },
-          data: { status: CONTRACT_UNPAID_STATUS },
+          data: {
+            status: CONTRACT_UNPAID_STATUS,
+            stripeSubscriptionId: billing.subscriptionId,
+          },
         });
       }
     }
@@ -1015,7 +1021,13 @@ export class UserService {
     contract: NonNullable<AdminEntitlementData["contract"]>
   ) {
     try {
-      const invoice = await issueContractInvoice({
+      // A comped contract has nothing to collect, so it gets no Stripe
+      // subscription either - there would be no invoice for it to send.
+      if (contract.priceCents <= 0 && contract.setupFeeCents <= 0) {
+        return null;
+      }
+
+      return await createStripeContractSubscription({
         customerId,
         organizationId,
         label: contract.label,
@@ -1023,8 +1035,6 @@ export class UserService {
         setupFeeCents: contract.setupFeeCents,
         billingInterval: contract.billingInterval,
       });
-
-      return Boolean(invoice);
     } catch (error) {
       new Logger(UserService.name).error(
         `Contract invoice failed for ${organizationId}`,
@@ -1033,7 +1043,11 @@ export class UserService {
 
       // Access still turns on whether the contract is chargeable, not on
       // whether Stripe answered: a lost invoice must not hand out a free one.
-      return contract.priceCents > 0 || contract.setupFeeCents > 0;
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : "Stripe rejected the contract subscription"
+      );
     }
   }
 
@@ -1090,18 +1104,14 @@ export class UserService {
 
     const customerId = await this.ensureStripeCustomer(organization);
 
-    let invoice: Awaited<ReturnType<typeof issueContractInvoice>>;
+    let invoice: Awaited<ReturnType<typeof issueContractAdjustment>>;
 
     try {
-      invoice = await issueContractInvoice({
+      invoice = await issueContractAdjustment({
         customerId,
         organizationId: orgId,
-        label: subscription.contractLabel ?? "Contract",
-        priceCents: subscription.customPriceCents ?? 0,
-        // The setup fee belongs to the first invoice only, and this route
-        // raises later ones.
-        setupFeeCents: 0,
-        billingInterval: subscription.billingInterval ?? "annual",
+        description: `${subscription.contractLabel ?? "Contract"} — adjustment`,
+        amountCents: subscription.customPriceCents ?? 0,
       });
     } catch (error) {
       // Stripe's message names the actual problem - an unconfigured payment
@@ -1226,12 +1236,22 @@ export class UserService {
       },
     });
 
-    const owes = await this.billContract(organization.id, customerId, contract);
+    const billing = await this.billContract(
+      organization.id,
+      customerId,
+      contract
+    );
 
-    if (owes) {
+    // Stripe activates a send_invoice subscription immediately regardless of
+    // whether the first invoice is paid, so its own status cannot express "not
+    // paid yet". The row carries that until the first payment lands.
+    if (billing) {
       await prisma.subscription.update({
         where: { id: created.id },
-        data: { status: CONTRACT_UNPAID_STATUS },
+        data: {
+          status: CONTRACT_UNPAID_STATUS,
+          stripeSubscriptionId: billing.subscriptionId,
+        },
       });
     }
 

@@ -64,6 +64,9 @@ jest.mock("src/lib/prisma/tenant-context", () => ({
 const mockCustomersCreate = jest.fn();
 const mockCustomersRetrieve = jest.fn();
 const mockCustomersUpdate = jest.fn();
+const mockProductsCreate = jest.fn();
+const mockSubscriptionsCreate = jest.fn();
+const mockSendInvoice = jest.fn();
 jest.mock("src/lib/stripe/stripe", () => ({
   stripe: {
     customers: {
@@ -71,6 +74,11 @@ jest.mock("src/lib/stripe/stripe", () => ({
       retrieve: (...args: unknown[]) => mockCustomersRetrieve(...args),
       update: (...args: unknown[]) => mockCustomersUpdate(...args),
     },
+    products: { create: (...args: unknown[]) => mockProductsCreate(...args) },
+    subscriptions: {
+      create: (...args: unknown[]) => mockSubscriptionsCreate(...args),
+    },
+    invoices: { sendInvoice: (...args: unknown[]) => mockSendInvoice(...args) },
   },
 }));
 
@@ -300,6 +308,15 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
       id: "cus_existing",
       email: "owner@acme.test",
     });
+    mockProductsCreate.mockResolvedValue({ id: "prod_1" });
+    mockSubscriptionsCreate.mockResolvedValue({
+      id: "sub_stripe_1",
+      latest_invoice: { id: "in_1" },
+    });
+    mockSendInvoice.mockResolvedValue({
+      id: "in_1",
+      hosted_invoice_url: "https://pay.stripe.test/in_1",
+    });
     db.subscription.findFirst.mockResolvedValue({
       id: "sub-1",
       isCustom: false,
@@ -448,10 +465,20 @@ describe("UserService.setAdminOrganizationEntitlement", () => {
       })
     );
     // Billable, so the organization is parked on the billing page until the
-    // invoice clears rather than let straight into the dashboard.
+    // invoice clears rather than let straight into the dashboard, and the row
+    // records the Stripe subscription that will renew it.
+    expect(mockSubscriptionsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection_method: "send_invoice",
+        days_until_due: 30,
+      })
+    );
     expect(db.subscription.update).toHaveBeenCalledWith({
       where: { id: "sub-new" },
-      data: { status: "contract_unpaid" },
+      data: {
+        status: "contract_unpaid",
+        stripeSubscriptionId: "sub_stripe_1",
+      },
     });
     expect(mockInvalidateSubscriptionCache).toHaveBeenCalledWith("org-1");
     expect(result).toMatchObject({ label: "Northwind pilot", seats: 40 });

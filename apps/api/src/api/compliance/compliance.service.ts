@@ -82,16 +82,29 @@ export class ComplianceService {
   // is what tells the app whether to stand in front of the user and ask for a
   // second factor. It answers with the same rule HipaaGuard enforces, so the
   // modal cannot disagree with the 403 the API would return.
-  async getSecondFactorRequirement(organizationId: string, userId: string) {
+  async getSecondFactorRequirement(
+    organizationId: string,
+    userId: string,
+    canSignBaa: boolean
+  ) {
     const settings = await getHipaaSettings(organizationId);
 
     if (!settings?.hipaaEnabled) {
-      return { required: false, satisfied: true };
+      return {
+        required: false,
+        satisfied: true,
+        baaCurrent: true,
+        canSignBaa,
+      };
     }
 
     return {
       required: true,
       satisfied: await hasSecondFactor(userId, true),
+      // The other half of the same guard. Both have to hold before any PHI
+      // route answers, so the gate reports them together.
+      baaCurrent: isBaaCurrent(settings.baaAcceptedAt, settings.baaVersion),
+      canSignBaa,
     };
   }
 
