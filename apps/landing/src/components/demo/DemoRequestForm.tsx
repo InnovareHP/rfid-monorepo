@@ -1,10 +1,11 @@
+import { CalendarClock } from "lucide-react";
 import { useState } from "react";
 import type { DemoRequestPayload } from "./demo-api";
 
 const TEAM_SIZES = ["1-5", "6-20", "21-50", "51-200", "200+"];
 
 const FIELD =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-brand-accent";
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20";
 
 // Step one exists on its own so an abandoned calendar still leaves a lead.
 export function DemoRequestForm({
@@ -34,12 +35,23 @@ export function DemoRequestForm({
 
   return (
     <form
-      className="space-y-4"
+      className="space-y-5"
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit(values);
       }}
     >
+      <div className="space-y-1">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-brand-accent">
+          <CalendarClock className="size-3.5" />
+          Step 1 of 2
+        </p>
+        <h2 className="text-lg font-semibold">Tell us who you are</h2>
+        <p className="text-sm text-muted-foreground">
+          Then pick a time from the calendar on the next step.
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-1.5 text-sm">
           <span className="font-medium">Name</span>
@@ -123,12 +135,16 @@ export function DemoRequestForm({
         onChange={set("website")}
       />
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-60"
+        className="w-full rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand/90 disabled:opacity-60"
       >
         {isSubmitting ? "Checking availability..." : "Pick a time"}
       </button>

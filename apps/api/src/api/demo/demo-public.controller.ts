@@ -47,6 +47,23 @@ export class DemoPublicController {
     }
   }
 
+  // Feeds the calendar: which days have anything free, so a visitor never
+  // clicks into an empty day.
+  @Get("requests/:id/availability")
+  async getAvailableDays(
+    @Param("id") id: string,
+    @Query("month") month: string
+  ) {
+    try {
+      if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+        throw new BadRequestException("month must be in YYYY-MM format");
+      }
+      return await this.demoService.getAvailableDays(id, month);
+    } catch (error) {
+      this.rethrow(error);
+    }
+  }
+
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post("requests/:id/book")
   async book(@Param("id") id: string, @Body() dto: BookDemoDto) {

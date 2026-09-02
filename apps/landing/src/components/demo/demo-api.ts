@@ -59,6 +59,20 @@ export const bookDemo = (requestId: string, startTime: string) =>
     inviteeTimezone: visitorTimezone(),
   });
 
+// Which days of a month have anything free, so the calendar can grey out the
+// rest instead of letting a visitor click into an empty day.
+export const fetchAvailableDays = async (
+  requestId: string,
+  month: string
+): Promise<string[]> => {
+  const response = await fetch(
+    `${API_URL}/api/demo/requests/${requestId}/availability?month=${month}`
+  );
+  if (!response.ok) throw new Error("Could not load the calendar.");
+
+  return response.json() as Promise<string[]>;
+};
+
 export const fetchSlots = async (
   requestId: string,
   date: string

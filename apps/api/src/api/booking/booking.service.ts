@@ -478,6 +478,68 @@ export class BookingService {
     return slots.map((s) => s.toISOString());
   }
 
+  // A month at a time so the picker can grey out full days. One busy fetch
+  // covers the range; the per-day work after that is pure computation.
+  async getPublicAvailableDays(slug: string, month: string) {
+    const page = await this.findActivePageOrThrow(slug);
+
+    if (!(await this.hasCalendarConnection(page.userId))) return [];
+
+    const [year, monthNumber] = month.split("-").map(Number);
+    const daysInMonth = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+    const rangeStart = zonedWallClockToUtc(
+      year,
+      monthNumber,
+      1,
+      0,
+      0,
+      page.timezone
+    );
+    const rangeEnd = zonedWallClockToUtc(
+      year,
+      monthNumber,
+      daysInMonth + 1,
+      0,
+      0,
+      page.timezone
+    );
+
+    const [calendarBusy, existingBookings] = await Promise.all([
+      this.getCalendarBusyIntervals(page.userId, rangeStart, rangeEnd),
+      prisma.booking.findMany({
+        where: {
+          bookingPageId: page.id,
+          status: "CONFIRMED",
+          startTime: { gte: rangeStart, lt: rangeEnd },
+        },
+        select: { startTime: true, endTime: true },
+      }),
+    ]);
+
+    const busy = [
+      ...calendarBusy,
+      ...existingBookings.map((b) => ({ start: b.startTime, end: b.endTime })),
+    ];
+
+    const days: string[] = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = `${month}-${String(day).padStart(2, "0")}`;
+      const slots = computeAvailableSlots({
+        date,
+        timezone: page.timezone,
+        durationMinutes: page.durationMinutes,
+        bufferBeforeMinutes: page.bufferBeforeMinutes,
+        bufferAfterMinutes: page.bufferAfterMinutes,
+        minNoticeHours: page.minNoticeHours,
+        availability: page.availability,
+        busy,
+      });
+      if (slots.length) days.push(date);
+    }
+
+    return days;
+  }
+
   async createPublicBooking(slug: string, dto: CreateBookingDto) {
     const page = await this.findActivePageOrThrow(slug);
 

@@ -173,6 +173,11 @@ export class DemoService {
     return this.bookingService.getPublicSlots(slug, date);
   }
 
+  async getAvailableDays(requestId: string, month: string) {
+    const { slug } = await this.hostForRequest(requestId);
+    return this.bookingService.getPublicAvailableDays(slug, month);
+  }
+
   async book(requestId: string, startTime: string, inviteeTimezone?: string) {
     const { request, pageId, slug } = await this.hostForRequest(requestId);
 
