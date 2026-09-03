@@ -6,8 +6,10 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { isOrgAdmin, readsOrgWideReferrals } from "@dashboard/shared";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
@@ -167,6 +169,44 @@ export class AnalyticsController {
   }
 
   @RequirePermission({ analytics: ["read"] })
+  // Rendered server side so the download carries the letterhead and real text
+  // rather than a screenshot of whatever the browser was showing.
+  @RequirePermission({ analytics: ["read"] })
+  @Get("marketing/pdf")
+  async getMarketingLeadAnalyticsPdf(
+    @Query("start") start: string,
+    @Query("end") end: string,
+    @Query("userId") userId: string,
+    @Session() session: MemberSession,
+    @Res() response: Response
+  ) {
+    const startDate = start ? new Date(start) : undefined;
+    const endDate = end ? new Date(end) : undefined;
+    const organizationId = session.session.activeOrganizationId;
+
+    // Same scoping as the JSON route: a liaison reads their own report only,
+    // and the client's userId is ignored rather than trusted below admin.
+    const userIdValue = isOrgAdmin(session.session.memberRole)
+      ? userId || null
+      : session.session.userId;
+
+    const pdf = await this.analyticsService.renderMarketingLeadAnalyticsPdf(
+      organizationId,
+      startDate,
+      endDate,
+      userIdValue
+    );
+
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader(
+      "Content-Disposition",
+      `attachment; filename="liaison-performance-${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf"`
+    );
+    response.send(pdf);
+  }
+
   @Get("marketing")
   async getMarketingLeadAnalytics(
     @Query("start") start: string,

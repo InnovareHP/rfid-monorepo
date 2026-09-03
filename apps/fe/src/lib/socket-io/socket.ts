@@ -1,7 +1,11 @@
 import { io, Socket } from "socket.io-client";
+import { toast } from "sonner";
 
 let socket: Socket | null = null;
 let tokenGenerator: (() => Promise<string | null>) | null = null;
+let reportedOffline = false;
+
+const AUTH_FAILURES = ["No token provided", "Invalid token", "Unauthorized"];
 
 export function setTokenGenerator(fn: () => Promise<string | null>) {
   tokenGenerator = fn;
@@ -33,8 +37,23 @@ export function connectSocket(): Socket {
     reconnectionDelayMax: 30000,
   });
 
+  // Auth is answered the same way on every attempt, so a rejected token means
+  // retrying only mints another one-time token per backoff tick.
   socket.on("connect_error", (err) => {
-    console.error("Socket error:", err.message);
+    if (AUTH_FAILURES.includes(err.message)) {
+      socket?.io.reconnection(false);
+      socket?.disconnect();
+      toast.error("Live updates stopped. Refresh the page to reconnect.");
+      return;
+    }
+
+    if (reportedOffline) return;
+    reportedOffline = true;
+    toast.error("Live updates are offline. Reconnecting.");
+  });
+
+  socket.on("connect", () => {
+    reportedOffline = false;
   });
 
   return socket;

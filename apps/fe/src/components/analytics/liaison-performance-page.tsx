@@ -2,8 +2,10 @@ import { FeatureLocked } from "@/components/feature-locked";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
-import { exportElementToPdf } from "@/lib/helper/pdf-export";
-import { getMarketingList } from "@/services/analytics/analytics-service";
+import {
+  downloadLiaisonPerformancePdf,
+  getMarketingList,
+} from "@/services/analytics/analytics-service";
 import { getLiaisons } from "@/services/options/options-service";
 import type { LiaisonAnalyticsCardData } from "@dashboard/shared";
 import { isOrgAdmin, mapAIAnalysisToInsights } from "@dashboard/shared";
@@ -30,8 +32,6 @@ type Filters = {
   userId: string | null;
 };
 
-const PDF_ELEMENT_ID = "liaison-performance-pdf";
-
 const LiaisonPerformancePage = () => {
   const { activeOrganizationId, user, memberData } = useRouteContext({
     from: "/_team",
@@ -40,9 +40,8 @@ const LiaisonPerformancePage = () => {
     user: User;
     memberData: Member | null;
   };
-  const canUseAdvancedAnalytics = useEntitlement(activeOrganizationId).has(
-    "advanced_analytics"
-  );
+  const canUseAdvancedAnalytics =
+    useEntitlement(activeOrganizationId).has("advanced_analytics");
 
   // A liaison reads their own report only, so the filter starts and stays on them.
   const canFilterLiaisons = isOrgAdmin(memberData?.role);
@@ -72,12 +71,14 @@ const LiaisonPerformancePage = () => {
   const handleExportPDF = async () => {
     setIsExporting(true);
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
-      await exportElementToPdf(
-        PDF_ELEMENT_ID,
-        `liaison-performance-${timestamp}.pdf`
+      // The same filters the page is showing, so the document and the screen
+      // cannot disagree.
+      await downloadLiaisonPerformancePdf(
+        filters.start,
+        filters.end,
+        filters.userId
       );
-      toast.success("PDF exported successfully!");
+      toast.success("Report downloaded");
     } catch {
       toast.error("Failed to export PDF. Please try again.");
     } finally {
@@ -203,7 +204,7 @@ const LiaisonPerformancePage = () => {
         ) : rows.length === 0 ? (
           <AnalyticsEmpty />
         ) : (
-          <div id={PDF_ELEMENT_ID} className="space-y-6">
+          <div className="space-y-6">
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-center gap-2">
                 <h2 className="text-base font-medium text-foreground">

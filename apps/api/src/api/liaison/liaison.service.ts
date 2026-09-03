@@ -8,6 +8,11 @@ import {
 import { Prisma, TouchpointType } from "@prisma/client";
 import axios from "axios";
 import * as PDFDocument from "pdfkit";
+import {
+  LETTERHEAD_BOTTOM_INSET,
+  LETTERHEAD_TOP_INSET,
+  stampLetterhead,
+} from "../../lib/documents/letterhead";
 import * as sharp from "sharp";
 import { prisma } from "../../lib/prisma/prisma";
 import { TOUCHPOINT_ACTIVITIES } from "./liaison-activity.service";
@@ -675,7 +680,17 @@ export class LiaisonService {
       activeOrganizationId
     );
 
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    // Letter with a top margin clear of the letterhead's header band. A4 would
+    // be scaled to fit the artwork and leave white down one edge.
+    const doc = new PDFDocument({
+      size: "LETTER",
+      margins: {
+        top: LETTERHEAD_TOP_INSET,
+        bottom: LETTERHEAD_BOTTOM_INSET,
+        left: 40,
+        right: 40,
+      },
+    });
     const buffers: Buffer[] = [];
 
     // The stream's completion is the promise; the drawing below is ordinary
@@ -749,7 +764,10 @@ export class LiaisonService {
           const expense = data[i];
 
           // Check if we need a new page
-          if (currentY + rowHeight > doc.page.height - 60) {
+          if (
+            currentY + rowHeight >
+            doc.page.height - LETTERHEAD_BOTTOM_INSET
+          ) {
             doc.addPage();
             currentY = drawTableHeader(60);
           }
@@ -847,7 +865,7 @@ export class LiaisonService {
 
         // Add total summary
         currentY += 10;
-        if (currentY + 40 > doc.page.height - 60) {
+        if (currentY + 40 > doc.page.height - LETTERHEAD_BOTTOM_INSET) {
           doc.addPage();
           currentY = 60;
         }
@@ -876,9 +894,14 @@ export class LiaisonService {
         doc
           .fontSize(8)
           .fillColor("#999999")
-          .text(`Page ${i + 1} of ${pages.count}`, 40, doc.page.height - 40, {
-            align: "center",
-          });
+          .text(
+            `Page ${i + 1} of ${pages.count}`,
+            40,
+            doc.page.height - LETTERHEAD_BOTTOM_INSET + 12,
+            {
+              align: "center",
+            }
+          );
       }
 
       doc.end();
@@ -887,7 +910,9 @@ export class LiaisonService {
       throw error instanceof Error ? error : new Error(String(error));
     }
 
-    return rendered;
+    // pdfkit cannot embed another PDF, so the artwork goes on afterwards: the
+    // finished bytes are recomposed with the letterhead behind each page.
+    return Buffer.from(await stampLetterhead(await rendered));
   }
 
   // memberId is null for org admins, who may act on any member's entry.

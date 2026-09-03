@@ -8,9 +8,18 @@ import {
   VENDOR_SIGNATORY,
 } from "@dashboard/shared";
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
+import {
+  LETTERHEAD_BOTTOM_INSET,
+  LETTERHEAD_TOP_INSET,
+  stampLetterhead,
+} from "./letterhead";
 
 const PAGE = { width: 612, height: 792 };
 const MARGIN = 56;
+// The letterhead owns the top and bottom of the page, so body text starts and
+// stops inside those bands rather than at the plain margin.
+const TOP_LIMIT = PAGE.height - LETTERHEAD_TOP_INSET;
+const BOTTOM_LIMIT = LETTERHEAD_BOTTOM_INSET;
 const BODY_SIZE = 10;
 const LINE_GAP = 4;
 
@@ -56,7 +65,7 @@ function wrap(text: string, font: PDFFont, size: number, width: number) {
 function newPage(doc: PDFDocument): Cursor {
   return {
     page: doc.addPage([PAGE.width, PAGE.height]),
-    y: PAGE.height - MARGIN,
+    y: TOP_LIMIT,
   };
 }
 
@@ -78,7 +87,7 @@ function drawBlock(
     if (index > 0) y -= LINE_GAP * 2;
 
     for (const line of wrap(paragraph, font, size, width)) {
-      if (y < MARGIN + size) ({ page, y } = newPage(doc));
+      if (y < BOTTOM_LIMIT + size) ({ page, y } = newPage(doc));
       page.drawText(line, { x: MARGIN + indent, y, size, font });
       y -= size + LINE_GAP;
     }
@@ -96,7 +105,7 @@ function drawBullet(
   size: number
 ): Cursor {
   let { page, y } = cursor;
-  if (y < MARGIN + size * 2) ({ page, y } = newPage(doc));
+  if (y < BOTTOM_LIMIT + size * 2) ({ page, y } = newPage(doc));
 
   page.drawText("•", { x: MARGIN + 6, y, size, font });
   return drawBlock(doc, { page, y }, text, font, size, 18);
@@ -175,7 +184,7 @@ async function buildDocument(execution?: ExecutionDetails) {
   cursor.y -= 12;
 
   for (const section of BAA_SECTIONS) {
-    if (cursor.y < MARGIN + 60) cursor = newPage(doc);
+    if (cursor.y < BOTTOM_LIMIT + 60) cursor = newPage(doc);
     cursor.page.drawText(section.heading, {
       x: MARGIN,
       y: cursor.y,
@@ -195,7 +204,9 @@ async function buildDocument(execution?: ExecutionDetails) {
 
   if (execution) await drawExecutionPage(doc, font, bold, execution);
 
-  return Buffer.from(await doc.save());
+  // Branded last, so the artwork sits behind everything drawn above and the
+  // layout code stays unaware of it.
+  return Buffer.from(await stampLetterhead(await doc.save()));
 }
 
 async function drawExecutionPage(

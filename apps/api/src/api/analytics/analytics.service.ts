@@ -10,6 +10,8 @@ import {
 } from "src/lib/aws/prompts";
 import { CACHE_PREFIX } from "src/lib/constant";
 import { cacheData, getData } from "src/lib/redis/redis";
+import { runUnscoped } from "src/lib/prisma/tenant-context";
+import { renderLiaisonPerformancePdf } from "./liaison-performance-pdf";
 import { recordNameIndex } from "../../lib/crypto/record-name-index";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
@@ -884,6 +886,43 @@ export class AnalyticsService {
     await cacheData(cacheKey, result, 60 * 5);
 
     return result;
+  }
+
+  // The PDF is the same report the page shows, rendered as a document. Reusing
+  // getMarketingLeadAnalytics means the download can never disagree with the
+  // screen.
+  async renderMarketingLeadAnalyticsPdf(
+    organizationId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    userId: string | null
+  ) {
+    const [report, organization] = await Promise.all([
+      this.getMarketingLeadAnalytics(
+        organizationId,
+        startDate,
+        endDate,
+        userId
+      ),
+      runUnscoped(() =>
+        prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { name: true },
+        })
+      ),
+    ]);
+
+    const liaisonName = userId
+      ? (report.analytics.find((row) => row.memberId)?.memberName ?? null)
+      : null;
+
+    return renderLiaisonPerformancePdf({
+      organizationName: organization?.name ?? "Organization",
+      report,
+      startDate,
+      endDate,
+      liaisonName,
+    });
   }
 
   async getAnalyticsByGemini(

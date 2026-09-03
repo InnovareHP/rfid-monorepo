@@ -40,6 +40,32 @@ export const getAnalyticsSummary = async (
   return response.data;
 };
 
+// Rendered server side so the download carries the letterhead and selectable
+// text, rather than a screenshot of the page.
+export const downloadLiaisonPerformancePdf = async (
+  start: Date | null,
+  end: Date | null,
+  userId: string | null
+) => {
+  const response = await axiosClient.get("/api/analytics/marketing/pdf", {
+    params: { start, end, userId },
+    responseType: "blob",
+  });
+
+  const url = URL.createObjectURL(
+    new Blob([response.data], { type: "application/pdf" })
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `liaison-performance-${new Date()
+    .toISOString()
+    .slice(0, 10)}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const getMarketingList = async (
   start: Date | null,
   end: Date | null,
