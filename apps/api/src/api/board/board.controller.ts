@@ -955,7 +955,9 @@ export class BoardController {
     }
   }
 
-  @RequirePermission({ field: ["configure"] })
+  // Restoring is create, not configure: a role that can add a column and bin
+  // one has to be able to put that column back, or its own delete is one-way.
+  @RequirePermission({ field: ["create"] })
   @Get("/column/trash")
   async getDeletedColumns(
     @Session() session: AuthenticatedSession,
@@ -971,7 +973,7 @@ export class BoardController {
     }
   }
 
-  @RequirePermission({ field: ["configure"] })
+  @RequirePermission({ field: ["create"] })
   @Patch("/column/:columnId/restore")
   async restoreColumn(
     @Param("columnId") columnId: string,
