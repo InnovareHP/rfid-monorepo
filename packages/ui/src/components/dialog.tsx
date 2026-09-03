@@ -3,7 +3,10 @@ import { XIcon } from "lucide-react";
 import * as React from "react";
 
 import {
+  MODAL_SHELL_BODY,
+  MODAL_SHELL_CONTENT,
   MODAL_SHELL_FOOTER,
+  MODAL_SHELL_FULLSCREEN_MOBILE,
   MODAL_SHELL_HEADER,
   MODAL_SHELL_ICON,
   MODAL_SHELL_TITLE,
@@ -54,9 +57,13 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  variant = "default",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  // "shell" is the banded form modal: flush header, scrolling body, flush
+  // footer, and full screen on a phone.
+  variant?: "default" | "shell";
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -64,7 +71,15 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background relative data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-4 shadow-lg duration-200 sm:w-[min(56rem,calc(100%-4rem))] sm:p-6",
+          "bg-background relative data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border shadow-lg duration-200 sm:w-[min(56rem,calc(100%-4rem))]",
+          variant === "default" && "p-4 sm:p-6",
+          // Only a Dialog shell reserves room for the close button; an
+          // AlertDialog confirm has none.
+          variant === "shell" && [
+            MODAL_SHELL_CONTENT,
+            MODAL_SHELL_FULLSCREEN_MOBILE,
+            "[&>[data-slot=dialog-header]]:pr-14",
+          ],
           className
         )}
         {...props}
@@ -73,7 +88,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="ring-offset-background focus:ring-ring hover:bg-accent data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-3 right-3 flex size-9 items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none sm:top-4 sm:right-4 sm:size-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5 sm:[&_svg:not([class*='size-'])]:size-4"
           >
             <XIcon />
             <span className="sr-only">Close</span>
@@ -134,6 +149,17 @@ function DialogFormHeader({
   );
 }
 
+// Shared modal shell body: the only part of a shell modal that scrolls.
+function DialogFormBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-form-body"
+      className={cn(MODAL_SHELL_BODY, className)}
+      {...props}
+    />
+  );
+}
+
 // Shared modal shell footer: cancel on the left, primary action on the right.
 function DialogFormFooter({
   className,
@@ -176,6 +202,7 @@ export {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
   DialogHeader,

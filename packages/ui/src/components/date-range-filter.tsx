@@ -3,22 +3,29 @@ import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./button";
 import { Calendar } from "./calendar";
+import { cn } from "@dashboard/ui/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 export function DateRangeFilter({
   from,
   to,
   onChange,
+  className,
 }: {
   from: Date | null;
   to: Date | null;
   onChange: (value: { from: Date | null; to: Date | null }) => void;
+  // Layout only: the trigger goes full width in a stacked mobile toolbar.
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          className={cn("flex items-center gap-2", className)}
+        >
           <CalendarIcon className="w-4 h-4" />
           {from && to
             ? `${format(from, "MM/dd/yyyy")} - ${format(to, "MM/dd/yyyy")}`
