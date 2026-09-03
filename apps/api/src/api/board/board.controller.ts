@@ -40,6 +40,7 @@ import {
   CreateRecordDto,
   CsvImportDto,
   DeleteRecordsDto,
+  RecordLinkCountsDto,
   NotificationStateDto,
   RestoreHistoryDto,
   UpdateActivityDto,
@@ -707,7 +708,7 @@ export class BoardController {
     session: AuthenticatedSession
   ) {
     try {
-      return this.boardService.restoreRecord(
+      return await this.boardService.restoreRecord(
         dto.recordId,
         dto.history_id,
         session.session.activeOrganizationId,
@@ -879,6 +880,23 @@ export class BoardController {
     }
   }
 
+  // Warning only: the delete itself never refuses on a link.
+  @RequirePermission({ record: ["delete"] })
+  @Post("/link-counts")
+  async getRecordLinkCounts(
+    @Body() dto: RecordLinkCountsDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getRecordLinkCounts(
+        dto.recordIds,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getRecordLinkCounts");
+    }
+  }
+
   // ─── DELETE ───────────────────────────────────────────────────────────
 
   @RequirePermission({ record: ["delete"] })
@@ -1007,6 +1025,23 @@ export class BoardController {
       );
     } catch (error) {
       throw toSafeError(error, "boards.deleteRecordFieldOption");
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Get("/field/options/:optionId/usage")
+  async getRecordFieldOptionUsage(
+    @Param("optionId") optionId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getRecordFieldOptionUsage(
+        optionId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getRecordFieldOptionUsage");
     }
   }
 

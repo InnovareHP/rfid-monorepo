@@ -255,10 +255,15 @@ export class BoardService {
     const linkTargets = linkTargetIds.size
       ? await prisma.board.findMany({
           where: { id: { in: [...linkTargetIds] }, organizationId },
-          select: { id: true, recordName: true },
+          select: { id: true, recordName: true, isDeleted: true },
         })
       : [];
-    const linkNameById = new Map(linkTargets.map((t) => [t.id, t.recordName]));
+    // A soft-deleted target resolves to null so the cell empties instead of
+    // naming a record getRelatedRecords already hides. An id matching nothing
+    // is a legacy name-valued cell and is left as typed.
+    const linkNameById = new Map(
+      linkTargets.map((t) => [t.id, t.isDeleted ? null : t.recordName])
+    );
 
     const linkIdsByBoard = new Map<string, Record<string, string>>();
     for (const b of allBoards) {
@@ -266,6 +271,10 @@ export class BoardService {
         if (!linkFieldIds.has(v.field.id) || !v.value) continue;
         const targetName = linkNameById.get(v.value);
         if (targetName === undefined) continue;
+        if (targetName === null) {
+          v.value = null;
+          continue;
+        }
         const row = linkIdsByBoard.get(b.id) ?? {};
         row[v.field.fieldName] = v.value;
         linkIdsByBoard.set(b.id, row);
@@ -1225,16 +1234,22 @@ export class BoardService {
     const linkTargets = linkValueIds.length
       ? await prisma.board.findMany({
           where: { id: { in: linkValueIds }, organizationId },
-          select: { id: true, recordName: true },
+          select: { id: true, recordName: true, isDeleted: true },
         })
       : [];
-    const linkNameById = new Map(linkTargets.map((t) => [t.id, t.recordName]));
+    const linkNameById = new Map(
+      linkTargets.map((t) => [t.id, t.isDeleted ? null : t.recordName])
+    );
 
     const linkIds: Record<string, string> = {};
     for (const v of record.values) {
       if (!linkFieldNames.has(v.field.fieldName) || !v.value) continue;
       const targetName = linkNameById.get(v.value);
       if (targetName === undefined) continue;
+      if (targetName === null) {
+        v.value = null;
+        continue;
+      }
       linkIds[v.field.fieldName] = v.value;
       v.value = targetName;
     }
@@ -2845,24 +2860,28 @@ export class BoardService {
     moduleType: string = "LEAD"
   ) {
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
-    const history = await prisma.history.findUniqueOrThrow({
-      where: { id: history_id },
+    // findFirst, not findUnique: ownership hangs off the Board relation because
+    // History.organizationId is null on rows written before that column existed.
+    const history = await prisma.history.findFirstOrThrow({
+      where: { id: history_id, recordId, record: { organizationId } },
       select: {
         column: true,
         fieldId: true,
         oldValue: true,
         newValue: true,
         recordId: true,
+        record: { select: { isDeleted: true, moduleId: true } },
       },
     });
 
-    if (event_type === "update") {
-      const record = await prisma.board.findUniqueOrThrow({
-        where: { id: history.recordId },
-        select: { isDeleted: true },
-      });
+    // Records predating modules carry a null moduleId, so only a populated
+    // mismatch means the entry belongs to another module.
+    if (history.record.moduleId && history.record.moduleId !== scopedModuleId) {
+      throw new NotFoundException("History entry not found");
+    }
 
-      if (record.isDeleted) {
+    if (event_type === "update") {
+      if (history.record.isDeleted) {
         throw new NotFoundException("Record is deleted");
       }
 
@@ -2930,7 +2949,7 @@ export class BoardService {
       await prisma.$transaction(async (tx) => {
         await tx.board.update({
           where: { id: history.recordId },
-          data: { isDeleted: Boolean(history.oldValue) },
+          data: { isDeleted: false },
         });
         await tx.history.create({
           data: {
@@ -2948,13 +2967,7 @@ export class BoardService {
 
       await purgeBoardCaches(organizationId);
 
-      this.boardGateway.emitRecordValueUpdated(
-        organizationId,
-        history.recordId,
-        history.column ?? "",
-        history.oldValue ?? "",
-        moduleType
-      );
+      this.boardGateway.emitRecordRestored(organizationId, moduleType);
       await this.boardNotify.notifyRecord({
         recordId: history.recordId,
         organizationId,
@@ -2965,7 +2978,7 @@ export class BoardService {
       });
 
       return {
-        message: "Record deleted successfully",
+        message: "Record restored successfully",
       };
     }
   }
@@ -3919,6 +3932,87 @@ export class BoardService {
       where: { id: optionId },
       data: { isDeleted: false, deletedAt: null, deletedBy: null },
     });
+  }
+
+  // Delete is never blocked by a link, so this only feeds the confirm dialog.
+  // Counterparts inside the same selection are excluded: those links die with
+  // the batch and are not something the user has to weigh.
+  async getRecordLinkCounts(recordIds: string[], organizationId: string) {
+    if (recordIds.length === 0) return { total: 0, byModule: {} };
+
+    const ids = new Set(recordIds);
+    const counterpart = {
+      select: {
+        id: true,
+        moduleType: true,
+        isDeleted: true,
+        organizationId: true,
+        module: { select: { key: true } },
+      },
+    } as const;
+
+    const relations = await prisma.boardRelation.findMany({
+      where: {
+        OR: [{ sourceId: { in: recordIds } }, { targetId: { in: recordIds } }],
+      },
+      select: { sourceId: true, source: counterpart, target: counterpart },
+    });
+
+    const seen = new Set<string>();
+    const byModule: Record<string, number> = {};
+
+    for (const relation of relations) {
+      const other = ids.has(relation.sourceId)
+        ? relation.target
+        : relation.source;
+      if (other.isDeleted) continue;
+      if (other.organizationId !== organizationId) continue;
+      if (ids.has(other.id)) continue;
+      if (seen.has(other.id)) continue;
+      seen.add(other.id);
+
+      const key = other.module?.key ?? other.moduleType;
+      byModule[key] = (byModule[key] ?? 0) + 1;
+    }
+
+    return { total: seen.size, byModule };
+  }
+
+  // Binning an option is allowed whatever it holds, so this is a warning count
+  // only. FieldValue.value is encrypted at rest and stores the option name, so
+  // the match runs on decrypted rows here rather than as a SQL count.
+  async getRecordFieldOptionUsage(optionId: string, organizationId: string) {
+    const option = await prisma.fieldOption.findFirst({
+      where: { id: optionId, field: { organizationId } },
+      select: {
+        optionName: true,
+        field: { select: { id: true, fieldType: true } },
+      },
+    });
+    if (!option) throw new NotFoundException("Field option not found");
+
+    const values = await prisma.fieldValue.findMany({
+      where: {
+        fieldId: option.field.id,
+        value: { not: null },
+        record: { organizationId, isDeleted: false },
+      },
+      select: { value: true },
+    });
+
+    // labelKey is what createRecordFieldOption dedupes on, so usage has to be
+    // counted through the same key or a case variant reads as unused.
+    const key = labelKey(option.optionName);
+    const multiselect = option.field.fieldType === BoardFieldType.MULTISELECT;
+
+    const count = values.filter((row) => {
+      const raw = row.value as string;
+      return multiselect
+        ? raw.split(",").some((part) => labelKey(part) === key)
+        : labelKey(raw) === key;
+    }).length;
+
+    return { count };
   }
 
   async deleteRecord(

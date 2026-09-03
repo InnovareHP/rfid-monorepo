@@ -1,4 +1,5 @@
 import { ReusableTable } from "@/components/reusable-table/generic-table";
+import { DeleteOptionDialog } from "@/components/reusable-table/delete-option-dialog";
 import {
   createReferralDropdownOption,
   deleteReferralDropdownOption,
@@ -27,7 +28,7 @@ import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { Plus, Trash } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -135,48 +136,16 @@ export default function ReferralOption() {
     },
   });
 
-  const deleteOptionRender = (row: LeadOptions) => {
-    const isOpen = deleteDialogId === row.id;
-
-    return (
-      <Dialog
-        open={isOpen}
-        onOpenChange={(open) => setDeleteDialogId(open ? row.id : null)}
-      >
-        <DialogTrigger asChild>
-          <Button variant="destructive" size="sm">
-            <Trash className="h-4 w-4" />
-            Delete
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Option</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{row.value}"? This action cannot
-              be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogId(null)}
-              disabled={deleteOptionMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteOptionMutation.mutate(row.id)}
-              disabled={deleteOptionMutation.isPending}
-            >
-              {deleteOptionMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  };
+  const deleteOptionRender = (row: LeadOptions) => (
+    <DeleteOptionDialog
+      optionId={row.id}
+      optionName={row.value}
+      open={deleteDialogId === row.id}
+      onOpenChange={(open) => setDeleteDialogId(open ? row.id : null)}
+      onConfirm={() => deleteOptionMutation.mutate(row.id)}
+      isPending={deleteOptionMutation.isPending}
+    />
+  );
 
   const columns = [
     {

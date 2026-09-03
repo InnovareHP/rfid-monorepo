@@ -136,6 +136,18 @@ export const getRelatedRecords = async (recordId: string) => {
   return response.data as RelatedRecord[];
 };
 
+export type RecordLinkCounts = {
+  total: number;
+  byModule: Record<string, number>;
+};
+
+export const getRecordLinkCounts = async (recordIds: string[]) => {
+  const response = await axiosClient.post("/api/boards/link-counts", {
+    recordIds,
+  });
+  return response.data as RecordLinkCounts;
+};
+
 export const getLinkCandidates = async (
   targetModule: string,
   page = 1,

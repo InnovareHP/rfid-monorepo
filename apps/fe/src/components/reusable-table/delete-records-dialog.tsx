@@ -6,7 +6,10 @@ import {
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
 import { Spinner } from "@dashboard/ui/components/spinner";
-import { Trash2Icon } from "lucide-react";
+import { getRecordLinkCounts } from "@/services/board/board-module-service";
+import { moduleLabel } from "@/lib/helper/module-route";
+import { useQuery } from "@tanstack/react-query";
+import { Link2Icon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -27,6 +30,18 @@ export function DeleteRecordsDialog({
 }: DeleteRecordsDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const itemLabel = recordIds.length === 1 ? "item" : "items";
+
+  // A link never blocks the delete, so this is shown for judgement only.
+  const { data: linkCounts } = useQuery({
+    queryKey: ["record-link-counts", recordIds],
+    queryFn: () => getRecordLinkCounts(recordIds),
+    enabled: open && recordIds.length > 0,
+    staleTime: 1000 * 60,
+  });
+
+  const linkSummary = Object.entries(linkCounts?.byModule ?? {})
+    .map(([key, count]) => `${count} ${moduleLabel(key)}`)
+    .join(", ");
 
   const handleDelete = async () => {
     if (recordIds.length === 0) return;
@@ -51,8 +66,19 @@ export function DeleteRecordsDialog({
           icon={<Trash2Icon />}
           iconClassName="bg-destructive text-destructive-foreground"
           title={`Delete ${recordIds.length} ${itemLabel}?`}
-          description={`This permanently removes ${recordIds.length} selected ${itemLabel} and all associated data. This cannot be undone.`}
+          description={`Are you sure you want to delete ${recordIds.length} selected ${itemLabel}?`}
         />
+
+        {linkCounts && linkCounts.total > 0 && (
+          <div className="mx-6 mb-4 flex items-start gap-2 rounded-md border border-border bg-muted p-3 text-sm text-muted-foreground">
+            <Link2Icon className="mt-0.5 size-4 shrink-0" />
+            <span>
+              {linkSummary} still {linkCounts.total === 1 ? "links" : "link"} to
+              this. Those records keep the link, and the cell reads blank while
+              this is deleted.
+            </span>
+          </div>
+        )}
 
         <DialogFormFooter>
           <Button
@@ -75,7 +101,7 @@ export function DeleteRecordsDialog({
             ) : (
               <>
                 <Trash2Icon className="mr-2 size-4" />
-                Delete Permanently
+                Delete
               </>
             )}
           </Button>

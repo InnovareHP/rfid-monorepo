@@ -105,6 +105,10 @@ export const DeleteRecordsSchema = z.object({
   moduleType: z.string().optional(),
 });
 
+export const RecordLinkCountsSchema = z.object({
+  recordIds: z.array(z.string()).min(1),
+});
+
 export const CreateActivitySchema = z.object({
   recordId: z.string(),
   title: z.string().min(1),

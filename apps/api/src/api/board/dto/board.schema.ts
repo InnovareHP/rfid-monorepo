@@ -13,6 +13,7 @@ import {
   CsvImportSchema,
   DeleteRecordsSchema,
   NotificationStateSchema,
+  RecordLinkCountsSchema,
   RestoreHistorySchema,
   UpdateActivitySchema,
   UpdateContactSchema,
@@ -35,6 +36,7 @@ export class CreateFieldOptionDto extends createZodDto(
 ) {}
 export class CreateHistoryDto extends createZodDto(CreateHistorySchema) {}
 export class DeleteRecordsDto extends createZodDto(DeleteRecordsSchema) {}
+export class RecordLinkCountsDto extends createZodDto(RecordLinkCountsSchema) {}
 export class CreateActivityDto extends createZodDto(CreateActivitySchema) {}
 export class CreateFaxActivityDto extends createZodDto(
   CreateFaxActivitySchema

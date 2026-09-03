@@ -60,6 +60,13 @@ export function useBoardSync() {
       );
     };
 
+    // A restored row was never streamed and its cells are rebuilt from EAV, so
+    // refetch that board instead of reinserting a row the client cannot shape.
+    const handleRestored = ({ moduleType }: any) => {
+      queryClient.invalidateQueries({ queryKey: getQueryKey(moduleType) });
+      queryClient.invalidateQueries({ queryKey: ["board-stats"] });
+    };
+
     // Geocoding derives several columns at once, so the payload is a field-name map
     const handleUpdateLocation = ({ recordId, data, moduleType }: any) => {
       patchRows(moduleType, (rows) =>
@@ -178,6 +185,7 @@ export function useBoardSync() {
       "board:update": handleUpdate,
       "board:record-created": handleCreated,
       "board:record-deleted": handleDelete,
+      "board:record-restored": handleRestored,
       "board:record-notification-state": handleUpdateNotificationState,
       "board:update-location": handleUpdateLocation,
       "board:update-status": handleUpdateStatus,

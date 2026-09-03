@@ -15,3 +15,15 @@ export const modulePath = (moduleKey: string) =>
 export const moduleParam = (moduleKey: string) => moduleKey.toLowerCase();
 
 export const moduleKeyFromParam = (param: string) => param.toUpperCase();
+
+// Seeded modules read better than their keys; a custom module is already named
+// by its key.
+const SYSTEM_MODULE_LABELS: Record<string, string> = {
+  LEAD: "Facility",
+  REFERRAL: "Referral",
+  CONTACT: "Contact",
+  COMPANY: "Company",
+};
+
+export const moduleLabel = (moduleKey: string) =>
+  SYSTEM_MODULE_LABELS[moduleKey] ?? moduleKey;

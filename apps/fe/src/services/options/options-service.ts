@@ -19,8 +19,16 @@ export const getLiaisons = async (isLiaison: boolean) => {
 
 export const deleteDropdownOption = async (optionId: string) => {
   const response = await axiosClient.delete(
-    `/api/leads/field/options/${optionId}`
+    `/api/boards/field/options/${optionId}`
   );
 
   return response.data;
+};
+
+export const getFieldOptionUsage = async (optionId: string) => {
+  const response = await axiosClient.get(
+    `/api/boards/field/options/${optionId}/usage`
+  );
+
+  return response.data as { count: number };
 };
