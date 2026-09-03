@@ -17,6 +17,7 @@ import { Checkbox } from "@dashboard/ui/components/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -243,7 +244,7 @@ export const MarketingFormsListPage = () => {
           if (!open) form.reset();
         }}
       >
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogContent variant="shell" className="sm:max-w-lg">
           <DialogFormHeader
             icon={<FileText />}
             title="New Form"
@@ -256,7 +257,7 @@ export const MarketingFormsListPage = () => {
                 createMutation.mutate(values)
               )}
             >
-              <div className="space-y-4 px-6 py-5">
+              <DialogFormBody className="space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -328,7 +329,7 @@ export const MarketingFormsListPage = () => {
                     </FormItem>
                   )}
                 />
-              </div>
+              </DialogFormBody>
 
               <DialogFormFooter>
                 <Button

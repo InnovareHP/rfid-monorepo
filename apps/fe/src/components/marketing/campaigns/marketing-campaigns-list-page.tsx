@@ -12,6 +12,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -316,14 +317,14 @@ export const MarketingCampaignsListPage = () => {
           resetForm();
         }}
       >
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogContent variant="shell" className="sm:max-w-lg">
           <DialogFormHeader
             icon={<Megaphone />}
             title={editing ? "Edit Campaign" : "New Campaign"}
             description="Name your campaign and add an optional description."
           />
 
-          <div className="space-y-4 px-6 py-5">
+          <DialogFormBody className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="campaign-name">
                 Campaign Name <span className="text-red-500">*</span>
@@ -347,7 +348,7 @@ export const MarketingCampaignsListPage = () => {
               value={senderIdentityId}
               onChange={setSenderIdentityId}
             />
-          </div>
+          </DialogFormBody>
 
           <DialogFormFooter>
             <Button

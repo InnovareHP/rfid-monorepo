@@ -46,7 +46,7 @@ export function DeleteRecordsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent variant="shell" className="sm:max-w-lg">
         <DialogFormHeader
           icon={<Trash2Icon />}
           iconClassName="bg-destructive text-destructive-foreground"

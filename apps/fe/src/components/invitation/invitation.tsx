@@ -250,7 +250,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
   if (state.step === "loading" || state.step === "accepting") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30 p-4">
+      <div className="flex flex-col items-center justify-center min-h-dvh bg-muted/30 p-4">
         <div className="relative flex items-center justify-center">
           <div className="absolute w-16 h-16 border-4 border-primary/20 rounded-full" />
           <Spinner className="w-16 h-16 text-primary" />
@@ -269,7 +269,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
   if (state.step === "rejected") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
+      <div className="flex items-center justify-center min-h-dvh bg-muted/30 p-4">
         <Card className="w-full max-w-md shadow-xl border-none">
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Invitation declined</CardTitle>
@@ -284,7 +284,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
   if (state.step === "error") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
+      <div className="flex items-center justify-center min-h-dvh bg-muted/30 p-4">
         <Card className="w-full max-w-md border-destructive/20 shadow-xl">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
@@ -309,7 +309,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
 
   if (state.step === "success") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
+      <div className="flex items-center justify-center min-h-dvh bg-muted/30 p-4">
         <Card className="w-full max-w-md shadow-2xl border-none">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mb-4 animate-bounce">
@@ -346,7 +346,7 @@ const AcceptInvitation = ({ action }: { action: "accept" | "reject" }) => {
   const { invitation } = state;
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-muted/30">
+    <div className="flex items-center justify-center min-h-dvh p-4 bg-muted/30">
       <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-border">
         <CardHeader className="space-y-1 text-center pb-8">
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">

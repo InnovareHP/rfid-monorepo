@@ -15,6 +15,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -200,7 +201,7 @@ export const MarketingLandingPagesListPage = () => {
           if (!open) form.reset();
         }}
       >
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogContent variant="shell" className="sm:max-w-lg">
           <DialogFormHeader
             icon={<Megaphone />}
             title="New Landing Page"
@@ -213,7 +214,7 @@ export const MarketingLandingPagesListPage = () => {
                 createMutation.mutate(values)
               )}
             >
-              <div className="space-y-4 px-6 py-5">
+              <DialogFormBody className="space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -229,7 +230,7 @@ export const MarketingLandingPagesListPage = () => {
                     </FormItem>
                   )}
                 />
-              </div>
+              </DialogFormBody>
 
               <DialogFormFooter>
                 <Button

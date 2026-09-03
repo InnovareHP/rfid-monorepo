@@ -14,7 +14,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@dashboard/ui/components/popover";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
@@ -66,8 +65,13 @@ export const NotificationBell = () => {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-[calc(100vw-2rem)] p-0 sm:w-90">
-        <div className="flex items-center justify-between border-b px-3 py-2">
+      {/* Column, not a stack: the list is the only part that scrolls, so the
+          header, the tabs and the footer link stay put. */}
+      <PopoverContent
+        align="end"
+        className="flex max-h-[min(32rem,var(--radix-popover-content-available-height))] w-[calc(100vw-2rem)] flex-col overflow-hidden p-0 sm:w-90"
+      >
+        <div className="flex shrink-0 items-center justify-between border-b px-3 py-2">
           <p className="text-sm font-semibold">Notifications</p>
           {unreadCount > 0 && (
             <Button
@@ -85,10 +89,13 @@ export const NotificationBell = () => {
         <NotificationCategoryTabs
           active={category}
           onChange={setCategory}
-          className="border-b px-3 py-2"
+          className="shrink-0 border-b px-3 py-2"
         />
 
-        <ScrollArea className="max-h-96">
+        {/* Native scroll, not Radix ScrollArea: its viewport is h-full against
+            an auto-height root, so a max-h on the root never contained it -
+            the list ran past the panel and pushed the footer off screen. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {isLoading && (
             <div className="space-y-2 p-3">
               <Skeleton className="h-10 w-full" />
@@ -111,11 +118,11 @@ export const NotificationBell = () => {
               onDelete={(id) => deleteMutation.mutate(id)}
             />
           ))}
-        </ScrollArea>
+        </div>
 
         <button
           type="button"
-          className="w-full border-t py-2.5 text-center text-sm font-bold text-primary hover:bg-muted"
+          className="w-full shrink-0 border-t py-2.5 text-center text-sm font-bold text-primary hover:bg-muted"
           onClick={() => {
             setOpen(false);
             navigate({ to: "/$team/notifications", params: { team } });

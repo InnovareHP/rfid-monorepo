@@ -41,7 +41,7 @@ export function MarketingFilters({
         onValueChange={onSelectLiaison}
         disabled={!canSelectLiaison}
       >
-        <SelectTrigger className="h-10 w-[220px] rounded-lg">
+        <SelectTrigger className="h-10 w-full rounded-lg sm:w-[220px]">
           <SelectValue
             placeholder={canSelectLiaison ? "All liaisons" : "Your report"}
           />

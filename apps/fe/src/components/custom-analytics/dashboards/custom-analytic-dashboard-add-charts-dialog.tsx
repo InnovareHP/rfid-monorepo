@@ -3,6 +3,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -46,14 +47,14 @@ export function CustomAnalyticDashboardAddChartsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? null : close())}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent variant="shell" className="sm:max-w-lg">
         <DialogFormHeader
           icon={<ChartSpline />}
           title="Add Charts"
           description="Pick saved charts to show on this dashboard."
         />
 
-        <div className="space-y-4 px-6 py-5">
+        <DialogFormBody className="space-y-4">
           {options.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Every saved chart is already on this dashboard.
@@ -69,7 +70,7 @@ export function CustomAnalyticDashboardAddChartsDialog({
               className="w-full"
             />
           )}
-        </div>
+        </DialogFormBody>
 
         <DialogFormFooter>
           <Button type="button" variant="outline" onClick={close}>

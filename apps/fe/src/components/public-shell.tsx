@@ -16,7 +16,7 @@ export const PublicShell = ({
 }) => (
   <div
     className={cn(
-      "flex min-h-screen flex-col items-center gap-6 p-4 sm:justify-center sm:gap-10 sm:p-6",
+      "flex min-h-dvh flex-col items-center gap-6 p-4 sm:justify-center sm:gap-10 sm:p-6",
       SHELL_GRADIENT,
       className
     )}
