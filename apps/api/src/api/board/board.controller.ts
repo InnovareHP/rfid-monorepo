@@ -955,6 +955,40 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ field: ["configure"] })
+  @Get("/column/trash")
+  async getDeletedColumns(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      return await this.boardService.getDeletedColumns(
+        moduleType || "LEAD",
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getDeletedColumns");
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Patch("/column/:columnId/restore")
+  async restoreColumn(
+    @Param("columnId") columnId: string,
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      return await this.boardService.restoreColumn(
+        columnId,
+        session.session.activeOrganizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.restoreColumn");
+    }
+  }
+
   @RequirePermission({ field: ["delete"] })
   @Delete("/column/:columnId")
   async deleteColumn(
@@ -966,7 +1000,8 @@ export class BoardController {
       return await this.boardService.deleteColumn(
         columnId,
         session.session.activeOrganizationId,
-        moduleType || "LEAD"
+        moduleType || "LEAD",
+        session.session.userId
       );
     } catch (error) {
       throw toSafeError(error, "boards.deleteColumn");

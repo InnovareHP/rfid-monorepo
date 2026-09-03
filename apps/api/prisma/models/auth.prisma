@@ -49,6 +49,7 @@ model User {
   FieldValueAttachment      FieldValueAttachment[]      @relation("FieldValueAttachmentUploadedBy")
   fieldOptionsCreated       FieldOption[]               @relation("FieldOptionCreatedBy")
   fieldOptionsDeleted       FieldOption[]               @relation("FieldOptionDeletedBy")
+  fieldsDeleted             Field[]                     @relation("FieldDeletedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
   notificationsActed        Notification[]              @relation("NotificationActor")

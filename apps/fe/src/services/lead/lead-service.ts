@@ -275,6 +275,35 @@ export const deleteColumnField = async (
   return response.data;
 };
 
+export type DeletedColumn = {
+  id: string;
+  fieldName: string;
+  fieldType: string;
+  deletedAt: string | null;
+  deleter: { id: string; name: string } | null;
+};
+
+export const getDeletedColumns = async (moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/column/trash`, {
+    params: { moduleType: moduleType || "LEAD" },
+  });
+
+  return response.data as DeletedColumn[];
+};
+
+export const restoreColumnField = async (
+  columnId: string,
+  moduleType?: string
+) => {
+  const response = await axiosClient.patch(
+    `/api/boards/column/${columnId}/restore`,
+    null,
+    { params: { moduleType: moduleType || "LEAD" } }
+  );
+
+  return response.data;
+};
+
 export const getLeadHistory = async (filters: any, moduleType?: string) => {
   const response = await axiosClient.get(`/api/boards/history`, {
     params: { ...filters, moduleType: moduleType || "LEAD" },

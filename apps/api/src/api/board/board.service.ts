@@ -3025,17 +3025,37 @@ export class BoardService {
     });
 
     const newOrder = lastColumn ? lastColumn.fieldOrder + 1 : 1;
+    const name = normalizeLabel(column_name);
 
-    const field = await prisma.field.create({
-      data: {
-        fieldName: normalizeLabel(column_name),
-        fieldType: fieldType,
-        fieldOrder: newOrder,
-        organizationId: organizationId,
-        moduleType: toModuleType(moduleType),
-        moduleId: scopedModuleId,
-      },
-    });
+    // A binned column with this name is restored rather than duplicated. Field
+    // has no unique constraint and getAllBoards keys its rows by fieldName, so
+    // a second live column of the same name would silently shadow the first.
+    const binned = await this.findBinnedColumn(
+      name,
+      scopedModuleId,
+      organizationId
+    );
+
+    const field = binned
+      ? await prisma.field.update({
+          where: { id: binned.id },
+          data: {
+            isDeleted: false,
+            deletedAt: null,
+            deletedBy: null,
+            fieldOrder: newOrder,
+          },
+        })
+      : await prisma.field.create({
+          data: {
+            fieldName: name,
+            fieldType: fieldType,
+            fieldOrder: newOrder,
+            organizationId: organizationId,
+            moduleType: toModuleType(moduleType),
+            moduleId: scopedModuleId,
+          },
+        });
 
     await purgeBoardCaches(organizationId);
 
@@ -3049,7 +3069,8 @@ export class BoardService {
   async deleteColumn(
     columnId: string,
     organizationId: string,
-    moduleType: string
+    moduleType: string,
+    userId: string
   ) {
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
 
@@ -3097,7 +3118,7 @@ export class BoardService {
 
     await prisma.field.update({
       where: { id: columnId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedAt: new Date(), deletedBy: userId },
     });
 
     await purgeBoardCaches(organizationId);
@@ -3105,6 +3126,98 @@ export class BoardService {
     this.boardGateway.emitColumnDeleted(organizationId, columnId, moduleType);
 
     return { message: "Column deleted successfully" };
+  }
+
+  // Name matching uses labelKey, the same collapse createRecordFieldOption
+  // dedupes options with, so "Notes" and "notes " are one column.
+  private async findBinnedColumn(
+    fieldName: string,
+    moduleId: string,
+    organizationId: string
+  ) {
+    const key = labelKey(fieldName);
+    const binned = await prisma.field.findMany({
+      where: { organizationId, moduleId, isDeleted: true },
+      select: { id: true, fieldName: true },
+    });
+
+    return binned.find((field) => labelKey(field.fieldName) === key) ?? null;
+  }
+
+  // The trash for one module, newest first. A column binned before deletedAt
+  // existed sorts last rather than being hidden.
+  async getDeletedColumns(moduleType: string, organizationId: string) {
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+    return prisma.field.findMany({
+      where: { organizationId, moduleId: scopedModuleId, isDeleted: true },
+      orderBy: [{ deletedAt: "desc" }, { fieldName: "asc" }],
+      select: {
+        id: true,
+        fieldName: true,
+        fieldType: true,
+        deletedAt: true,
+        deleter: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  // Restoring puts the column back at the end rather than at its old order,
+  // which the columns added since have taken.
+  async restoreColumn(
+    columnId: string,
+    organizationId: string,
+    moduleType: string
+  ) {
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+    const field = await prisma.field.findFirst({
+      where: { id: columnId, organizationId, moduleId: scopedModuleId },
+      select: { id: true, fieldName: true, fieldType: true, isDeleted: true },
+    });
+    if (!field) throw new NotFoundException("Column not found");
+    if (!field.isDeleted) {
+      throw new BadRequestException("Column is not in the trash");
+    }
+
+    // getAllBoards keys its rows by fieldName, so restoring onto a live column
+    // of the same name would make one of the two unreachable.
+    const key = labelKey(field.fieldName);
+    const live = await prisma.field.findMany({
+      where: { organizationId, moduleId: scopedModuleId, isDeleted: false },
+      select: { fieldName: true },
+    });
+    if (live.some((other) => labelKey(other.fieldName) === key)) {
+      throw new ConflictException(
+        `"${field.fieldName}" already exists. Rename that column before restoring this one.`
+      );
+    }
+
+    const lastColumn = await prisma.field.findFirst({
+      where: { organizationId, moduleId: scopedModuleId, isDeleted: false },
+      orderBy: { fieldOrder: "desc" },
+      select: { fieldOrder: true },
+    });
+
+    await prisma.field.update({
+      where: { id: columnId },
+      data: {
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        fieldOrder: lastColumn ? lastColumn.fieldOrder + 1 : 1,
+      },
+    });
+
+    await purgeBoardCaches(organizationId);
+
+    this.boardGateway.emitColumnCreated(
+      organizationId,
+      { id: field.id, name: field.fieldName, type: field.fieldType },
+      moduleType
+    );
+
+    return { message: "Column restored successfully" };
   }
 
   /**
@@ -3512,17 +3625,36 @@ export class BoardService {
         continue;
       }
 
-      const field = await prisma.field.create({
-        data: {
-          fieldName: column.fieldName.trim(),
-          fieldType: column.fieldType,
-          fieldOrder: nextOrder,
-          organizationId,
-          moduleType: toModuleType(moduleType),
-          moduleId,
-        },
-        select: { id: true, fieldName: true, fieldType: true },
-      });
+      // Only live fields reach this function, so a header matching a binned
+      // column would otherwise add a second live field of the same name.
+      const binned = await this.findBinnedColumn(
+        column.fieldName,
+        moduleId,
+        organizationId
+      );
+
+      const field = binned
+        ? await prisma.field.update({
+            where: { id: binned.id },
+            data: {
+              isDeleted: false,
+              deletedAt: null,
+              deletedBy: null,
+              fieldOrder: nextOrder,
+            },
+            select: { id: true, fieldName: true, fieldType: true },
+          })
+        : await prisma.field.create({
+            data: {
+              fieldName: column.fieldName.trim(),
+              fieldType: column.fieldType,
+              fieldOrder: nextOrder,
+              organizationId,
+              moduleType: toModuleType(moduleType),
+              moduleId,
+            },
+            select: { id: true, fieldName: true, fieldType: true },
+          });
 
       nextOrder += 1;
       byName.set(key, field.id);

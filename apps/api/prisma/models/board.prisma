@@ -48,8 +48,16 @@ model Field {
   values  FieldValue[]
   history History[]
 
+  // Soft delete only, so a binned column can be put back with the values its
+  // records still hold. Mirrors FieldOption: a user id rather than a member id,
+  // because attribution has to outlive the member row.
+  deletedAt DateTime? @db.Timestamptz(3)
+  deletedBy String?
+  deleter   User?     @relation("FieldDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
   @@index([organizationId, moduleType, isDeleted, fieldOrder])
   @@index([moduleId, isDeleted, fieldOrder])
+  @@index([moduleId, isDeleted, deletedAt])
   @@schema("board_schema")
 }
 
