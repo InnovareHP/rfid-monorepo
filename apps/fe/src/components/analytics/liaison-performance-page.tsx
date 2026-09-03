@@ -6,7 +6,9 @@ import { exportElementToPdf } from "@/lib/helper/pdf-export";
 import { getMarketingList } from "@/services/analytics/analytics-service";
 import { getLiaisons } from "@/services/options/options-service";
 import type { LiaisonAnalyticsCardData } from "@dashboard/shared";
-import { mapAIAnalysisToInsights } from "@dashboard/shared";
+import { isOrgAdmin, mapAIAnalysisToInsights } from "@dashboard/shared";
+import type { User } from "better-auth";
+import type { Member } from "better-auth/plugins/organization";
 import { DateRangeFilter } from "@dashboard/ui/components/date-range-filter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -28,19 +30,30 @@ type Filters = {
   userId: string | null;
 };
 
-const EMPTY_FILTERS: Filters = { start: null, end: null, userId: null };
-const PDF_ELEMENT_ID = "marketing-analytics-pdf";
+const PDF_ELEMENT_ID = "liaison-performance-pdf";
 
-const MarketingListPage = () => {
-  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
+const LiaisonPerformancePage = () => {
+  const { activeOrganizationId, user, memberData } = useRouteContext({
+    from: "/_team",
+  }) as {
     activeOrganizationId: string;
+    user: User;
+    memberData: Member | null;
   };
   const canUseAdvancedAnalytics = useEntitlement(activeOrganizationId).has(
     "advanced_analytics"
   );
 
-  const [pendingFilters, setPendingFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  // A liaison reads their own report only, so the filter starts and stays on them.
+  const canFilterLiaisons = isOrgAdmin(memberData?.role);
+  const defaultFilters: Filters = {
+    start: null,
+    end: null,
+    userId: canFilterLiaisons ? null : user.id,
+  };
+
+  const [pendingFilters, setPendingFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
@@ -62,7 +75,7 @@ const MarketingListPage = () => {
       const timestamp = new Date().toISOString().split("T")[0];
       await exportElementToPdf(
         PDF_ELEMENT_ID,
-        `marketing-analytics-${timestamp}.pdf`
+        `liaison-performance-${timestamp}.pdf`
       );
       toast.success("PDF exported successfully!");
     } catch {
@@ -73,8 +86,8 @@ const MarketingListPage = () => {
   };
 
   const handleReset = () => {
-    setPendingFilters(EMPTY_FILTERS);
-    setFilters(EMPTY_FILTERS);
+    setPendingFilters(defaultFilters);
+    setFilters(defaultFilters);
     toast.info("Filters reset");
   };
 
@@ -84,14 +97,14 @@ const MarketingListPage = () => {
   };
 
   const hasActiveFilters = Boolean(
-    filters.start || filters.end || filters.userId
+    filters.start || filters.end || (canFilterLiaisons && filters.userId)
   );
 
   if (!canUseAdvancedAnalytics) {
     return (
       <FeatureLocked
         title="Analytics is a Growth feature"
-        description="Marketing list analytics and liaison reporting are available on Growth and Scale."
+        description="Liaison performance reporting is available on Growth and Scale."
         team={activeOrganizationId}
       />
     );
@@ -122,9 +135,9 @@ const MarketingListPage = () => {
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <PageHeader
-        title="Master List Analytics Dashboard"
-        description="Track performance, insights, and engagement metrics."
-      />
+            title="Liaison Performance"
+            description="Track liaison outreach, engagement, and referral conversion."
+          />
 
           <DateRangeFilter
             from={pendingFilters.start}
@@ -164,8 +177,13 @@ const MarketingListPage = () => {
         </div>
 
         <MarketingFilters
-          liaisons={liaisons}
+          liaisons={
+            canFilterLiaisons
+              ? liaisons
+              : liaisons.filter((liaison) => liaison.id === user.id)
+          }
           selectedLiaison={pendingFilters.userId}
+          canSelectLiaison={canFilterLiaisons}
           onSelectLiaison={(userId) =>
             setPendingFilters((prev) => ({ ...prev, userId }))
           }
@@ -216,4 +234,4 @@ const MarketingListPage = () => {
   );
 };
 
-export default MarketingListPage;
+export default LiaisonPerformancePage;

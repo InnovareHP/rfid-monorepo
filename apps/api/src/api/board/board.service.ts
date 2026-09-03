@@ -30,7 +30,7 @@ import {
   cacheData,
   deleteData,
   getData,
-  purgeAllCacheKeys,
+  purgeBoardCaches,
 } from "src/lib/redis/redis";
 import { v4 as uuidv4 } from "uuid";
 import { CACHE_PREFIX } from "../../lib/constant";
@@ -38,12 +38,17 @@ import { geoPlaces } from "../../lib/geo/geo-places";
 import { resolveModuleId, toModuleType } from "../../lib/module/system-modules";
 import {
   normalizeRecordNameLoose,
+  recordNameIndex,
   recordNameIndexes,
 } from "../../lib/crypto/record-name-index";
 import {
   NAME_SIMILARITY_THRESHOLD,
   nameSimilarity,
 } from "../../lib/board/name-similarity";
+import {
+  GENERIC_ERROR_MESSAGE,
+  toSafeError,
+} from "../../lib/errors/safe-error";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { FaxService } from "../fax/fax.service";
@@ -783,7 +788,8 @@ export class BoardService {
       status: await job.getState(),
       progress: job.progress,
       result: job.returnvalue,
-      failedReason: job.failedReason,
+      // Raw BullMQ reasons carry Prisma and driver text, so callers get one line.
+      failedReason: job.failedReason ? GENERIC_ERROR_MESSAGE : null,
     };
   }
 
@@ -1409,8 +1415,15 @@ export class BoardService {
       } | null = null;
 
       if (fieldId !== BoardFieldType.ASSIGNED_TO && fieldId !== "Record") {
+        // Scoped the same way the write is, so the transaction does not have
+        // to read the field a second time inside its 5s window.
         const field = await prisma.field.findUnique({
-          where: { id: fieldId, organizationId: organizationId },
+          where: {
+            id: fieldId,
+            organizationId: organizationId,
+            isDeleted: false,
+            moduleId: scopedModuleId,
+          },
           select: { fieldType: true, id: true, fieldName: true },
         });
 
@@ -1435,56 +1448,51 @@ export class BoardService {
         }
       }
 
-      const recordValue = await prisma.$transaction(async (tx) => {
-        const baseCtx: RecordUpdateContext = {
-          recordId,
-          value,
-          organizationId,
-          memberId,
-          moduleType,
-          reason,
-        };
+      if (fieldId === "Record") {
+        await this.assertRecordNameAvailable(recordId, sanitizeUserText(value));
+      }
 
-        if (fieldId === BoardFieldType.ASSIGNED_TO) {
-          return this.updateAssignedToValue(tx, baseCtx);
-        }
+      const recordValue = await prisma.$transaction(
+        async (tx) => {
+          const baseCtx: RecordUpdateContext = {
+            recordId,
+            value,
+            organizationId,
+            memberId,
+            moduleType,
+            reason,
+          };
 
-        if (fieldId === "Record") {
-          return this.updateRecordNameValue(tx, baseCtx);
-        }
+          if (fieldId === BoardFieldType.ASSIGNED_TO) {
+            return this.updateAssignedToValue(tx, baseCtx);
+          }
 
-        const field = await tx.field.findUnique({
-          where: {
-            id: fieldId,
-            organizationId: organizationId,
-            isDeleted: false,
-            moduleId: scopedModuleId,
-          },
-          select: {
-            fieldType: true,
-            id: true,
-            fieldName: true,
-          },
-        });
+          if (fieldId === "Record") {
+            return this.updateRecordNameValue(tx, baseCtx);
+          }
 
-        if (!field) throw new NotFoundException("Field not found");
+          if (!changedField) throw new NotFoundException("Field not found");
 
-        const ctx: FieldUpdateContext = { ...baseCtx, field };
+          const ctx: FieldUpdateContext = { ...baseCtx, field: changedField };
 
-        if (this.isLinkFieldType(field.fieldType)) {
-          return this.updateReferralLinkValue(tx, ctx);
-        }
+          if (this.isLinkFieldType(changedField.fieldType)) {
+            return this.updateReferralLinkValue(tx, ctx);
+          }
 
-        if (field.fieldType === BoardFieldType.MULTISELECT) {
-          return this.updateMultiselectValue(tx, ctx);
-        }
+          if (changedField.fieldType === BoardFieldType.MULTISELECT) {
+            return this.updateMultiselectValue(tx, ctx);
+          }
 
-        if (field.fieldType === BoardFieldType.STATUS) {
-          return this.updateStatusValue(tx, ctx);
-        }
+          if (changedField.fieldType === BoardFieldType.STATUS) {
+            return this.updateStatusValue(tx, ctx);
+          }
 
-        return this.updateGenericValue(tx, ctx);
-      });
+          return this.updateGenericValue(tx, ctx);
+        },
+        // A link change is six round trips plus a cache purge, and the default
+        // 5s is not enough against a remote database.
+        { maxWait: 5000, timeout: 20000 }
+      );
 
       await deleteData(`followup:${recordId}`);
 
@@ -1525,7 +1533,7 @@ export class BoardService {
 
       return recordValue;
     } catch (error) {
-      throw new NotFoundException(error.message);
+      throw toSafeError(error, "boards.service.updateRecordValue");
     }
   }
 
@@ -1578,12 +1586,6 @@ export class BoardService {
     }
   }
 
-  private async purgeBoardCache(organizationId: string, moduleType: string) {
-    await purgeAllCacheKeys(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-    );
-  }
-
   private async updateLocationValue(
     recordId: string,
     fieldId: string,
@@ -1603,7 +1605,7 @@ export class BoardService {
       );
     });
 
-    await this.purgeBoardCache(organizationId, moduleType);
+    await purgeBoardCaches(organizationId, moduleType);
     await deleteData(`followup:${recordId}`);
 
     this.boardGateway.emitRecordValueLocation(
@@ -1623,7 +1625,7 @@ export class BoardService {
     const { recordId, value, organizationId, memberId, moduleType } = ctx;
 
     await this.updateAssignedTo(tx, recordId, value, memberId, organizationId);
-    await this.purgeBoardCache(organizationId, moduleType);
+    await purgeBoardCaches(organizationId, moduleType);
 
     this.boardGateway.emitRecordValueUpdated(
       organizationId,
@@ -1647,7 +1649,7 @@ export class BoardService {
     const value = sanitizeUserText(ctx.value);
 
     await this.updateRecordName(tx, recordId, value, memberId);
-    await this.purgeBoardCache(organizationId, moduleType);
+    await purgeBoardCaches(organizationId, moduleType);
 
     this.boardGateway.emitRecordValueUpdated(
       organizationId,
@@ -1743,6 +1745,73 @@ export class BoardService {
     return linked.value;
   }
 
+  // A link cell is only half of a link: every facility and county figure groups
+  // through BoardRelation, so a record created with its facility already chosen
+  // has to write the relation too, the same as editing that cell later does.
+  private async linkInitialValues(
+    tx: Prisma.TransactionClient,
+    params: {
+      recordId: string;
+      organizationId: string;
+      moduleType: string;
+      fields: { id: string; fieldName: string; fieldType: BoardFieldType }[];
+      initialValues?: Record<string, string | null>;
+    }
+  ) {
+    const { recordId, organizationId, moduleType, fields, initialValues } =
+      params;
+    if (!initialValues) return;
+
+    const links = fields
+      .filter((field) => this.isLinkFieldType(field.fieldType))
+      .map((field) => ({ field, value: initialValues[field.id]?.trim() }))
+      .filter((entry) => Boolean(entry.value));
+
+    for (const { field, value } of links) {
+      const { targetModule, relation } = this.resolveLinkTarget(
+        moduleType,
+        field.fieldName,
+        field.fieldType
+      );
+
+      // The caller sends the target id; a name still resolves, through the
+      // same blind index duplicate detection uses.
+      const target = await tx.board.findFirst({
+        where: {
+          organizationId,
+          moduleType: targetModule,
+          isDeleted: false,
+          OR: [{ id: value }, { recordNameHash: recordNameIndex(value!) }],
+        },
+        select: { id: true },
+      });
+
+      if (!target) continue;
+
+      await tx.boardRelation.createMany({
+        data: [
+          {
+            sourceId: recordId,
+            targetId: target.id,
+            relationType: relation,
+            organizationId,
+          },
+        ],
+        skipDuplicates: true,
+      });
+
+      // Whatever the caller passed, the cell holds the id from here on.
+      await tx.fieldValue.update({
+        where: { recordId_fieldId: { recordId, fieldId: field.id } },
+        data: { value: target.id },
+      });
+
+      if (relation === "REFERRAL_LINK") {
+        await this.syncReferralCounty(tx, recordId, target.id, organizationId);
+      }
+    }
+  }
+
   private isLinkFieldType(fieldType: BoardFieldType) {
     return (
       fieldType === BoardFieldType.REFERRAL_LINK ||
@@ -1814,12 +1883,11 @@ export class BoardService {
           tx,
           "update",
           field.fieldName,
-          field.id
+          field.id,
+          organizationId
         );
 
-        await purgeAllCacheKeys(
-          `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-        );
+        await purgeBoardCaches(organizationId, moduleType);
 
         this.boardGateway.emitRecordValueUpdated(
           organizationId,
@@ -1843,29 +1911,29 @@ export class BoardService {
         select: { value: true },
       });
 
-      // Value is the target board id; fall back to name matching for
-      // legacy clients and CSV imports that still send record names.
-      let record = await tx.board.findFirst({
-        where: {
-          id: value,
-          organizationId: organizationId,
-          moduleType: targetModule,
-          isDeleted: false,
-        },
-        select: { id: true, recordName: true },
-      });
-
-      if (!record) {
-        const linkCandidates = await tx.board.findMany({
+      // Value is the target board id, which is the only case the UI sends, so
+      // it stays a primary key lookup. Legacy clients and CSV imports that
+      // still send a record name fall back to the blind index rather than
+      // decrypting every candidate name.
+      const record =
+        (await tx.board.findFirst({
           where: {
+            id: value,
             organizationId: organizationId,
             moduleType: targetModule,
             isDeleted: false,
           },
           select: { id: true, recordName: true },
-        });
-        record = linkCandidates.find((b) => b.recordName === value) ?? null;
-      }
+        })) ??
+        (await tx.board.findFirst({
+          where: {
+            organizationId: organizationId,
+            moduleType: targetModule,
+            isDeleted: false,
+            recordNameHash: recordNameIndex(value),
+          },
+          select: { id: true, recordName: true },
+        }));
 
       if (!record) throw new NotFoundException("Record not found");
 
@@ -1924,12 +1992,11 @@ export class BoardService {
         tx,
         "update",
         field.fieldName,
-        field.id
+        field.id,
+        organizationId
       );
 
-      await purgeAllCacheKeys(
-        `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-      );
+      await purgeBoardCaches(organizationId, moduleType);
 
       this.boardGateway.emitRecordValueUpdated(
         organizationId,
@@ -2001,12 +2068,11 @@ export class BoardService {
         tx,
         "update",
         field.fieldName,
-        field.id
+        field.id,
+        organizationId
       );
 
-      await purgeAllCacheKeys(
-        `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-      );
+      await purgeBoardCaches(organizationId, moduleType);
 
       // Rows carry multiselect values as the stored JSON string
       this.boardGateway.emitRecordValueUpdated(
@@ -2135,12 +2201,11 @@ export class BoardService {
         tx,
         "update",
         field.fieldName,
-        field.id
+        field.id,
+        organizationId
       );
 
-      await purgeAllCacheKeys(
-        `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-      );
+      await purgeBoardCaches(organizationId, moduleType);
 
       this.boardGateway.emitRecordValueStatusUpdated(
         organizationId,
@@ -2193,12 +2258,11 @@ export class BoardService {
       tx,
       "update",
       field.fieldName,
-      field.id
+      field.id,
+      organizationId
     );
 
-    await purgeAllCacheKeys(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-    );
+    await purgeBoardCaches(organizationId, moduleType);
 
     this.boardGateway.emitRecordValueUpdated(
       organizationId,
@@ -2375,6 +2439,14 @@ export class BoardService {
 
     await tx.fieldValue.createMany({ data: fieldValues });
 
+    await this.linkInitialValues(tx, {
+      recordId: board.id,
+      organizationId,
+      moduleType,
+      fields,
+      initialValues,
+    });
+
     if (personContact?.fieldId) {
       const personFieldValue = await tx.fieldValue.findUnique({
         where: {
@@ -2445,9 +2517,7 @@ export class BoardService {
     organizationId: string,
     moduleType: string
   ) {
-    await purgeAllCacheKeys(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-    );
+    await purgeBoardCaches(organizationId, moduleType);
     const { dynamicData, ...board } = record;
     this.boardGateway.emitRecordCreated(
       organizationId,
@@ -2743,7 +2813,7 @@ export class BoardService {
       };
     });
 
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+    await purgeBoardCaches(organizationId);
 
     for (const referral of result.referrals) {
       const { dynamicData, linkIds, ...board } = referral;
@@ -2832,7 +2902,7 @@ export class BoardService {
         });
       });
 
-      await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+      await purgeBoardCaches(organizationId);
 
       this.boardGateway.emitRecordValueUpdated(
         organizationId,
@@ -2876,7 +2946,7 @@ export class BoardService {
         });
       });
 
-      await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+      await purgeBoardCaches(organizationId);
 
       this.boardGateway.emitRecordValueUpdated(
         organizationId,
@@ -2911,7 +2981,7 @@ export class BoardService {
       }),
     ]);
 
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+    await purgeBoardCaches(organizationId);
 
     this.boardGateway.emitRecordNotificationState(
       organizationId,
@@ -2954,7 +3024,7 @@ export class BoardService {
       },
     });
 
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+    await purgeBoardCaches(organizationId);
 
     this.boardGateway.emitColumnCreated(
       organizationId,
@@ -3017,7 +3087,7 @@ export class BoardService {
       data: { isDeleted: true },
     });
 
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+    await purgeBoardCaches(organizationId);
 
     this.boardGateway.emitColumnDeleted(organizationId, columnId, moduleType);
 
@@ -3248,8 +3318,60 @@ export class BoardService {
       memberId,
       tx,
       "update",
-      "Assigned To"
+      "Assigned To",
+      undefined,
+      organizationId
     );
+  }
+
+  // Runs before the transaction opens: the similarity scan decrypts up to
+  // SIMILARITY_SCAN_LIMIT names in process, which does not fit inside the 5s
+  // transaction window.
+  private async assertRecordNameAvailable(recordId: string, value: string) {
+    const { recordNameHash } = recordNameIndexes(value);
+    if (!recordNameHash) return;
+
+    const record = await prisma.board.findUniqueOrThrow({
+      where: { id: recordId },
+      select: { organizationId: true, moduleId: true },
+    });
+
+    // Renaming onto a name that already exists is the same duplicate the
+    // import refuses, so it is refused here too rather than relying on the
+    // unique index to surface as an opaque write error.
+    const clash = await prisma.board.findFirst({
+      where: {
+        organizationId: record.organizationId,
+        moduleId: record.moduleId,
+        isDeleted: false,
+        recordNameHash,
+        id: { not: recordId },
+      },
+      select: { id: true },
+    });
+
+    if (clash) {
+      throw new ConflictException(
+        `A record named "${value}" already exists on this module.`
+      );
+    }
+
+    // A rename onto a name that only looks like another record is refused
+    // too. Create offers an override for this case; a rename does not,
+    // because renaming an existing record onto a near neighbour is how two
+    // rows quietly become the same facility under different spellings.
+    const [similar] = await this.findSimilarRecordNames(
+      record.organizationId,
+      record.moduleId,
+      value,
+      recordId
+    );
+
+    if (similar) {
+      throw new ConflictException(
+        `"${value}" is too similar to the existing record "${similar.recordName}". Rename that one, or merge the two.`
+      );
+    }
   }
 
   async updateRecordName(
@@ -3263,51 +3385,7 @@ export class BoardService {
       select: { recordName: true },
     });
 
-    const record = await tx.board.findUniqueOrThrow({
-      where: { id: recordId },
-      select: { organizationId: true, moduleId: true },
-    });
-
     const indexes = recordNameIndexes(value);
-
-    // Renaming onto a name that already exists is the same duplicate the
-    // import refuses, so it is refused here too rather than relying on the
-    // unique index to surface as an opaque write error.
-    if (indexes.recordNameHash) {
-      const clash = await tx.board.findFirst({
-        where: {
-          organizationId: record.organizationId,
-          moduleId: record.moduleId,
-          isDeleted: false,
-          recordNameHash: indexes.recordNameHash,
-          id: { not: recordId },
-        },
-        select: { id: true },
-      });
-
-      if (clash) {
-        throw new ConflictException(
-          `A record named "${value}" already exists on this module.`
-        );
-      }
-
-      // A rename onto a name that only looks like another record is refused
-      // too. Create offers an override for this case; a rename does not,
-      // because renaming an existing record onto a near neighbour is how two
-      // rows quietly become the same facility under different spellings.
-      const [similar] = await this.findSimilarRecordNames(
-        record.organizationId,
-        record.moduleId,
-        value,
-        recordId
-      );
-
-      if (similar) {
-        throw new ConflictException(
-          `"${value}" is too similar to the existing record "${similar.recordName}". Rename that one, or merge the two.`
-        );
-      }
-    }
 
     await tx.board.update({
       where: { id: recordId },
@@ -3445,7 +3523,7 @@ export class BoardService {
       );
     }
 
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+    await purgeBoardCaches(organizationId);
 
     return { map: createdMap, createdNames };
   }
@@ -3540,12 +3618,19 @@ export class BoardService {
     tx: Prisma.TransactionClient,
     action?: string,
     column?: string,
-    fieldId?: string
+    fieldId?: string,
+    // Callers that already hold the org skip a round trip inside the 5s window.
+    organizationId?: string
   ) {
-    const record = await tx.board.findUnique({
-      where: { id: recordId },
-      select: { organizationId: true },
-    });
+    const scopedOrganizationId =
+      organizationId ??
+      (
+        await tx.board.findUnique({
+          where: { id: recordId },
+          select: { organizationId: true },
+        })
+      )?.organizationId ??
+      null;
 
     return await tx.history.create({
       data: {
@@ -3556,7 +3641,7 @@ export class BoardService {
         createdBy: createdBy,
         column: column,
         fieldId: fieldId,
-        organizationId: record?.organizationId ?? null,
+        organizationId: scopedOrganizationId,
       },
     });
   }
@@ -3700,16 +3785,15 @@ export class BoardService {
           tx,
           "update",
           field.fieldName,
-          field.id
+          field.id,
+          organizationId
         );
 
         return { attachment, attachmentCount };
       }
     );
 
-    await purgeAllCacheKeys(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-    );
+    await purgeBoardCaches(organizationId, moduleType);
 
     // Emit the count as a STRING to match every other field's wire type.
     this.boardGateway.emitRecordValueUpdated(
@@ -3750,9 +3834,7 @@ export class BoardService {
       });
     });
 
-    await purgeAllCacheKeys(
-      `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}:*`
-    );
+    await purgeBoardCaches(organizationId, moduleType);
 
     this.boardGateway.emitRecordValueUpdated(
       organizationId,
@@ -3875,7 +3957,7 @@ export class BoardService {
       });
     });
 
-    await purgeAllCacheKeys(`${CACHE_PREFIX.BOARDS}:${organizationId}:*`);
+    await purgeBoardCaches(organizationId);
 
     this.boardGateway.emitRecordDeleted(organizationId, column_ids, moduleType);
 

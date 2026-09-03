@@ -83,8 +83,13 @@ describe("LiaisonActivityService.logRecordActivity", () => {
     [ActivityType.CALL, "PHONE"],
     [ActivityType.EMAIL, "EMAIL"],
     [ActivityType.MEETING, "IN_PERSON_MEETING"],
+    [ActivityType.TEXT, "TEXT"],
+    [ActivityType.LINKED_IN, "LINKED_IN"],
+    [ActivityType.FACEBOOK, "FACEBOOK"],
+    // A note is not a channel and a fax has no touchpoint of its own.
     [ActivityType.NOTE, "OTHER"],
     [ActivityType.FAX, "OTHER"],
+    [ActivityType.OTHER, "OTHER"],
   ])(
     "maps a %s activity to a %s touchpoint",
     async (activityType, expected) => {

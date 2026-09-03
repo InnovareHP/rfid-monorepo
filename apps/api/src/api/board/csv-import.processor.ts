@@ -5,7 +5,13 @@ import {
 } from "@dashboard/shared";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import { BoardFieldType, Field, FieldOption, ModuleType } from "@prisma/client";
+import {
+  BoardFieldType,
+  Field,
+  FieldOption,
+  ModuleType,
+  RelationType,
+} from "@prisma/client";
 import {
   normalizeRecordNameLoose,
   recordNameIndexes,
@@ -16,6 +22,7 @@ import { v4 as uuidv4 } from "uuid";
 import { isSelectType } from "src/lib/helper";
 import { resolveModuleId, toModuleType } from "src/lib/module/system-modules";
 import { prisma } from "src/lib/prisma/prisma";
+import { purgeBoardCaches } from "src/lib/redis/redis";
 import { runWithTenant } from "src/lib/prisma/tenant-context";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { BoardNotifyService } from "./board-notify.service";
@@ -29,6 +36,27 @@ export interface CsvImportJobData {
   columnMap: Record<string, string>;
   nameColumn: string;
 }
+
+// A link cell names another module's record. Imported rows only ever carried
+// that name, and with no BoardRelation behind them every facility and county
+// figure in analytics was blind to them.
+const LINK_TARGETS: Record<
+  string,
+  { module: ModuleType; relation: RelationType }
+> = {
+  [BoardFieldType.CONTACT_LINK]: {
+    module: ModuleType.CONTACT,
+    relation: RelationType.CONTACT_LINK,
+  },
+  [BoardFieldType.COMPANY_LINK]: {
+    module: ModuleType.COMPANY,
+    relation: RelationType.COMPANY_LINK,
+  },
+  [BoardFieldType.REFERRAL_LINK]: {
+    module: ModuleType.LEAD,
+    relation: RelationType.REFERRAL_LINK,
+  },
+};
 
 // unknown, not string: a cell can come through as a number, boolean, or a
 // stray object/array, and String() on the latter silently writes "[object Object]".
@@ -135,6 +163,67 @@ export class CsvImportProcessor extends WorkerHost {
       );
     }
 
+    // One read per linked module, keyed both ways: a cell holds either the
+    // target id or the name it was exported under.
+    const linkFields = fields.filter((field) => LINK_TARGETS[field.fieldType]);
+    const targetModules = [
+      ...new Set(
+        linkFields.map((field) => LINK_TARGETS[field.fieldType].module)
+      ),
+    ];
+    const targetsByModule = new Map<
+      ModuleType,
+      {
+        byId: Set<string>;
+        byNameHash: Map<string, string>;
+        byFuzzyHash: Map<string, string>;
+      }
+    >();
+
+    for (const targetModule of targetModules) {
+      const targets = await prisma.board.findMany({
+        where: {
+          organizationId,
+          moduleType: targetModule,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          recordNameHash: true,
+          recordNameFuzzyHash: true,
+        },
+      });
+
+      targetsByModule.set(targetModule, {
+        byId: new Set(targets.map((target) => target.id)),
+        byNameHash: new Map(
+          targets
+            .filter((target) => target.recordNameHash)
+            .map((target) => [target.recordNameHash as string, target.id])
+        ),
+        // The looser index exists and was going unused here, so a spreadsheet
+        // writing "Cedar Ridge Nursing & Rehab" against a record called
+        // "Cedar Ridge Nursing and Rehabilitation" resolved to nothing and the
+        // cell was dropped. Punctuation and a legal suffix are not a different
+        // facility.
+        byFuzzyHash: new Map(
+          targets
+            .filter((target) => target.recordNameFuzzyHash)
+            .map((target) => [target.recordNameFuzzyHash as string, target.id])
+        ),
+      });
+    }
+
+    const relations: {
+      sourceId: string;
+      targetId: string;
+      relationType: RelationType;
+      organizationId: string;
+    }[] = [];
+    // Cells naming a record this organization does not have. Reported rather
+    // than written, so a name never sits in a column that holds ids.
+    const unlinked: { row: number; field: string; value: string }[] = [];
+
     const skipped: { row: number; recordName: string }[] = [];
     const nearMatches: {
       row: number;
@@ -232,6 +321,37 @@ export class CsvImportProcessor extends WorkerHost {
           value = values.join(",");
         }
 
+        const link = LINK_TARGETS[field.fieldType];
+        if (link) {
+          const targets = targetsByModule.get(link.module);
+          const { recordNameHash, recordNameFuzzyHash } =
+            recordNameIndexes(value);
+          const targetId = targets?.byId.has(value)
+            ? value
+            : ((recordNameHash
+                ? targets?.byNameHash.get(recordNameHash)
+                : undefined) ??
+              (recordNameFuzzyHash
+                ? targets?.byFuzzyHash.get(recordNameFuzzyHash)
+                : undefined));
+
+          if (!targetId) {
+            // Named but unresolvable: the cell is dropped, so it is counted and
+            // reported. Silently losing the link is what leaves every
+            // facility-shaped report empty with no explanation.
+            unlinked.push({ row: rowIndex + 1, field: field.fieldName, value });
+            continue;
+          }
+
+          relations.push({
+            sourceId: recordId,
+            targetId,
+            relationType: link.relation,
+            organizationId,
+          });
+          value = targetId;
+        }
+
         recordValueBuffer.push({
           recordId,
           fieldId: field.id,
@@ -247,6 +367,58 @@ export class CsvImportProcessor extends WorkerHost {
         });
       }
     });
+
+    // County is maintained on the account, so an imported referral takes the
+    // county of the facility it links to, exactly as an interactive link does.
+    const countyField = fields.find((field) => field.fieldName === "County");
+    const referralLinks = relations.filter(
+      (relation) => relation.relationType === RelationType.REFERRAL_LINK
+    );
+
+    if (countyField && referralLinks.length > 0) {
+      const countyValues = await prisma.fieldValue.findMany({
+        where: {
+          recordId: {
+            in: [...new Set(referralLinks.map((link) => link.targetId))],
+          },
+          field: {
+            fieldName: "County",
+            moduleType: ModuleType.LEAD,
+            isDeleted: false,
+          },
+        },
+        select: { recordId: true, value: true },
+      });
+
+      const countyByLead = new Map(
+        countyValues.map((row) => [row.recordId, row.value])
+      );
+      const bufferIndex = new Map(
+        recordValueBuffer.map((entry, index) => [
+          `${entry.recordId}:${entry.fieldId}`,
+          index,
+        ])
+      );
+
+      for (const link of referralLinks) {
+        const county = countyByLead.get(link.targetId);
+        if (!county) continue;
+
+        const key = `${link.sourceId}:${countyField.id}`;
+        const index = bufferIndex.get(key);
+
+        if (index === undefined) {
+          recordValueBuffer.push({
+            recordId: link.sourceId,
+            fieldId: countyField.id,
+            value: county,
+          });
+          continue;
+        }
+
+        recordValueBuffer[index].value = county;
+      }
+    }
 
     await prisma.$transaction(
       async (tx) => {
@@ -286,11 +458,22 @@ export class CsvImportProcessor extends WorkerHost {
           data: recordValues,
           skipDuplicates: true,
         });
+
+        if (relations.length > 0) {
+          await tx.boardRelation.createMany({
+            data: relations,
+            skipDuplicates: true,
+          });
+        }
       },
       // A full file does not finish inside the 5s interactive default, and this
       // runs on a worker where a long write is acceptable.
       { timeout: 120_000, maxWait: 10_000 }
     );
+
+    // The import wrote boards, so the cached pages and the analytics built
+    // from them are answers about a table that no longer exists.
+    await purgeBoardCaches(organizationId, moduleType);
 
     await job.updateProgress({
       phase: "complete",
@@ -305,6 +488,7 @@ export class CsvImportProcessor extends WorkerHost {
         recordsImported: recordsToCreate.length,
         duplicatesSkipped: skipped.length,
         nearMatches: nearMatches.length,
+        unlinkedCells: unlinked.length,
         moduleType,
       });
 
@@ -319,6 +503,10 @@ export class CsvImportProcessor extends WorkerHost {
         nearMatches.length
           ? `, ${nearMatches.length} similar name(s) skipped`
           : ""
+      }${
+        unlinked.length
+          ? `, ${unlinked.length} cell(s) named a record that does not exist`
+          : ""
       }`,
     });
 
@@ -328,8 +516,12 @@ export class CsvImportProcessor extends WorkerHost {
       recordsImported: recordsToCreate.length,
       duplicatesSkipped: skipped.length,
       nearMatchCount: nearMatches.length,
+      unlinkedCells: unlinked.length,
       duplicates: skipped.slice(0, 50),
       nearMatches: nearMatches.slice(0, 50),
+      // Which cells, not just how many: a count alone does not tell anyone
+      // which spreadsheet rows to fix.
+      unlinked: unlinked.slice(0, 50),
     };
   }
 }

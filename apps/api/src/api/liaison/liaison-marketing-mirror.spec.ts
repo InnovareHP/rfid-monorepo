@@ -108,10 +108,14 @@ describe("LiaisonService.createMarketing board mirror", () => {
     ["PHONE", "CALL"],
     ["EMAIL", "EMAIL"],
     ["IN_PERSON_MEETING", "MEETING"],
-    ["TEXT", "NOTE"],
-    ["LINKED_IN", "NOTE"],
-    ["FACEBOOK", "NOTE"],
-    ["OTHER", "NOTE"],
+    // Each channel keeps its identity now. These four used to collapse to NOTE.
+    ["TEXT", "TEXT"],
+    ["LINKED_IN", "LINKED_IN"],
+    ["FACEBOOK", "FACEBOOK"],
+    ["OTHER", "OTHER"],
+    // The one pair that stays lossy: a blast is a marketing send, and the
+    // board activity for it is an email.
+    ["EMAIL_BLAST", "EMAIL"],
   ])(
     "maps the %s touchpoint to a %s activity",
     async (touchpoint, expected) => {

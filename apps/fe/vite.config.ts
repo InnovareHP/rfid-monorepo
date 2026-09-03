@@ -26,7 +26,11 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL,
           changeOrigin: true,
         },
-        "/socket.io": {
+        // BoardGateway serves the socket at /ws, not /socket.io. The client
+        // connects to VITE_API_URL directly so this only matters when it is
+        // left relative, but a proxy entry naming the wrong path is worse than
+        // none: it looks like the socket is covered.
+        "/ws": {
           target: env.VITE_API_URL,
           changeOrigin: true,
           ws: true,

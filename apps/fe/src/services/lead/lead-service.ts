@@ -1,5 +1,9 @@
 import { axiosClient } from "@/lib/axios-client";
-import type { BoardStats, LeadAnalyze, LeadHistoryItem } from "@dashboard/shared";
+import type {
+  BoardStats,
+  LeadAnalyze,
+  LeadHistoryItem,
+} from "@dashboard/shared";
 
 export type ImportColumn = { id: string; name: string; type: string };
 
@@ -414,11 +418,26 @@ export const sendBulkEmail = async (data: {
   return response.data as { sent: number; skipped: number; errors: number };
 };
 
+// Mirrors the ActivityType enum. FAX is displayable but not creatable here: a
+// fax carries a number and goes through its own endpoint.
+export type ActivityKind =
+  | "CALL"
+  | "EMAIL"
+  | "MEETING"
+  | "NOTE"
+  | "FAX"
+  | "TEXT"
+  | "LINKED_IN"
+  | "FACEBOOK"
+  | "OTHER";
+
+export type CreatableActivityKind = Exclude<ActivityKind, "FAX">;
+
 export interface Activity {
   id: string;
   title: string;
   description: string | null;
-  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE" | "FAX";
+  activityType: ActivityKind;
   status: "PENDING" | "COMPLETED" | "CANCELLED";
   dueDate: string | null;
   completedAt: string | null;
@@ -457,7 +476,7 @@ export const createActivity = async (data: {
   recordId: string;
   title: string;
   description?: string;
-  activityType: "CALL" | "EMAIL" | "MEETING" | "NOTE";
+  activityType: CreatableActivityKind;
   dueDate?: string;
   recipientEmail?: string;
   emailSubject?: string;

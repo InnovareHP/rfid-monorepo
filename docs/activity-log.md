@@ -1677,3 +1677,56 @@ in the Secrets Manager JSON passes validation and reaches Stripe verbatim.
 Not verified: no runtime probe deployed, so the split between "wrong secret
 bytes" and "body re-serialized" is still open. Terraform not validated
 (`terraform` CLI absent from the dev machine).
+
+
+## 2026-09-03 — Split liaison performance from master marketing list analytics
+
+The page at `/master-list-analytics` was never facility analytics: it rendered
+liaison cards built from `Marketing` outreach logs. It is now two pages.
+
+Renamed to Liaison Performance:
+- `components/analytics/marketing-list-page.tsx` -> `liaison-performance-page.tsx`
+- `routes/_team/$team/master-list-analytics.tsx` -> `liaison-performance.tsx`
+- Nav entry "Liaison Performance", listed in both the Growth branch and the
+  Scale (custom reporting) branch since it has no dashboard row of its own.
+
+New master marketing list analytics over the LEAD board:
+- `GET /api/analytics/master-list` and `POST /api/analytics/master-list/summary`
+  in `analytics.controller.ts`, `getMasterListAnalytics` / `getMasterListSummary`
+  in `analytics.service.ts`, Redis-cached five minutes.
+- One board scan pulls Status, County and Type of Facility values; the
+  breakdowns are counted in memory because field values are encrypted at rest.
+- Coverage compares the filtered facility set against
+  `facilitiesByReferral`, so "not yet referring" is the complement of the
+  facilities that actually produced referrals in the range.
+- Prompt `masterListAnalyticsPrompt` returns the same JSON shape as
+  `analyticsPrompt`, so `AiSummaryCard` is reused unchanged. Queue job type
+  `master-list-summary`.
+- Page `components/analytics/master-list-analytics-page.tsx`, plus
+  `dormant-facilities-table.tsx` and `buildMasterListChartData` in
+  `lib/helper/analytics-chart-data.ts`.
+- The LEAD module analytics route (`/records/master-list/analytics`) now maps to
+  the new page instead of the liaison one.
+
+Follow-up in the same session: the seeded LEAD dashboard was liaison-only, and
+its marketing measures count facilities an outreach log named, never the board.
+Three board-side charts were added to `DEFAULT_CHARTS.LEAD` beside the existing
+liaison ones - "Facilities on List" (KPI), "Facility Pipeline" (PIE on Status),
+"Type of Facility" (PIE).
+
+Existing orgs never see a changed default set: `seedDefaultAnalytics` returns
+early when a default page exists, and the `--force` mode of
+`prisma/scripts/seed-default-analytics.ts` deletes hand-added charts. Added
+`addMissingDefaultCharts` in `default-analytics.ts` plus a `--fill` mode on that
+script: charts absent by name are appended after the highest `dashboardOrder`,
+nothing existing is touched. `chartRow` is now shared by the seed and the fill
+so the two cannot drift.
+
+    pnpm --filter api seed:default-analytics -- --fill
+
+The hand-built pages still win at `/records/<module>/analytics` through
+`LEGACY_PAGES`, so the seeded charts are the editable Scale-side version, not a
+replacement.
+
+Verified: `pnpm build:shared`, `pnpm build:fe` (vite + tsc clean),
+`pnpm build:api`, `pnpm lint` (0 errors). No runtime check against a database.

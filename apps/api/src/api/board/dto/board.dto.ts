@@ -109,7 +109,18 @@ export const CreateActivitySchema = z.object({
   recordId: z.string(),
   title: z.string().min(1),
   description: z.string().optional(),
-  activityType: z.enum(["CALL", "EMAIL", "MEETING", "NOTE"]),
+  // FAX is absent on purpose: a fax activity carries a number and goes through
+  // CreateFaxActivitySchema instead.
+  activityType: z.enum([
+    "CALL",
+    "EMAIL",
+    "MEETING",
+    "NOTE",
+    "TEXT",
+    "LINKED_IN",
+    "FACEBOOK",
+    "OTHER",
+  ]),
   dueDate: z.string().optional(),
   recipientEmail: z.string().email().optional(),
   emailSubject: z.string().optional(),

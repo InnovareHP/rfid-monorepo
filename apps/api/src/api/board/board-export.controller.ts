@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Query,
-  Req,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import type { Request, Response } from "express";
 import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
@@ -16,6 +8,7 @@ import {
   RequirePermission,
 } from "../../guard/permission/permission.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
+import { toSafeError } from "../../lib/errors/safe-error";
 import { clientIp } from "../../lib/http/client-ip";
 import { BoardExportService } from "./board-export.service";
 
@@ -72,7 +65,7 @@ export class BoardExportController {
       );
       res.send(csv);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.export.exportCsv");
     }
   }
 }

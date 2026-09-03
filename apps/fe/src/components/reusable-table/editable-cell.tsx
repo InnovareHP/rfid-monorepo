@@ -377,6 +377,11 @@ export function EditableCell({
       staleTime: 1000 * 60 * 30,
     });
 
+  // The cell stores the user id; the options list is what turns it into a name.
+  const assignedToName = assignedToOptionsData?.find(
+    (option: OptionsResponse) => option.id === val
+  )?.value;
+
   const isLinkType =
     type === "REFERRAL_LINK" ||
     type === "CONTACT_LINK" ||
@@ -520,7 +525,14 @@ export function EditableCell({
           {isLoadingAssignedTo || isUpdating ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : null}
-          <SelectValue placeholder={val || "Select user"} />
+          {/* Radix unmounts SelectContent when closed, so SelectValue has no
+              item to read a label from and falls back to the placeholder. With
+              the raw value as placeholder that rendered the user's id. The
+              resolved name is passed as children instead, which Radix prefers
+              over the selected item's label. */}
+          <SelectValue placeholder="Select user">
+            {assignedToName}
+          </SelectValue>
         </SelectTrigger>
 
         <SelectContent>

@@ -95,6 +95,13 @@ export function useNavItems(
                   url: dashboardUrl(dashboard),
                   icon: dashboard.isDefault ? ChartSpline : LayoutTemplate,
                 })),
+                // A hand-built report with no dashboard row of its own, so it
+                // is listed explicitly or it has no way in.
+                {
+                  title: "Liaison Performance",
+                  url: `/${activeOrganizationId}/liaison-performance`,
+                  icon: Target,
+                },
                 ...(canManageAnalytics
                   ? [
                       {
@@ -118,6 +125,11 @@ export function useNavItems(
                     title: "Master Marketing List Analytics",
                     url: `/${activeOrganizationId}/master-list-analytics`,
                     icon: Users,
+                  },
+                  {
+                    title: "Liaison Performance",
+                    url: `/${activeOrganizationId}/liaison-performance`,
+                    icon: Target,
                   },
                 ]
               : [],

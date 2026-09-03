@@ -8,7 +8,7 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { isOrgAdmin } from "@dashboard/shared";
+import { isOrgAdmin, readsOrgWideReferrals } from "@dashboard/shared";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
 import {
   EntitlementGuard,
@@ -47,9 +47,9 @@ export class AnalyticsController {
       const endDate = end ? new Date(end) : undefined;
       const organizationId = session.session.activeOrganizationId;
 
-      // Owner and admin read the whole org; everyone else reads the referrals
-      // assigned to them.
-      const assignedTo = isOrgAdmin(session.session.memberRole)
+      // Owner, admin and liaison read the whole org; everyone else reads the
+      // referrals assigned to them.
+      const assignedTo = readsOrgWideReferrals(session.session.memberRole)
         ? null
         : session.session.userId;
 
@@ -86,7 +86,9 @@ export class AnalyticsController {
         endDate,
         analytics,
         force === "true",
-        isOrgAdmin(session.session.memberRole) ? null : session.session.userId
+        readsOrgWideReferrals(session.session.memberRole)
+          ? null
+          : session.session.userId
       );
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -103,6 +105,65 @@ export class AnalyticsController {
       jobId,
       session.session.activeOrganizationId
     );
+  }
+
+  @RequirePermission({ analytics: ["read"] })
+  @Get("master-list")
+  async getMasterListAnalytics(
+    @Query("start") start: string,
+    @Query("end") end: string,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      const startDate = start ? new Date(start) : undefined;
+      const endDate = end ? new Date(end) : undefined;
+
+      // The facility board follows the same read scope as referrals: everyone
+      // below liaison reads only what is assigned to them.
+      const assignedTo = readsOrgWideReferrals(session.session.memberRole)
+        ? null
+        : session.session.userId;
+
+      return await this.analyticsService.getMasterListAnalytics(
+        session.session.activeOrganizationId,
+        startDate,
+        endDate,
+        assignedTo
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequireFeature("ai")
+  @RequirePermission({ analytics: ["read"] })
+  @Post("master-list/summary")
+  async getMasterListSummary(
+    @Body("analytics") analytics: any,
+    @Query("start") start: string,
+    @Query("end") end: string,
+    @Query("force") force: string,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      const startDate = start ? new Date(start) : undefined;
+      const endDate = end ? new Date(end) : undefined;
+
+      return await this.analyticsService.getMasterListSummary(
+        session.session.activeOrganizationId,
+        startDate,
+        endDate,
+        analytics,
+        force === "true",
+        readsOrgWideReferrals(session.session.memberRole)
+          ? null
+          : session.session.userId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @RequirePermission({ analytics: ["read"] })

@@ -51,6 +51,26 @@ export const formatMinutes = (minutes: number) => {
   return mins ? `${hrs}h ${mins}m` : `${hrs}h`;
 };
 
+const INTERNAL_ERROR_MARKERS = [
+  "prisma",
+  "unique constraint",
+  "foreign key constraint",
+  "does not exist",
+  "invocation:",
+  "econnrefused",
+  "etimedout",
+  "queryengine",
+];
+
+// Internal failures leak schema and driver detail, so callers show their own copy.
+const isInternalMessage = (message: string) => {
+  const text = message.toLowerCase();
+  return (
+    message.length > 200 ||
+    INTERNAL_ERROR_MARKERS.some((marker) => text.includes(marker))
+  );
+};
+
 export const getApiErrorMessage = (
   error: unknown,
   fallback: string
@@ -68,7 +88,9 @@ export const getApiErrorMessage = (
   };
 
   const response = (error as { response?: { data?: unknown } })?.response;
-  return unwrap(response?.data) ?? unwrap(error) ?? fallback;
+  const message = unwrap(response?.data) ?? unwrap(error);
+
+  return message && !isInternalMessage(message) ? message : fallback;
 };
 
 // Scopes an export to a date range on the record's own created date. The report

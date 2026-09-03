@@ -27,6 +27,10 @@ jest.mock("../../lib/prisma/prisma", () => {
   };
   const field = { findFirst: jest.fn() };
   const board = { findFirstOrThrow: jest.fn() };
+  // getRecordAnalyze counts referrals through this relation, so the analyze
+  // tests reach it even though they assert only the record scoping.
+  const boardRelation = { findMany: jest.fn().mockResolvedValue([]) };
+  const marketing = { findMany: jest.fn().mockResolvedValue([]) };
 
   return {
     prisma: {
@@ -34,6 +38,8 @@ jest.mock("../../lib/prisma/prisma", () => {
       fieldOption,
       field,
       board,
+      boardRelation,
+      marketing,
       $transaction: jest.fn(),
     },
   };
@@ -58,6 +64,8 @@ const db = prisma as unknown as {
   fieldOption: { findFirst: jest.Mock; update: jest.Mock; create: jest.Mock };
   field: { findFirst: jest.Mock };
   board: { findFirstOrThrow: jest.Mock };
+  boardRelation: { findMany: jest.Mock };
+  marketing: { findMany: jest.Mock };
   $transaction: jest.Mock;
 };
 
@@ -125,7 +133,7 @@ describe("BoardService tenant isolation", () => {
   describe("deleteRecordFieldOption", () => {
     it("refuses an option belonging to another organization", async () => {
       await expect(
-        service.deleteRecordFieldOption(FOREIGN, ORG)
+        service.deleteRecordFieldOption(FOREIGN, ORG, USER)
       ).rejects.toThrow(NotFoundException);
 
       expect(db.fieldOption.findFirst.mock.calls[0][0].where).toMatchObject({
@@ -137,7 +145,7 @@ describe("BoardService tenant isolation", () => {
     it("soft-deletes once the option is confirmed to be in the organization", async () => {
       db.fieldOption.findFirst.mockResolvedValue({ id: FOREIGN });
 
-      await service.deleteRecordFieldOption(FOREIGN, ORG);
+      await service.deleteRecordFieldOption(FOREIGN, ORG, USER);
 
       expect(db.fieldOption.update).toHaveBeenCalled();
     });

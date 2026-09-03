@@ -12,6 +12,11 @@ export const ROLES = {
 export const isOrgAdmin = (role?: string | null) =>
   role === ROLES.OWNER || role === ROLES.ADMIN;
 
+// Referral analytics is org-wide for a liaison too; lower roles read only the
+// referrals assigned to them.
+export const readsOrgWideReferrals = (role?: string | null) =>
+  isOrgAdmin(role) || role === ROLES.LIAISON;
+
 // Stored role values are snake_case and liason is misspelled, so labels are mapped.
 export const ROLE_LABELS: Record<string, string> = {
   [ROLES.OWNER]: "Owner",

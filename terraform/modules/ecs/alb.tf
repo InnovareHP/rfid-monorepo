@@ -211,6 +211,41 @@ resource "aws_lb_listener_rule" "api_path_https" {
   }
 }
 
+# Priority below api_path_https so the socket path is matched before anything
+# else, on every host. BoardGateway serves it at /ws, not under /api.
+resource "aws_lb_listener_rule" "socket_path_https" {
+  count        = local.https_enabled ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 4
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/ws", "/ws/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "socket_path_http" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 70
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/ws", "/ws/*"]
+    }
+  }
+}
+
 resource "aws_lb_listener_rule" "api_host" {
   count        = local.https_enabled && var.api_hostname != "" ? 1 : 0
   listener_arn = aws_lb_listener.https[0].arn

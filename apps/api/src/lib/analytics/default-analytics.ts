@@ -171,7 +171,25 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       groupLimit: 10,
       marketing: { measure: "INTERACTIONS", groupBy: "FACILITY" },
     },
-    // The board half: facilities are assigned to a liaison on the record.
+    // The board half: the facility list itself, which the marketing measures
+    // above never see - they only count facilities an outreach log named.
+    {
+      name: "Facilities on List",
+      chartType: "KPI",
+      span: "THIRD",
+    },
+    {
+      name: "Facility Pipeline",
+      chartType: "PIE",
+      fieldName: "Status",
+      span: "HALF",
+    },
+    {
+      name: "Type of Facility",
+      chartType: "PIE",
+      fieldName: "Type of Facility",
+      span: "HALF",
+    },
     {
       name: "Facilities Assigned per Liaison",
       chartType: "BAR",
@@ -550,6 +568,38 @@ const buildContext = async (
   };
 };
 
+// One resolved chart as a CustomAnalytic row, shared by the initial seed and
+// the later fill so the two can never drift.
+const chartRow = (
+  chart: ResolvedChart,
+  dashboardOrder: number,
+  moduleId: string,
+  organizationId: string
+) => ({
+  name: chart.name,
+  chartType: chart.chartType,
+  metricAggregation: chart.metricAggregation,
+  dimensionType: chart.dimensionType,
+  dimensionFieldId: chart.dimensionFieldId,
+  dateBucket: chart.dateBucket,
+  columnIds: [],
+  filter: chart.filter,
+  numeratorFilter: chart.numeratorFilter,
+  metricSource: chart.metricSource,
+  durationFieldId: chart.durationFieldId,
+  relationType: chart.relationType,
+  relatedFieldId: chart.relatedFieldId,
+  groupLimit: chart.groupLimit,
+  maxGroupSize: chart.maxGroupSize,
+  tileSpan: chart.tileSpan,
+  marketingMeasure: chart.marketingMeasure,
+  marketingGroupBy: chart.marketingGroupBy,
+  rangeDays: null,
+  dashboardOrder,
+  moduleId,
+  organizationId,
+});
+
 // Idempotent: an organization that already has a default page for this module
 // keeps it, so re-running onboarding never duplicates charts.
 export const seedDefaultAnalytics = async (
@@ -580,32 +630,57 @@ export const seedDefaultAnalytics = async (
       moduleId,
       isDefault: true,
       analytics: {
-        create: charts.map((chart, index) => ({
-          name: chart.name,
-          chartType: chart.chartType,
-          metricAggregation: chart.metricAggregation,
-          dimensionType: chart.dimensionType,
-          dimensionFieldId: chart.dimensionFieldId,
-          dateBucket: chart.dateBucket,
-          columnIds: [],
-          filter: chart.filter,
-          numeratorFilter: chart.numeratorFilter,
-          metricSource: chart.metricSource,
-          durationFieldId: chart.durationFieldId,
-          relationType: chart.relationType,
-          relatedFieldId: chart.relatedFieldId,
-          groupLimit: chart.groupLimit,
-          maxGroupSize: chart.maxGroupSize,
-          tileSpan: chart.tileSpan,
-          marketingMeasure: chart.marketingMeasure,
-          marketingGroupBy: chart.marketingGroupBy,
-          rangeDays: null,
-          dashboardOrder: index,
-          moduleId,
-          organizationId,
-        })),
+        create: charts.map((chart, index) =>
+          chartRow(chart, index, moduleId, organizationId)
+        ),
       },
     },
     select: { id: true },
   });
+};
+
+// Charts added to a module's defaults after an organization was seeded never
+// reach it, because seedDefaultAnalytics returns early once a default page
+// exists. This appends only the ones missing by name, so a chart the
+// organization edited or deleted on purpose is left alone.
+export const addMissingDefaultCharts = async (
+  moduleId: string,
+  organizationId: string
+) => {
+  const [module, dashboard] = await Promise.all([
+    prisma.module.findFirst({
+      where: { id: moduleId, organizationId },
+      select: { key: true },
+    }),
+    prisma.customAnalyticDashboard.findFirst({
+      where: { organizationId, moduleId, isDefault: true },
+      select: {
+        id: true,
+        analytics: { select: { name: true, dashboardOrder: true } },
+      },
+    }),
+  ]);
+
+  if (!module || !dashboard) return 0;
+
+  const context = await buildContext(moduleId, organizationId);
+  const present = new Set(dashboard.analytics.map((chart) => chart.name));
+  const missing = resolveDefaultCharts(module.key, context).filter(
+    (chart) => !present.has(chart.name)
+  );
+
+  if (missing.length === 0) return 0;
+
+  const nextOrder =
+    Math.max(-1, ...dashboard.analytics.map((chart) => chart.dashboardOrder)) +
+    1;
+
+  await prisma.customAnalytic.createMany({
+    data: missing.map((chart, index) => ({
+      ...chartRow(chart, nextOrder + index, moduleId, organizationId),
+      dashboardId: dashboard.id,
+    })),
+  });
+
+  return missing.length;
 };

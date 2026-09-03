@@ -1,4 +1,5 @@
 import { Redis } from "ioredis";
+import { CACHE_PREFIX } from "../constant";
 import { decryptString, encryptString, isEncrypted } from "../crypto/crypto";
 
 export const redis = new Redis(process.env.REDIS_URL!);
@@ -18,9 +19,27 @@ export const deleteData = async (key: string) => {
   await redis.del(key);
 };
 
+// One DEL per batch rather than per key: these run inside board transactions,
+// where a round trip per cached page is enough to expire the 5s window.
 export const purgeAllCacheKeys = async (prefix: string) => {
   const keys = await redis.keys(`${prefix}:*`);
-  for (const key of keys) {
-    await redis.del(key);
+
+  for (let i = 0; i < keys.length; i += 500) {
+    await redis.del(...keys.slice(i, i + 500));
   }
+};
+
+// Board pages and the analytics built from them go stale on the same write, so
+// one call clears both. Prefixes are passed without a trailing wildcard because
+// purgeAllCacheKeys appends one.
+export const purgeBoardCaches = async (
+  organizationId: string,
+  moduleType?: string
+) => {
+  await purgeAllCacheKeys(
+    moduleType
+      ? `${CACHE_PREFIX.BOARDS}:${organizationId}:${moduleType}`
+      : `${CACHE_PREFIX.BOARDS}:${organizationId}`
+  );
+  await purgeAllCacheKeys(`${CACHE_PREFIX.ANALYTICS}:${organizationId}`);
 };

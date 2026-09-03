@@ -15,20 +15,28 @@ const ACTIVITY_TOUCHPOINTS: Record<ActivityType, TouchpointType> = {
   CALL: TouchpointType.PHONE,
   EMAIL: TouchpointType.EMAIL,
   MEETING: TouchpointType.IN_PERSON_MEETING,
+  TEXT: TouchpointType.TEXT,
+  LINKED_IN: TouchpointType.LINKED_IN,
+  FACEBOOK: TouchpointType.FACEBOOK,
+  // A note is not a channel and a fax has no touchpoint of its own, so both
+  // land on OTHER rather than inventing one.
   NOTE: TouchpointType.OTHER,
   FAX: TouchpointType.OTHER,
+  OTHER: TouchpointType.OTHER,
 };
 
 // Reverse of ACTIVITY_TOUCHPOINTS, used to mirror a marketing log back onto the board.
 export const TOUCHPOINT_ACTIVITIES: Record<TouchpointType, ActivityType> = {
   PHONE: ActivityType.CALL,
   EMAIL: ActivityType.EMAIL,
-  EMAIL_BLAST: ActivityType.EMAIL,
   IN_PERSON_MEETING: ActivityType.MEETING,
-  TEXT: ActivityType.NOTE,
-  LINKED_IN: ActivityType.NOTE,
-  FACEBOOK: ActivityType.NOTE,
-  OTHER: ActivityType.NOTE,
+  TEXT: ActivityType.TEXT,
+  LINKED_IN: ActivityType.LINKED_IN,
+  FACEBOOK: ActivityType.FACEBOOK,
+  OTHER: ActivityType.OTHER,
+  // The only lossy pair left, and deliberately so: a blast is one send to many
+  // records, and the board activity for it is an email.
+  EMAIL_BLAST: ActivityType.EMAIL,
 };
 
 @Injectable()

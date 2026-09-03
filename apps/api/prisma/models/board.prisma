@@ -238,12 +238,20 @@ model BoardCountyAssignedTo {
   @@schema("board_schema")
 }
 
+// Mirrors TouchpointType so a liaison's channel survives the round trip onto
+// the board. Without TEXT, LINKED_IN, FACEBOOK and OTHER every one of those
+// collapsed to NOTE and the channel was lost. EMAIL_BLAST has no member here on
+// purpose: a blast is raised by the marketing feature, never logged by hand.
 enum ActivityType {
   CALL
   EMAIL
   MEETING
   NOTE
   FAX
+  TEXT
+  LINKED_IN
+  FACEBOOK
+  OTHER
 
   @@schema("board_schema")
 }

@@ -1,5 +1,8 @@
 import { sequentialRampColor } from "@/lib/color-utils";
-import type { AnalyticsResponse } from "@dashboard/shared";
+import type {
+  AnalyticsResponse,
+  MasterListAnalyticsResponse,
+} from "@dashboard/shared";
 import { format, parseISO } from "date-fns";
 
 export type CategoryRow = {
@@ -282,5 +285,39 @@ export function buildAnalyticsChartData(
     emergingSources: analytics?.outreach ?? [],
     scorecard: analytics?.scorecard ?? [],
     avgDays: weightedAverageDays(analytics),
+  };
+}
+
+// The facility pipeline is org-defined, so its slices keep the option colours
+// the board itself uses rather than the referral page's canonical statuses.
+export function toMasterListStatusSlices(
+  analytics: MasterListAnalyticsResponse | undefined
+): StatusSlice[] {
+  const items = analytics?.statusBreakdown ?? [];
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+
+  if (total === 0) return [];
+
+  return items.map((item, index) => ({
+    status: item.status,
+    count: item.count,
+    color: item.color ?? sequentialRampColor(index, items.length),
+    share: (item.count / total) * 100,
+  }));
+}
+
+export function buildMasterListChartData(
+  analytics: MasterListAnalyticsResponse | undefined
+) {
+  const growthTrend = toMonthlyPoints(analytics?.growthTrend);
+
+  return {
+    growthTrend,
+    growthDelta: monthOverMonthDelta(growthTrend),
+    statusSlices: toMasterListStatusSlices(analytics),
+    facilityTypes: toCategoryRows(analytics?.facilityTypes),
+    counties: toRankedRows(analytics?.counties, 10),
+    byLiaison: toRankedRows(analytics?.byLiaison, 10),
+    topReferringFacilities: toRankedRows(analytics?.topReferringFacilities, 10),
   };
 }

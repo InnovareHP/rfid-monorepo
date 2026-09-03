@@ -37,6 +37,7 @@ import { Route as TeamTeamProfileRouteImport } from './routes/_team/$team/profil
 import { Route as TeamTeamPlansRouteImport } from './routes/_team/$team/plans'
 import { Route as TeamTeamNotificationsRouteImport } from './routes/_team/$team/notifications'
 import { Route as TeamTeamMasterListAnalyticsRouteImport } from './routes/_team/$team/master-list-analytics'
+import { Route as TeamTeamLiaisonPerformanceRouteImport } from './routes/_team/$team/liaison-performance'
 import { Route as TeamTeamIntegrationsRouteImport } from './routes/_team/$team/integrations'
 import { Route as TeamTeamCalendarRouteImport } from './routes/_team/$team/calendar'
 import { Route as AuthResetPasswordVerifyRouteImport } from './routes/_auth/reset-password/verify'
@@ -225,6 +226,12 @@ const TeamTeamMasterListAnalyticsRoute =
   TeamTeamMasterListAnalyticsRouteImport.update({
     id: '/$team/master-list-analytics',
     path: '/$team/master-list-analytics',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamLiaisonPerformanceRoute =
+  TeamTeamLiaisonPerformanceRouteImport.update({
+    id: '/$team/liaison-performance',
+    path: '/$team/liaison-performance',
     getParentRoute: () => TeamRoute,
   } as any)
 const TeamTeamIntegrationsRoute = TeamTeamIntegrationsRouteImport.update({
@@ -523,6 +530,7 @@ export interface FileRoutesByFullPath {
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
+  '/$team/liaison-performance': typeof TeamTeamLiaisonPerformanceRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/notifications': typeof TeamTeamNotificationsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
@@ -600,6 +608,7 @@ export interface FileRoutesByTo {
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
+  '/$team/liaison-performance': typeof TeamTeamLiaisonPerformanceRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/$team/notifications': typeof TeamTeamNotificationsRoute
   '/$team/plans': typeof TeamTeamPlansRoute
@@ -680,6 +689,7 @@ export interface FileRoutesById {
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/_team/$team/calendar': typeof TeamTeamCalendarRoute
   '/_team/$team/integrations': typeof TeamTeamIntegrationsRoute
+  '/_team/$team/liaison-performance': typeof TeamTeamLiaisonPerformanceRoute
   '/_team/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
   '/_team/$team/notifications': typeof TeamTeamNotificationsRoute
   '/_team/$team/plans': typeof TeamTeamPlansRoute
@@ -759,6 +769,7 @@ export interface FileRouteTypes {
     | '/reset-password/verify'
     | '/$team/calendar'
     | '/$team/integrations'
+    | '/$team/liaison-performance'
     | '/$team/master-list-analytics'
     | '/$team/notifications'
     | '/$team/plans'
@@ -836,6 +847,7 @@ export interface FileRouteTypes {
     | '/reset-password/verify'
     | '/$team/calendar'
     | '/$team/integrations'
+    | '/$team/liaison-performance'
     | '/$team/master-list-analytics'
     | '/$team/notifications'
     | '/$team/plans'
@@ -915,6 +927,7 @@ export interface FileRouteTypes {
     | '/_auth/reset-password/verify'
     | '/_team/$team/calendar'
     | '/_team/$team/integrations'
+    | '/_team/$team/liaison-performance'
     | '/_team/$team/master-list-analytics'
     | '/_team/$team/notifications'
     | '/_team/$team/plans'
@@ -1186,6 +1199,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/master-list-analytics'
       fullPath: '/$team/master-list-analytics'
       preLoaderRoute: typeof TeamTeamMasterListAnalyticsRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/liaison-performance': {
+      id: '/_team/$team/liaison-performance'
+      path: '/$team/liaison-performance'
+      fullPath: '/$team/liaison-performance'
+      preLoaderRoute: typeof TeamTeamLiaisonPerformanceRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/integrations': {
@@ -1574,6 +1594,7 @@ const TeamTeamSettingsRouteWithChildren =
 interface TeamRouteChildren {
   TeamTeamCalendarRoute: typeof TeamTeamCalendarRoute
   TeamTeamIntegrationsRoute: typeof TeamTeamIntegrationsRoute
+  TeamTeamLiaisonPerformanceRoute: typeof TeamTeamLiaisonPerformanceRoute
   TeamTeamMasterListAnalyticsRoute: typeof TeamTeamMasterListAnalyticsRoute
   TeamTeamNotificationsRoute: typeof TeamTeamNotificationsRoute
   TeamTeamPlansRoute: typeof TeamTeamPlansRoute
@@ -1630,6 +1651,7 @@ interface TeamRouteChildren {
 const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamCalendarRoute: TeamTeamCalendarRoute,
   TeamTeamIntegrationsRoute: TeamTeamIntegrationsRoute,
+  TeamTeamLiaisonPerformanceRoute: TeamTeamLiaisonPerformanceRoute,
   TeamTeamMasterListAnalyticsRoute: TeamTeamMasterListAnalyticsRoute,
   TeamTeamNotificationsRoute: TeamTeamNotificationsRoute,
   TeamTeamPlansRoute: TeamTeamPlansRoute,

@@ -12,11 +12,11 @@ import { LayoutTemplate } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 // The referral and master list pages are hand-built reports - a gauge, a status
-// selector, liaison performance cards, a PDF export - none of which the generic
-// chart engine renders. They stay themselves rather than being approximated.
+// selector, a county heat map - none of which the generic chart engine renders.
+// They stay themselves rather than being approximated.
 const LEGACY_PAGES: Record<string, ReturnType<typeof lazy>> = {
   REFERRAL: lazy(() => import("@/components/analytics/analytics-page")),
-  LEAD: lazy(() => import("@/components/analytics/marketing-list-page")),
+  LEAD: lazy(() => import("@/components/analytics/master-list-analytics-page")),
 };
 
 export default function ModuleAnalyticsPage() {

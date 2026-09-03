@@ -139,6 +139,7 @@ export function useBoardSync() {
       recordsImported,
       duplicatesSkipped,
       nearMatches,
+      unlinkedCells,
     }: any) => {
       queryClient.invalidateQueries({ queryKey: getQueryKey(moduleType) });
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
@@ -146,6 +147,20 @@ export function useBoardSync() {
       // The counts only exist once the job runs, long after the import panel
       // reported the upload as queued, so they are announced here instead.
       const dropped = (duplicatesSkipped ?? 0) + (nearMatches ?? 0);
+
+      // An unlinked cell is the quieter failure of the two: the row imports,
+      // but with no link, so every report built on that relation stays empty
+      // and nothing says why.
+      if (unlinkedCells > 0) {
+        toast.warning(
+          `Import finished — ${unlinkedCells} cell(s) could not be linked`,
+          {
+            description:
+              "They named a record that does not exist yet, so those links are missing. Reports that group by them will look empty.",
+          }
+        );
+        return;
+      }
 
       if (dropped > 0) {
         toast.warning(`Import finished — ${dropped} row(s) skipped`, {

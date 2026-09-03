@@ -1,4 +1,7 @@
-import { seedDefaultAnalytics } from "../../src/lib/analytics/default-analytics";
+import {
+  addMissingDefaultCharts,
+  seedDefaultAnalytics,
+} from "../../src/lib/analytics/default-analytics";
 import { prisma } from "../../src/lib/prisma/prisma";
 import {
   runUnscoped,
@@ -11,7 +14,10 @@ import {
 // --force replaces a default dashboard that already exists, which is how a
 // changed default chart set reaches organizations seeded before the change.
 // Charts added to that page by hand go with it.
+// --fill is the non-destructive version: charts missing from an existing
+// default page are appended by name and nothing already there is touched.
 const force = process.argv.includes("--force");
+const fill = process.argv.includes("--fill");
 
 async function main() {
   // Listing every organization is the one query that is deliberately not
@@ -25,6 +31,7 @@ async function main() {
 
   let seeded = 0;
   let skipped = 0;
+  let filled = 0;
 
   for (const organization of organizations) {
     await runWithTenant(organization.id, async () => {
@@ -43,6 +50,22 @@ async function main() {
           },
           select: { id: true },
         });
+
+        if (existing && fill) {
+          const added = await addMissingDefaultCharts(
+            module.id,
+            organization.id
+          );
+          if (added) {
+            filled += added;
+            console.log(
+              `  ${organization.name}/${module.key}: +${added} chart(s)`
+            );
+          } else {
+            skipped += 1;
+          }
+          continue;
+        }
 
         if (existing && !force) {
           skipped += 1;
@@ -79,7 +102,7 @@ async function main() {
   }
 
   console.log(
-    `Done. ${seeded} dashboards seeded, ${skipped} already had one, across ${organizations.length} organizations${force ? " (forced)" : ""}`
+    `Done. ${seeded} dashboards seeded, ${filled} charts added, ${skipped} left as they were, across ${organizations.length} organizations${force ? " (forced)" : fill ? " (fill)" : ""}`
   );
 }
 

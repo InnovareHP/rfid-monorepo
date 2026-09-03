@@ -27,6 +27,7 @@ import { memoryStorage } from "multer";
 import { EldonFaxError } from "../../lib/eldonfax/eldonfax";
 import { createOAuthState } from "../../lib/auth/oauth-state";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
+import { toSafeError } from "../../lib/errors/safe-error";
 import { BoardService } from "./board.service";
 import {
   BulkEmailDto,
@@ -107,7 +108,7 @@ export class BoardController {
 
       return this.boardService.getAllBoards(organizationId, filters);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getAllRecords");
     }
   }
 
@@ -122,7 +123,7 @@ export class BoardController {
       const url = this.gmailService.getAuthUrl(state);
       return { url };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getGmailAuthUrl");
     }
   }
 
@@ -132,7 +133,7 @@ export class BoardController {
     try {
       return await this.gmailService.getConnectionStatus(session.user.id);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getGmailStatus");
     }
   }
 
@@ -147,7 +148,7 @@ export class BoardController {
       const url = this.outlookService.getAuthUrl(state);
       return { url };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getOutlookAuthUrl");
     }
   }
 
@@ -157,7 +158,7 @@ export class BoardController {
     try {
       return await this.outlookService.getConnectionStatus(session.user.id);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getOutlookStatus");
     }
   }
 
@@ -180,7 +181,7 @@ export class BoardController {
         search
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRecords");
     }
   }
 
@@ -197,7 +198,7 @@ export class BoardController {
         moduleType || "LEAD"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getBoardStats");
     }
   }
 
@@ -222,7 +223,7 @@ export class BoardController {
         recordName
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.findDuplicates");
     }
   }
 
@@ -239,7 +240,7 @@ export class BoardController {
         moduleType || "LEAD"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getColumns");
     }
   }
 
@@ -268,7 +269,7 @@ export class BoardController {
         column,
       });
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getAllRecordHistory");
     }
   }
 
@@ -286,7 +287,7 @@ export class BoardController {
         moduleType || "LEAD"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRecordHistoryMeta");
     }
   }
 
@@ -305,7 +306,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getValueIdContact");
     }
   }
 
@@ -327,7 +328,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRecordHistory");
     }
   }
 
@@ -351,7 +352,7 @@ export class BoardController {
         search
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRecordFieldOptions");
     }
   }
 
@@ -385,7 +386,7 @@ export class BoardController {
         moduleType || "LEAD"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRecordById");
     }
   }
 
@@ -403,7 +404,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRecordAttachments");
     }
   }
 
@@ -419,7 +420,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRelatedRecords");
     }
   }
 
@@ -443,7 +444,7 @@ export class BoardController {
         status
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getActivities");
     }
   }
 
@@ -462,7 +463,7 @@ export class BoardController {
         force === "true"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getFollowUpSuggestions");
     }
   }
 
@@ -485,7 +486,7 @@ export class BoardController {
         dateEndDate
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getRecordAnalyze");
     }
   }
 
@@ -528,7 +529,7 @@ export class BoardController {
       // survived only because the call above was not awaited, so the rejection
       // escaped the catch by accident.
       if (error instanceof HttpException) throw error;
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.createRecord");
     }
   }
 
@@ -556,7 +557,7 @@ export class BoardController {
         moduleType || "LEAD"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.scanBusinessCard");
     }
   }
 
@@ -578,7 +579,7 @@ export class BoardController {
         dto.send_via
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.sendBulkEmail");
     }
   }
 
@@ -595,7 +596,7 @@ export class BoardController {
         session.user.id
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.createActivity");
     }
   }
 
@@ -642,7 +643,7 @@ export class BoardController {
           error.status
         );
       }
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.createFaxActivity");
     }
   }
 
@@ -675,7 +676,7 @@ export class BoardController {
         dto.moduleType
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.uploadAttachment");
     }
   }
 
@@ -694,7 +695,7 @@ export class BoardController {
         dto
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.completeActivity");
     }
   }
 
@@ -715,7 +716,7 @@ export class BoardController {
         dto.moduleType
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.restoreRecord");
     }
   }
 
@@ -730,7 +731,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.setRecordNotificationState");
     }
   }
 
@@ -754,7 +755,7 @@ export class BoardController {
         dto.newColumns
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.createRecordDataFromCSV");
     }
   }
 
@@ -774,7 +775,7 @@ export class BoardController {
         organizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.createColumn");
     }
   }
 
@@ -795,7 +796,7 @@ export class BoardController {
         dto.color
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.createRecordFieldOption");
     }
   }
 
@@ -814,7 +815,7 @@ export class BoardController {
         dto
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.updateActivity");
     }
   }
 
@@ -833,7 +834,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.updateContactValue");
     }
   }
 
@@ -850,7 +851,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.updateRecordHistory");
     }
   }
 
@@ -874,7 +875,7 @@ export class BoardController {
         dto.reason
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.updateRecordValue");
     }
   }
 
@@ -894,7 +895,7 @@ export class BoardController {
         dto.moduleType
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.deleteRecords");
     }
   }
 
@@ -905,7 +906,7 @@ export class BoardController {
       await this.gmailService.disconnect(session.user.id);
       return { message: "Gmail disconnected successfully" };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.disconnectGmail");
     }
   }
 
@@ -916,7 +917,7 @@ export class BoardController {
       await this.outlookService.disconnect(session.user.id);
       return { message: "Outlook disconnected successfully" };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.disconnectOutlook");
     }
   }
 
@@ -932,7 +933,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.deleteActivity");
     }
   }
 
@@ -950,7 +951,7 @@ export class BoardController {
         moduleType || "LEAD"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.deleteColumn");
     }
   }
 
@@ -968,7 +969,7 @@ export class BoardController {
         moduleType || "LEAD"
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.deleteAttachment");
     }
   }
 
@@ -985,7 +986,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.deleteRecordHistory");
     }
   }
 
@@ -1005,7 +1006,7 @@ export class BoardController {
         session.session.userId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.deleteRecordFieldOption");
     }
   }
 
@@ -1022,7 +1023,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.getDeletedRecordFieldOptions");
     }
   }
 
@@ -1039,7 +1040,7 @@ export class BoardController {
         session.session.activeOrganizationId
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw toSafeError(error, "boards.restoreRecordFieldOption");
     }
   }
 }

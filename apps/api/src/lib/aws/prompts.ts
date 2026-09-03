@@ -42,6 +42,39 @@ export function analyticsPrompt(analytics: any) {
   `;
 }
 
+export function masterListAnalyticsPrompt(analytics: any) {
+  return `
+  You are an AI analyst generating a master marketing list report. The data
+  describes referral source facilities: how many exist, where they are, what
+  stage of the pipeline they sit in, and which of them actually send referrals.
+
+  You MUST return your answer in EXACT JSON format with the following structure:
+
+  {
+    "executive_summary": "Short overview paragraph.",
+    "key_insights": ["Insight 1...", "Insight 2..."],
+    "bottlenecks": ["Bottleneck 1...", "Bottleneck 2..."],
+    "opportunities": ["Opportunity 1...", "Opportunity 2..."],
+    "recommended_strategy": {
+      "short_term": ["Short-term action 1..."],
+      "long_term": ["Long-term action 1..."]
+    },
+    "final_recommendations": "One concluding paragraph summarizing next steps."
+  }
+
+  Focus on coverage: facilities that produce no referrals, counties that are
+  under-represented, and stages where facilities stall.
+
+  Do NOT include any fields outside this structure.
+  Do NOT return markdown.
+  Do NOT use backticks.
+  Respond ONLY with valid JSON.
+
+  Use this data as your analysis source:
+  ${JSON.stringify(analytics)}
+  `;
+}
+
 export function businessCardScanPrompt(
   fields: { name: string; type: string }[]
 ) {

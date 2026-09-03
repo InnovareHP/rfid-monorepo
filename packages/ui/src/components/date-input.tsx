@@ -40,7 +40,7 @@ export function DateRangePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0" align="start">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="range"
           selected={{ from: range.from, to: range.to }}

@@ -13,6 +13,7 @@ type MarketingFiltersProps = {
   liaisons: OptionsResponse[];
   selectedLiaison: string | null;
   onSelectLiaison: (userId: string) => void;
+  canSelectLiaison: boolean;
   onApply: () => void;
   onReset: () => void;
   onExport: () => void;
@@ -25,6 +26,7 @@ export function MarketingFilters({
   liaisons,
   selectedLiaison,
   onSelectLiaison,
+  canSelectLiaison,
   onApply,
   onReset,
   onExport,
@@ -37,9 +39,12 @@ export function MarketingFilters({
       <Select
         value={selectedLiaison ?? undefined}
         onValueChange={onSelectLiaison}
+        disabled={!canSelectLiaison}
       >
         <SelectTrigger className="h-10 w-[220px] rounded-lg">
-          <SelectValue placeholder="All liaisons" />
+          <SelectValue
+            placeholder={canSelectLiaison ? "All liaisons" : "Your report"}
+          />
         </SelectTrigger>
         <SelectContent>
           {liaisons.length > 0 ? (

@@ -6,7 +6,11 @@ import { cacheData } from "../redis/redis";
 import { QUEUE_NAMES } from "./queue.constants";
 
 export interface GeminiJobData {
-  type: "follow-up-suggestions" | "analytics-summary" | "marketing-analysis";
+  type:
+    | "follow-up-suggestions"
+    | "analytics-summary"
+    | "marketing-analysis"
+    | "master-list-summary";
   prompt: string;
   cacheKey?: string;
   cacheTtl?: number;

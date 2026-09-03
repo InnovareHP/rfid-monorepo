@@ -55,4 +55,25 @@ describe("getApiErrorMessage", () => {
       "fallback"
     );
   });
+
+  it("hides a Prisma message behind the fallback", () => {
+    const error = {
+      response: {
+        data: {
+          message:
+            "Invalid `prisma.board.create()` invocation: Unique constraint failed on the fields: (`record_name`)",
+        },
+      },
+    };
+    expect(getApiErrorMessage(error, "Failed to save.")).toBe(
+      "Failed to save."
+    );
+  });
+
+  it("hides an oversized internal dump", () => {
+    const error = { response: { data: { message: "x".repeat(400) } } };
+    expect(getApiErrorMessage(error, "Failed to save.")).toBe(
+      "Failed to save."
+    );
+  });
 });

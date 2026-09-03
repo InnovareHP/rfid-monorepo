@@ -26,7 +26,7 @@ export function DateRangeFilter({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="p-4" align="start">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="range"
           selected={{ from: from ?? undefined, to: to ?? undefined }}

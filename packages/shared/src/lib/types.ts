@@ -662,3 +662,27 @@ export type AdminUserCreateStreamEvent =
   | { type: "progress"; step: string; label: string }
   | { type: "done"; userId: string; organizationId: string }
   | { type: "error"; message: string };
+
+export type MasterListBreakdownItem = {
+  value: string | null;
+  _count: {
+    value: number;
+  };
+};
+
+export type MasterListAnalyticsResponse = {
+  totals: {
+    totalFacilities: number;
+    facilitiesThisPeriod: number;
+    referringFacilities: number;
+    dormantFacilities: number;
+    coverageRate: number;
+  };
+  statusBreakdown: StatusBreakdownItem[];
+  facilityTypes: MasterListBreakdownItem[];
+  counties: MasterListBreakdownItem[];
+  growthTrend: MonthlyTotal[];
+  byLiaison: MasterListBreakdownItem[];
+  topReferringFacilities: MasterListBreakdownItem[];
+  dormant: { name: string; county: string | null }[];
+};
