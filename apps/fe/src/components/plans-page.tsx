@@ -151,7 +151,7 @@ export function PlansPage({
   };
 
   return (
-    <div className={cn("w-full min-h-screen", className)} {...props}>
+    <div className={cn("w-full min-h-full", className)} {...props}>
       {propContext === "/billing" && <BillingTopBar onLogout={handleLogout} />}
 
       <div className="w-full max-w-7xl mx-auto p-6 space-y-8">

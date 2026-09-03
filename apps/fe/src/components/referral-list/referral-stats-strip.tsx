@@ -2,6 +2,7 @@ import { buildAnalyticsChartData } from "@/lib/helper/analytics-chart-data";
 import { getAnalytics } from "@/services/analytics/analytics-service";
 import type { AnalyticsResponse } from "@dashboard/shared";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
 
 type ReferralStatsStripProps = {
@@ -22,7 +23,13 @@ export function ReferralStatsStrip({
     queryFn: async () => (await getAnalytics(start, end)) as AnalyticsResponse,
   });
 
-  const charts = buildAnalyticsChartData(analytics);
+  // Memoised for referential stability, not for the cost of the transform:
+  // recharts replays a series' whole animation when its data identity changes,
+  // so a fresh array on every render re-swept every chart on the page.
+  const charts = useMemo(
+    () => buildAnalyticsChartData(analytics),
+    [analytics]
+  );
   const hasPeriodFilter = !!start || !!end;
   const totalReferrals = hasPeriodFilter
     ? (analytics?.totalCounts?.referralsThisPeriod ?? 0)

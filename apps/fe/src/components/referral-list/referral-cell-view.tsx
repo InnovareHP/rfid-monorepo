@@ -98,8 +98,8 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 from-primary/10 to-purple-50">
+      <DialogContent variant="shell" className="max-w-5xl">
+        <DialogHeader className="shrink-0 px-4 pt-5 pb-4 from-primary/10 to-purple-50 sm:px-6 sm:pt-6">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-bold text-gray-900">
               Referral Details
@@ -112,7 +112,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
         </DialogHeader>
 
         {isLoading ? (
-          <div className="px-6 pb-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
             <div className="space-y-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
@@ -123,7 +123,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
             </div>
           </div>
         ) : isError ? (
-          <div className="px-6 pb-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
             <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm">
               <div className="font-semibold text-red-900 mb-2">
                 Failed to load referral
@@ -137,9 +137,9 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v)}
-            className="w-full"
+            className="flex min-h-0 w-full flex-1 flex-col"
           >
-            <div className="px-4 border-b overflow-x-auto sm:px-6">
+            <div className="shrink-0 px-4 border-b overflow-x-auto sm:px-6">
               <TabsList className="bg-transparent border-b-0">
                 <TabsTrigger
                   value="details"
@@ -159,8 +159,8 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
               </TabsList>
             </div>
 
-            <TabsContent value="details" className="mt-0">
-              <ScrollArea className="h-[60dvh] px-4 py-4 sm:h-[calc(90vh-240px)] sm:px-6">
+            <TabsContent value="details" className="mt-0 min-h-0 flex-1">
+              <ScrollArea className="h-full px-4 py-4 sm:px-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {entries.map(([key, rawValue]) => {
                     const value = serializeValue(rawValue);
@@ -191,8 +191,8 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="history" className="mt-0">
-              <ScrollArea className="h-[60dvh] px-4 py-4 sm:h-[calc(90vh-240px)] sm:px-6">
+            <TabsContent value="history" className="mt-0 min-h-0 flex-1">
+              <ScrollArea className="h-full px-4 py-4 sm:px-6">
                 {historyLoading && (
                   <div className="space-y-3">
                     {Array.from({ length: 5 }).map((_, i) => (

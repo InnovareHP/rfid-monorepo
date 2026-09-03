@@ -34,7 +34,7 @@ export function ConfirmationDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <AlertDialogContent variant="shell" className="sm:max-w-lg">
         <AlertDialogFormHeader
           icon={isDestructive ? <AlertTriangle /> : <CheckCircle2 />}
           iconClassName={

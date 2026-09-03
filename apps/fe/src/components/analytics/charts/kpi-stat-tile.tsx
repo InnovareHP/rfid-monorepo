@@ -11,6 +11,7 @@ import {
 } from "@dashboard/ui/components/chart";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
 import { useId } from "react";
+import { CHART_MOTION_COMPACT } from "@/lib/helper/chart-motion";
 import { Area, AreaChart, CartesianGrid } from "recharts";
 import { TrendPill } from "./trend-pill";
 
@@ -95,6 +96,7 @@ export function KpiStatTile({
                 strokeWidth={2}
                 fill={`url(#${gradientId})`}
                 dot={false}
+                {...CHART_MOTION_COMPACT}
               />
             </AreaChart>
           </ChartContainer>

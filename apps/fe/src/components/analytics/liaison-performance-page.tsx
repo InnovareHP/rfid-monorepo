@@ -154,7 +154,7 @@ const LiaisonPerformancePage = () => {
         </div>
 
         {/* KPI TILES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
           <KpiStatTile
             label="Total Referrals"
             value={totalReferrals.toLocaleString()}

@@ -78,7 +78,7 @@ export function PrimarySidebar({ activeOrganizationId }: PrimarySidebarProps) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="bg-brand-rail sticky top-0 z-50 hidden h-screen w-16 shrink-0 flex-col items-center gap-1 py-4 md:flex">
+      <aside className="bg-brand-rail sticky top-0 z-50 hidden h-dvh w-16 shrink-0 flex-col items-center gap-1 py-4 md:flex">
         <Link to={homeHref} preload={false} className="mb-3">
           <img
             src={BRAND_LOGO}

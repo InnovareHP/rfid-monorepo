@@ -10,7 +10,7 @@ import {
 import type { MasterListAnalyticsResponse } from "@dashboard/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AiSummaryCard } from "./ai-summary-card";
@@ -91,6 +91,14 @@ export default function MasterListAnalyticsPage() {
       toast.error(getApiErrorMessage(err, "Failed to refresh insights")),
   });
 
+  // Memoised for referential stability, not for the cost of the transform:
+  // recharts replays a series' whole animation when its data identity changes,
+  // so a fresh array on every render re-swept every chart on the page.
+  const charts = useMemo(
+    () => buildMasterListChartData(analytics),
+    [analytics]
+  );
+
   if (!canUseAdvancedAnalytics) {
     return (
       <FeatureLocked
@@ -101,7 +109,6 @@ export default function MasterListAnalyticsPage() {
     );
   }
 
-  const charts = buildMasterListChartData(analytics);
   const totals = analytics?.totals;
   const hasPeriodFilter = Boolean(dateRange.start && dateRange.end);
   const referring = (totals?.referringFacilities ?? 0).toLocaleString();
@@ -152,7 +159,7 @@ export default function MasterListAnalyticsPage() {
         )}
 
         {/* KPI TILES */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <KpiStatTile
             label="Total Facilities"
             value={(totals?.totalFacilities ?? 0).toLocaleString()}

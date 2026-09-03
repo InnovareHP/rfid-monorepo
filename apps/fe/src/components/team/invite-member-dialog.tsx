@@ -7,6 +7,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
   DialogTrigger,
@@ -89,7 +90,7 @@ export function InviteMemberDialog({
           Invite Member
         </Button>
       </DialogTrigger>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent variant="shell" className="sm:max-w-lg">
         <DialogFormHeader
           icon={
             <img
@@ -108,7 +109,7 @@ export function InviteMemberDialog({
               onInvite(values, () => form.reset())
             )}
           >
-            <div className="space-y-4 px-6 py-5">
+            <DialogFormBody className="space-y-4">
               {seatsFull && (
                 <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   All {seatLimit} {seatLimit === 1 ? "seat is" : "seats are"}{" "}
@@ -184,7 +185,7 @@ export function InviteMemberDialog({
                   </FormItem>
                 )}
               />
-            </div>
+            </DialogFormBody>
             <DialogFormFooter>
               <Button
                 type="button"

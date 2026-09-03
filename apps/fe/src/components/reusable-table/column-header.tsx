@@ -126,7 +126,7 @@ export function ColumnHeader({
       </DropdownMenu>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <AlertDialogContent variant="shell" className="sm:max-w-lg">
           <AlertDialogFormHeader
             icon={<Trash2 />}
             iconClassName="bg-destructive text-destructive-foreground"

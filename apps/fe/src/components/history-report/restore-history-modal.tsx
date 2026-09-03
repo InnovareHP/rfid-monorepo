@@ -3,6 +3,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -55,7 +56,7 @@ export function RestoreHistoryModal({
         if (!isRestoring) onOpenChange(next);
       }}
     >
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent variant="shell" className="sm:max-w-2xl">
         <DialogFormHeader
           icon={<RotateCcw />}
           iconClassName="bg-warning text-warning-foreground"
@@ -63,7 +64,7 @@ export function RestoreHistoryModal({
           description={`Are you sure you want to restore this ${formatCapitalize(historyItem.action)} action?`}
         />
 
-        <div className="space-y-4 px-6 py-5">
+        <DialogFormBody className="space-y-4">
           <div className="grid grid-cols-1 gap-4 rounded-lg bg-muted p-4 sm:grid-cols-2">
             <HistoryDetailField
               label="Action Type"
@@ -111,7 +112,7 @@ export function RestoreHistoryModal({
               </p>
             </div>
           )}
-        </div>
+        </DialogFormBody>
 
         <DialogFormFooter>
           <Button

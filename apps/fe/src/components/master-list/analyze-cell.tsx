@@ -114,9 +114,9 @@ export function AnalyzeLeadDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent variant="shell" className="max-w-4xl">
         {/* Custom Header with Gradient */}
-        <div className="border-b bg-table-header px-6 pb-5 pt-6">
+        <div className="shrink-0 border-b bg-table-header px-4 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -146,7 +146,7 @@ export function AnalyzeLeadDialog({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 px-6">
+        <ScrollArea className="min-h-0 flex-1 px-4 sm:px-6">
           {isLoading ? (
             <div className="py-8">
               <LoadingSkeleton />

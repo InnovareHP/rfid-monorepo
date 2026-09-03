@@ -36,7 +36,7 @@ export function AnalyticsDateFilter({ onChange }: AnalyticsDateFilterProps) {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="h-10 w-[280px] justify-between rounded-lg text-left font-normal"
+          className="h-10 w-full justify-between rounded-lg text-left font-normal sm:w-[280px]"
         >
           {range.start ? (
             <span className="font-medium text-foreground">

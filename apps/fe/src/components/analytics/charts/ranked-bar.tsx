@@ -1,3 +1,4 @@
+import { chartMotion } from "@/lib/helper/chart-motion";
 import { sequentialRampColor } from "@/lib/color-utils";
 import type { RankedRow } from "@/lib/helper/analytics-chart-data";
 import {
@@ -78,7 +79,12 @@ export function RankedBar({
             fontSize={compact ? 10 : 12}
           />
           <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-          <Bar dataKey="count" radius={0} barSize={compact ? 12 : 22}>
+          <Bar
+            dataKey="count"
+            radius={0}
+            barSize={compact ? 12 : 22}
+            {...chartMotion(compact)}
+          >
             {cells}
           </Bar>
         </BarChart>
@@ -108,7 +114,12 @@ export function RankedBar({
           fontSize={compact ? 10 : 12}
         />
         <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-        <Bar dataKey="count" radius={0} maxBarSize={compact ? 32 : 64}>
+        <Bar
+          dataKey="count"
+          radius={0}
+          maxBarSize={compact ? 32 : 64}
+          {...chartMotion(compact)}
+        >
           {cells}
         </Bar>
       </BarChart>
