@@ -17,8 +17,10 @@ import {
 import { AuthGuard, Roles, UserSession } from "@thallesp/nestjs-better-auth";
 import type { Request, Response } from "express";
 import { OnboardingGuard } from "src/guard/onboarding/onboarding.guard";
+import { clientIp } from "src/lib/http/client-ip";
 import {
   AdminEntitlementDto,
+  AdminSignInLinkDto,
   CreateAdminUserDto,
   OnboardingDto,
 } from "./dto/user.schema";
@@ -135,6 +137,23 @@ export class UserController {
     } catch (error) {
       throw new BadRequestException(error);
     }
+  }
+
+  // Passkey-only sign-in has no self-serve recovery, so support mints a link
+  // and hands it over on the ticket. Superadmin only, reasoned, and audited.
+  @Post("admin/users/:userId/sign-in-link")
+  @Roles([ROLES.SUPER_ADMIN])
+  async createAdminSignInLink(
+    @Param("userId") userId: string,
+    @Body() dto: AdminSignInLinkDto,
+    @Session() session: UserSession,
+    @Req() request: Request
+  ) {
+    return await this.userService.createSignInLink(userId, dto.reason, {
+      id: session.user.id,
+      name: session.user.name,
+      ipAddress: clientIp(request),
+    });
   }
 
   @Get("admin/activity-log")

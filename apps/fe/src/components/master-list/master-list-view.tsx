@@ -164,7 +164,7 @@ export function MasterListView({
       id: historyItem.id,
       leadId: leadId,
       action: historyItem.action,
-      entityType: isReferral ? "Referral" : "Lead",
+      entityType: isReferral ? "Referral" : "Facility",
       oldValue: historyItem.oldValue,
       newValue: historyItem.newValue,
       createdAt: historyItem.createdAt,

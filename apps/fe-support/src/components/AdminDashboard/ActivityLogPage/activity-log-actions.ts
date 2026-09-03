@@ -19,6 +19,8 @@ export const ACTION_META: Record<string, ActionMeta> = {
   SET_PASSWORD: { label: "Set password", variant: "warning" },
   REVOKE_SESSIONS: { label: "Revoke sessions", variant: "warning" },
   UPDATE_USER: { label: "Update user", variant: "info" },
+  CREATE_SIGN_IN_LINK: { label: "Issue sign-in link", variant: "warning" },
+  USE_SIGN_IN_LINK: { label: "Sign-in link used", variant: "warning" },
 };
 
 export const ACTION_OPTIONS = [

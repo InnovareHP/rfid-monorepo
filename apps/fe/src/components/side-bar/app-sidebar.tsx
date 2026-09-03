@@ -3,13 +3,15 @@ import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
 import { useNavItems } from "@/hooks/use-nav-items";
+import { useSettingsNavItems } from "@/hooks/use-settings-nav-items";
+import { isSettingsPath } from "@/lib/helper/settings-nav";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
 } from "@dashboard/ui/components/sidebar";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { type User as BetterAuthUser } from "better-auth";
 import type { Member, Organization } from "better-auth/plugins/organization";
 import * as React from "react";
@@ -31,6 +33,11 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const navMain = useNavItems(activeOrganizationId, memberData);
+  const settingsNav = useSettingsNavItems(activeOrganizationId, memberData);
+  const onSettings = isSettingsPath(
+    useLocation().pathname,
+    activeOrganizationId
+  );
 
   return (
     <Sidebar
@@ -63,7 +70,7 @@ export function AppSidebar({
         {/* {open && <AddRow isReferral={false} onAdd={handleAddNewLead} />} */}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain items={onSettings ? settingsNav : navMain} />
       </SidebarContent>
       <SidebarFooter>
         <PlanChip organizationId={activeOrganizationId} />

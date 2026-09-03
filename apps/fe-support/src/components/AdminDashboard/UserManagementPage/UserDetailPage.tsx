@@ -2,6 +2,7 @@ import type { AdminRole } from "@/lib/auth-client";
 import { DASHBOARD_URL, ROLES } from "@/lib/contant";
 import {
   banUser,
+  createUserSignInLink,
   getUser,
   impersonateUser,
   removeUser,
@@ -10,6 +11,7 @@ import {
   setUserRole,
   unbanUser,
   type AdminUser,
+  type SignInLink,
 } from "@/services/admin/admin-service";
 import { formatDate } from "@dashboard/shared";
 import {
@@ -62,6 +64,7 @@ import {
   Calendar,
   CheckCircle2,
   KeyRound,
+  Link2,
   LogOut,
   Mail,
   MoreHorizontal,
@@ -77,6 +80,7 @@ import { toast } from "sonner";
 import { BanUserDialog } from "./BanUserDialog";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { ImpersonateUserDialog } from "./ImpersonateUserDialog";
+import { SignInLinkDialog } from "./SignInLinkDialog";
 
 const ROLE_LABELS: Record<AdminRole, string> = {
   [ROLES.USER]: "User",
@@ -120,6 +124,8 @@ export function UserDetailPage({ userId }: { userId: string }) {
   const [removeOpen, setRemoveOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [impersonateOpen, setImpersonateOpen] = useState(false);
+  const [signInLinkOpen, setSignInLinkOpen] = useState(false);
+  const [signInLink, setSignInLink] = useState<SignInLink | null>(null);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["admin-user", userId],
@@ -183,6 +189,17 @@ export function UserDetailPage({ userId }: { userId: string }) {
     onError: () => toast.error("Failed to impersonate user"),
   });
 
+  const signInLinkMutation = useMutation({
+    mutationFn: (reason: string) => createUserSignInLink(userId, reason),
+    onSuccess: (link) => setSignInLink(link),
+    // The API names the refusal (wrong role, banned account); that reads better
+    // than a generic failure for the admin who asked.
+    onError: (error: { response?: { data?: { message?: string } } }) =>
+      toast.error(
+        error.response?.data?.message ?? "Failed to generate the link"
+      ),
+  });
+
   const revokeSessionMutation = useMutation({
     mutationFn: () => revokeUserSessions(userId),
     onSuccess: () => {
@@ -241,6 +258,10 @@ export function UserDetailPage({ userId }: { userId: string }) {
             onUnban={() => unbanMutation.mutate()}
             onRemove={() => setRemoveOpen(true)}
             onImpersonate={() => setImpersonateOpen(true)}
+            onSignInLink={() => {
+              setSignInLink(null);
+              setSignInLinkOpen(true);
+            }}
             onRevokeSession={() => revokeSessionMutation.mutate()}
             onChangePassword={() => setPasswordOpen(true)}
             onRoleChange={(role) => roleMutation.mutate(role)}
@@ -411,6 +432,16 @@ export function UserDetailPage({ userId }: { userId: string }) {
         onConfirm={(reason) => impersonateMutation.mutate(reason)}
       />
 
+      {/* Sign-in link dialog */}
+      <SignInLinkDialog
+        open={signInLinkOpen}
+        onOpenChange={setSignInLinkOpen}
+        userName={user.name}
+        isPending={signInLinkMutation.isPending}
+        link={signInLink}
+        onConfirm={(reason) => signInLinkMutation.mutate(reason)}
+      />
+
       {/* Change password dialog */}
       <ChangePasswordDialog
         open={passwordOpen}
@@ -451,6 +482,7 @@ function ActionsDropdown({
   onUnban,
   onRemove,
   onImpersonate,
+  onSignInLink,
   onRevokeSession,
   onChangePassword,
   onRoleChange,
@@ -461,6 +493,7 @@ function ActionsDropdown({
   onUnban: () => void;
   onRemove: () => void;
   onImpersonate: () => void;
+  onSignInLink: () => void;
   onRevokeSession: () => void;
   onChangePassword: () => void;
   onRoleChange: (role: AdminRole) => void;
@@ -510,6 +543,11 @@ function ActionsDropdown({
         <DropdownMenuItem onClick={onImpersonate}>
           <User className="mr-2 h-4 w-4" />
           Impersonate user
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={onSignInLink}>
+          <Link2 className="mr-2 h-4 w-4" />
+          Generate sign-in link
         </DropdownMenuItem>
 
         <DropdownMenuItem onClick={onRevokeSession}>

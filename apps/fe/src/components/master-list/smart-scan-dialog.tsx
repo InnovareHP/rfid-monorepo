@@ -177,12 +177,12 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
       });
 
       queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
-      toast.success("Lead created from business card");
+      toast.success("Facility created from business card");
       handleClose(false);
     } catch (error) {
       // A scanned card often names a facility that already exists, and the
       // server says so - a fixed string would hide the reason.
-      toast.error(getApiErrorMessage(error, "Failed to create lead"));
+      toast.error(getApiErrorMessage(error, "Failed to create facility"));
     }
   };
 

@@ -1,3 +1,16 @@
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+} from "@dnd-kit/sortable";
 import { Button } from "@dashboard/ui/components/button";
 import { Card, CardContent } from "@dashboard/ui/components/card";
 import {
@@ -11,7 +24,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@dashboard/ui/components/table";
@@ -37,6 +49,7 @@ import { BulkEmailDialog } from "./bulk-email-dialog";
 import { DeleteRecordsDialog } from "./delete-records-dialog";
 import { TableEmptyState } from "./table-empty-state";
 import { TableErrorState } from "./table-error-state";
+import { TableHeadCell } from "./table-head-cell";
 import { TablePagination } from "./table-pagination";
 
 type Props<T> = {
@@ -59,7 +72,14 @@ type Props<T> = {
   setCurrentPage: (page: number) => void;
   pageSize?: number;
   onPageSizeChange?: (size: number) => void;
+  enableColumnReorder?: boolean;
+  onColumnOrderChange?: (columnIds: string[]) => void;
 };
+
+// The first two columns are sticky and the create-column header is an action,
+// so only the columns between them can move. Pinning by position rather than by
+// id keeps this true for every board, whatever its name column is called.
+const CREATE_COLUMN_ID = "create_column";
 
 const ReusableTable = <T extends { id: string }>({
   table,
@@ -80,8 +100,38 @@ const ReusableTable = <T extends { id: string }>({
   setCurrentPage,
   pageSize,
   onPageSizeChange,
+  enableColumnReorder = false,
+  onColumnOrderChange,
 }: Props<T>) => {
   const isMobile = useIsMobile();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  // Hidden columns stay in the base order so unhiding one puts it back where
+  // the user left it; the sticky pair is read off the visible list instead,
+  // which is what the header renderer pins.
+  const allColumnIds = table.getAllLeafColumns().map((column) => column.id);
+  const pinnedIds = [
+    ...table
+      .getVisibleLeafColumns()
+      .slice(0, 2)
+      .map((column) => column.id),
+    CREATE_COLUMN_ID,
+  ];
+  const reorderableIds =
+    enableColumnReorder && onColumnOrderChange
+      ? allColumnIds.filter((id) => !pinnedIds.includes(id))
+      : [];
+
+  const handleColumnDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id || !onColumnOrderChange) return;
+    const from = allColumnIds.indexOf(String(active.id));
+    const to = allColumnIds.indexOf(String(over.id));
+    if (from === -1 || to === -1) return;
+    onColumnOrderChange(arrayMove(allColumnIds, from, to));
+  };
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -175,6 +225,15 @@ const ReusableTable = <T extends { id: string }>({
               className="table-fixed w-full"
               style={{ minWidth: table.getCenterTotalSize() }}
             >
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleColumnDragEnd}
+              >
+              <SortableContext
+                items={reorderableIds}
+                strategy={horizontalListSortingStrategy}
+              >
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
@@ -188,48 +247,20 @@ const ReusableTable = <T extends { id: string }>({
                           ? (headerGroup.headers[0]?.getSize() ?? 0)
                           : 0;
                       return (
-                      <TableHead
-                        className={cn(
-                          "text-left text-sm font-semibold text-foreground px-4 py-3 group/header overflow-visible sticky top-0 bg-table-header",
-                          stickyLeft ? "z-30" : "z-20"
-                        )}
-                        key={header.id}
-                        style={{
-                          width: header.getSize(),
-                          maxWidth: header.getSize(),
-                          ...(stickyLeft
-                            ? { position: "sticky", left: leftOffset }
-                            : {}),
-                        }}
-                      >
-                        <div className="overflow-hidden text-ellipsis">
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </div>
-                        {header.column.getCanResize() && (
-                          <div
-                            onMouseDown={header.getResizeHandler()}
-                            onTouchStart={header.getResizeHandler()}
-                            onDoubleClick={() => header.column.resetSize()}
-                            className={cn(
-                              "absolute -right-1 top-0 h-full w-2 cursor-col-resize select-none touch-none z-50",
-                              header.column.getIsResizing()
-                                ? "bg-primary"
-                                : "opacity-0 group-hover/header:opacity-100 bg-muted-foreground"
-                            )}
-                            style={{ touchAction: "none" }}
-                          />
-                        )}
-                      </TableHead>
+                        <TableHeadCell
+                          key={header.id}
+                          header={header}
+                          stickyLeft={stickyLeft}
+                          leftOffset={leftOffset}
+                          sortable={reorderableIds.includes(header.column.id)}
+                        />
                       );
                     })}
                   </TableRow>
                 ))}
               </TableHeader>
+              </SortableContext>
+              </DndContext>
 
               <TableBody>
                 {isFetchingList && totalRows === 0 ? (

@@ -23,6 +23,8 @@ import {
   auditAdminActions,
   requireImpersonationReason,
 } from "./admin-audit-hook";
+import { SIGN_IN_LINK_VERIFY_PATH } from "./admin-sign-in-link";
+import { adminSignInLink } from "./admin-sign-in-link.plugin";
 import { invalidateSessionContextAfterMembershipChange } from "./session-context-hook";
 import {
   afterAcceptInvitation,
@@ -134,6 +136,9 @@ export const auth = betterAuth({
       "/passkey/verify-authentication": { window: 60, max: 10 },
       "/passkey/generate-register-options": { window: 300, max: 10 },
       "/passkey/verify-registration": { window: 300, max: 10 },
+      // Guessing a 32-byte token is not the threat; a leaked URL being sprayed
+      // at the endpoint is, so this stays as tight as the passkey ceremonies.
+      [SIGN_IN_LINK_VERIFY_PATH]: { window: 300, max: 10 },
     },
   },
   hooks: {
@@ -296,6 +301,7 @@ export const auth = betterAuth({
       },
     }),
     oneTimeToken(),
+    adminSignInLink(),
     admin({
       ac,
       roles: {

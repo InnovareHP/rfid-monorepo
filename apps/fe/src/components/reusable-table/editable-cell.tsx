@@ -515,7 +515,7 @@ export function EditableCell({
   if (type === "ASSIGNED_TO" || fieldName === "account_manager") {
     return (
       <Select
-        defaultValue={val}
+        value={val ?? ""}
         onValueChange={(v) => handleUpdate(String(v))}
         disabled={isUpdating || isLoadingAssignedTo}
       >
@@ -591,7 +591,7 @@ export function EditableCell({
     return (
       <div className="flex items-center gap-1.5">
         <Select
-          defaultValue={val}
+          value={val ?? ""}
           onValueChange={(v) => handleUpdate(String(v))}
           disabled={isUpdating}
           open={selectOpen}

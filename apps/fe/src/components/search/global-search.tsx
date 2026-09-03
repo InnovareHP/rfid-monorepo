@@ -1,5 +1,6 @@
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useNavItems } from "@/hooks/use-nav-items";
+import { useSettingsNavItems } from "@/hooks/use-settings-nav-items";
 import { flattenNavItems, searchNavEntries } from "@/lib/helper/nav-search";
 import {
   Command,
@@ -32,6 +33,12 @@ export const GlobalSearch = React.memo(function GlobalSearch({
 }: GlobalSearchProps) {
   const navigate = useNavigate();
   const navItems = useNavItems(activeOrganizationId, memberData);
+  // Settings lives on its own sidebar now, so its rows are indexed here too or
+  // they stop being reachable by search.
+  const settingsNavItems = useSettingsNavItems(
+    activeOrganizationId,
+    memberData
+  );
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [open, setOpen] = React.useState(false);
@@ -39,7 +46,10 @@ export const GlobalSearch = React.memo(function GlobalSearch({
   // Results settle once typing pauses, so a keystroke never costs a filter pass.
   const settledQuery = useDebouncedValue(query, 200);
 
-  const entries = React.useMemo(() => flattenNavItems(navItems), [navItems]);
+  const entries = React.useMemo(
+    () => flattenNavItems([...navItems, ...settingsNavItems]),
+    [navItems, settingsNavItems]
+  );
   const results = React.useMemo(
     () => searchNavEntries(entries, settledQuery),
     [entries, settledQuery]

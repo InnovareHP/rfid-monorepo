@@ -10,6 +10,7 @@ import {
   type ExportRange,
 } from "@/components/export-csv-button";
 import { exportToCSV } from "@/lib/fe-helpers";
+import { useColumnOrder } from "@/hooks/use-column-order";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { filterByCreatedAt } from "@/lib/helper/helper";
 import { PageHeader } from "@/components/page-header";
@@ -153,6 +154,11 @@ export default function CrmListPage({
     [VISIBILITY_KEY]
   );
 
+  const { columnOrder, onColumnOrderChange } = useColumnOrder(
+    `${queryKey}-column-order`,
+    columns
+  );
+
   const table = useReactTable({
     data: rows,
     columns,
@@ -160,7 +166,7 @@ export default function CrmListPage({
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     columnResizeMode: "onChange",
-    state: { columnSizing, columnVisibility },
+    state: { columnSizing, columnVisibility, columnOrder },
     onColumnSizingChange: handleColumnSizingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
   });
@@ -278,6 +284,8 @@ export default function CrmListPage({
           onPageSizeChange={(size) =>
             setFilterMeta((prev) => ({ ...prev, limit: size, page: 1 }))
           }
+          enableColumnReorder
+          onColumnOrderChange={onColumnOrderChange}
         />
       </div>
     </div>

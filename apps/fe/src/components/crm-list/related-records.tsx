@@ -22,7 +22,7 @@ const MODULE_ROUTES: Record<string, string> = {
 };
 
 const MODULE_LABELS: Record<string, string> = {
-  LEAD: "Lead",
+  LEAD: "Facility",
   REFERRAL: "Referral",
   CONTACT: "Contact",
   COMPANY: "Company",

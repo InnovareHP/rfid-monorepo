@@ -11,6 +11,10 @@ import { PDFDocument } from "pdf-lib";
 // The letterhead is US Letter (612 x 792). A page of another size is scaled to
 // fit rather than stretched, so nothing is distorted, but a document meant to
 // carry the letterhead should be Letter to begin with.
+//
+// Only the header and footer bands are used. The artwork is a correspondence
+// template, so its body carries a date line and an address block; drawing the
+// whole page behind a report laid that furniture over the data.
 
 // The artwork's own header and footer bands. Content drawn inside them collides
 // with the logo or the address block, so a generator that stamps needs to keep
@@ -54,13 +58,13 @@ const load = (): Uint8Array | null => {
 export const stampLetterhead = async (
   bytes: Uint8Array
 ): Promise<Uint8Array> => {
-  const artwork = load();
-  if (!artwork) return bytes;
+  const artworkBytes = load();
+  if (!artworkBytes) return bytes;
 
   try {
     const [source, letterhead] = await Promise.all([
       PDFDocument.load(bytes),
-      PDFDocument.load(artwork),
+      PDFDocument.load(artworkBytes),
     ]);
 
     // Composed into a fresh document rather than stamped onto the original.
@@ -68,7 +72,28 @@ export const stampLetterhead = async (
     // an existing page puts it over the text; the only way to get it behind is
     // to draw it first onto a new page and lay the original page on top.
     const output = await PDFDocument.create();
-    const [artworkPage] = await output.embedPdf(letterhead, [0]);
+    const artwork = letterhead.getPage(0);
+
+    // Only the two bands are taken, not the whole page. The supplied artwork is
+    // a letter template, so its middle carries the date line and address block
+    // meant for correspondence - drawing that behind a report put furniture
+    // over the data. Cropping to the header and footer keeps the branding and
+    // discards the letter layout.
+    const [header, footer] = await Promise.all([
+      output.embedPage(artwork, {
+        left: 0,
+        bottom: LETTER.height - LETTERHEAD_TOP_INSET,
+        right: LETTER.width,
+        top: LETTER.height,
+      }),
+      output.embedPage(artwork, {
+        left: 0,
+        bottom: 0,
+        right: LETTER.width,
+        top: LETTERHEAD_BOTTOM_INSET,
+      }),
+    ]);
+
     const contentPages = await output.embedPdf(source, source.getPageIndices());
 
     contentPages.forEach((content, index) => {
@@ -77,12 +102,20 @@ export const stampLetterhead = async (
       // not Letter instead of being squashed to fit.
       const scale = Math.min(width / LETTER.width, height / LETTER.height);
       const page = output.addPage([width, height]);
+      const inset = (width - LETTER.width * scale) / 2;
 
-      page.drawPage(artworkPage, {
+      page.drawPage(header, {
         width: LETTER.width * scale,
-        height: LETTER.height * scale,
-        x: (width - LETTER.width * scale) / 2,
-        y: (height - LETTER.height * scale) / 2,
+        height: LETTERHEAD_TOP_INSET * scale,
+        x: inset,
+        y: height - LETTERHEAD_TOP_INSET * scale,
+      });
+
+      page.drawPage(footer, {
+        width: LETTER.width * scale,
+        height: LETTERHEAD_BOTTOM_INSET * scale,
+        x: inset,
+        y: 0,
       });
 
       page.drawPage(content, { x: 0, y: 0, width, height });

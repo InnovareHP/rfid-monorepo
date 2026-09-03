@@ -23,6 +23,7 @@ import { Route as FSlugRouteImport } from './routes/f/$slug'
 import { Route as BookingBookingIdRouteImport } from './routes/booking.$bookingId'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
+import { Route as AuthSignInLinkRouteImport } from './routes/_auth/sign-in-link'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthOtpRouteImport } from './routes/_auth/otp'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -154,6 +155,11 @@ const BookSlugRoute = BookSlugRouteImport.update({
 const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
   id: '/two-factor',
   path: '/two-factor',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSignInLinkRoute = AuthSignInLinkRouteImport.update({
+  id: '/sign-in-link',
+  path: '/sign-in-link',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
@@ -518,6 +524,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/sign-in-link': typeof AuthSignInLinkRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/sign-in-link': typeof AuthSignInLinkRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
@@ -677,6 +685,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/otp': typeof AuthOtpRoute
   '/_auth/register': typeof AuthRegisterRoute
+  '/_auth/sign-in-link': typeof AuthSignInLinkRoute
   '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
@@ -757,6 +766,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/sign-in-link'
     | '/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
@@ -835,6 +845,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/sign-in-link'
     | '/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
@@ -915,6 +926,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/otp'
     | '/_auth/register'
+    | '/_auth/sign-in-link'
     | '/_auth/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
@@ -1101,6 +1113,13 @@ declare module '@tanstack/react-router' {
       path: '/two-factor'
       fullPath: '/two-factor'
       preLoaderRoute: typeof AuthTwoFactorRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/sign-in-link': {
+      id: '/_auth/sign-in-link'
+      path: '/sign-in-link'
+      fullPath: '/sign-in-link'
+      preLoaderRoute: typeof AuthSignInLinkRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/register': {
@@ -1558,6 +1577,7 @@ interface AuthRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthOtpRoute: typeof AuthOtpRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthSignInLinkRoute: typeof AuthSignInLinkRoute
   AuthTwoFactorRoute: typeof AuthTwoFactorRoute
   AuthEmailVerificationRoute: typeof AuthEmailVerificationRoute
   AuthResetPasswordVerifyRoute: typeof AuthResetPasswordVerifyRoute
@@ -1568,6 +1588,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthOtpRoute: AuthOtpRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  AuthSignInLinkRoute: AuthSignInLinkRoute,
   AuthTwoFactorRoute: AuthTwoFactorRoute,
   AuthEmailVerificationRoute: AuthEmailVerificationRoute,
   AuthResetPasswordVerifyRoute: AuthResetPasswordVerifyRoute,

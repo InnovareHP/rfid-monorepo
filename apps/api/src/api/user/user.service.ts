@@ -20,6 +20,7 @@ import { AdminAction, AgreementKind, Prisma } from "@prisma/client";
 import { invalidateSubscriptionCache } from "src/guard/subscription/subscription.guard";
 import { invalidateOrganizationSessionContext } from "src/lib/auth/session-context";
 import { auth } from "src/lib/auth/auth";
+import { createAdminSignInLink } from "src/lib/auth/admin-sign-in-link";
 import { renderEmailHtml } from "src/lib/aws/ses";
 import { emailQueue } from "src/lib/queue/email-queue";
 import { prisma } from "src/lib/prisma/prisma";
@@ -357,6 +358,20 @@ export class UserService {
       })),
       total,
     };
+  }
+
+  // The link itself is minted in lib/auth, next to the endpoint that redeems it.
+  async createSignInLink(
+    userId: string,
+    reason: string,
+    admin: { id: string; name: string; ipAddress: string | null }
+  ) {
+    return await createAdminSignInLink({
+      targetUserId: userId,
+      admin: { id: admin.id, name: admin.name },
+      reason,
+      ipAddress: admin.ipAddress,
+    });
   }
 
   async getAdminUserById(userId: string) {

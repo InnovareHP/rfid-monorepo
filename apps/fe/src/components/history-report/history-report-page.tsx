@@ -33,7 +33,7 @@ import { ReportTable, type ReportColumn } from "../reusable-table/report-table";
 import { RestoreHistoryModal } from "./restore-history-modal";
 
 const HISTORY_MODULES = [
-  { value: "LEAD", label: "Marketing List", entity: "Lead" },
+  { value: "LEAD", label: "Marketing List", entity: "Facility" },
   {
     value: "REFERRAL",
     label: "Referrals",

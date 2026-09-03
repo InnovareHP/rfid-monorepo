@@ -7,7 +7,10 @@ import {
 } from "@/services/market/market-service";
 import { formatDateTime } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
+import { LogDateFilter } from "@/components/log-shared/log-date-filter";
+import { logDateFilter } from "@/lib/helper/log-date-filter";
 import { PageHeader } from "@/components/page-header";
+import type { DateRange } from "react-day-picker";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
 import {
@@ -98,10 +101,22 @@ const MarketLogPage = () => {
     value,
   }));
 
-  const [filterMeta, setFilterMeta] = useState({
-    page: 1,
-    limit: 20,
-  });
+  const [filterMeta, setFilterMeta] = useState<{
+    page: number;
+    limit: number;
+    filter?: Record<string, string>;
+  }>({ page: 1, limit: 20 });
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  const handleDateChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setFilterMeta((prev) => ({
+      ...prev,
+      page: 1,
+      filter: logDateFilter(range, "marketingDateFrom", "marketingDateTo"),
+    }));
+  };
 
   const [marketLogsQuery, facilityOptionsQuery] = useQueries({
     queries: [
@@ -202,6 +217,7 @@ const MarketLogPage = () => {
           title="Marketing Log"
           description="Track facility visits, touchpoints, and outreach activity"
         >
+          <LogDateFilter value={dateRange} onChange={handleDateChange} />
           <WriteGate>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" />

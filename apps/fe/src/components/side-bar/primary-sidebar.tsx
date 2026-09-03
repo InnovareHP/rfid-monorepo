@@ -1,7 +1,11 @@
 import { RailNavItem } from "@/components/side-bar/rail-nav-item";
 import { TooltipProvider } from "@dashboard/ui/components/tooltip";
+import {
+  settingsPathPrefixes,
+  isSettingsPath,
+} from "@/lib/helper/settings-nav";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Calendar, CircleHelp, Home, PlugZap } from "lucide-react";
+import { Calendar, CircleHelp, Home, PlugZap, Settings } from "lucide-react";
 import * as React from "react";
 
 type PrimarySidebarProps = {
@@ -12,7 +16,9 @@ type NavItem = {
   icon: React.ElementType;
   label: string;
   href: string;
-  matchPrefix?: string;
+  // Settings spans several routes that were never moved under one prefix, so a
+  // rail item can claim a list of them instead of a single subtree.
+  matchPrefixes?: string[];
 };
 
 const BRAND_LOGO = "/branding/Icon/Refidly%20%5BIcon%5D%20-%20White%20No%20Bg.png";
@@ -24,19 +30,26 @@ function useNavItems(activeOrganizationId: string) {
         icon: Home,
         label: "Home",
         href: `/${activeOrganizationId}`,
-        matchPrefix: `/${activeOrganizationId}`,
+        matchPrefixes: [`/${activeOrganizationId}`],
       },
       {
         icon: Calendar,
         label: "Calendar",
         href: `/${activeOrganizationId}/calendar`,
-        matchPrefix: `/${activeOrganizationId}/calendar`,
+        matchPrefixes: [`/${activeOrganizationId}/calendar`],
       },
       {
         icon: PlugZap,
         label: "Apps",
         href: `/${activeOrganizationId}/integrations`,
-        matchPrefix: `/${activeOrganizationId}/integrations`,
+        matchPrefixes: [`/${activeOrganizationId}/integrations`],
+      },
+      {
+        icon: Settings,
+        label: "Settings",
+        // Personal settings are the one section no role or plan can refuse.
+        href: `/${activeOrganizationId}/profile`,
+        matchPrefixes: settingsPathPrefixes(activeOrganizationId),
       },
     ],
     [activeOrganizationId]
@@ -55,15 +68,21 @@ function useIsActive(navItems: NavItem[], activeOrganizationId: string) {
           pathname === `/${activeOrganizationId}` ||
           (pathname.startsWith(`/${activeOrganizationId}/`) &&
             !pathname.startsWith(helpPrefix) &&
+            !isSettingsPath(pathname, activeOrganizationId) &&
             !navItems.some(
               (other) =>
                 other.label !== "Home" &&
-                other.matchPrefix &&
-                pathname.startsWith(other.matchPrefix)
+                other.matchPrefixes?.some((prefix) =>
+                  pathname.startsWith(prefix)
+                )
             ))
         );
       }
-      return item.matchPrefix ? pathname.startsWith(item.matchPrefix) : false;
+      return (
+        item.matchPrefixes?.some(
+          (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+        ) ?? false
+      );
     },
     [pathname, activeOrganizationId, helpPrefix, navItems]
   );

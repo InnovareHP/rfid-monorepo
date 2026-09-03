@@ -240,6 +240,8 @@ enum AdminAction {
   UPDATE_DEMO_REQUEST
   SET_DEMO_HOST
   CREATE_USER
+  CREATE_SIGN_IN_LINK
+  USE_SIGN_IN_LINK
 
   @@schema("auth_schema")
 }

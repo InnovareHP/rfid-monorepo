@@ -192,7 +192,9 @@ const LiaisonPerformancePage = () => {
           onReset={handleReset}
           onExport={handleExportPDF}
           canReset={hasActiveFilters}
-          canExport={Boolean(filters.start && filters.end && data)}
+          // Only needs something to report on. A date range is optional: the
+          // document labels an unbounded one as "All time".
+          canExport={Boolean(data)}
           isExporting={isExporting}
         />
 

@@ -47,20 +47,22 @@ const tabTriggerClass =
 const TeamPage = () => {
   const { data: organizationData } = authClient.useActiveOrganization();
 
-  // HIPAA mode limits membership to work email, and the invite form says so
-  // before the API refuses the send. Every role may read this.
-  const { data: compliance } = useQuery({
-    queryKey: ["compliance-status", organizationData?.id],
-    enabled: !!organizationData?.id,
-    queryFn: getComplianceStatus,
-    staleTime: 5 * 60 * 1000,
-  });
   const queryClient = useQueryClient();
   const memberData = queryClient.getQueryData<Member>([
     "member-data",
     organizationData?.id,
   ]);
   const canManageTeam = isOrgAdmin(memberData?.role);
+
+  // HIPAA mode limits membership to work email, and the invite form says so
+  // before the API refuses the send. Compliance is admin only, so only the
+  // roles that see the invite form read it.
+  const { data: compliance } = useQuery({
+    queryKey: ["compliance-status", organizationData?.id],
+    enabled: !!organizationData?.id && canManageTeam,
+    queryFn: getComplianceStatus,
+    staleTime: 5 * 60 * 1000,
+  });
   const { seats: seatLimit } = useEntitlement(organizationData?.id ?? "");
 
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);

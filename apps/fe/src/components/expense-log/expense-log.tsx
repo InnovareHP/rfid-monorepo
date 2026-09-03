@@ -7,7 +7,10 @@ import {
 } from "@/services/expense/expense-service";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
 import { formatDateTime } from "@dashboard/shared";
+import { LogDateFilter } from "@/components/log-shared/log-date-filter";
+import { logDateFilter } from "@/lib/helper/log-date-filter";
 import { PageHeader } from "@/components/page-header";
+import type { DateRange } from "react-day-picker";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
 import {
@@ -64,10 +67,22 @@ const ExpenseLogPage = () => {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const [filterMeta, setFilterMeta] = useState({
-    page: 1,
-    limit: 20,
-  });
+  const [filterMeta, setFilterMeta] = useState<{
+    page: number;
+    limit: number;
+    filter?: Record<string, string>;
+  }>({ page: 1, limit: 20 });
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  const handleDateChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setFilterMeta((prev) => ({
+      ...prev,
+      page: 1,
+      filter: logDateFilter(range, "expenseDateFrom", "expenseDateTo"),
+    }));
+  };
 
   const expenseLogsQuery = useQuery({
     queryKey: ["expense-logs", filterMeta],
@@ -162,6 +177,7 @@ const ExpenseLogPage = () => {
           title="Expense Log"
           description="Track expenses and receipts for reimbursement"
         >
+          <LogDateFilter value={dateRange} onChange={handleDateChange} />
           <WriteGate>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" />

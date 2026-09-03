@@ -8,7 +8,7 @@ export const SYSTEM_MODULES = [
   {
     key: "LEAD",
     label: "Master Marketing List",
-    labelSingular: "Lead",
+    labelSingular: "Facility",
     icon: "FileText",
     moduleOrder: 0,
   },
