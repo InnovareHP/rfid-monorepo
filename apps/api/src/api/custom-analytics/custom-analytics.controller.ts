@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
   UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import type { Response } from "express";
 import { ZodValidationPipe } from "nestjs-zod";
 import {
   EntitlementGuard,
@@ -222,6 +224,33 @@ export class CustomAnalyticsController {
     } catch (error) {
       throw new BadRequestException(error.message);
     }
+  }
+
+  // Charts print as the numbers behind them: the document carries the
+  // letterhead and selectable text, which a screenshot of the canvas would not.
+  @RequirePermission({ analytics: ["read"] })
+  @Get("/dashboards/:id/pdf")
+  async dashboardPdf(
+    @Param("id") id: string,
+    @Query() query: RunDashboardQueryDto,
+    @Session() session: AuthenticatedSession,
+    @Res() response: Response
+  ) {
+    const window = toDateWindow(query);
+    const pdf = await this.customAnalyticsService.renderDashboardPdf(
+      id,
+      session.session.activeOrganizationId,
+      window
+    );
+
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader(
+      "Content-Disposition",
+      `attachment; filename="dashboard-${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf"`
+    );
+    response.send(pdf);
   }
 
   // A POST because generating an insight is a model call, not a cached read.

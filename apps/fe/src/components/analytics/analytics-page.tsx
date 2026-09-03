@@ -1,4 +1,5 @@
 import { FeatureLocked } from "@/components/feature-locked";
+import { ExportPdfButton } from "@/components/analytics/export-pdf-button";
 import { PageHeader } from "@/components/page-header";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
@@ -7,6 +8,7 @@ import { lazy, Suspense, useState } from "react";
 import {
   getAnalytics,
   getAnalyticsSummary,
+  downloadReferralAnalyticsPdf,
 } from "@/services/analytics/analytics-service";
 import type { AnalyticsResponse } from "@dashboard/shared";
 
@@ -152,12 +154,24 @@ export default function ReferralAnalyticsDashboard() {
             description="Track key outreach and referral performance metrics."
           />
 
-          <AnalyticsDateFilter
-            onChange={(range) => {
-              setDateRange(range);
-              refetchAnalytics();
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <AnalyticsDateFilter
+              onChange={(range) => {
+                setDateRange(range);
+                refetchAnalytics();
+              }}
+            />
+
+            <ExportPdfButton
+              disabled={!analytics}
+              onExport={() =>
+                downloadReferralAnalyticsPdf(
+                  dateRange.start?.toISOString() ?? null,
+                  dateRange.end?.toISOString() ?? null
+                )
+              }
+            />
+          </div>
         </div>
 
         {/* AI SUMMARY CARD — the endpoint is gated on the ai feature */}

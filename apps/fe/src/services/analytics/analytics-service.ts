@@ -1,4 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
+import { downloadPdf } from "@/lib/helper/download-pdf";
 import type {
   AnalyticsResponse,
   MarketingAnalyticsResponse,
@@ -46,25 +47,27 @@ export const downloadLiaisonPerformancePdf = async (
   start: Date | null,
   end: Date | null,
   userId: string | null
-) => {
-  const response = await axiosClient.get("/api/analytics/marketing/pdf", {
-    params: { start, end, userId },
-    responseType: "blob",
-  });
-
-  const url = URL.createObjectURL(
-    new Blob([response.data], { type: "application/pdf" })
+) =>
+  await downloadPdf(
+    "/api/analytics/marketing/pdf",
+    { start, end, userId },
+    "liaison-performance"
   );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `liaison-performance-${new Date()
-    .toISOString()
-    .slice(0, 10)}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-};
+
+export const downloadReferralAnalyticsPdf = async (
+  start: string | null,
+  end: string | null
+) => await downloadPdf("/api/analytics/pdf", { start, end }, "referral-analytics");
+
+export const downloadMasterListAnalyticsPdf = async (
+  start: string | null,
+  end: string | null
+) =>
+  await downloadPdf(
+    "/api/analytics/master-list/pdf",
+    { start, end },
+    "master-list-analytics"
+  );
 
 export const getMarketingList = async (
   start: Date | null,

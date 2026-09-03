@@ -12,6 +12,8 @@ import { CACHE_PREFIX } from "src/lib/constant";
 import { cacheData, getData } from "src/lib/redis/redis";
 import { runUnscoped } from "src/lib/prisma/tenant-context";
 import { renderLiaisonPerformancePdf } from "./liaison-performance-pdf";
+import { renderMasterListAnalyticsPdf } from "./master-list-analytics-pdf";
+import { renderReferralAnalyticsPdf } from "./referral-analytics-pdf";
 import { recordNameIndex } from "../../lib/crypto/record-name-index";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
@@ -922,6 +924,64 @@ export class AnalyticsService {
       startDate,
       endDate,
       liaisonName,
+    });
+  }
+
+  // The same reads the JSON routes serve, so the document and the screen can
+  // only disagree if the window changed between them.
+  private async organizationName(organizationId: string) {
+    const organization = await runUnscoped(() =>
+      prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true },
+      })
+    );
+
+    return organization?.name ?? "Organization";
+  }
+
+  async renderReferralAnalyticsPdf(
+    organizationId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    assignedTo: string | null
+  ) {
+    const [report, organizationName] = await Promise.all([
+      this.getAllAnalytics(organizationId, startDate!, endDate!, assignedTo),
+      this.organizationName(organizationId),
+    ]);
+
+    return renderReferralAnalyticsPdf({
+      organizationName,
+      report: report as never,
+      startDate,
+      endDate,
+      scope: assignedTo ? "Assigned to you" : "Whole organization",
+    });
+  }
+
+  async renderMasterListAnalyticsPdf(
+    organizationId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    assignedTo: string | null
+  ) {
+    const [report, organizationName] = await Promise.all([
+      this.getMasterListAnalytics(
+        organizationId,
+        startDate,
+        endDate,
+        assignedTo
+      ),
+      this.organizationName(organizationId),
+    ]);
+
+    return renderMasterListAnalyticsPdf({
+      organizationName,
+      report: report as never,
+      startDate,
+      endDate,
+      scope: assignedTo ? "Assigned to you" : "Whole organization",
     });
   }
 

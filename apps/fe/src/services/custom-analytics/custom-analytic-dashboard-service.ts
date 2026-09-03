@@ -1,4 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
+import { downloadPdf } from "@/lib/helper/download-pdf";
 import type {
   CustomAnalyticChartType,
   CustomAnalyticResult,
@@ -134,6 +135,23 @@ export const runDashboard = async (
 
   return response.data as CustomAnalyticDashboardRun;
 };
+
+// Charts print as the numbers behind them, so the document reads the same data
+// the dashboard just rendered.
+export const downloadDashboardPdf = async (
+  id: string,
+  dateWindow?: { start: Date; end: Date } | null
+) =>
+  await downloadPdf(
+    `/api/custom-analytics/dashboards/${id}/pdf`,
+    dateWindow
+      ? {
+          startDate: dateWindow.start.toISOString(),
+          endDate: dateWindow.end.toISOString(),
+        }
+      : {},
+    "dashboard"
+  );
 
 export const createDashboard = async (input: SaveDashboardInput) => {
   const response = await axiosClient.post(
