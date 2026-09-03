@@ -50,14 +50,14 @@ export const renderLiaisonPerformancePdf = async (input: {
     // Ordered by referrals so the table opens with the biggest contributor.
     report.table(
       [
-        { header: "Liaison", width: 140 },
+        { header: "Liaison", width: 132 },
         { header: "Level", width: 58 },
-        { header: "Leads", width: 46, align: "right" },
+        { header: "Facilities", width: 66, align: "right" },
         { header: "New", width: 38, align: "right" },
         { header: "Referrals", width: 64, align: "right" },
         { header: "Admits", width: 52, align: "right" },
         { header: "Conv", width: 44, align: "right" },
-        { header: "Touches", width: 74, align: "right" },
+        { header: "Touches", width: 62, align: "right" },
       ],
       liaisons.map((liaison) => [
         liaison.memberName,

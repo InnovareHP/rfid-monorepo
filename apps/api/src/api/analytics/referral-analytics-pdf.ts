@@ -39,14 +39,14 @@ export const renderReferralAnalyticsPdf = async (input: {
   report.sectionTitle("Summary");
   report.statBand([
     { label: "Referrals", value: num(totalCounts.totalReferrals) },
-    { label: "Leads", value: num(totalCounts.totalLeads) },
+    { label: "Facilities", value: num(totalCounts.totalLeads) },
     { label: "Admitted", value: num(conversion.admitted) },
     { label: "Conversion", value: percent(conversion.conversionRate) },
   ]);
   report.note(
     `${num(totalCounts.referralsThisPeriod)} referrals and ${num(
       totalCounts.leadsThisPeriod
-    )} leads were created in this period.`
+    )} facilities were created in this period.`
   );
 
   report.sectionTitle("Status breakdown");
