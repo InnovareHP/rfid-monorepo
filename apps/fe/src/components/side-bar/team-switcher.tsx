@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import type { Organization } from "@dashboard/shared";
 import {
   DropdownMenu,
@@ -41,14 +41,19 @@ export function TeamSwitcher({
         organizationId: team.id,
       });
 
+      // Every cached query belongs to the organization being left. The session
+      // is then re-read rather than router.invalidate()'d alone, or the root
+      // loader rebuilds its context from the organization just switched away
+      // from.
       queryClient.clear();
+      await refreshSessionCache();
 
-      router.navigate({
+      await router.navigate({
         to: "/$team",
         params: { team: String(team.id) },
       });
 
-      window.location.reload();
+      await router.invalidate();
     } catch (error) {
       toast.error("Failed to switch team");
     }

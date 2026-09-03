@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { PasskeyResetModal } from "@/components/passkeys/passkey-reset-modal";
 import { useEntitlement } from "@/hooks/use-entitlement";
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { getComplianceStatus } from "@/services/compliance/compliance-service";
 import { listMembers } from "@/services/team/team-service";
 import { isOrgAdmin } from "@dashboard/shared";
@@ -63,7 +63,13 @@ const TeamPage = () => {
     queryFn: getComplianceStatus,
     staleTime: 5 * 60 * 1000,
   });
-  const { seats: seatLimit } = useEntitlement(organizationData?.id ?? "");
+  const entitlement = useEntitlement(organizationData?.id ?? "");
+  const seatLimit = entitlement.seats;
+
+  // The plan decides, not the toggle: the API refuses a personal address on a
+  // HIPAA plan whether or not HIPAA mode has been switched on.
+  const workEmailOnly =
+    entitlement.has("hipaa") || (compliance?.hipaaEnabled ?? false);
 
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [memberTableField, setMemberTableField] = useState({
@@ -127,6 +133,9 @@ const TeamPage = () => {
 
     setIsInviteDialogOpen(false);
     resetForm();
+    // Seats are billed per member, so a pending invitation moves the count the
+    // session carries. Refreshing it keeps the seat gauge and banner honest.
+    await refreshSessionCache();
     queryClient.invalidateQueries({ queryKey: ["invitations"] });
     toast.success("Invitation sent successfully");
   };
@@ -148,30 +157,36 @@ const TeamPage = () => {
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
-    try {
-      await authClient.organization.cancelInvitation({
-        invitationId: invitationId,
-      });
+    const { error } = await authClient.organization.cancelInvitation({
+      invitationId: invitationId,
+    });
 
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
-      toast.success("Invitation cancelled successfully");
-    } catch (error) {
-      toast.error("Failed to cancel invitation");
+    if (error) {
+      toast.error(error.message ?? "Failed to cancel invitation");
+      return;
     }
+
+    await refreshSessionCache();
+    queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    toast.success("Invitation cancelled successfully");
   };
 
   const handleRemoveFromTeam = async (memberId: string) => {
-    try {
-      await authClient.organization.removeMember({
-        memberIdOrEmail: memberId,
-        organizationId: organizationData?.id ?? "",
-      });
+    // memberIdOrEmail is the member row id, not the user id, and the client
+    // returns the API error rather than throwing it.
+    const { error } = await authClient.organization.removeMember({
+      memberIdOrEmail: memberId,
+      organizationId: organizationData?.id ?? "",
+    });
 
-      queryClient.invalidateQueries({ queryKey: ["member"] });
-      toast.success("Member removed from team successfully");
-    } catch (error) {
-      toast.error("Failed to remove member from team");
+    if (error) {
+      toast.error(error.message ?? "Failed to remove member from team");
+      return;
     }
+
+    await refreshSessionCache();
+    queryClient.invalidateQueries({ queryKey: ["member"] });
+    toast.success("Member removed from team successfully");
   };
 
   const handleEditRole = async (memberId: string, role: string) => {
@@ -184,7 +199,8 @@ const TeamPage = () => {
         onError: () => {
           toast.error("Failed to edit role");
         },
-        onSuccess: () => {
+        onSuccess: async () => {
+          await refreshSessionCache();
           queryClient.invalidateQueries({ queryKey: ["member"] });
           toast.success("Role updated successfully");
         },
@@ -221,7 +237,7 @@ const TeamPage = () => {
             <InviteMemberDialog
               open={isInviteDialogOpen}
               onOpenChange={setIsInviteDialogOpen}
-              workEmailOnly={compliance?.hipaaEnabled ?? false}
+              workEmailOnly={workEmailOnly}
               organizationName={organizationData?.name}
               seatsUsed={seatsUsed}
               seatLimit={seatLimit}

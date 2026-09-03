@@ -26,7 +26,7 @@ type TeamMembersTableProps = {
   onPageChange: (page: number) => void;
   onEditRole: (member: TeamMemberRow) => void;
   onResetPasskeys: (member: TeamMemberRow) => void;
-  onRemove: (userId: string) => void;
+  onRemove: (memberId: string) => void;
 };
 
 export function TeamMembersTable({
@@ -102,7 +102,7 @@ export function TeamMembersTable({
 
                 <DropdownMenuItem
                   className="text-red-600 focus:text-red-600"
-                  onClick={() => onRemove(row.user.id)}
+                  onClick={() => onRemove(row.id)}
                 >
                   Remove From Team
                 </DropdownMenuItem>

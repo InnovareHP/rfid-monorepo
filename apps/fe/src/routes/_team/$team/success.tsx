@@ -2,7 +2,13 @@ import type { Subscription } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
-import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
+import { refreshSessionCache } from "@/lib/auth-client";
+import {
+  createFileRoute,
+  Link,
+  useRouteContext,
+  useRouter,
+} from "@tanstack/react-router";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 import { Check, Sparkles } from "lucide-react";
@@ -21,8 +27,21 @@ export const Route = createFileRoute("/_team/$team/success")({
 
 function RouteComponent() {
   const { team } = Route.useParams();
+  const router = useRouter();
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const activeSubscription = ctx?.activeSubscription;
+
+  // Checkout finished on Stripe, so the cached ["session"] this page was routed
+  // with still carries the plan from before it. router.invalidate() alone would
+  // rebuild the context from that same stale cache.
+  useEffect(() => {
+    const refresh = async () => {
+      await refreshSessionCache();
+      await router.invalidate();
+    };
+
+    refresh();
+  }, [router]);
 
   useEffect(() => {
     const duration = 1800;

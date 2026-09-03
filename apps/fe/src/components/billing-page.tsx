@@ -4,7 +4,7 @@ import { BillingTopBar } from "@/components/billing/billing-top-bar";
 import { ContractAwaitingPayment } from "@/components/billing/contract-awaiting-payment";
 import { ContractPlanCard } from "@/components/billing/contract-plan-card";
 import { TransactionsCard } from "@/components/billing/transactions-card";
-import { authClient } from "@/lib/auth-client";
+import { authClient, refreshSessionCache } from "@/lib/auth-client";
 import { can } from "@/lib/permissions";
 import { SeatStepper } from "@/components/billing/seat-stepper";
 import { getApiErrorMessage } from "@/lib/helper/helper";
@@ -108,12 +108,15 @@ export function BillingPage({
 
   const [seatOverride, setSeatOverride] = useState<number | null>(null);
 
+  // The plan card is its own query, but the subscription every route guard and
+  // the banner read rides on the cached ["session"], so both are refreshed.
   const seatMutation = useMutation({
     mutationFn: updateSeats,
     onSuccess: async () => {
       setSeatOverride(null);
       toast.success("Seats updated");
       await queryClient.invalidateQueries({ queryKey: ["billing-plan"] });
+      await refreshSessionCache();
     },
     onError: (error) =>
       toast.error(getApiErrorMessage(error, "Could not update seats")),
@@ -124,6 +127,7 @@ export function BillingPage({
     onSuccess: async () => {
       toast.success("Subscription will cancel at the end of the period");
       await queryClient.invalidateQueries({ queryKey: ["billing-plan"] });
+      await refreshSessionCache();
     },
     onError: () => toast.error("Could not cancel the subscription"),
   });
@@ -133,6 +137,7 @@ export function BillingPage({
     onSuccess: async () => {
       toast.success("Subscription resumed");
       await queryClient.invalidateQueries({ queryKey: ["billing-plan"] });
+      await refreshSessionCache();
     },
     onError: () => toast.error("Could not resume the subscription"),
   });
