@@ -7,14 +7,13 @@ import { AppSidebar } from "@/components/side-bar/app-sidebar";
 import { PrimarySidebar } from "@/components/side-bar/primary-sidebar";
 import { GlobalSearch } from "@/components/search/global-search";
 import { SidebarSkeleton } from "@/components/side-bar/sidebar-skeleton";
-import { DynamicBreadcrumb } from "@/components/ui/bread-crumbs";
 import { useBoardSync } from "@/hooks/use-board-sync";
+import { useSidebarAutoCollapse } from "@/hooks/use-sidebar-auto-collapse";
 import { useIdleLogout } from "@/hooks/use-idle-logout";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/lib/query-client";
 import { accessForStatus, type SubscriptionAccess } from "@dashboard/shared";
 import type { SessionMember, Subscription } from "@dashboard/shared";
-import { Separator } from "@dashboard/ui/components/separator";
 import {
   SidebarInset,
   SidebarProvider,
@@ -90,6 +89,8 @@ function TeamLayout() {
   useBoardSync();
   useIdleLogout();
 
+  const sidebar = useSidebarAutoCollapse();
+
   const {
     data: organizations,
     isLoading: orgLoading,
@@ -111,7 +112,11 @@ function TeamLayout() {
   );
 
   return (
-    <SidebarProvider className="h-full">
+    <SidebarProvider
+      className="h-full"
+      open={sidebar.open}
+      onOpenChange={sidebar.setOpen}
+    >
       {sidebarsReady ? (
         <>
           <PrimarySidebar activeOrganizationId={activeOrganizationId} />
@@ -130,13 +135,6 @@ function TeamLayout() {
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
-
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-
-            <DynamicBreadcrumb />
           </div>
 
           <div className="ml-auto flex items-center gap-2 px-4">

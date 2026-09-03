@@ -202,6 +202,31 @@ defines. `Button`, `Badge`, and the rest render in all three.
   into sibling files in the same feature folder before adding more.
 - Extracted pieces stay in the feature folder. Do not add a top-level folder.
 
+## Heights that actually resolve
+
+`apps/fe/scripts/check-layout.mjs` runs as part of `pnpm --filter fe lint` and
+fails the lint on each of these. They all shipped at least once and every one
+read as a styling mistake rather than a broken rule.
+
+- A Radix `ScrollArea` needs a **definite height** on its root. Its viewport is
+  `h-full`, so against an auto-height root the percentage collapses, the list
+  overflows the panel and no scrollbar appears at all. `h-full` inside a flex
+  column, or `min-h-0 flex-1`. A `max-h-*` on the root does nothing.
+- Prefer native `overflow-y-auto` over `ScrollArea` for anything touch reaches.
+  `ScrollArea` defaults to `type="hover"`, so its scrollbar never shows on a
+  phone and a pannable region looks merely clipped.
+- No `vh` in a class. It ignores the mobile browser chrome, so the element sits
+  under the toolbar. Use `dvh`, or `min-h-full` inside the app shell, which
+  already owns the viewport height and its own scroll container.
+- Never size a modal body with a percentage cap. A phone in landscape is about
+  400px tall, so a header band plus a `60vh` body plus a footer overflows a
+  container that is also `overflow-hidden` and the submit button becomes
+  unreachable. The shell modal is a column: `min-h-0 flex-1 overflow-y-auto` on
+  the body, `shrink-0` on the band and footer.
+- A hardcoded cap derived from a parent's height (`h-[calc(90vh-240px)]`) goes
+  stale the moment that parent changes and nothing errors. Take the height from
+  the parent instead.
+
 ## Types
 
 - No `any`. Dynamic EAV fields are where it leaks — model them as a

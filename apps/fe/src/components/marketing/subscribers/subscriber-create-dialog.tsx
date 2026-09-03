@@ -3,6 +3,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -65,7 +66,7 @@ export const SubscriberCreateDialog = ({
         if (!next) form.reset();
       }}
     >
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+      <DialogContent variant="shell" className="sm:max-w-md">
         <DialogFormHeader
           icon={<MailPlus />}
           title="Add Subscriber"
@@ -73,7 +74,7 @@ export const SubscriberCreateDialog = ({
         />
 
         <Form {...form}>
-          <div className="space-y-4 px-6 py-5">
+          <DialogFormBody className="space-y-4">
             <FormField
               control={form.control}
               name="email"
@@ -103,7 +104,7 @@ export const SubscriberCreateDialog = ({
                 </FormItem>
               )}
             />
-          </div>
+          </DialogFormBody>
 
           <DialogFormFooter>
             <Button

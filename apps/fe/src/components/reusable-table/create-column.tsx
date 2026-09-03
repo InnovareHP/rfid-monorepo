@@ -6,6 +6,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
   DialogTrigger,
@@ -136,7 +137,7 @@ export function CreateColumnModal({
         </DialogTrigger>
       </WriteGate>
 
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent variant="shell" className="sm:max-w-2xl">
         <DialogFormHeader
           icon={<Plus />}
           title="Add a New Column"
@@ -149,7 +150,7 @@ export function CreateColumnModal({
               createMutation.mutateAsync(values)
             )}
           >
-            <div className="space-y-5 px-6 py-5">
+            <DialogFormBody className="space-y-5">
               <FormField
                 control={form.control}
                 name="name"
@@ -206,7 +207,7 @@ export function CreateColumnModal({
                   </FormItem>
                 )}
               />
-            </div>
+            </DialogFormBody>
 
             <ColumnTrash
               moduleType={moduleType ?? (isReferral ? "REFERRAL" : "LEAD")}

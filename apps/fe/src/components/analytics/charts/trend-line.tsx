@@ -1,3 +1,4 @@
+import { chartMotion } from "@/lib/helper/chart-motion";
 import { sequentialRampColor } from "@/lib/color-utils";
 import type { MonthlyPoint } from "@/lib/helper/analytics-chart-data";
 import {
@@ -37,15 +38,19 @@ export function TrendLine({
     );
   }
 
-  // Dots ramp with magnitude: darkest at the lowest month, lightest at the peak.
-  const ascending = [...data]
-    .sort((a, b) => a.total - b.total)
-    .map((point) => point.month);
+  // Dots ramp with magnitude: darkest at the lowest month, lightest at the
+  // peak. Ranks are a map, not an indexOf per dot: the dot renderer runs on
+  // every animation frame, which made the lookup quadratic per frame.
+  const rankByMonth = new Map(
+    [...data]
+      .sort((a, b) => a.total - b.total)
+      .map((point, index) => [point.month, index])
+  );
 
   const renderDot = ({ cx, cy, payload }: TrendDotProps) => {
     if (!payload) return null;
 
-    const rank = ascending.indexOf(payload.month);
+    const rank = rankByMonth.get(payload.month) ?? 0;
 
     return (
       <circle
@@ -90,6 +95,7 @@ export function TrendLine({
           strokeWidth={3}
           dot={compact ? false : renderDot}
           activeDot={{ r: 7 }}
+          {...chartMotion(compact)}
         />
       </LineChart>
     </ChartContainer>

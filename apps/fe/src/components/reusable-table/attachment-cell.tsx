@@ -312,12 +312,12 @@ export const AttachmentCell = memo(function AttachmentCell({
             <img
               src={previewAttachment.url}
               alt={previewAttachment.fileName}
-              className="max-h-[80vh] w-full rounded-md object-contain"
+              className="max-h-[60dvh] w-full rounded-md object-contain"
             />
           ) : previewable ? (
             <iframe
               src={previewAttachment?.url}
-              className="h-[80vh] w-full rounded-md border border-border"
+              className="h-[60dvh] w-full rounded-md border border-border"
               title={previewAttachment?.fileName}
             />
           ) : null}

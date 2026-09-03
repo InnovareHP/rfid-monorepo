@@ -72,9 +72,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ["**/*.config.{ts,mts,js,mjs}", "vite.config.ts"],
+    files: ["**/*.config.{ts,mts,js,mjs}", "vite.config.ts", "scripts/**/*.mjs"],
     languageOptions: {
       globals: globals.node,
+    },
+    rules: {
+      // Build-time scripts report through stdout; that is their whole output.
+      "no-console": "off",
     },
   }
 );

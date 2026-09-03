@@ -68,7 +68,7 @@ function RouteComponent() {
   }, []);
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-6 py-10">
+    <div className="flex min-h-full items-center justify-center px-4 py-10 sm:px-6">
       <motion.div
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

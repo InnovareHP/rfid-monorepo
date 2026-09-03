@@ -200,7 +200,7 @@ export function ListRowsSkeleton({ rows = 5 }: { rows?: number }) {
 // A public page with no app chrome: hero band then stacked content sections.
 export function PublicPageSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Skeleton className="h-64 w-full rounded-none" />
       <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
         <Skeleton className="h-8 w-2/3" />

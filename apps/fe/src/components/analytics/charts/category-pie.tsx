@@ -1,3 +1,4 @@
+import { chartMotion } from "@/lib/helper/chart-motion";
 import { sequentialRampColor } from "@/lib/color-utils";
 import type { CategoryRow } from "@/lib/helper/analytics-chart-data";
 import {
@@ -173,6 +174,7 @@ export function CategoryPie({
           // outside-label mode needs side margins a thumbnail card lacks.
           label={compact ? undefined : makeSliceLabel(variant)}
           labelLine={false}
+          {...chartMotion(compact)}
         >
           {slices.map((slice) => (
             <Cell key={slice.key} fill={slice.color} />

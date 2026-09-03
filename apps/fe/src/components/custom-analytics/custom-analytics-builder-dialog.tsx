@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -18,7 +19,7 @@ export function CustomAnalyticsBuilderDialog({
 }: CustomAnalyticsBuilderDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent variant="shell" className="sm:max-w-2xl">
         <DialogFormHeader
           icon={<ChartSpline />}
           title="New Chart"
@@ -28,7 +29,7 @@ export function CustomAnalyticsBuilderDialog({
         {/* Mounted only while open, so a cancelled draft never survives into
             the next opening the way a persistent form's defaults would. */}
         {open && (
-          <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
+          <DialogFormBody>
             <CustomAnalyticsBuilderForm
               onCancel={() => onOpenChange(false)}
               onSaved={() => onOpenChange(false)}
@@ -36,7 +37,7 @@ export function CustomAnalyticsBuilderDialog({
                 <DialogFormFooter>{actions}</DialogFormFooter>
               )}
             />
-          </div>
+          </DialogFormBody>
         )}
       </DialogContent>
     </Dialog>

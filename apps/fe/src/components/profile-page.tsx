@@ -63,7 +63,7 @@ export function ProfilePage({
 
   if (!user) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 p-4">
+      <div className="flex min-h-full w-full items-center justify-center bg-gray-50 p-4">
         <div className="max-w-lg rounded-xl border border-red-200 bg-white p-8 text-center">
           <div className="flex flex-col items-center gap-3">
             <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
@@ -87,7 +87,7 @@ export function ProfilePage({
 
   return (
     <div
-      className={cn("min-h-screen w-full bg-gray-50 p-6 sm:p-8", className)}
+      className={cn("min-h-full w-full bg-gray-50 p-4 sm:p-6 md:p-8", className)}
       {...props}
     >
       <div className="space-y-6">

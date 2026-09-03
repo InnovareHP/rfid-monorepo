@@ -8,6 +8,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -77,14 +78,14 @@ export const BlastSendDialog = ({
 
   return (
     <Dialog open={blast !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+      <DialogContent variant="shell" className="sm:max-w-md">
         <DialogFormHeader
           icon={<Send />}
           title="Send Blast"
           description="Sending cannot be undone or paused once it starts."
         />
 
-        <div className="space-y-4 px-6 py-5">
+        <DialogFormBody className="space-y-4">
           {isLoading ? (
             <Skeleton className="h-24 w-full" />
           ) : audienceError ? (
@@ -135,7 +136,7 @@ export const BlastSendDialog = ({
               </dl>
             </>
           )}
-        </div>
+        </DialogFormBody>
 
         <DialogFormFooter>
           <Button

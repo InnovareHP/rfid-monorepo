@@ -219,7 +219,7 @@ const ReusableTable = <T extends { id: string }>({
               switched to overflow-visible so this element owns both axes -- two
               nested scroll containers is what made the table look merely
               clipped. */}
-          <div className="relative w-full max-h-[calc(100vh-260px)] overflow-auto overscroll-x-contain">
+          <div className="relative w-full max-h-[calc(100dvh-260px)] min-h-[14rem] overflow-auto overscroll-x-contain">
             <Table
               containerClassName="overflow-visible"
               className="table-fixed w-full"

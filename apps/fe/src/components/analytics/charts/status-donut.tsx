@@ -1,3 +1,4 @@
+import { CHART_MOTION } from "@/lib/helper/chart-motion";
 import type { StatusSlice } from "@/lib/helper/analytics-chart-data";
 import {
   ChartContainer,
@@ -69,6 +70,7 @@ export function StatusDonut({
             paddingAngle={2}
             stroke="var(--color-background)"
             strokeWidth={2}
+            {...CHART_MOTION}
             shape={(props: PieSectorShapeProps, index: number) => (
               <Sector
                 {...props}

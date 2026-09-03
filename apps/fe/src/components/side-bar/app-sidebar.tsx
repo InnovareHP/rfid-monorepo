@@ -43,7 +43,7 @@ export function AppSidebar({
     <Sidebar
       collapsible="icon"
       {...props}
-      className="md:left-16 top-(--banner-height,0px) h-[calc(100vh-var(--banner-height,0px))] transition-[top,height,left] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
+      className="md:left-16 top-(--banner-height,0px) h-[calc(100dvh-var(--banner-height,0px))] transition-[top,height,left] duration-150 ease-[cubic-bezier(0.2,0,0,1)]"
     >
       <SidebarHeader>
         <div className="mb-2 w-full overflow-hidden group-data-[collapsible=icon]:hidden">

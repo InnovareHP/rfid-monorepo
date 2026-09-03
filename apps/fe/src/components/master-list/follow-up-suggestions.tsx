@@ -84,7 +84,7 @@ export function FollowUpSuggestions({
 
   if (isLoading) {
     return (
-      <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+      <ScrollArea className="h-full px-4 py-4 sm:px-6">
         <div className="space-y-4">
           <div className="h-20 w-full animate-pulse rounded-lg bg-primary/10" />
           {Array.from({ length: 3 }).map((_, i) => (
@@ -101,7 +101,7 @@ export function FollowUpSuggestions({
 
   if (isError) {
     return (
-      <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+      <ScrollArea className="h-full px-4 py-4 sm:px-6">
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <div className="rounded-full bg-destructive/10 p-4">
             <AlertTriangle className="size-8 text-destructive" />
@@ -120,7 +120,7 @@ export function FollowUpSuggestions({
   if (!data) return null;
 
   return (
-    <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+    <ScrollArea className="h-full px-4 py-4 sm:px-6">
       <div className="space-y-5">
         <div className="flex items-center justify-end">
           <Button
