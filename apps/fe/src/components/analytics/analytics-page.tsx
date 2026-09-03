@@ -2,7 +2,7 @@ import { FeatureLocked } from "@/components/feature-locked";
 import { PageHeader } from "@/components/page-header";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 
 import {
   getAnalytics,
@@ -107,6 +107,14 @@ export default function ReferralAnalyticsDashboard() {
       toast.error(getApiErrorMessage(err, "Failed to refresh insights")),
   });
 
+  // Memoised for referential stability, not for the cost of the transform:
+  // recharts replays a series' whole animation when its data identity changes,
+  // so a fresh array on every render re-swept every chart on the page.
+  const charts = useMemo(
+    () => buildAnalyticsChartData(analytics),
+    [analytics]
+  );
+
   if (!canUseAdvancedAnalytics) {
     return (
       <FeatureLocked
@@ -118,7 +126,6 @@ export default function ReferralAnalyticsDashboard() {
   }
 
   const hasPeriodFilter = dateRange.start && dateRange.end;
-  const charts = buildAnalyticsChartData(analytics);
   const totalReferrals = analytics?.totalCounts?.totalReferrals ?? 0;
   const referralsThisPeriod = analytics?.totalCounts?.referralsThisPeriod ?? 0;
   const admitted = analytics?.conversion?.admitted ?? 0;
@@ -177,7 +184,7 @@ export default function ReferralAnalyticsDashboard() {
         )}
 
         {/* KPI TILES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           <KpiStatTile
             label="Total Referrals"
             value={(hasPeriodFilter

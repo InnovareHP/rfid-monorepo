@@ -1,3 +1,4 @@
+import { CHART_MOTION } from "@/lib/helper/chart-motion";
 import type { TrendDelta } from "@/lib/helper/analytics-chart-data";
 import {
   ChartContainer,
@@ -45,6 +46,7 @@ export function ConversionGauge({
             cornerRadius={12}
             fill="var(--color-rate)"
             background={{ fill: "var(--color-muted)" }}
+            {...CHART_MOTION}
           />
         </RadialBarChart>
       </ChartContainer>
