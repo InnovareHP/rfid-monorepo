@@ -5,6 +5,7 @@ jest.mock("../prisma/prisma", () => ({
     user: { findUnique: jest.fn() },
     verification: { deleteMany: jest.fn(), create: jest.fn() },
     adminActivityLog: { create: jest.fn() },
+    $queryRaw: jest.fn(),
   },
 }));
 
@@ -26,6 +27,7 @@ const db = prisma as unknown as {
   user: { findUnique: jest.Mock };
   verification: { deleteMany: jest.Mock; create: jest.Mock };
   adminActivityLog: { create: jest.Mock };
+  $queryRaw: jest.Mock;
 };
 
 const ADMIN = { id: "admin-1", name: "Support Lead" };
@@ -154,22 +156,23 @@ describe("redeemAdminSignInLink", () => {
     banned: false,
   };
 
-  // Stands in for Better Auth's internalAdapter: one live row, consumed once.
-  const fakeAdapter = (row: { value: string; expiresAt: Date } | null) => {
-    let remaining = row;
+  // Stands in for Better Auth's internalAdapter.
+  const fakeAdapter = () => ({
+    findUserById: jest.fn(async (id: string) => ({ id, email: "o@x.com" })),
+    createSession: jest.fn(async (userId: string) => ({
+      token: "session-token",
+      userId,
+    })),
+  });
 
-    return {
-      consumeVerificationValue: jest.fn(async () => {
-        const taken = remaining;
-        remaining = null;
-        return taken;
-      }),
-      findUserById: jest.fn(async (id: string) => ({ id, email: "o@x.com" })),
-      createSession: jest.fn(async (userId: string) => ({
-        token: "session-token",
-        userId,
-      })),
-    };
+  // DELETE RETURNING hands back the row once; a replay gets no rows.
+  const rowConsumedOnce = (row: { value: string; expiresAt: Date }) => {
+    let remaining: typeof row | null = row;
+    db.$queryRaw.mockImplementation(async () => {
+      const taken = remaining;
+      remaining = null;
+      return taken ? [taken] : [];
+    });
   };
 
   const liveRow = () => ({
@@ -179,13 +182,12 @@ describe("redeemAdminSignInLink", () => {
 
   it("signs in the target and audits the redemption", async () => {
     db.user.findUnique.mockResolvedValue(CUSTOMER);
-    const adapter = fakeAdapter(liveRow());
+    rowConsumedOnce(liveRow());
+    const adapter = fakeAdapter();
 
     const { user, session } = await redeemAdminSignInLink("tok", adapter);
 
-    expect(adapter.consumeVerificationValue).toHaveBeenCalledWith(
-      identifierForToken("tok")
-    );
+    expect(db.$queryRaw).toHaveBeenCalledTimes(1);
     expect(adapter.createSession).toHaveBeenCalledWith("user-1");
     expect(user.id).toBe("user-1");
     expect(session).toEqual({ token: "session-token", userId: "user-1" });
@@ -201,7 +203,8 @@ describe("redeemAdminSignInLink", () => {
 
   it("refuses a second use of the same token", async () => {
     db.user.findUnique.mockResolvedValue(CUSTOMER);
-    const adapter = fakeAdapter(liveRow());
+    rowConsumedOnce(liveRow());
+    const adapter = fakeAdapter();
 
     await redeemAdminSignInLink("tok", adapter);
 
@@ -212,7 +215,8 @@ describe("redeemAdminSignInLink", () => {
   });
 
   it("refuses an unknown token", async () => {
-    const adapter = fakeAdapter(null);
+    db.$queryRaw.mockResolvedValue([]);
+    const adapter = fakeAdapter();
 
     await expect(redeemAdminSignInLink("nope", adapter)).rejects.toThrow(
       SignInLinkError
@@ -222,10 +226,11 @@ describe("redeemAdminSignInLink", () => {
 
   it("refuses an expired link", async () => {
     db.user.findUnique.mockResolvedValue(CUSTOMER);
-    const adapter = fakeAdapter({
+    rowConsumedOnce({
       value: JSON.stringify(PAYLOAD),
       expiresAt: new Date(Date.now() - 1000),
     });
+    const adapter = fakeAdapter();
 
     await expect(redeemAdminSignInLink("tok", adapter)).rejects.toThrow(
       SignInLinkError
@@ -237,7 +242,8 @@ describe("redeemAdminSignInLink", () => {
   // Both cases can change in the ten minutes a link is live.
   it("refuses an account banned since the link was issued", async () => {
     db.user.findUnique.mockResolvedValue({ ...CUSTOMER, banned: true });
-    const adapter = fakeAdapter(liveRow());
+    rowConsumedOnce(liveRow());
+    const adapter = fakeAdapter();
 
     await expect(redeemAdminSignInLink("tok", adapter)).rejects.toThrow(
       SignInLinkError
@@ -247,7 +253,8 @@ describe("redeemAdminSignInLink", () => {
 
   it("refuses an account promoted to support since the link was issued", async () => {
     db.user.findUnique.mockResolvedValue({ ...CUSTOMER, role: ROLES.SUPPORT });
-    const adapter = fakeAdapter(liveRow());
+    rowConsumedOnce(liveRow());
+    const adapter = fakeAdapter();
 
     await expect(redeemAdminSignInLink("tok", adapter)).rejects.toThrow(
       SignInLinkError
@@ -257,7 +264,8 @@ describe("redeemAdminSignInLink", () => {
 
   it("refuses a deleted account", async () => {
     db.user.findUnique.mockResolvedValue(null);
-    const adapter = fakeAdapter(liveRow());
+    rowConsumedOnce(liveRow());
+    const adapter = fakeAdapter();
 
     await expect(redeemAdminSignInLink("tok", adapter)).rejects.toThrow(
       SignInLinkError
@@ -268,7 +276,8 @@ describe("redeemAdminSignInLink", () => {
   // A link minted for one account must not open another.
   it("reads the target from the stored payload, not the caller", async () => {
     db.user.findUnique.mockResolvedValue(CUSTOMER);
-    const adapter = fakeAdapter(liveRow());
+    rowConsumedOnce(liveRow());
+    const adapter = fakeAdapter();
 
     await redeemAdminSignInLink("tok", adapter);
 

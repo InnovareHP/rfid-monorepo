@@ -37,23 +37,31 @@ export const isLinkable = (user: { role: string; banned: boolean }) =>
 // a forged token are indistinguishable from outside.
 export class SignInLinkError extends Error {}
 
+// Better Auth's own verification store answers from secondary storage whenever
+// one is configured, and this app runs Redis there, so a row written to
+// Postgres would never be found. Both halves of this feature therefore use the
+// table directly. DELETE RETURNING is one statement, so a replay finds nothing.
+const consumeToken = async (token: string) => {
+  const rows = await prisma.$queryRaw<{ value: string; expiresAt: Date }[]>`
+    DELETE FROM auth_schema."Verification"
+    WHERE identifier = ${identifierForToken(token)}
+    RETURNING value, "expiresAt"
+  `;
+
+  return rows[0] ?? null;
+};
+
 // The redemption half lives here rather than in the plugin because
 // better-auth/api is ESM and this file has to stay loadable under CJS Jest.
 // Only the three adapter calls it needs are named, so the tests can fake them.
 export const redeemAdminSignInLink = async <U extends { id: string }, S>(
   token: string,
   adapter: {
-    consumeVerificationValue: (
-      identifier: string
-    ) => Promise<{ value: string; expiresAt: Date } | null>;
     findUserById: (userId: string) => Promise<U | null>;
     createSession: (userId: string) => Promise<S>;
   }
 ): Promise<{ user: U; session: S }> => {
-  // Atomic find and delete, so a replayed token loses the race.
-  const record = await adapter.consumeVerificationValue(
-    identifierForToken(token)
-  );
+  const record = await consumeToken(token);
 
   if (!record || record.expiresAt.getTime() < Date.now()) {
     throw new SignInLinkError("Link is invalid or expired");
