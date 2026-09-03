@@ -13,6 +13,11 @@ import {
 } from "../../lib/auth/registration-otp-store";
 import { consumeSlidingLimit } from "../../lib/auth/sliding-limiter";
 import { renderEmailHtml } from "../../lib/aws/ses";
+import {
+  isConsumerEmailDomain,
+  WORK_EMAIL_REQUIRED_MESSAGE,
+} from "@dashboard/shared";
+import { requiresWorkEmail } from "../../lib/auth/work-email-policy";
 import { prisma } from "../../lib/prisma/prisma";
 import { emailQueue } from "../../lib/queue/email-queue";
 import { OtpEmail } from "../../react-email/otp-email";
@@ -155,12 +160,26 @@ export class RegistrationService {
   // to this address, so returning it to whoever holds it discloses nothing new
   // -- and hasAccount saves the client from parsing an error string to decide
   // between the sign-in and register paths.
+  // An invitation is checked again here, not only when it was sent: the
+  // organization may have moved onto a HIPAA plan in between, and the
+  // refusal belongs before someone registers an account they cannot use.
+  private async assertInvitedAddressAllowed(
+    organizationId: string,
+    email: string
+  ) {
+    if (!isConsumerEmailDomain(email)) return;
+    if (!(await requiresWorkEmail(organizationId))) return;
+
+    throw new BadRequestException(WORK_EMAIL_REQUIRED_MESSAGE);
+  }
+
   async invitationPreview(invitationId: string) {
     const invitation = await prisma.invitation.findFirst({
       where: { id: invitationId, status: "pending" },
       select: {
         email: true,
         expiresAt: true,
+        organizationId: true,
         organization: { select: { name: true } },
         user: { select: { name: true, email: true } },
       },
@@ -172,6 +191,8 @@ export class RegistrationService {
     }
 
     const email = invitation.email.toLowerCase();
+    await this.assertInvitedAddressAllowed(invitation.organizationId, email);
+
     const existing = await prisma.user.findFirst({
       where: { email },
       select: { id: true },
@@ -188,7 +209,7 @@ export class RegistrationService {
   async invitationContext(invitationId: string) {
     const invitation = await prisma.invitation.findFirst({
       where: { id: invitationId, status: "pending" },
-      select: { email: true, expiresAt: true },
+      select: { email: true, expiresAt: true, organizationId: true },
     });
     if (!invitation || invitation.expiresAt < new Date()) {
       throw new BadRequestException(
@@ -197,6 +218,8 @@ export class RegistrationService {
     }
 
     const email = invitation.email.toLowerCase();
+    await this.assertInvitedAddressAllowed(invitation.organizationId, email);
+
     const existing = await prisma.user.findFirst({
       where: { email },
       select: { id: true },
