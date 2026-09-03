@@ -1102,19 +1102,11 @@ export class AnalyticsService {
       where: whereClause,
       select: {
         memberId: true,
+        userId: true,
         facility: true,
         touchpoints: true,
         talkedTo: true,
-        member: {
-          select: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        user: { select: { id: true, name: true } },
       },
     });
 
@@ -1129,8 +1121,11 @@ export class AnalyticsService {
     const analyticsMap = new Map<string, InternalAnalytics>();
     const marketingByMember = new Map<string, typeof marketingLogs>();
 
+    // Keyed on the log's own user id rather than through the membership: a
+    // liaison who has left keeps their logs, and the member row is gone.
     for (const log of marketingLogs) {
-      const key = log.member.user.id;
+      const key = log.userId;
+      if (!key) continue;
       if (!marketingByMember.has(key)) {
         marketingByMember.set(key, []);
       }
@@ -1166,7 +1161,8 @@ export class AnalyticsService {
     }
 
     for (const log of marketingLogs) {
-      seed(log.member.user.id, log.memberId, log.member.user.name);
+      if (!log.userId) continue;
+      seed(log.userId, log.memberId ?? "", log.user?.name ?? "Former member");
     }
 
     // 5. Apply lead-based metrics (SAFE)

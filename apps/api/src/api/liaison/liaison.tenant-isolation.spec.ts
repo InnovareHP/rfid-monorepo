@@ -38,10 +38,11 @@ const delegates = prisma as unknown as {
   expense: MockedDelegate;
 };
 
-// These models carry no organizationId column; they scope through the member
-// relation, which is the pattern the list queries already use.
+// All three carry their own organizationId. Scoping through the member relation
+// instead would drop every row whose liaison has since been removed, because
+// that membership is set null rather than kept.
 function expectsOrgScope(where: unknown) {
-  expect(where).toMatchObject({ member: { organizationId: ORG } });
+  expect(where).toMatchObject({ organizationId: ORG });
 }
 
 describe("LiaisonService tenant isolation", () => {
@@ -112,7 +113,7 @@ describe("LiaisonService tenant isolation", () => {
       ).rejects.toThrow(NotFoundException);
 
       expect(delegate().findFirst.mock.calls[0][0].where).toMatchObject({
-        member: { organizationId: ORG },
+        organizationId: ORG,
         memberId: "member-1",
       });
     });

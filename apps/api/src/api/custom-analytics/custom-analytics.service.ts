@@ -1389,6 +1389,7 @@ export class CustomAnalyticsService {
         touchpoints: true,
         createdAt: true,
         member: { select: { user: { select: { name: true } } } },
+        user: { select: { name: true } },
       },
     });
 
@@ -1429,7 +1430,7 @@ export class CustomAnalyticsService {
           ? log.touchpoints.map((touchpoint) => String(touchpoint))
           : config.marketingGroupBy === "FACILITY"
             ? [log.facility]
-            : [log.member.user.name];
+            : [log.member?.user.name ?? log.user?.name ?? "Former member"];
 
       for (const key of keys) {
         if (!key) continue;

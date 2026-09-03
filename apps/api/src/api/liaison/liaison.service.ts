@@ -44,12 +44,17 @@ const toActivityFields = (log: MarketingActivityInput) => ({
   activityType: TOUCHPOINT_ACTIVITIES[log.touchpoints[0]],
 });
 
+// A log outlives the membership, so a removed liaison still has to read as
+// somebody rather than as a blank cell.
+const FORMER_MEMBER = "Former member";
+
 @Injectable()
 export class LiaisonService {
   private readonly logger = new Logger(LiaisonService.name);
   async createMillage(
     createMillageDto: CreateMillageDto,
     memberId: string,
+    userId: string,
     organizationId: string
   ) {
     await prisma.$transaction(async (tx) => {
@@ -79,6 +84,7 @@ export class LiaisonService {
           ratePerMile: createMillageDto.ratePerMile,
           reimbursementAmount: createMillageDto.reimbursementAmount,
           memberId,
+          userId,
           organizationId,
         },
       });
@@ -92,7 +98,7 @@ export class LiaisonService {
   ) {
     const where: Prisma.MileageWhereInput = {
       memberId: memberId ?? undefined,
-      member: { organizationId },
+      organizationId,
       isDeleted: false,
     };
 
@@ -143,7 +149,7 @@ export class LiaisonService {
     const mileage = await prisma.mileage.findFirst({
       where: {
         id,
-        member: { organizationId },
+        organizationId,
         ...(memberId ? { memberId } : {}),
       },
       select: { id: true },
@@ -156,7 +162,7 @@ export class LiaisonService {
       where: {
         id,
         isDeleted: false,
-        member: { organizationId },
+        organizationId,
       },
     });
     if (!millage) throw new NotFoundException("Mileage not found");
@@ -237,6 +243,7 @@ export class LiaisonService {
           notes: createMarketingDto.notes,
           reasonForVisit: createMarketingDto.reasonForVisit,
           memberId,
+          userId,
           organizationId,
           facilityRecordId: findLeadNameViaName.id,
         },
@@ -290,7 +297,7 @@ export class LiaisonService {
   ): Promise<MarketingReportResponse> {
     const where: Prisma.MarketingWhereInput = {
       memberId: memberId ?? undefined,
-      member: { organizationId },
+      organizationId,
       isDeleted: false,
     };
 
@@ -310,7 +317,10 @@ export class LiaisonService {
         skip: offset,
         take: filter.limit,
         orderBy: { createdAt: "desc" },
-        include: { member: { select: { user: { select: { name: true } } } } },
+        include: {
+          member: { select: { user: { select: { name: true } } } },
+          user: { select: { name: true } },
+        },
       }),
       prisma.marketing.count({
         where,
@@ -446,11 +456,11 @@ export class LiaisonService {
       .sort((a, b) => b.count - a.count);
 
     return {
-      data: data.map(({ member, createdAt, updatedAt, ...row }) => ({
+      data: data.map(({ member, user, createdAt, updatedAt, ...row }) => ({
         ...row,
         createdAt: createdAt.toISOString(),
         updatedAt: updatedAt ? updatedAt.toISOString() : null,
-        liaisonName: member.user.name,
+        liaisonName: member?.user.name ?? user?.name ?? FORMER_MEMBER,
       })),
       total,
       totals: {
@@ -477,7 +487,7 @@ export class LiaisonService {
     const marketing = await prisma.marketing.findFirst({
       where: {
         id,
-        member: { organizationId },
+        organizationId,
         ...(memberId ? { memberId } : {}),
       },
       select: { id: true },
@@ -490,7 +500,7 @@ export class LiaisonService {
       where: {
         id,
         isDeleted: false,
-        member: { organizationId },
+        organizationId,
       },
     });
     if (!marketing) throw new NotFoundException("Marketing not found");
@@ -564,6 +574,7 @@ export class LiaisonService {
   async createExpense(
     dto: CreateExpenseDto,
     memberId: string,
+    userId: string,
     organizationId: string
   ) {
     await prisma.$transaction(async (tx) => {
@@ -574,6 +585,7 @@ export class LiaisonService {
           description: dto.description,
           notes: dto.notes,
           memberId,
+          userId,
           organizationId,
         },
       });
@@ -588,9 +600,7 @@ export class LiaisonService {
     const where: Prisma.ExpenseWhereInput = {
       memberId: memberId ?? undefined,
       isDeleted: false,
-      member: {
-        organizationId: activeOrganizationId,
-      },
+      organizationId: activeOrganizationId,
     };
 
     if (filter.filter.expenseDateFrom && filter.filter.expenseDateTo) {
@@ -610,7 +620,10 @@ export class LiaisonService {
         orderBy: {
           createdAt: "desc",
         },
-        include: { member: { select: { user: { select: { name: true } } } } },
+        include: {
+          member: { select: { user: { select: { name: true } } } },
+          user: { select: { name: true } },
+        },
       }),
       prisma.expense.count({
         where,
@@ -622,9 +635,9 @@ export class LiaisonService {
     const totalAmount = sums._sum.amount ?? 0;
 
     return {
-      data: data.map(({ member, ...row }) => ({
+      data: data.map(({ member, user, ...row }) => ({
         ...row,
-        liaisonName: member.user.name,
+        liaisonName: member?.user.name ?? user?.name ?? FORMER_MEMBER,
       })),
       total,
       totals: {
@@ -924,7 +937,7 @@ export class LiaisonService {
     const expense = await prisma.expense.findFirst({
       where: {
         id,
-        member: { organizationId },
+        organizationId,
         ...(memberId ? { memberId } : {}),
       },
       select: { id: true },

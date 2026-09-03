@@ -5,19 +5,25 @@ model Marketing {
   talkedTo          String
   reasonForVisit    String?
   notes             String?
-  memberId          String
+  memberId          String?
+  userId            String?
   organizationId    String
   facilityRecordId  String?
   createdAt         DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime?        @updatedAt @db.Timestamptz(3)
   isDeleted         Boolean          @default(false)
 
-  member         Member       @relation(fields: [memberId], references: [id])
+  // The member row disappears when someone leaves the organization, so the
+  // log keeps a user id as well: losing the attribution is not acceptable on a
+  // financial or activity record, and losing the row itself never is.
+  member         Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  user           User?        @relation("MarketingLoggedBy", fields: [userId], references: [id], onDelete: SetNull)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   facilityRecord Board?       @relation(fields: [facilityRecordId], references: [id], onDelete: SetNull)
   activity       Activity?
 
   @@index([memberId])
+  @@index([userId])
   @@index([organizationId])
   @@index([facilityRecordId])
   @@schema("liason_schema")
@@ -28,7 +34,8 @@ model Expense {
   amount      Float
   description String
   notes       String
-  memberId    String
+  memberId    String?
+  userId      String?
 
   organizationId String
 
@@ -37,10 +44,12 @@ model Expense {
   isDeleted Boolean   @default(false)
 
   imageUrl     String
-  member       Member       @relation(fields: [memberId], references: [id])
+  member       Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  user         User?        @relation("ExpenseLoggedBy", fields: [userId], references: [id], onDelete: SetNull)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
+  @@index([userId])
   @@index([organizationId])
   @@schema("liason_schema")
 }
@@ -59,17 +68,20 @@ model Mileage {
   reimbursementAmount Float
   isDeleted           Boolean         @default(false)
 
-  memberId String
+  memberId String?
+  userId   String?
 
   organizationId String
 
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @db.Timestamptz(3)
 
-  member       Member       @relation(fields: [memberId], references: [id])
+  member       Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  user         User?        @relation("MileageLoggedBy", fields: [userId], references: [id], onDelete: SetNull)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
+  @@index([userId])
   @@index([organizationId])
   @@schema("liason_schema")
 }

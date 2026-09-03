@@ -60,6 +60,7 @@ export class LiaisonController {
       return await this.liaisonService.createMillage(
         createMillageDto,
         session.session.memberId,
+        session.session.userId,
         session.session.activeOrganizationId
       );
     } catch (error) {
@@ -266,6 +267,7 @@ export class LiaisonController {
       return await this.liaisonService.createExpense(
         createExpenseDto,
         session.session.memberId,
+        session.session.userId,
         session.session.activeOrganizationId
       );
     } catch (error) {

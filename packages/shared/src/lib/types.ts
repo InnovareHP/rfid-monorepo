@@ -417,7 +417,10 @@ export type MarketingReportRow = {
   talkedTo: string;
   reasonForVisit: string | null;
   notes: string | null;
-  memberId: string;
+  // Null once the liaison has been removed from the organization; liaisonName
+  // still reads, because the log also carries the user id.
+  memberId: string | null;
+  userId: string | null;
   organizationId: string;
   isDeleted: boolean;
   createdAt: string;
