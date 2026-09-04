@@ -98,6 +98,8 @@ export function TeamSwitcher({
                         src={team.logo}
                         alt={team.name}
                         className="size-6 shrink-0"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <Logo className="size-3.5 shrink-0" />
