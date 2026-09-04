@@ -17,7 +17,7 @@
     "verify:permissions": "node scripts/verify-permissions.mjs",
     "verify:tenant-scope": "ts-node scripts/verify-tenant-scope.ts",
     "verify:analytics-parity": "ts-node scripts/verify-analytics-parity.ts",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --max-warnings=0",
     "prisma:generate": "prisma generate --schema=./prisma",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
