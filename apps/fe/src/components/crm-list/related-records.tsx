@@ -11,6 +11,7 @@ import {
 } from "@dashboard/ui/components/popover";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { moduleLabel } from "@/lib/helper/module-route";
 import { ExternalLink, Link2 } from "lucide-react";
 import { useState } from "react";
 
@@ -19,13 +20,6 @@ const MODULE_ROUTES: Record<string, string> = {
   REFERRAL: "/$team/referral-list",
   CONTACT: "/$team/contacts",
   COMPANY: "/$team/companies",
-};
-
-const MODULE_LABELS: Record<string, string> = {
-  LEAD: "Lead",
-  REFERRAL: "Referral",
-  CONTACT: "Contact",
-  COMPANY: "Company",
 };
 
 export function RelatedRecords({ recordId }: { recordId: string }) {
@@ -75,7 +69,7 @@ export function RelatedRecords({ recordId }: { recordId: string }) {
               >
                 <span className="truncate">{record.recordName}</span>
                 <span className="ml-2 flex shrink-0 items-center gap-1 text-xs text-gray-400">
-                  {MODULE_LABELS[record.moduleType] ?? record.moduleType}
+                  {moduleLabel(record.moduleType)}
                   <ExternalLink className="h-3 w-3" />
                 </span>
               </Link>

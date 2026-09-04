@@ -1,5 +1,6 @@
 import { PLAN_FEATURES } from "@dashboard/shared";
 import z from "zod";
+import { MIN_SIGN_IN_LINK_REASON_LENGTH } from "../../../lib/auth/admin-sign-in-link";
 
 // A contract is present or it is null; there is no half-specified state. A grant
 // missing its seats would resolve to the lowest tier rather than erroring, so the
@@ -39,3 +40,11 @@ export const CreateAdminUserSchema = z.object({
 });
 
 export type CreateAdminUserData = z.infer<typeof CreateAdminUserSchema>;
+
+// A sign-in link is as strong as the account it opens, so it carries the same
+// written reason impersonation does.
+export const AdminSignInLinkSchema = z.object({
+  reason: z.string().trim().min(MIN_SIGN_IN_LINK_REASON_LENGTH).max(500),
+});
+
+export type AdminSignInLinkData = z.infer<typeof AdminSignInLinkSchema>;

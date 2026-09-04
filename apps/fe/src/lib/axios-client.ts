@@ -1,4 +1,4 @@
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import axios from "axios";
 
 export const axiosClient = axios.create({

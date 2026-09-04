@@ -2,11 +2,13 @@ import {
   AnalyticsDateFilter,
   type AnalyticsDateRange,
 } from "@/components/analytics/charts/analytics-date-filter";
+import { ExportPdfButton } from "@/components/analytics/export-pdf-button";
 import { PageHeader } from "@/components/page-header";
 import { can } from "@/lib/permissions";
 import {
   getDashboard,
   reorderDashboardCharts,
+  downloadDashboardPdf,
   runDashboard,
   updateDashboard,
   type CustomAnalyticDashboardDetail,
@@ -230,7 +232,14 @@ export default function CustomAnalyticDashboardViewPage({
         )}
       </div>
 
-      <AnalyticsDateFilter onChange={setDateRange} />
+      <div className="flex flex-wrap items-center gap-2">
+        <AnalyticsDateFilter onChange={setDateRange} />
+
+        <ExportPdfButton
+          disabled={!result}
+          onExport={() => downloadDashboardPdf(dashboardId, dateWindow)}
+        />
+      </div>
 
       {insightsLabel && (
         <ModuleAnalyticsInsights

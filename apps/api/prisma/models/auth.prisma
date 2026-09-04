@@ -49,6 +49,10 @@ model User {
   FieldValueAttachment      FieldValueAttachment[]      @relation("FieldValueAttachmentUploadedBy")
   fieldOptionsCreated       FieldOption[]               @relation("FieldOptionCreatedBy")
   fieldOptionsDeleted       FieldOption[]               @relation("FieldOptionDeletedBy")
+  fieldsDeleted             Field[]                     @relation("FieldDeletedBy")
+  marketingLogged           Marketing[]                 @relation("MarketingLoggedBy")
+  expensesLogged            Expense[]                   @relation("ExpenseLoggedBy")
+  mileageLogged             Mileage[]                   @relation("MileageLoggedBy")
   taskTimeEntries           TaskTimeEntry[]             @relation("TaskTimeEntryUser")
   taskActivities            TaskActivity[]              @relation("TaskActivityActor")
   notificationsActed        Notification[]              @relation("NotificationActor")
@@ -240,6 +244,8 @@ enum AdminAction {
   UPDATE_DEMO_REQUEST
   SET_DEMO_HOST
   CREATE_USER
+  CREATE_SIGN_IN_LINK
+  USE_SIGN_IN_LINK
 
   @@schema("auth_schema")
 }

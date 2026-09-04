@@ -1,5 +1,5 @@
 import { useSubscriptionState } from "@/hooks/use-subscription-state";
-import { formatDate } from "@dashboard/shared";
+import { formatDate, isOrgAdmin } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { cva } from "class-variance-authority";
@@ -28,8 +28,10 @@ const trialTitle = (daysLeft: number | null) => {
 
 export function SubscriptionBanner({
   organizationId,
+  role,
 }: {
   organizationId: string;
+  role?: string | null;
 }) {
   const { notice, trialDaysLeft, endsOn } = useSubscriptionState(organizationId);
 
@@ -76,9 +78,16 @@ export function SubscriptionBanner({
 
       <p className="text-muted-foreground">{copy.body}</p>
 
-      <Button asChild size="sm" variant="outline" className="ml-auto">
-        <Link to="/billing">{copy.action}</Link>
-      </Button>
+      {/* Billing is owner and admin only; everyone else gets who to ask. */}
+      {isOrgAdmin(role) ? (
+        <Button asChild size="sm" variant="outline" className="ml-auto">
+          <Link to="/billing">{copy.action}</Link>
+        </Button>
+      ) : (
+        <p className="ml-auto text-muted-foreground">
+          Ask an owner or admin to handle billing.
+        </p>
+      )}
     </div>
   );
 }

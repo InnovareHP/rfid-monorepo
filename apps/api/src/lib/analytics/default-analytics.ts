@@ -221,7 +221,7 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       span: "THIRD",
       conditions: [
         {
-          fieldName: "Status",
+          fieldName: "Admission Status",
           operator: "eq",
           value: "Admitted",
           fromOptions: true,
@@ -234,7 +234,7 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       chartType: "BAR",
       span: "THIRD",
       aggregation: "AVG",
-      durationFieldName: "Status",
+      durationFieldName: "Admission Status",
     },
     // getPayerMix
     {
@@ -250,7 +250,7 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       span: "THIRD",
       aggregation: "PERCENT",
       percentOf: {
-        fieldName: "Status",
+        fieldName: "Admission Status",
         operator: "eq",
         value: "Admitted",
         fromOptions: true,
@@ -258,9 +258,9 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
     },
     // getStatusBreakdown
     {
-      name: "Status Breakdown",
+      name: "Admission Status Breakdown",
       chartType: "PIE",
-      fieldName: "Status",
+      fieldName: "Admission Status",
       span: "THIRD",
     },
     // getOutreachImpact
@@ -278,9 +278,9 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       span: "HALF",
       conditions: [
         {
-          fieldName: "Status",
+          fieldName: "Admission Status",
           operator: "in",
-          value: "Rejected,Denied",
+          value: "Denied",
           fromOptions: true,
         },
       ],
@@ -306,9 +306,9 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       groupLimit: 5,
       conditions: [
         {
-          fieldName: "Status",
+          fieldName: "Admission Status",
           operator: "in",
-          value: "Rejected,Denied",
+          value: "Denied",
           fromOptions: true,
         },
       ],
@@ -336,11 +336,11 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       span: "THIRD",
       fieldName: "Referral Source Type",
     },
-    // getAdmissionTypeBreakdown
+    // getAssessmentTypeBreakdown
     {
-      name: "Admission Type",
+      name: "Type of Assessment",
       chartType: "PIE",
-      fieldName: "Admission Type",
+      fieldName: "Type of Assessment",
       span: "THIRD",
     },
     // getEmergingSources
@@ -370,7 +370,7 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       span: "THIRD",
       dateBucket: "MONTH",
       aggregation: "AVG",
-      durationFieldName: "Status",
+      durationFieldName: "Admission Status",
     },
   ],
 };

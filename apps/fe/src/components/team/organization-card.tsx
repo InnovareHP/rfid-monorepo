@@ -88,6 +88,8 @@ export function OrganizationCard({
                     src={logo}
                     alt={name?.replaceAll("-", " ")}
                     className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <Building2 className="size-8 text-primary" />

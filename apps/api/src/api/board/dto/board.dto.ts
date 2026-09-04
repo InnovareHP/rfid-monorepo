@@ -31,7 +31,6 @@ export const UpdateRecordValueSchema = z.object({
   fieldId: z.string(),
   moduleType: z.string().default("LEAD"),
   reason: z.string().optional(),
-  previousValue: z.string().optional(),
 });
 
 export const RestoreHistorySchema = z.object({
@@ -103,6 +102,10 @@ export const CreateHistorySchema = z.object({
 export const DeleteRecordsSchema = z.object({
   column_ids: z.array(z.string()),
   moduleType: z.string().optional(),
+});
+
+export const RecordLinkCountsSchema = z.object({
+  recordIds: z.array(z.string()).min(1),
 });
 
 export const CreateActivitySchema = z.object({

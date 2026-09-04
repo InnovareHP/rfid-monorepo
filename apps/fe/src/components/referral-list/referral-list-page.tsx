@@ -1,3 +1,4 @@
+import { useColumnOrder } from "@/hooks/use-column-order";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   ExportCsvButton,
@@ -140,6 +141,11 @@ export default function ReferralListPage() {
     });
   }, []);
 
+  const { columnOrder, onColumnOrderChange } = useColumnOrder(
+    "referral-list-column-order",
+    columns
+  );
+
   const table = useReactTable({
     data: rows as ReferralRow[],
     columns,
@@ -147,7 +153,7 @@ export default function ReferralListPage() {
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     columnResizeMode: "onChange",
-    state: { columnSizing, columnVisibility },
+    state: { columnSizing, columnVisibility, columnOrder },
     onColumnSizingChange: handleColumnSizingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
   });
@@ -206,7 +212,7 @@ export default function ReferralListPage() {
         // already the real field name.
         const label =
           accessorKey === "record_name"
-            ? "Referral Liaison"
+            ? "Referrer"
             : (accessorKey ?? column.id ?? "Unnamed Column");
 
         return {
@@ -343,6 +349,8 @@ export default function ReferralListPage() {
           onPageSizeChange={(size) =>
             setFilterMeta((prev) => ({ ...prev, limit: size, page: 1 }) as any)
           }
+          enableColumnReorder
+          onColumnOrderChange={onColumnOrderChange}
         />
         )}
       </div>

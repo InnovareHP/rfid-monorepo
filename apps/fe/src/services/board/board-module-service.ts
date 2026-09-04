@@ -36,19 +36,19 @@ export const createModuleRecords = async (
   return response.data;
 };
 
+// No previousValue: the service reads the prior value off the row it updates,
+// since a client-supplied one can be stale or forged.
 export const updateModuleRecord = async (
   moduleType: CrmModuleType,
   recordId: string,
   fieldId: string,
   value: string,
-  previousValue?: string,
   reason?: string
 ) => {
   const response = await axiosClient.patch(`/api/boards/${recordId}`, {
     value,
     fieldId,
     moduleType,
-    previousValue,
     reason,
   });
 
@@ -134,6 +134,18 @@ export type RelatedRecord = {
 export const getRelatedRecords = async (recordId: string) => {
   const response = await axiosClient.get(`/api/boards/${recordId}/related`);
   return response.data as RelatedRecord[];
+};
+
+export type RecordLinkCounts = {
+  total: number;
+  byModule: Record<string, number>;
+};
+
+export const getRecordLinkCounts = async (recordIds: string[]) => {
+  const response = await axiosClient.post("/api/boards/link-counts", {
+    recordIds,
+  });
+  return response.data as RecordLinkCounts;
 };
 
 export const getLinkCandidates = async (

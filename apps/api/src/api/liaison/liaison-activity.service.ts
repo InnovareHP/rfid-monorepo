@@ -81,6 +81,7 @@ export class LiaisonActivityService {
             talkedTo: record.recordName,
             notes: `Auto-logged from a ${input.activityType} activity on the board`,
             memberId: member.id,
+            userId: input.userId,
             organizationId: input.organizationId,
             facilityRecordId,
           },

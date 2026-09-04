@@ -18,7 +18,6 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@dashboard/ui/components/dialog";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import {
   Tabs,
   TabsContent,
@@ -45,7 +44,7 @@ import { RestoreHistoryModal } from "../history-report/restore-history-modal";
 import { EditableCell } from "../reusable-table/editable-cell";
 import { ActivityTab } from "./activity-tab";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
-import { HistoryTimelineItem } from "./history-timeline-item";
+import { groupHistory, HistoryTimelineItem } from "./history-timeline-item";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
 import { RelatedRecords } from "../crm-list/related-records";
@@ -164,7 +163,7 @@ export function MasterListView({
       id: historyItem.id,
       leadId: leadId,
       action: historyItem.action,
-      entityType: isReferral ? "Referral" : "Lead",
+      entityType: isReferral ? "Referral" : "Facility",
       oldValue: historyItem.oldValue,
       newValue: historyItem.newValue,
       createdAt: historyItem.createdAt,
@@ -180,7 +179,12 @@ export function MasterListView({
   ) => {
     setIsRestoring(true);
     try {
-      await restoreLeadHistory(leadId, historyId, eventType, isReferral ? "REFERRAL" : "LEAD");
+      await restoreLeadHistory(
+        leadId,
+        historyId,
+        eventType,
+        isReferral ? "REFERRAL" : "LEAD"
+      );
       toast.success("History restored successfully");
 
       await queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
@@ -301,8 +305,11 @@ export function MasterListView({
                 </TabsList>
               </div>
 
-              <TabsContent value="details" className="mt-0 min-h-0 flex-1">
-                <ScrollArea className="h-full">
+              <TabsContent
+                value="details"
+                className="mt-0 flex min-h-0 flex-1 flex-col"
+              >
+                <div className="min-h-0 flex-1 overflow-y-auto">
                   <div className="px-6 py-4">
                     <div className="divide-y rounded-lg border bg-card">
                       {detailColumns.map((col) => (
@@ -321,9 +328,7 @@ export function MasterListView({
                               value={serializeValue(record[col.name] ?? "")}
                               type={col.type}
                               isReferral={isReferral}
-                              linkTargetId={
-                                (record as any).linkIds?.[col.name]
-                              }
+                              linkTargetId={(record as any).linkIds?.[col.name]}
                             />
                           </div>
                         </div>
@@ -341,11 +346,14 @@ export function MasterListView({
                       <RelatedRecords recordId={leadId} />
                     </div>
                   </div>
-                </ScrollArea>
+                </div>
               </TabsContent>
 
-              <TabsContent value="history" className="mt-0 min-h-0 flex-1">
-                <ScrollArea className="h-full px-4 py-4 sm:px-6">
+              <TabsContent
+                value="history"
+                className="mt-0 flex min-h-0 flex-1 flex-col"
+              >
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
                   {historyLoading && (
                     <div className="space-y-4">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -374,22 +382,22 @@ export function MasterListView({
                       <div className="absolute bottom-0 left-[19px] top-0 w-px bg-border" />
 
                       <div className="space-y-5">
-                        {historyData.pages
-                          .flatMap((page) => page.data)
-                          .map((item) => (
-                            <HistoryTimelineItem
-                              key={item.id}
-                              item={item}
-                              onRestore={handleOpenRestoreModal}
-                              isRestoring={isRestoring}
-                            />
-                          ))}
+                        {groupHistory(
+                          historyData.pages.flatMap((page) => page.data)
+                        ).map((group) => (
+                          <HistoryTimelineItem
+                            key={group[0].id}
+                            items={group}
+                            onRestore={handleOpenRestoreModal}
+                            isRestoring={isRestoring}
+                          />
+                        ))}
                       </div>
                     </div>
                   )}
-                </ScrollArea>
+                </div>
                 {hasNextPage && (
-                  <div className="flex items-center justify-center border-t bg-muted py-4">
+                  <div className="flex shrink-0 items-center justify-center border-t bg-muted py-4">
                     <Button variant="outline" onClick={() => fetchNextPage()}>
                       Load More
                     </Button>
@@ -398,7 +406,10 @@ export function MasterListView({
               </TabsContent>
 
               {canUseAi && (
-                <TabsContent value="suggestions" className="mt-0 min-h-0 flex-1">
+                <TabsContent
+                  value="suggestions"
+                  className="mt-0 flex min-h-0 flex-1 flex-col"
+                >
                   <FollowUpSuggestions
                     recordId={leadId}
                     enabled={activeTab === "suggestions"}
@@ -406,7 +417,10 @@ export function MasterListView({
                 </TabsContent>
               )}
 
-              <TabsContent value="activities" className="mt-0 min-h-0 flex-1">
+              <TabsContent
+                value="activities"
+                className="mt-0 flex min-h-0 flex-1 flex-col"
+              >
                 <ActivityTab
                   recordId={leadId}
                   enabled={activeTab === "activities"}

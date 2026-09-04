@@ -12,6 +12,7 @@ export const ImageBlock = ({ block }: ImageBlockProps) => {
         src={src}
         alt={alt ?? ""}
         className="mx-auto block w-full rounded-xl"
+        decoding="async"
       />
       {caption && (
         <p className="mt-2 text-center text-xs text-muted-foreground">

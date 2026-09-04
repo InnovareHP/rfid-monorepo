@@ -1,3 +1,4 @@
+import { RoutePending } from "@/components/route-pending";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
@@ -18,6 +19,16 @@ const router = createRouter({
   defaultStructuralSharing: true,
   // Zero made every hover-preload stale on arrival, so beforeLoad ran twice per navigation.
   defaultPreloadStaleTime: 30_000,
+  // Covers every route at once, including the code-split chunk fetch, which is
+  // what used to leave the previous screen frozen with no feedback.
+  // Strictly additive: pendingMinMs holds content back once the spinner is up,
+  // so it is 0 here and content paints the instant it is ready. The spinner can
+  // only ever appear on a load already past 700ms, and it never delays one.
+  // The cost is a brief flash for a load landing just over the threshold, which
+  // is the better trade against adding latency to a navigation that was fine.
+  defaultPendingComponent: RoutePending,
+  defaultPendingMs: 700,
+  defaultPendingMinMs: 0,
 });
 
 // Register the router instance for type safety

@@ -32,6 +32,8 @@ import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { cacheData, getData, purgeAllCacheKeys } from "../../lib/redis/redis";
 import { CACHE_PREFIX } from "../../lib/constant";
 import { prisma } from "../../lib/prisma/prisma";
+import { runUnscoped } from "../../lib/prisma/tenant-context";
+import { renderDashboardPdf } from "./dashboard-pdf";
 import {
   ReorderDashboardChartsDto,
   SaveDashboardDto,
@@ -741,6 +743,31 @@ export class CustomAnalyticsService {
     return result;
   }
 
+  // Reuses runDashboard, so the document and the screen read the same numbers
+  // from the same cache entry.
+  async renderDashboardPdf(
+    id: string,
+    organizationId: string,
+    dateWindow: DateWindow = null
+  ) {
+    const [dashboard, organization] = await Promise.all([
+      this.runDashboard(id, organizationId, dateWindow),
+      runUnscoped(() =>
+        prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { name: true },
+        })
+      ),
+    ]);
+
+    return renderDashboardPdf({
+      organizationName: organization?.name ?? "Organization",
+      dashboard: dashboard as never,
+      startDate: dateWindow?.start,
+      endDate: dateWindow?.end,
+    });
+  }
+
   async runDashboard(
     id: string,
     organizationId: string,
@@ -1362,6 +1389,7 @@ export class CustomAnalyticsService {
         touchpoints: true,
         createdAt: true,
         member: { select: { user: { select: { name: true } } } },
+        user: { select: { name: true } },
       },
     });
 
@@ -1402,7 +1430,7 @@ export class CustomAnalyticsService {
           ? log.touchpoints.map((touchpoint) => String(touchpoint))
           : config.marketingGroupBy === "FACILITY"
             ? [log.facility]
-            : [log.member.user.name];
+            : [log.member?.user.name ?? log.user?.name ?? "Former member"];
 
       for (const key of keys) {
         if (!key) continue;

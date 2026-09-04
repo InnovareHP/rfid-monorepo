@@ -12,7 +12,12 @@ import { CACHE_PREFIX } from "src/lib/constant";
 import { cacheData, getData } from "src/lib/redis/redis";
 import { runUnscoped } from "src/lib/prisma/tenant-context";
 import { renderLiaisonPerformancePdf } from "./liaison-performance-pdf";
-import { recordNameIndex } from "../../lib/crypto/record-name-index";
+import { renderMasterListAnalyticsPdf } from "./master-list-analytics-pdf";
+import { renderReferralAnalyticsPdf } from "./referral-analytics-pdf";
+import {
+  referralRecordWhere,
+  resolveReferralFacilities,
+} from "../../lib/analytics/referral-facilities";
 import { prisma } from "../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 
@@ -38,22 +43,6 @@ export class AnalyticsService {
     });
   }
 
-  private referralRecordWhere(
-    organizationId: string,
-    startDate?: Date,
-    endDate?: Date,
-    assignedTo?: string | null
-  ): Prisma.BoardWhereInput {
-    return {
-      moduleType: "REFERRAL",
-      organizationId,
-      isDeleted: false,
-      ...(assignedTo && { assignedTo }),
-      ...(startDate &&
-        endDate && { createdAt: { gte: startDate, lte: endDate } }),
-    };
-  }
-
   private countByValue(
     rows: { value: string | null }[],
     take?: number
@@ -71,122 +60,20 @@ export class AnalyticsService {
     return take ? sorted.slice(0, take) : sorted;
   }
 
-  // A referral points at its facility two ways. Interactive edits write a
-  // BoardRelation; an imported log only ever carried the facility name in the
-  // cell, so it has none. Reading relations alone dropped every imported row
-  // out of the facility and county numbers, which is why they read empty.
-  private async facilitiesByReferral(
+  // Both reads live in src/lib/analytics/referral-facilities.ts so the
+  // liaison marketing report resolves a referral's facility the same way.
+  private facilitiesByReferral(
     organizationId: string,
     startDate?: Date,
     endDate?: Date,
     userId?: string | null
   ) {
-    const source = this.referralRecordWhere(
+    return resolveReferralFacilities(
       organizationId,
       startDate,
       endDate,
       userId
     );
-
-    const [relations, facilityValues] = await Promise.all([
-      prisma.boardRelation.findMany({
-        where: {
-          relationType: "REFERRAL_LINK",
-          source,
-          target: { moduleType: "LEAD", isDeleted: false },
-        },
-        select: { sourceId: true, targetId: true },
-      }),
-      prisma.fieldValue.findMany({
-        where: {
-          // By type, not by name: the column is seeded as "Facility" but an
-          // organization is free to rename it.
-          field: {
-            fieldType: "REFERRAL_LINK",
-            moduleType: "REFERRAL",
-            isDeleted: false,
-          },
-          record: source,
-        },
-        select: { recordId: true, value: true },
-      }),
-    ]);
-
-    const targetByReferral = new Map(
-      relations.map((relation) => [relation.sourceId, relation.targetId])
-    );
-
-    // The cell holds either the target id or the name it was imported under.
-    const loose = facilityValues.filter(
-      (row) => row.value && !targetByReferral.has(row.recordId)
-    );
-    const rawValues = [...new Set(loose.map((row) => row.value as string))];
-
-    // Names are matched through the blind index rather than by decrypting the
-    // whole master list, the same way a duplicate name is detected on write.
-    const nameHashes = rawValues.map((value) => recordNameIndex(value));
-    const targetIds = [...new Set(relations.map((r) => r.targetId))];
-
-    const leads =
-      targetIds.length || rawValues.length
-        ? await prisma.board.findMany({
-            where: {
-              organizationId,
-              moduleType: "LEAD",
-              isDeleted: false,
-              OR: [
-                { id: { in: [...targetIds, ...rawValues] } },
-                { recordNameHash: { in: nameHashes } },
-              ],
-            },
-            select: {
-              id: true,
-              recordName: true,
-              recordNameHash: true,
-              values: {
-                where: {
-                  field: {
-                    fieldName: "County",
-                    moduleType: "LEAD",
-                    isDeleted: false,
-                  },
-                },
-                select: { value: true },
-              },
-            },
-          })
-        : [];
-
-    type Facility = { id: string; recordName: string; county: string | null };
-
-    const toFacility = (lead: (typeof leads)[number]): Facility => ({
-      id: lead.id,
-      recordName: lead.recordName,
-      county: lead.values[0]?.value ?? null,
-    });
-
-    const byId = new Map(leads.map((lead) => [lead.id, toFacility(lead)]));
-    const byNameHash = new Map(
-      leads
-        .filter((lead) => lead.recordNameHash)
-        .map((lead) => [lead.recordNameHash as string, toFacility(lead)])
-    );
-
-    const byReferral = new Map<string, Facility>();
-
-    for (const [referralId, targetId] of targetByReferral) {
-      const facility = byId.get(targetId);
-      if (facility) byReferral.set(referralId, facility);
-    }
-
-    for (const row of loose) {
-      const value = row.value as string;
-      const facility =
-        byId.get(value) ?? byNameHash.get(recordNameIndex(value));
-      if (facility) byReferral.set(row.recordId, facility);
-    }
-
-    return byReferral;
   }
 
   async getTopFacilities(
@@ -219,12 +106,7 @@ export class AnalyticsService {
     const rows = await prisma.fieldValue.findMany({
       where: {
         field: { fieldName: "Contact" },
-        record: this.referralRecordWhere(
-          organizationId,
-          startDate,
-          endDate,
-          userId
-        ),
+        record: referralRecordWhere(organizationId, startDate, endDate, userId),
       },
       select: { value: true },
     });
@@ -249,7 +131,7 @@ export class AnalyticsService {
             moduleType: "REFERRAL",
             isDeleted: false,
           },
-          record: this.referralRecordWhere(
+          record: referralRecordWhere(
             organizationId,
             startDate,
             endDate,
@@ -282,12 +164,7 @@ export class AnalyticsService {
     const rows = await prisma.fieldValue.findMany({
       where: {
         field: { fieldName: "Referral Source Type" },
-        record: this.referralRecordWhere(
-          organizationId,
-          startDate,
-          endDate,
-          userId
-        ),
+        record: referralRecordWhere(organizationId, startDate, endDate, userId),
       },
       select: { value: true },
     });
@@ -300,7 +177,7 @@ export class AnalyticsService {
     endDate: Date,
     userId?: string | null
   ) {
-    const recordWhere = this.referralRecordWhere(
+    const recordWhere = referralRecordWhere(
       organizationId,
       startDate,
       endDate,
@@ -310,7 +187,7 @@ export class AnalyticsService {
       prisma.board.count({ where: recordWhere }),
       prisma.fieldValue.findMany({
         where: {
-          field: { fieldName: "Status" },
+          field: { fieldName: "Admission Status" },
           record: recordWhere,
         },
         select: { value: true, record: { select: { createdAt: true } } },
@@ -357,14 +234,9 @@ export class AnalyticsService {
   ) {
     const rows = await prisma.history.findMany({
       where: {
-        column: "Status",
+        column: "Admission Status",
         action: "update",
-        record: this.referralRecordWhere(
-          organizationId,
-          startDate,
-          endDate,
-          userId
-        ),
+        record: referralRecordWhere(organizationId, startDate, endDate, userId),
       },
       select: {
         createdAt: true,
@@ -401,14 +273,9 @@ export class AnalyticsService {
     // Time from referral creation to each status change, from History
     const rows = await prisma.history.findMany({
       where: {
-        column: "Status",
+        column: "Admission Status",
         action: "update",
-        record: this.referralRecordWhere(
-          organizationId,
-          startDate,
-          endDate,
-          userId
-        ),
+        record: referralRecordWhere(organizationId, startDate, endDate, userId),
       },
       select: {
         newValue: true,
@@ -446,22 +313,37 @@ export class AnalyticsService {
     userId?: string | null
   ) {
     const records = await prisma.board.findMany({
-      where: this.referralRecordWhere(
-        organizationId,
-        startDate,
-        endDate,
-        userId
-      ),
+      where: referralRecordWhere(organizationId, startDate, endDate, userId),
       select: {
+        id: true,
         assignedTo: true,
         values: {
-          where: { field: { fieldName: "Status", moduleType: "REFERRAL" } },
+          where: {
+            field: { fieldName: "Admission Status", moduleType: "REFERRAL" },
+          },
           select: { value: true },
         },
       },
     });
 
-    const byUser = new Map<string, { referrals: number; admissions: number }>();
+    // Imported referrals carry the facility in the cell rather than a
+    // BoardRelation, so the helper is the only read that sees all of them.
+    const facilities = await this.facilitiesByReferral(
+      organizationId,
+      startDate,
+      endDate,
+      userId
+    );
+
+    const byUser = new Map<
+      string,
+      {
+        referrals: number;
+        admissions: number;
+        ownFacilityReferrals: number;
+        otherFacilityReferrals: number;
+      }
+    >();
     let referrals = 0;
     let admissions = 0;
 
@@ -475,9 +357,23 @@ export class AnalyticsService {
       const entry = byUser.get(record.assignedTo) ?? {
         referrals: 0,
         admissions: 0,
+        ownFacilityReferrals: 0,
+        otherFacilityReferrals: 0,
       };
       entry.referrals += 1;
       if (admitted) entry.admissions += 1;
+
+      // A referral with no facility, or a facility nobody manages, is neither
+      // theirs nor someone else's - it stays out of both counts.
+      const accountManager = facilities.get(record.id)?.accountManager ?? null;
+      if (accountManager) {
+        if (accountManager === record.assignedTo) {
+          entry.ownFacilityReferrals += 1;
+        } else {
+          entry.otherFacilityReferrals += 1;
+        }
+      }
+
       byUser.set(record.assignedTo, entry);
     }
 
@@ -553,7 +449,7 @@ export class AnalyticsService {
 
     const statusRows = await prisma.fieldValue.findMany({
       where: {
-        field: { fieldName: "Status", moduleType: "REFERRAL" },
+        field: { fieldName: "Admission Status", moduleType: "REFERRAL" },
         record: {
           organizationId,
           moduleType: "REFERRAL",
@@ -569,7 +465,7 @@ export class AnalyticsService {
     // Fetch status field options for colors
     const statusField = await prisma.field.findFirst({
       where: {
-        fieldName: "Status",
+        fieldName: "Admission Status",
         moduleType: "REFERRAL",
         organizationId,
         isDeleted: false,
@@ -588,8 +484,8 @@ export class AnalyticsService {
     }));
   }
 
-  // Admission type breakdown (Emergency, Routine, Transfer)
-  async getAdmissionTypeBreakdown(
+  // Assessment type breakdown (Involuntary, Voluntary, Unknown)
+  async getAssessmentTypeBreakdown(
     organizationId: string,
     startDate: Date,
     endDate: Date,
@@ -597,13 +493,8 @@ export class AnalyticsService {
   ) {
     const rows = await prisma.fieldValue.findMany({
       where: {
-        field: { fieldName: "Admission Type" },
-        record: this.referralRecordWhere(
-          organizationId,
-          startDate,
-          endDate,
-          userId
-        ),
+        field: { fieldName: "Type of Assessment" },
+        record: referralRecordWhere(organizationId, startDate, endDate, userId),
       },
       select: { value: true },
     });
@@ -620,12 +511,7 @@ export class AnalyticsService {
     const rows = await prisma.fieldValue.findMany({
       where: {
         field: { fieldName: "Payor" },
-        record: this.referralRecordWhere(
-          organizationId,
-          startDate,
-          endDate,
-          userId
-        ),
+        record: referralRecordWhere(organizationId, startDate, endDate, userId),
       },
       select: { value: true },
     });
@@ -742,12 +628,7 @@ export class AnalyticsService {
     userId?: string | null
   ) {
     const boards = await prisma.board.findMany({
-      where: this.referralRecordWhere(
-        organizationId,
-        startDate,
-        endDate,
-        userId
-      ),
+      where: referralRecordWhere(organizationId, startDate, endDate, userId),
       select: {
         createdAt: true,
         values: {
@@ -821,7 +702,7 @@ export class AnalyticsService {
       statusBreakdown,
       avgTimeByStatus,
       avgTimeTrend,
-      admissionTypes,
+      assessmentTypes,
       facilities,
       clinicians,
       counties,
@@ -837,7 +718,7 @@ export class AnalyticsService {
       this.getStatusBreakdown(organizationId, startDate, endDate, userId),
       this.getAverageTimeByStatus(organizationId, startDate, endDate, userId),
       this.getAvgTimeTrend(organizationId, startDate, endDate, userId),
-      this.getAdmissionTypeBreakdown(
+      this.getAssessmentTypeBreakdown(
         organizationId,
         startDate,
         endDate,
@@ -870,7 +751,7 @@ export class AnalyticsService {
       statusBreakdown,
       avgTimeByStatus,
       avgTimeTrend,
-      admissionTypes,
+      assessmentTypes,
       facilities,
       clinicians,
       counties,
@@ -922,6 +803,64 @@ export class AnalyticsService {
       startDate,
       endDate,
       liaisonName,
+    });
+  }
+
+  // The same reads the JSON routes serve, so the document and the screen can
+  // only disagree if the window changed between them.
+  private async organizationName(organizationId: string) {
+    const organization = await runUnscoped(() =>
+      prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true },
+      })
+    );
+
+    return organization?.name ?? "Organization";
+  }
+
+  async renderReferralAnalyticsPdf(
+    organizationId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    assignedTo: string | null
+  ) {
+    const [report, organizationName] = await Promise.all([
+      this.getAllAnalytics(organizationId, startDate!, endDate!, assignedTo),
+      this.organizationName(organizationId),
+    ]);
+
+    return renderReferralAnalyticsPdf({
+      organizationName,
+      report: report as never,
+      startDate,
+      endDate,
+      scope: assignedTo ? "Assigned to you" : "Whole organization",
+    });
+  }
+
+  async renderMasterListAnalyticsPdf(
+    organizationId: string,
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    assignedTo: string | null
+  ) {
+    const [report, organizationName] = await Promise.all([
+      this.getMasterListAnalytics(
+        organizationId,
+        startDate,
+        endDate,
+        assignedTo
+      ),
+      this.organizationName(organizationId),
+    ]);
+
+    return renderMasterListAnalyticsPdf({
+      organizationName,
+      report: report as never,
+      startDate,
+      endDate,
+      scope: assignedTo ? "Assigned to you" : "Whole organization",
     });
   }
 
@@ -1042,19 +981,11 @@ export class AnalyticsService {
       where: whereClause,
       select: {
         memberId: true,
+        userId: true,
         facility: true,
         touchpoints: true,
         talkedTo: true,
-        member: {
-          select: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        user: { select: { id: true, name: true } },
       },
     });
 
@@ -1069,8 +1000,11 @@ export class AnalyticsService {
     const analyticsMap = new Map<string, InternalAnalytics>();
     const marketingByMember = new Map<string, typeof marketingLogs>();
 
+    // Keyed on the log's own user id rather than through the membership: a
+    // liaison who has left keeps their logs, and the member row is gone.
     for (const log of marketingLogs) {
-      const key = log.member.user.id;
+      const key = log.userId;
+      if (!key) continue;
       if (!marketingByMember.has(key)) {
         marketingByMember.set(key, []);
       }
@@ -1088,6 +1022,8 @@ export class AnalyticsService {
         newLeads: 0,
         totalReferrals: 0,
         admissions: 0,
+        ownFacilityReferrals: 0,
+        otherFacilityReferrals: 0,
         totalInteractions: 0,
         engagementLevel: "Low",
 
@@ -1106,7 +1042,8 @@ export class AnalyticsService {
     }
 
     for (const log of marketingLogs) {
-      seed(log.member.user.id, log.memberId, log.member.user.name);
+      if (!log.userId) continue;
+      seed(log.userId, log.memberId ?? "", log.user?.name ?? "Former member");
     }
 
     // 5. Apply lead-based metrics (SAFE)
@@ -1164,6 +1101,8 @@ export class AnalyticsService {
 
       analytics.totalReferrals = counts.referrals;
       analytics.admissions = counts.admissions;
+      analytics.ownFacilityReferrals = counts.ownFacilityReferrals;
+      analytics.otherFacilityReferrals = counts.otherFacilityReferrals;
     }
 
     for (const analytics of analyticsMap.values()) {

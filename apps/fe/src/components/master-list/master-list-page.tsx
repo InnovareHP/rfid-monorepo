@@ -1,3 +1,4 @@
+import { useColumnOrder } from "@/hooks/use-column-order";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import {
@@ -175,6 +176,11 @@ export default function MasterListPage() {
     });
   }, []);
 
+  const { columnOrder, onColumnOrderChange } = useColumnOrder(
+    "master-list-column-order",
+    columns
+  );
+
   const table = useReactTable({
     data: rows as LeadRow[],
     columns,
@@ -182,7 +188,7 @@ export default function MasterListPage() {
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     columnResizeMode: "onChange",
-    state: { columnSizing, columnVisibility },
+    state: { columnSizing, columnVisibility, columnOrder },
     onColumnSizingChange: handleColumnSizingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
   });
@@ -205,7 +211,7 @@ export default function MasterListPage() {
       context?.previous?.forEach(([key, data]: [unknown, unknown]) =>
         queryClient.setQueryData(key as any, data)
       );
-      toast.error("Failed to delete leads.");
+      toast.error("Failed to delete facilities.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
@@ -218,7 +224,7 @@ export default function MasterListPage() {
 
   const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
-      toast.error("No leads available to export.");
+      toast.error("No facilities available to export.");
       return;
     }
 
@@ -326,7 +332,7 @@ export default function MasterListPage() {
         />
         <PageHeader
           title="Master Marketing List"
-          description="Visualize, filter, and export your marketing leads database."
+          description="Visualize, filter, and export your facility marketing database."
         >
           <Button
             variant="outline"
@@ -411,6 +417,8 @@ export default function MasterListPage() {
                   (prev) => ({ ...prev, limit: size, page: 1 }) as any
                 )
               }
+              enableColumnReorder
+              onColumnOrderChange={onColumnOrderChange}
             />
           </>
         )}

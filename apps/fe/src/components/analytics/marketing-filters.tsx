@@ -82,7 +82,7 @@ export function MarketingFilters({
       <Button
         variant="outline"
         onClick={onExport}
-        disabled={!canExport}
+        disabled={!canExport || isExporting}
         className="ml-auto h-10 rounded-lg"
       >
         {isExporting ? (

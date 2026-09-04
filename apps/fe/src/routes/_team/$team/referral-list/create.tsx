@@ -8,8 +8,8 @@ import RecordCreatePage, {
 import {
   createReferral,
   getReferralColumnOptions,
-  getReferralDropdownOptions,
 } from "@/services/referral/referral-service";
+import { getFieldOptions } from "@/services/options/options-service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -68,13 +68,13 @@ function RouteComponent() {
       description="Add one or multiple referrals to your list. Fields marked * are required to keep pipeline and outreach reporting accurate."
       entityLabel="Referral"
       entityLabelPlural="Referrals"
-      nameLabel="Referral Liaison"
+      nameLabel="Referrer"
       columns={columns}
       sections={REFERRAL_FORM_SECTIONS}
       isLoadingColumns={isLoadingColumns}
       isSubmitting={createReferralMutation.isPending}
       fetchDropdownOptions={(fieldId, search, limit) =>
-        getReferralDropdownOptions(fieldId, 1, limit, search)
+        getFieldOptions(fieldId, 1, limit, search)
       }
       optionModule="REFERRAL"
       onSubmit={handleSubmit}

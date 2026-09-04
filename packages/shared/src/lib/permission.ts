@@ -32,6 +32,8 @@ const TASK_WRITE = ["create", "read", "update", "delete"] as const;
 // Mirrors the deny rules the frontend already applies: reports and history
 // exclude liaisons, import and sending exclude both operational roles, and
 // billing stays owner only. Nothing else is taken away from a role.
+// Compliance is owner and admin only: HIPAA settings and the BAA are not an
+// operational role's to read.
 // Building and changing dashboards is owner and admin only; every other role
 // reads them.
 export const DOMAIN_ROLE_PERMISSIONS = {
@@ -64,7 +66,6 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     outreach: [...OUTREACH_WRITE],
     task: [...TASK_WRITE],
     analytics: ["read"],
-    compliance: ["read"],
   },
   // Day-to-day encoding: records, fields, outreach and tasks, and the
   // referrals those sit on. Everything a liaison has except the expense,
@@ -75,7 +76,6 @@ export const DOMAIN_ROLE_PERMISSIONS = {
     outreach: [...OUTREACH_WRITE],
     task: [...TASK_WRITE],
     analytics: ["read"],
-    compliance: ["read"],
   },
 } as const satisfies Record<string, DomainPermission>;
 

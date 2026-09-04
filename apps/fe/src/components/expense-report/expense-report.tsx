@@ -1,10 +1,16 @@
+import {
+  ExportCsvButton,
+  type ExportRange,
+} from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
 import {
+  exportExpenseCsv,
   exportExpenseLogs,
   getExpenseLogs,
 } from "@/services/expense/expense-service";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
 import { formatDateTime } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import { ReceiptViewer } from "@dashboard/ui/components/receipt-viewer";
@@ -88,13 +94,32 @@ export default function ExpenseReportPage() {
   };
   const canExport = useEntitlement(activeOrganizationId).has("export");
 
-  const handleExport = async () => {
+  const handleExportPDF = async () => {
     if (rows.length === 0) {
       toast.error("No expense logs available to export.");
       return;
     }
 
-    await exportExpenseLogs(filterMeta);
+    try {
+      await exportExpenseLogs(filterMeta);
+    } catch {
+      toast.error("Export failed. Try again.");
+    }
+  };
+
+  const handleExportCSV = async (range: ExportRange) => {
+    if (rows.length === 0) {
+      toast.error("No expense logs available to export.");
+      return;
+    }
+
+    try {
+      const { blob, filename } = await exportExpenseCsv(range);
+      downloadCSVBlob(blob, filename);
+      toast.success("CSV download started.");
+    } catch {
+      toast.error("Export failed. Try again.");
+    }
   };
 
   return (
@@ -102,19 +127,23 @@ export default function ExpenseReportPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <PageHeader
-        title="Expense Report"
-        description="Track and manage business expenses and receipts."
-      />
+            title="Expense Report"
+            description="Track and manage business expenses and receipts."
+          />
 
-          {canExport && (
-            <Button
-              onClick={handleExport}
-              className="bg-brand text-white hover:bg-brand/90"
-            >
-              <FileDown className="mr-1 h-4 w-4" />
-              Export PDF
-            </Button>
-          )}
+          <div className="flex gap-2">
+            <ExportCsvButton
+              onExport={handleExportCSV}
+              className="bg-brand text-brand-foreground hover:bg-brand/90"
+            />
+
+            {canExport && (
+              <Button onClick={handleExportPDF} variant="outline">
+                <FileDown className="mr-1 h-4 w-4" />
+                Export PDF
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

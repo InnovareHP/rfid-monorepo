@@ -3,14 +3,17 @@ import {
   type ExportRange,
 } from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
-import { exportToCSV } from "@/lib/fe-helpers";
-import { getMarketLogs } from "@/services/market/market-service";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
+import {
+  exportMarketingCsv,
+  getMarketLogs,
+} from "@/services/market/market-service";
 import type {
   MarketingFacilityBreakdown,
   MarketingReportRow,
   MarketingTouchpointBreakdown,
 } from "@dashboard/shared";
-import { formatDateTime } from "@dashboard/shared";
+import { formatDateTime, touchpointLabel } from "@dashboard/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -21,19 +24,6 @@ import {
   ReportTable,
   type ReportColumn,
 } from "../reusable-table/report-table";
-
-// EMAIL_BLAST is a server-only touchpoint (bulk sends), labeled distinctly
-// from a liaison's individually-logged EMAIL touchpoint.
-const TOUCHPOINT_LABELS: Record<string, string> = {
-  IN_PERSON_MEETING: "In Person",
-  LINKED_IN: "LinkedIn",
-  FACEBOOK: "Facebook",
-  TEXT: "Text",
-  EMAIL: "Email",
-  EMAIL_BLAST: "Email (Blast)",
-  PHONE: "Phone",
-  OTHER: "Other",
-};
 
 const columns: ReportColumn<MarketingReportRow>[] = [
   {
@@ -58,7 +48,7 @@ const columns: ReportColumn<MarketingReportRow>[] = [
       <div className="flex flex-wrap gap-2">
         {(row.touchpoints ?? []).map((touchpoint) => (
           <ReportChip key={touchpoint}>
-            {TOUCHPOINT_LABELS[touchpoint] ?? touchpoint.replace(/_/g, " ")}
+            {touchpointLabel(touchpoint)}
           </ReportChip>
         ))}
       </div>
@@ -105,7 +95,7 @@ const touchpointColumns: ReportColumn<MarketingTouchpointBreakdown>[] = [
   {
     key: "touchpoint",
     header: "Touchpoint",
-    render: (row) => TOUCHPOINT_LABELS[row.touchpoint] ?? row.touchpoint,
+    render: (row) => touchpointLabel(row.touchpoint),
   },
   { key: "count", header: "Count", render: (row) => row.count },
 ];
@@ -139,55 +129,13 @@ export default function MarketingReportPage() {
       return;
     }
 
-    const limit = 100;
-    let exportPage = 1;
-    let total = 0;
-    let allData: MarketingReportRow[] = [];
-
-    do {
-      const res = await getMarketLogs({
-        ...filterMeta,
-        filter: {
-          ...filterMeta.filter,
-          ...(range.from && { marketingDateFrom: range.from }),
-          ...(range.to && { marketingDateTo: range.to }),
-        },
-        limit,
-        page: exportPage,
-      });
-      total = res.total ?? 0;
-      allData = [...allData, ...res.data];
-      exportPage += 1;
-    } while (allData.length < total);
-
-    const exportColumns = [
-      { name: "Date" },
-      { name: "Liaison" },
-      { name: "Facility" },
-      { name: "Touchpoints" },
-      { name: "Talked To" },
-      { name: "Reason For Visit" },
-      { name: "Notes" },
-    ];
-    const exportRows = allData.map((row) => ({
-      Date: formatDateTime(row.createdAt),
-      Liaison: row.liaisonName ?? "",
-      Facility: row.facility ?? "",
-      Touchpoints: (row.touchpoints ?? []).join(", ").replace(/_/g, " "),
-      "Talked To": row.talkedTo ?? "",
-      "Reason For Visit": row.reasonForVisit ?? "",
-      Notes: row.notes ?? "",
-    }));
-
-    const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(
-      exportRows,
-      exportColumns,
-      `Marketing_Report_${timestamp}`,
-      [],
-      true
-    );
-    toast.success("CSV download started.");
+    try {
+      const { blob, filename } = await exportMarketingCsv(range);
+      downloadCSVBlob(blob, filename);
+      toast.success("CSV download started.");
+    } catch {
+      toast.error("Export failed. Try again.");
+    }
   };
 
   return (
@@ -195,9 +143,9 @@ export default function MarketingReportPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <PageHeader
-        title="Marketing Report"
-        description="Track outreach activities and referral generation efforts."
-      />
+            title="Marketing Report"
+            description="Track outreach activities and referral generation efforts."
+          />
 
           <ExportCsvButton
             onExport={handleExportCSV}

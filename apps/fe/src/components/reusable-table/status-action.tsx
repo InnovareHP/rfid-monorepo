@@ -1,11 +1,8 @@
+import { toFieldOptions } from "@/lib/helper/field-options";
 import {
-  createDropdownOption,
-  getDropdownOptions,
-} from "@/services/lead/lead-service";
-import {
-  createReferralDropdownOption,
-  getReferralDropdownOptions,
-} from "@/services/referral/referral-service";
+  createFieldOption,
+  getFieldOptions,
+} from "@/services/options/options-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -36,12 +33,10 @@ export function StatusSelect({
   val,
   fieldKey,
   handleUpdate,
-  isReferral,
 }: {
   val?: string;
   fieldKey: string;
   handleUpdate: (v: string, reason?: string) => void;
-  isReferral?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -56,18 +51,13 @@ export function StatusSelect({
 
   const { data: options = [] } = useQuery<StatusOption[]>({
     queryKey,
-    queryFn: () =>
-      isReferral
-        ? getReferralDropdownOptions(fieldKey)
-        : getDropdownOptions(fieldKey),
+    queryFn: async () => toFieldOptions(await getFieldOptions(fieldKey)),
     staleTime: 1000 * 60 * 30,
   });
 
   const { mutate: createOption, isPending: isCreating } = useMutation({
     mutationFn: async ({ name, color }: { name: string; color: string }) =>
-      isReferral
-        ? createReferralDropdownOption(fieldKey, name, color)
-        : createDropdownOption(fieldKey, name, color),
+      createFieldOption(fieldKey, name, color),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       setAddingNew(false);

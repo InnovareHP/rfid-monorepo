@@ -8,12 +8,10 @@ import { can } from "@/lib/permissions";
 import type { CustomAnalyticDashboard } from "@/services/custom-analytics/custom-analytic-dashboard-service";
 import type { Member } from "better-auth/plugins/organization";
 import {
-  CalendarClock,
   ChartSpline,
   CircuitBoard,
   ClipboardList,
   Contact,
-  CreditCard,
   DollarSign,
   FileBarChart,
   FileText,
@@ -25,9 +23,6 @@ import {
   Megaphone,
   Plus,
   Route,
-  Settings,
-  ShieldCheck,
-  Sparkles,
   SquareTerminal,
   Target,
   Upload,
@@ -44,10 +39,7 @@ export function useNavItems(
   activeOrganizationId: string,
   memberData: Member
 ): NavItem[] {
-  // HIPAA mode and the BAA are a Scale feature, so the tab is hidden rather
-  // than shown leading to an upsell the plan cannot act on.
   const entitlement = useEntitlement(activeOrganizationId);
-  const canUseHipaa = entitlement.has("hipaa");
   const canExport = entitlement.has("export");
   const canUseCustomReporting = entitlement.has("custom_reporting");
   const canUseAdvancedAnalytics = entitlement.has("advanced_analytics");
@@ -291,61 +283,12 @@ export function useNavItems(
               },
             ]
           : []),
-        {
-          title: "Settings",
-          icon: Settings,
-          // No row for /settings itself: that route is a layout with a bare
-          // Outlet and no index child, so it renders blank.
-          items: [
-            {
-              title: "Team",
-              url: `/${activeOrganizationId}/team`,
-              icon: Users,
-            },
-            {
-              title: "Booking",
-              url: `/${activeOrganizationId}/settings/booking`,
-              icon: CalendarClock,
-            },
-            // Renaming, reordering and deleting dashboards happens here; the
-            // Overview rows are only for opening them.
-
-            ...(canUseHipaa
-              ? [
-                  {
-                    title: "Compliance",
-                    url: `/${activeOrganizationId}/settings/compliance`,
-                    icon: ShieldCheck,
-                  },
-                ]
-              : []),
-            ...(can(memberData?.role, { billing: ["manage_billing"] })
-              ? [
-                  {
-                    title: "Billing",
-                    url: `/${activeOrganizationId}/settings/billing`,
-                    icon: CreditCard,
-                    // Changing plan is something you do from billing, not a
-                    // separate settings destination.
-                    items: [
-                      {
-                        title: "Plans",
-                        url: `/${activeOrganizationId}/plans`,
-                        icon: Sparkles,
-                      },
-                    ],
-                  },
-                ]
-              : []),
-          ],
-        },
       ],
     };
   }, [
       activeOrganizationId,
       memberData?.role,
-      canUseHipaa,
-      canExport,
+        canExport,
       canUseCustomReporting,
       canUseAdvancedAnalytics,
       canManageAnalytics,

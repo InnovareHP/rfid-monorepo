@@ -113,6 +113,7 @@ const rolesOn = (handlerName: string) =>
 
 const ADMIN_HANDLERS = [
   "createAdminUser",
+  "createAdminSignInLink",
   "issueAdminContractInvoice",
   "getAdminUsers",
   "getAdminUserById",

@@ -1,4 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
+import { requestCsv } from "@/lib/helper/csv-download";
 import type {
   BoardStats,
   LeadAnalyze,
@@ -45,24 +46,16 @@ export const getLeads = async (filters: any) => {
 export const exportBoardCsv = async (
   filters: any,
   moduleType: string = "LEAD"
-) => {
-  const response = await axiosClient.get("/api/boards/export", {
-    params: {
+) =>
+  requestCsv(
+    "/api/boards/export",
+    {
       ...filters,
       filter: JSON.stringify(filters.filter ?? {}),
       moduleType,
     },
-    responseType: "blob",
-  });
-
-  const disposition: string = response.headers["content-disposition"] ?? "";
-  const match = disposition.match(/filename="?([^"]+)"?/);
-
-  return {
-    blob: response.data as Blob,
-    filename: match?.[1] ?? `${moduleType.toLowerCase()}-export.csv`,
-  };
-};
+    `${moduleType.toLowerCase()}-export.csv`
+  );
 
 export const getBoardStats = async (
   moduleType: string = "LEAD"
@@ -123,42 +116,6 @@ export const getLeadAnalysis = async (leadId: string, moduleType?: string) => {
   return response.data as LeadAnalyze;
 };
 
-export const getDropdownOptions = async (
-  fieldKey: string,
-  page?: number,
-  limit?: number,
-  search?: string
-) => {
-  const response = await axiosClient.get(
-    `/api/boards/field/${fieldKey}/options`,
-    {
-      params: {
-        page: page,
-        limit: limit,
-        search: search || undefined,
-      },
-    }
-  );
-
-  return response.data as any;
-};
-
-export const createDropdownOption = async (
-  fieldKey: string,
-  option: string,
-  color?: string
-) => {
-  const response = await axiosClient.post(
-    `/api/boards/field/${fieldKey}/options`,
-    {
-      optionName: option,
-      ...(color && { color }),
-    }
-  );
-
-  return response.data;
-};
-
 export const seenLeads = async (recordId: string) => {
   const response = await axiosClient.post("/api/boards/notification-state", {
     recordId: recordId,
@@ -190,23 +147,6 @@ export const getLeadRecords = async (
       search: search || undefined,
     },
   });
-  return response.data;
-};
-
-export const updateLead = async (
-  recordId: string,
-  fieldId: string,
-  value: string,
-  moduleType?: string,
-  reason?: string
-) => {
-  const response = await axiosClient.patch(`/api/boards/${recordId}`, {
-    value,
-    fieldId: fieldId,
-    moduleType: moduleType || "LEAD",
-    reason,
-  });
-
   return response.data;
 };
 
@@ -271,6 +211,35 @@ export const deleteColumnField = async (
   const response = await axiosClient.delete(`/api/boards/column/${columnId}`, {
     params: { moduleType: moduleType || "LEAD" },
   });
+
+  return response.data;
+};
+
+export type DeletedColumn = {
+  id: string;
+  fieldName: string;
+  fieldType: string;
+  deletedAt: string | null;
+  deleter: { id: string; name: string } | null;
+};
+
+export const getDeletedColumns = async (moduleType?: string) => {
+  const response = await axiosClient.get(`/api/boards/column/trash`, {
+    params: { moduleType: moduleType || "LEAD" },
+  });
+
+  return response.data as DeletedColumn[];
+};
+
+export const restoreColumnField = async (
+  columnId: string,
+  moduleType?: string
+) => {
+  const response = await axiosClient.patch(
+    `/api/boards/column/${columnId}/restore`,
+    null,
+    { params: { moduleType: moduleType || "LEAD" } }
+  );
 
   return response.data;
 };

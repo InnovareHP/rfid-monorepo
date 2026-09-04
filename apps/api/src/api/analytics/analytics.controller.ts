@@ -36,6 +36,19 @@ import { AnalyticsService } from "./analytics.service";
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
+  // One place for the download headers, so the four exports name their files
+  // the same way.
+  private sendPdf(response: Response, name: string, pdf: Buffer) {
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${name}-${new Date()
+        .toISOString()
+        .slice(0, 10)}.pdf"`
+    );
+    response.send(pdf);
+  }
+
   @RequirePermission({ analytics: ["read"] })
   @Get()
   async getAllAnalytics(
@@ -64,6 +77,52 @@ export class AnalyticsController {
     } catch (error) {
       throw new BadRequestException(error.message);
     }
+  }
+
+  // Same scoping as the JSON route above: below liaison reads only what is
+  // assigned to them, and the document says which scope it was rendered for.
+  @RequirePermission({ analytics: ["read"] })
+  @Get("pdf")
+  async getReferralAnalyticsPdf(
+    @Query("start") start: string,
+    @Query("end") end: string,
+    @Session() session: MemberSession,
+    @Res() response: Response
+  ) {
+    const assignedTo = readsOrgWideReferrals(session.session.memberRole)
+      ? null
+      : session.session.userId;
+
+    const pdf = await this.analyticsService.renderReferralAnalyticsPdf(
+      session.session.activeOrganizationId,
+      start ? new Date(start) : undefined,
+      end ? new Date(end) : undefined,
+      assignedTo
+    );
+
+    this.sendPdf(response, "referral-analytics", pdf);
+  }
+
+  @RequirePermission({ analytics: ["read"] })
+  @Get("master-list/pdf")
+  async getMasterListAnalyticsPdf(
+    @Query("start") start: string,
+    @Query("end") end: string,
+    @Session() session: MemberSession,
+    @Res() response: Response
+  ) {
+    const assignedTo = readsOrgWideReferrals(session.session.memberRole)
+      ? null
+      : session.session.userId;
+
+    const pdf = await this.analyticsService.renderMasterListAnalyticsPdf(
+      session.session.activeOrganizationId,
+      start ? new Date(start) : undefined,
+      end ? new Date(end) : undefined,
+      assignedTo
+    );
+
+    this.sendPdf(response, "master-list-analytics", pdf);
   }
 
   @RequireFeature("ai")
@@ -197,14 +256,7 @@ export class AnalyticsController {
       userIdValue
     );
 
-    response.setHeader("Content-Type", "application/pdf");
-    response.setHeader(
-      "Content-Disposition",
-      `attachment; filename="liaison-performance-${new Date()
-        .toISOString()
-        .slice(0, 10)}.pdf"`
-    );
-    response.send(pdf);
+    this.sendPdf(response, "liaison-performance", pdf);
   }
 
   @Get("marketing")

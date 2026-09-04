@@ -25,6 +25,7 @@ import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
 import { OnboardingSeeding } from "./onboarding";
+import { requiresWorkEmail } from "./work-email-policy";
 
 const logger = new Logger("org-hook");
 
@@ -375,18 +376,14 @@ export const afterDeleteOrganization = async () => {
 // hipaa entitlement and an executed BAA, and it is the point from which PHI
 // protections are promised. An organization that has not turned it on keeps
 // whatever addresses it likes.
-const assertWorkEmailIfHipaa = async (
+
+const assertWorkEmail = async (
   organizationId: string,
   email: string | null | undefined
 ) => {
   if (!email || !isConsumerEmailDomain(email)) return;
 
-  const organization = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { hipaaEnabled: true },
-  });
-
-  if (organization?.hipaaEnabled) {
+  if (await requiresWorkEmail(organizationId)) {
     throw new APIError("BAD_REQUEST", { message: WORK_EMAIL_REQUIRED_MESSAGE });
   }
 };
@@ -418,7 +415,7 @@ export const beforeAddMember = async ({
     }),
   ]);
 
-  await assertWorkEmailIfHipaa(organization.id, user?.email);
+  await assertWorkEmail(organization.id, user?.email);
 
   // Seats are purchased, so the ceiling is what the organization bought — a
   // negotiated contract carries its own count rather than a tier's.
@@ -570,7 +567,7 @@ export const beforeCreateInvitation = async ({
     }),
   ]);
 
-  await assertWorkEmailIfHipaa(organization.id, invitation.email);
+  await assertWorkEmail(organization.id, invitation.email);
 
   const maxSeats = resolveEntitlement(subscription).seats;
   if (memberCount + pendingInvitations >= maxSeats) {

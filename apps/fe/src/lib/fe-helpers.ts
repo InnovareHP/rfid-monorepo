@@ -1,4 +1,3 @@
-import type { OptionsResponse } from "@dashboard/shared";
 import { FileTerminal } from "lucide-react";
 import Papa from "papaparse";
 
@@ -15,29 +14,21 @@ export const FILETYPE = {
   delete: FileTerminal,
 };
 
+// Rows keyed by the column names given. Board modules do not come through here
+// any more - they export server side, which is the only path that can resolve
+// the assignee and reach past the page the client is holding.
 export function exportToCSV(
-  data: any[],
-  columns: any[],
-  filename: string,
-  users: OptionsResponse[] = [],
-  isReferral: boolean = false
+  data: Record<string, unknown>[],
+  columns: string[],
+  filename: string
 ) {
   if (!data || data.length === 0) return;
 
-  const validColumns = columns.filter((col) => col.name !== "History");
-
   const csvData = data.map((row) => {
-    const formattedRow: any = {};
+    const formattedRow: Record<string, unknown> = {};
 
-    if (!isReferral) {
-      formattedRow["Organization"] = csvSafe(row["referral_name"] ?? "");
-      formattedRow["Account Manager"] = csvSafe(
-        users.find((user) => user.id === row["assigned_to"])?.value ?? ""
-      );
-    }
-
-    validColumns.forEach((col) => {
-      formattedRow[col.name] = csvSafe(row[col.name] ?? "");
+    columns.forEach((column) => {
+      formattedRow[column] = csvSafe(row[column] ?? "");
     });
 
     return formattedRow;

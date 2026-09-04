@@ -1,7 +1,10 @@
 // An organization under a BAA has promised that PHI stays inside systems the
 // agreement covers. A consumer mailbox is not one of those: nobody has signed
-// anything about it, and the mailbox outlives the person's employment. So once
-// HIPAA mode is on, membership is limited to addresses on a work domain.
+// anything about it, and the mailbox outlives the person's employment. So an
+// organization on a HIPAA-capable plan is limited to addresses on a work
+// domain, whether or not it has switched HIPAA mode on yet: the plan is what
+// decides, because the mailboxes members already hold are the ones the BAA
+// would cover the moment it is signed.
 //
 // This is a deny list rather than an allow list on purpose. An allow list would
 // have to know every customer's domain, and getting that wrong locks an owner
@@ -43,4 +46,4 @@ export const isConsumerEmailDomain = (email: string) =>
   CONSUMER_EMAIL_DOMAINS.has(emailDomain(email));
 
 export const WORK_EMAIL_REQUIRED_MESSAGE =
-  "This organization runs in HIPAA mode, so members must use a work email address. Personal mailboxes such as Gmail or Outlook.com are not covered by the signed BAA.";
+  "This organization is on a HIPAA plan, so members must use a work email address. Personal mailboxes such as Gmail or Outlook.com are not covered by the BAA.";

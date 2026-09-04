@@ -86,6 +86,13 @@ export class BoardGateway implements OnGatewayInit, OnGatewayConnection {
       .to(`org:${orgId}`)
       .emit("board:record-deleted", { recordIds, moduleType });
   }
+  // A restored row carries no payload: board rows are reshaped from EAV per
+  // request, so clients refetch rather than reinsert a row never streamed.
+  emitRecordRestored(orgId: string, moduleType: string = "LEAD") {
+    this.server
+      .to(`org:${orgId}`)
+      .emit("board:record-restored", { moduleType });
+  }
   emitRecordNotificationState(
     orgId: string,
     recordId: string,

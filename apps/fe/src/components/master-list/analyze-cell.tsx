@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@dashboard/ui/components/dialog";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Separator } from "@dashboard/ui/components/separator";
 import LoadingSkeleton from "@dashboard/ui/components/skeleton-loader";
 import { ReferralActivityCard } from "./referral-activity-card";
@@ -146,7 +145,7 @@ export function AnalyzeLeadDialog({
           </div>
         </div>
 
-        <ScrollArea className="min-h-0 flex-1 px-4 sm:px-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-6">
           {isLoading ? (
             <div className="py-8">
               <LoadingSkeleton />
@@ -434,7 +433,7 @@ export function AnalyzeLeadDialog({
               )}
             </>
           ) : null}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,5 @@
 import { FeatureLocked } from "@/components/feature-locked";
+import { ExportPdfButton } from "@/components/analytics/export-pdf-button";
 import { PageHeader } from "@/components/page-header";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { buildMasterListChartData } from "@/lib/helper/analytics-chart-data";
@@ -6,6 +7,7 @@ import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   getMasterListAnalytics,
   getMasterListSummary,
+  downloadMasterListAnalyticsPdf,
 } from "@/services/analytics/analytics-service";
 import type { MasterListAnalyticsResponse } from "@dashboard/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -139,7 +141,14 @@ export default function MasterListAnalyticsPage() {
             description="Facility coverage, pipeline and referral productivity across your marketing list."
           />
 
-          <AnalyticsDateFilter onChange={setDateRange} />
+          <div className="flex items-center gap-2">
+            <AnalyticsDateFilter onChange={setDateRange} />
+
+            <ExportPdfButton
+              disabled={!analytics}
+              onExport={() => downloadMasterListAnalyticsPdf(start, end)}
+            />
+          </div>
         </div>
 
         {/* AI SUMMARY CARD — the endpoint is gated on the ai feature */}

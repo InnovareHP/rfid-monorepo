@@ -96,6 +96,7 @@ export default function CrmRecordCreate({
           }
           onSubmit={duplicateCheck.submit}
           onBack={onBack}
+          optionModule={moduleType}
         />
       </WriteGate>
 

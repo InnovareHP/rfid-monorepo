@@ -23,6 +23,7 @@ import {
   Prisma,
 } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
+import { randomUUID } from "node:crypto";
 import { appConfig } from "src/config/app-config";
 import { aiGenerateVision } from "src/lib/aws/ai-guard";
 import { businessCardScanPrompt, followUpPrompt } from "src/lib/aws/prompts";
@@ -255,10 +256,15 @@ export class BoardService {
     const linkTargets = linkTargetIds.size
       ? await prisma.board.findMany({
           where: { id: { in: [...linkTargetIds] }, organizationId },
-          select: { id: true, recordName: true },
+          select: { id: true, recordName: true, isDeleted: true },
         })
       : [];
-    const linkNameById = new Map(linkTargets.map((t) => [t.id, t.recordName]));
+    // A soft-deleted target resolves to null so the cell empties instead of
+    // naming a record getRelatedRecords already hides. An id matching nothing
+    // is a legacy name-valued cell and is left as typed.
+    const linkNameById = new Map(
+      linkTargets.map((t) => [t.id, t.isDeleted ? null : t.recordName])
+    );
 
     const linkIdsByBoard = new Map<string, Record<string, string>>();
     for (const b of allBoards) {
@@ -266,6 +272,10 @@ export class BoardService {
         if (!linkFieldIds.has(v.field.id) || !v.value) continue;
         const targetName = linkNameById.get(v.value);
         if (targetName === undefined) continue;
+        if (targetName === null) {
+          v.value = null;
+          continue;
+        }
         const row = linkIdsByBoard.get(b.id) ?? {};
         row[v.field.fieldName] = v.value;
         linkIdsByBoard.set(b.id, row);
@@ -646,6 +656,7 @@ export class BoardService {
         oldValue: h.oldValue,
         newValue: h.newValue,
         column: h.column,
+        groupId: h.groupId,
       };
     });
 
@@ -754,6 +765,7 @@ export class BoardService {
         oldValue: h.oldValue,
         newValue: h.newValue,
         column: h.column,
+        groupId: h.groupId,
       };
     });
 
@@ -1151,7 +1163,9 @@ export class BoardService {
       metadata: {
         daysSinceCreation,
         daysSinceLastUpdate,
-        currentStatus: fieldValues["Status"] ?? null,
+        // Leads call it Status, referrals call it Admission Status.
+        currentStatus:
+          fieldValues["Status"] ?? fieldValues["Admission Status"] ?? null,
         totalHistoryEvents,
       },
     };
@@ -1225,16 +1239,22 @@ export class BoardService {
     const linkTargets = linkValueIds.length
       ? await prisma.board.findMany({
           where: { id: { in: linkValueIds }, organizationId },
-          select: { id: true, recordName: true },
+          select: { id: true, recordName: true, isDeleted: true },
         })
       : [];
-    const linkNameById = new Map(linkTargets.map((t) => [t.id, t.recordName]));
+    const linkNameById = new Map(
+      linkTargets.map((t) => [t.id, t.isDeleted ? null : t.recordName])
+    );
 
     const linkIds: Record<string, string> = {};
     for (const v of record.values) {
       if (!linkFieldNames.has(v.field.fieldName) || !v.value) continue;
       const targetName = linkNameById.get(v.value);
       if (targetName === undefined) continue;
+      if (targetName === null) {
+        v.value = null;
+        continue;
+      }
       linkIds[v.field.fieldName] = v.value;
       v.value = targetName;
     }
@@ -2108,7 +2128,7 @@ export class BoardService {
       const statusFields = await tx.field.findMany({
         where: {
           fieldName: {
-            in: ["Reason", "Action Date (Accepted / Rejected)"],
+            in: ["Reason", "Action Date"],
           },
           isDeleted: false,
           organizationId: organizationId,
@@ -2119,15 +2139,28 @@ export class BoardService {
 
       const reasonField = statusFields.find((f) => f.fieldName === "Reason");
       const actionDateField = statusFields.find(
-        (f) => f.fieldName === "Action Date (Accepted / Rejected)"
+        (f) => f.fieldName === "Action Date"
       );
 
-      const previousStatus = await tx.fieldValue.findUnique({
+      // One status change is three writes; the timeline needs them as one entry.
+      const groupId = randomUUID();
+
+      const satelliteIds = [reasonField?.id, actionDateField?.id].filter(
+        (id): id is string => Boolean(id)
+      );
+
+      const previousValues = await tx.fieldValue.findMany({
         where: {
-          recordId_fieldId: { recordId: recordId, fieldId: field.id },
+          recordId: recordId,
+          fieldId: { in: [field.id, ...satelliteIds] },
         },
-        select: { value: true },
+        select: { fieldId: true, value: true },
       });
+
+      const previousBy = new Map(
+        previousValues.map((row) => [row.fieldId, row.value])
+      );
+      const previousStatus = { value: previousBy.get(field.id) ?? null };
 
       await tx.fieldValue.upsert({
         where: {
@@ -2163,7 +2196,9 @@ export class BoardService {
         });
       }
 
-      const now = new Date().toISOString();
+      // Action Date is a DATE field, so it stores a day the way every other
+      // date write does. A full timestamp here rendered raw in the timeline.
+      const actionDate = new Date().toISOString().split("T")[0];
 
       if (actionDateField) {
         await tx.fieldValue.upsert({
@@ -2173,11 +2208,11 @@ export class BoardService {
               fieldId: actionDateField.id,
             },
           },
-          update: { value: now },
+          update: { value: actionDate },
           create: {
             recordId: recordId,
             fieldId: actionDateField.id,
-            value: now,
+            value: actionDate,
             organizationId: organizationId,
           },
         });
@@ -2190,7 +2225,7 @@ export class BoardService {
 
       const actionDateData = {
         fieldName: actionDateField?.fieldName ?? "",
-        value: now ?? "",
+        value: actionDate,
       };
 
       await this.createRecordHistory(
@@ -2202,8 +2237,41 @@ export class BoardService {
         "update",
         field.fieldName,
         field.id,
-        organizationId
+        organizationId,
+        groupId
       );
+
+      // The satellites were silently overwritten before; they now carry their
+      // own rows so the reason and the date it applied to survive the next edit.
+      if (reason && reasonField) {
+        await this.createRecordHistory(
+          recordId,
+          previousBy.get(reasonField.id) ?? "",
+          reason,
+          memberId,
+          tx,
+          "update",
+          reasonField.fieldName,
+          reasonField.id,
+          organizationId,
+          groupId
+        );
+      }
+
+      if (actionDateField) {
+        await this.createRecordHistory(
+          recordId,
+          previousBy.get(actionDateField.id) ?? "",
+          actionDate,
+          memberId,
+          tx,
+          "update",
+          actionDateField.fieldName,
+          actionDateField.id,
+          organizationId,
+          groupId
+        );
+      }
 
       await purgeBoardCaches(organizationId, moduleType);
 
@@ -2721,7 +2789,7 @@ export class BoardService {
           newValue: referralData.referral_name,
           action: "create",
           createdBy: memberId,
-          column: moduleType === "REFERRAL" ? "Referral Liaison" : "Name",
+          column: moduleType === "REFERRAL" ? "Referrer" : "Name",
           organizationId: organizationId,
         });
 
@@ -2845,24 +2913,28 @@ export class BoardService {
     moduleType: string = "LEAD"
   ) {
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
-    const history = await prisma.history.findUniqueOrThrow({
-      where: { id: history_id },
+    // findFirst, not findUnique: ownership hangs off the Board relation because
+    // History.organizationId is null on rows written before that column existed.
+    const history = await prisma.history.findFirstOrThrow({
+      where: { id: history_id, recordId, record: { organizationId } },
       select: {
         column: true,
         fieldId: true,
         oldValue: true,
         newValue: true,
         recordId: true,
+        record: { select: { isDeleted: true, moduleId: true } },
       },
     });
 
-    if (event_type === "update") {
-      const record = await prisma.board.findUniqueOrThrow({
-        where: { id: history.recordId },
-        select: { isDeleted: true },
-      });
+    // Records predating modules carry a null moduleId, so only a populated
+    // mismatch means the entry belongs to another module.
+    if (history.record.moduleId && history.record.moduleId !== scopedModuleId) {
+      throw new NotFoundException("History entry not found");
+    }
 
-      if (record.isDeleted) {
+    if (event_type === "update") {
+      if (history.record.isDeleted) {
         throw new NotFoundException("Record is deleted");
       }
 
@@ -2930,7 +3002,7 @@ export class BoardService {
       await prisma.$transaction(async (tx) => {
         await tx.board.update({
           where: { id: history.recordId },
-          data: { isDeleted: Boolean(history.oldValue) },
+          data: { isDeleted: false },
         });
         await tx.history.create({
           data: {
@@ -2948,13 +3020,7 @@ export class BoardService {
 
       await purgeBoardCaches(organizationId);
 
-      this.boardGateway.emitRecordValueUpdated(
-        organizationId,
-        history.recordId,
-        history.column ?? "",
-        history.oldValue ?? "",
-        moduleType
-      );
+      this.boardGateway.emitRecordRestored(organizationId, moduleType);
       await this.boardNotify.notifyRecord({
         recordId: history.recordId,
         organizationId,
@@ -2965,7 +3031,7 @@ export class BoardService {
       });
 
       return {
-        message: "Record deleted successfully",
+        message: "Record restored successfully",
       };
     }
   }
@@ -3012,17 +3078,37 @@ export class BoardService {
     });
 
     const newOrder = lastColumn ? lastColumn.fieldOrder + 1 : 1;
+    const name = normalizeLabel(column_name);
 
-    const field = await prisma.field.create({
-      data: {
-        fieldName: normalizeLabel(column_name),
-        fieldType: fieldType,
-        fieldOrder: newOrder,
-        organizationId: organizationId,
-        moduleType: toModuleType(moduleType),
-        moduleId: scopedModuleId,
-      },
-    });
+    // A binned column with this name is restored rather than duplicated. Field
+    // has no unique constraint and getAllBoards keys its rows by fieldName, so
+    // a second live column of the same name would silently shadow the first.
+    const binned = await this.findBinnedColumn(
+      name,
+      scopedModuleId,
+      organizationId
+    );
+
+    const field = binned
+      ? await prisma.field.update({
+          where: { id: binned.id },
+          data: {
+            isDeleted: false,
+            deletedAt: null,
+            deletedBy: null,
+            fieldOrder: newOrder,
+          },
+        })
+      : await prisma.field.create({
+          data: {
+            fieldName: name,
+            fieldType: fieldType,
+            fieldOrder: newOrder,
+            organizationId: organizationId,
+            moduleType: toModuleType(moduleType),
+            moduleId: scopedModuleId,
+          },
+        });
 
     await purgeBoardCaches(organizationId);
 
@@ -3036,7 +3122,8 @@ export class BoardService {
   async deleteColumn(
     columnId: string,
     organizationId: string,
-    moduleType: string
+    moduleType: string,
+    userId: string
   ) {
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
 
@@ -3084,7 +3171,7 @@ export class BoardService {
 
     await prisma.field.update({
       where: { id: columnId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedAt: new Date(), deletedBy: userId },
     });
 
     await purgeBoardCaches(organizationId);
@@ -3092,6 +3179,98 @@ export class BoardService {
     this.boardGateway.emitColumnDeleted(organizationId, columnId, moduleType);
 
     return { message: "Column deleted successfully" };
+  }
+
+  // Name matching uses labelKey, the same collapse createRecordFieldOption
+  // dedupes options with, so "Notes" and "notes " are one column.
+  private async findBinnedColumn(
+    fieldName: string,
+    moduleId: string,
+    organizationId: string
+  ) {
+    const key = labelKey(fieldName);
+    const binned = await prisma.field.findMany({
+      where: { organizationId, moduleId, isDeleted: true },
+      select: { id: true, fieldName: true },
+    });
+
+    return binned.find((field) => labelKey(field.fieldName) === key) ?? null;
+  }
+
+  // The trash for one module, newest first. A column binned before deletedAt
+  // existed sorts last rather than being hidden.
+  async getDeletedColumns(moduleType: string, organizationId: string) {
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+    return prisma.field.findMany({
+      where: { organizationId, moduleId: scopedModuleId, isDeleted: true },
+      orderBy: [{ deletedAt: "desc" }, { fieldName: "asc" }],
+      select: {
+        id: true,
+        fieldName: true,
+        fieldType: true,
+        deletedAt: true,
+        deleter: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  // Restoring puts the column back at the end rather than at its old order,
+  // which the columns added since have taken.
+  async restoreColumn(
+    columnId: string,
+    organizationId: string,
+    moduleType: string
+  ) {
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+    const field = await prisma.field.findFirst({
+      where: { id: columnId, organizationId, moduleId: scopedModuleId },
+      select: { id: true, fieldName: true, fieldType: true, isDeleted: true },
+    });
+    if (!field) throw new NotFoundException("Column not found");
+    if (!field.isDeleted) {
+      throw new BadRequestException("Column is not in the trash");
+    }
+
+    // getAllBoards keys its rows by fieldName, so restoring onto a live column
+    // of the same name would make one of the two unreachable.
+    const key = labelKey(field.fieldName);
+    const live = await prisma.field.findMany({
+      where: { organizationId, moduleId: scopedModuleId, isDeleted: false },
+      select: { fieldName: true },
+    });
+    if (live.some((other) => labelKey(other.fieldName) === key)) {
+      throw new ConflictException(
+        `"${field.fieldName}" already exists. Rename that column before restoring this one.`
+      );
+    }
+
+    const lastColumn = await prisma.field.findFirst({
+      where: { organizationId, moduleId: scopedModuleId, isDeleted: false },
+      orderBy: { fieldOrder: "desc" },
+      select: { fieldOrder: true },
+    });
+
+    await prisma.field.update({
+      where: { id: columnId },
+      data: {
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        fieldOrder: lastColumn ? lastColumn.fieldOrder + 1 : 1,
+      },
+    });
+
+    await purgeBoardCaches(organizationId);
+
+    this.boardGateway.emitColumnCreated(
+      organizationId,
+      { id: field.id, name: field.fieldName, type: field.fieldType },
+      moduleType
+    );
+
+    return { message: "Column restored successfully" };
   }
 
   /**
@@ -3499,17 +3678,36 @@ export class BoardService {
         continue;
       }
 
-      const field = await prisma.field.create({
-        data: {
-          fieldName: column.fieldName.trim(),
-          fieldType: column.fieldType,
-          fieldOrder: nextOrder,
-          organizationId,
-          moduleType: toModuleType(moduleType),
-          moduleId,
-        },
-        select: { id: true, fieldName: true, fieldType: true },
-      });
+      // Only live fields reach this function, so a header matching a binned
+      // column would otherwise add a second live field of the same name.
+      const binned = await this.findBinnedColumn(
+        column.fieldName,
+        moduleId,
+        organizationId
+      );
+
+      const field = binned
+        ? await prisma.field.update({
+            where: { id: binned.id },
+            data: {
+              isDeleted: false,
+              deletedAt: null,
+              deletedBy: null,
+              fieldOrder: nextOrder,
+            },
+            select: { id: true, fieldName: true, fieldType: true },
+          })
+        : await prisma.field.create({
+            data: {
+              fieldName: column.fieldName.trim(),
+              fieldType: column.fieldType,
+              fieldOrder: nextOrder,
+              organizationId,
+              moduleType: toModuleType(moduleType),
+              moduleId,
+            },
+            select: { id: true, fieldName: true, fieldType: true },
+          });
 
       nextOrder += 1;
       byName.set(key, field.id);
@@ -3620,7 +3818,9 @@ export class BoardService {
     column?: string,
     fieldId?: string,
     // Callers that already hold the org skip a round trip inside the 5s window.
-    organizationId?: string
+    organizationId?: string,
+    // Set by callers that write more than one row for a single user action.
+    groupId?: string
   ) {
     const scopedOrganizationId =
       organizationId ??
@@ -3642,6 +3842,7 @@ export class BoardService {
         column: column,
         fieldId: fieldId,
         organizationId: scopedOrganizationId,
+        groupId: groupId,
       },
     });
   }
@@ -3919,6 +4120,87 @@ export class BoardService {
       where: { id: optionId },
       data: { isDeleted: false, deletedAt: null, deletedBy: null },
     });
+  }
+
+  // Delete is never blocked by a link, so this only feeds the confirm dialog.
+  // Counterparts inside the same selection are excluded: those links die with
+  // the batch and are not something the user has to weigh.
+  async getRecordLinkCounts(recordIds: string[], organizationId: string) {
+    if (recordIds.length === 0) return { total: 0, byModule: {} };
+
+    const ids = new Set(recordIds);
+    const counterpart = {
+      select: {
+        id: true,
+        moduleType: true,
+        isDeleted: true,
+        organizationId: true,
+        module: { select: { key: true } },
+      },
+    } as const;
+
+    const relations = await prisma.boardRelation.findMany({
+      where: {
+        OR: [{ sourceId: { in: recordIds } }, { targetId: { in: recordIds } }],
+      },
+      select: { sourceId: true, source: counterpart, target: counterpart },
+    });
+
+    const seen = new Set<string>();
+    const byModule: Record<string, number> = {};
+
+    for (const relation of relations) {
+      const other = ids.has(relation.sourceId)
+        ? relation.target
+        : relation.source;
+      if (other.isDeleted) continue;
+      if (other.organizationId !== organizationId) continue;
+      if (ids.has(other.id)) continue;
+      if (seen.has(other.id)) continue;
+      seen.add(other.id);
+
+      const key = other.module?.key ?? other.moduleType;
+      byModule[key] = (byModule[key] ?? 0) + 1;
+    }
+
+    return { total: seen.size, byModule };
+  }
+
+  // Binning an option is allowed whatever it holds, so this is a warning count
+  // only. FieldValue.value is encrypted at rest and stores the option name, so
+  // the match runs on decrypted rows here rather than as a SQL count.
+  async getRecordFieldOptionUsage(optionId: string, organizationId: string) {
+    const option = await prisma.fieldOption.findFirst({
+      where: { id: optionId, field: { organizationId } },
+      select: {
+        optionName: true,
+        field: { select: { id: true, fieldType: true } },
+      },
+    });
+    if (!option) throw new NotFoundException("Field option not found");
+
+    const values = await prisma.fieldValue.findMany({
+      where: {
+        fieldId: option.field.id,
+        value: { not: null },
+        record: { organizationId, isDeleted: false },
+      },
+      select: { value: true },
+    });
+
+    // labelKey is what createRecordFieldOption dedupes on, so usage has to be
+    // counted through the same key or a case variant reads as unused.
+    const key = labelKey(option.optionName);
+    const multiselect = option.field.fieldType === BoardFieldType.MULTISELECT;
+
+    const count = values.filter((row) => {
+      const raw = row.value as string;
+      return multiselect
+        ? raw.split(",").some((part) => labelKey(part) === key)
+        : labelKey(raw) === key;
+    }).length;
+
+    return { count };
   }
 
   async deleteRecord(

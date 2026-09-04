@@ -149,7 +149,10 @@ function TeamLayout() {
           </div>
         </header>
 
-        <SubscriptionBanner organizationId={activeOrganizationId} />
+        <SubscriptionBanner
+          organizationId={activeOrganizationId}
+          role={memberData?.role}
+        />
 
         <HipaaGate />
 

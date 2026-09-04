@@ -23,6 +23,7 @@ import { Route as FSlugRouteImport } from './routes/f/$slug'
 import { Route as BookingBookingIdRouteImport } from './routes/booking.$bookingId'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
+import { Route as AuthSignInLinkRouteImport } from './routes/_auth/sign-in-link'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthOtpRouteImport } from './routes/_auth/otp'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -83,9 +84,12 @@ import { Route as TeamTeamMarketingBlastsBlastIdRouteImport } from './routes/_te
 import { Route as TeamTeamHelpCategorySlugArticleSlugRouteImport } from './routes/_team/$team/help/$categorySlug/$articleSlug'
 import { Route as TeamTeamReferralListOptionOptionIndexRouteImport } from './routes/_team/$team/referral-list/option/$option/index'
 import { Route as TeamTeamRecordsModuleKeyAnalyticsIndexRouteImport } from './routes/_team/$team/records/$moduleKey/analytics/index'
+import { Route as TeamTeamContactsOptionOptionIndexRouteImport } from './routes/_team/$team/contacts/option/$option/index'
+import { Route as TeamTeamCompaniesOptionOptionIndexRouteImport } from './routes/_team/$team/companies/option/$option/index'
 import { Route as TeamTeamAnalyticsCustomDashboardsIndexRouteImport } from './routes/_team/$team/analytics/custom/dashboards/index'
 import { Route as TeamTeamMasterListLeadsLeadTimelineRouteImport } from './routes/_team/$team/master-list/leads/$lead/timeline'
 import { Route as TeamTeamAnalyticsCustomDashboardsDashboardIdRouteImport } from './routes/_team/$team/analytics/custom/dashboards/$dashboardId'
+import { Route as TeamTeamRecordsModuleKeyOptionOptionIndexRouteImport } from './routes/_team/$team/records/$moduleKey/option/$option/index'
 import { Route as TeamTeamMasterListLeadsOptionOptionIndexRouteImport } from './routes/_team/$team/master-list/leads/option/$option/index'
 
 const PasskeySetupRoute = PasskeySetupRouteImport.update({
@@ -154,6 +158,11 @@ const BookSlugRoute = BookSlugRouteImport.update({
 const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
   id: '/two-factor',
   path: '/two-factor',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSignInLinkRoute = AuthSignInLinkRouteImport.update({
+  id: '/sign-in-link',
+  path: '/sign-in-link',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
@@ -485,6 +494,18 @@ const TeamTeamRecordsModuleKeyAnalyticsIndexRoute =
     path: '/$team/records/$moduleKey/analytics/',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamContactsOptionOptionIndexRoute =
+  TeamTeamContactsOptionOptionIndexRouteImport.update({
+    id: '/$team/contacts/option/$option/',
+    path: '/$team/contacts/option/$option/',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamCompaniesOptionOptionIndexRoute =
+  TeamTeamCompaniesOptionOptionIndexRouteImport.update({
+    id: '/$team/companies/option/$option/',
+    path: '/$team/companies/option/$option/',
+    getParentRoute: () => TeamRoute,
+  } as any)
 const TeamTeamAnalyticsCustomDashboardsIndexRoute =
   TeamTeamAnalyticsCustomDashboardsIndexRouteImport.update({
     id: '/$team/analytics/custom/dashboards/',
@@ -503,6 +524,12 @@ const TeamTeamAnalyticsCustomDashboardsDashboardIdRoute =
     path: '/$team/analytics/custom/dashboards/$dashboardId',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamRecordsModuleKeyOptionOptionIndexRoute =
+  TeamTeamRecordsModuleKeyOptionOptionIndexRouteImport.update({
+    id: '/$team/records/$moduleKey/option/$option/',
+    path: '/$team/records/$moduleKey/option/$option/',
+    getParentRoute: () => TeamRoute,
+  } as any)
 const TeamTeamMasterListLeadsOptionOptionIndexRoute =
   TeamTeamMasterListLeadsOptionOptionIndexRouteImport.update({
     id: '/$team/master-list/leads/option/$option/',
@@ -518,6 +545,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/sign-in-link': typeof AuthSignInLinkRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
@@ -584,9 +612,12 @@ export interface FileRoutesByFullPath {
   '/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/$team/analytics/custom/dashboards/': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/$team/companies/option/$option/': typeof TeamTeamCompaniesOptionOptionIndexRoute
+  '/$team/contacts/option/$option/': typeof TeamTeamContactsOptionOptionIndexRoute
   '/$team/records/$moduleKey/analytics/': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  '/$team/records/$moduleKey/option/$option/': typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -596,6 +627,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/otp': typeof AuthOtpRoute
   '/register': typeof AuthRegisterRoute
+  '/sign-in-link': typeof AuthSignInLinkRoute
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
@@ -662,9 +694,12 @@ export interface FileRoutesByTo {
   '/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/$team/analytics/custom/dashboards': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/$team/companies/option/$option': typeof TeamTeamCompaniesOptionOptionIndexRoute
+  '/$team/contacts/option/$option': typeof TeamTeamContactsOptionOptionIndexRoute
   '/$team/records/$moduleKey/analytics': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/$team/referral-list/option/$option': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  '/$team/records/$moduleKey/option/$option': typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -677,6 +712,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/otp': typeof AuthOtpRoute
   '/_auth/register': typeof AuthRegisterRoute
+  '/_auth/sign-in-link': typeof AuthSignInLinkRoute
   '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
@@ -743,9 +779,12 @@ export interface FileRoutesById {
   '/_team/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/_team/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/_team/$team/analytics/custom/dashboards/': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/_team/$team/companies/option/$option/': typeof TeamTeamCompaniesOptionOptionIndexRoute
+  '/_team/$team/contacts/option/$option/': typeof TeamTeamContactsOptionOptionIndexRoute
   '/_team/$team/records/$moduleKey/analytics/': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/_team/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/_team/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  '/_team/$team/records/$moduleKey/option/$option/': typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -757,6 +796,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/sign-in-link'
     | '/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
@@ -823,9 +863,12 @@ export interface FileRouteTypes {
     | '/$team/analytics/custom/dashboards/$dashboardId'
     | '/$team/master-list/leads/$lead/timeline'
     | '/$team/analytics/custom/dashboards/'
+    | '/$team/companies/option/$option/'
+    | '/$team/contacts/option/$option/'
     | '/$team/records/$moduleKey/analytics/'
     | '/$team/referral-list/option/$option/'
     | '/$team/master-list/leads/option/$option/'
+    | '/$team/records/$moduleKey/option/$option/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -835,6 +878,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/otp'
     | '/register'
+    | '/sign-in-link'
     | '/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
@@ -901,9 +945,12 @@ export interface FileRouteTypes {
     | '/$team/analytics/custom/dashboards/$dashboardId'
     | '/$team/master-list/leads/$lead/timeline'
     | '/$team/analytics/custom/dashboards'
+    | '/$team/companies/option/$option'
+    | '/$team/contacts/option/$option'
     | '/$team/records/$moduleKey/analytics'
     | '/$team/referral-list/option/$option'
     | '/$team/master-list/leads/option/$option'
+    | '/$team/records/$moduleKey/option/$option'
   id:
     | '__root__'
     | '/'
@@ -915,6 +962,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/otp'
     | '/_auth/register'
+    | '/_auth/sign-in-link'
     | '/_auth/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
@@ -981,9 +1029,12 @@ export interface FileRouteTypes {
     | '/_team/$team/analytics/custom/dashboards/$dashboardId'
     | '/_team/$team/master-list/leads/$lead/timeline'
     | '/_team/$team/analytics/custom/dashboards/'
+    | '/_team/$team/companies/option/$option/'
+    | '/_team/$team/contacts/option/$option/'
     | '/_team/$team/records/$moduleKey/analytics/'
     | '/_team/$team/referral-list/option/$option/'
     | '/_team/$team/master-list/leads/option/$option/'
+    | '/_team/$team/records/$moduleKey/option/$option/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1101,6 +1152,13 @@ declare module '@tanstack/react-router' {
       path: '/two-factor'
       fullPath: '/two-factor'
       preLoaderRoute: typeof AuthTwoFactorRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/sign-in-link': {
+      id: '/_auth/sign-in-link'
+      path: '/sign-in-link'
+      fullPath: '/sign-in-link'
+      preLoaderRoute: typeof AuthSignInLinkRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/register': {
@@ -1523,6 +1581,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamRecordsModuleKeyAnalyticsIndexRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/contacts/option/$option/': {
+      id: '/_team/$team/contacts/option/$option/'
+      path: '/$team/contacts/option/$option'
+      fullPath: '/$team/contacts/option/$option/'
+      preLoaderRoute: typeof TeamTeamContactsOptionOptionIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/companies/option/$option/': {
+      id: '/_team/$team/companies/option/$option/'
+      path: '/$team/companies/option/$option'
+      fullPath: '/$team/companies/option/$option/'
+      preLoaderRoute: typeof TeamTeamCompaniesOptionOptionIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/analytics/custom/dashboards/': {
       id: '/_team/$team/analytics/custom/dashboards/'
       path: '/$team/analytics/custom/dashboards'
@@ -1544,6 +1616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/records/$moduleKey/option/$option/': {
+      id: '/_team/$team/records/$moduleKey/option/$option/'
+      path: '/$team/records/$moduleKey/option/$option'
+      fullPath: '/$team/records/$moduleKey/option/$option/'
+      preLoaderRoute: typeof TeamTeamRecordsModuleKeyOptionOptionIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/master-list/leads/option/$option/': {
       id: '/_team/$team/master-list/leads/option/$option/'
       path: '/$team/master-list/leads/option/$option'
@@ -1558,6 +1637,7 @@ interface AuthRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthOtpRoute: typeof AuthOtpRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthSignInLinkRoute: typeof AuthSignInLinkRoute
   AuthTwoFactorRoute: typeof AuthTwoFactorRoute
   AuthEmailVerificationRoute: typeof AuthEmailVerificationRoute
   AuthResetPasswordVerifyRoute: typeof AuthResetPasswordVerifyRoute
@@ -1568,6 +1648,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthOtpRoute: AuthOtpRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  AuthSignInLinkRoute: AuthSignInLinkRoute,
   AuthTwoFactorRoute: AuthTwoFactorRoute,
   AuthEmailVerificationRoute: AuthEmailVerificationRoute,
   AuthResetPasswordVerifyRoute: AuthResetPasswordVerifyRoute,
@@ -1643,9 +1724,12 @@ interface TeamRouteChildren {
   TeamTeamAnalyticsCustomDashboardsDashboardIdRoute: typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   TeamTeamMasterListLeadsLeadTimelineRoute: typeof TeamTeamMasterListLeadsLeadTimelineRoute
   TeamTeamAnalyticsCustomDashboardsIndexRoute: typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  TeamTeamCompaniesOptionOptionIndexRoute: typeof TeamTeamCompaniesOptionOptionIndexRoute
+  TeamTeamContactsOptionOptionIndexRoute: typeof TeamTeamContactsOptionOptionIndexRoute
   TeamTeamRecordsModuleKeyAnalyticsIndexRoute: typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   TeamTeamReferralListOptionOptionIndexRoute: typeof TeamTeamReferralListOptionOptionIndexRoute
   TeamTeamMasterListLeadsOptionOptionIndexRoute: typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  TeamTeamRecordsModuleKeyOptionOptionIndexRoute: typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 
 const TeamRouteChildren: TeamRouteChildren = {
@@ -1707,12 +1791,18 @@ const TeamRouteChildren: TeamRouteChildren = {
     TeamTeamMasterListLeadsLeadTimelineRoute,
   TeamTeamAnalyticsCustomDashboardsIndexRoute:
     TeamTeamAnalyticsCustomDashboardsIndexRoute,
+  TeamTeamCompaniesOptionOptionIndexRoute:
+    TeamTeamCompaniesOptionOptionIndexRoute,
+  TeamTeamContactsOptionOptionIndexRoute:
+    TeamTeamContactsOptionOptionIndexRoute,
   TeamTeamRecordsModuleKeyAnalyticsIndexRoute:
     TeamTeamRecordsModuleKeyAnalyticsIndexRoute,
   TeamTeamReferralListOptionOptionIndexRoute:
     TeamTeamReferralListOptionOptionIndexRoute,
   TeamTeamMasterListLeadsOptionOptionIndexRoute:
     TeamTeamMasterListLeadsOptionOptionIndexRoute,
+  TeamTeamRecordsModuleKeyOptionOptionIndexRoute:
+    TeamTeamRecordsModuleKeyOptionOptionIndexRoute,
 }
 
 const TeamRouteWithChildren = TeamRoute._addFileChildren(TeamRouteChildren)

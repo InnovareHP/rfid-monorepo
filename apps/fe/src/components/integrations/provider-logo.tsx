@@ -19,6 +19,8 @@ export const ProviderLogo = ({ src, alt, fallback }: ProviderLogoProps) => {
       src={src}
       alt={alt}
       className="size-full object-contain"
+      loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
     />
   );

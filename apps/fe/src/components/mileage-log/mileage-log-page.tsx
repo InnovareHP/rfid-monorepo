@@ -7,7 +7,10 @@ import {
 import type { MileageLogRow } from "@dashboard/shared";
 import { formatCapitalize } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
+import { LogDateFilter } from "@/components/log-shared/log-date-filter";
+import { logDateFilter } from "@/lib/helper/log-date-filter";
 import { PageHeader } from "@/components/page-header";
+import type { DateRange } from "react-day-picker";
 import { Button } from "@dashboard/ui/components/button";
 import { Card } from "@dashboard/ui/components/card";
 import {
@@ -74,10 +77,22 @@ const MileageLogPage = () => {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const [filterMeta, setFilterMeta] = useState({
-    page: 1,
-    limit: 20,
-  });
+  const [filterMeta, setFilterMeta] = useState<{
+    page: number;
+    limit: number;
+    filter?: Record<string, string>;
+  }>({ page: 1, limit: 20 });
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  const handleDateChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setFilterMeta((prev) => ({
+      ...prev,
+      page: 1,
+      filter: logDateFilter(range, "mileageDateFrom", "mileageDateTo"),
+    }));
+  };
 
   const { data: mileageLogsData, isLoading } = useQuery({
     queryKey: ["mileage-logs", filterMeta],
@@ -164,6 +179,7 @@ const MileageLogPage = () => {
           title="Mileage Log"
           description="Track trips, miles driven, and reimbursements"
         >
+          <LogDateFilter value={dateRange} onChange={handleDateChange} />
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" />
             Log Trip

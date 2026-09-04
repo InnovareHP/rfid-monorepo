@@ -58,6 +58,8 @@ export function HelpHero({
         alt=""
         aria-hidden
         className="pointer-events-none absolute bottom-0 right-6 hidden h-[280px] w-[323px] object-contain lg:block"
+        loading="lazy"
+        decoding="async"
       />
     </section>
   );

@@ -352,6 +352,16 @@ export async function impersonateUser(userId: string, reason: string) {
   return data;
 }
 
+export type SignInLink = { url: string; expiresAt: string };
+
+export async function createUserSignInLink(userId: string, reason: string) {
+  const { data } = await axiosClient.post(
+    `/api/user/admin/users/${userId}/sign-in-link`,
+    { reason }
+  );
+  return data as SignInLink;
+}
+
 export async function stopImpersonating() {
   const { data, error } = await authClient.admin.stopImpersonating();
   if (error) throw error;

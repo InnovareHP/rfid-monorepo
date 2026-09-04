@@ -40,6 +40,7 @@ import {
   CreateRecordDto,
   CsvImportDto,
   DeleteRecordsDto,
+  RecordLinkCountsDto,
   NotificationStateDto,
   RestoreHistoryDto,
   UpdateActivityDto,
@@ -707,7 +708,7 @@ export class BoardController {
     session: AuthenticatedSession
   ) {
     try {
-      return this.boardService.restoreRecord(
+      return await this.boardService.restoreRecord(
         dto.recordId,
         dto.history_id,
         session.session.activeOrganizationId,
@@ -879,6 +880,23 @@ export class BoardController {
     }
   }
 
+  // Warning only: the delete itself never refuses on a link.
+  @RequirePermission({ record: ["delete"] })
+  @Post("/link-counts")
+  async getRecordLinkCounts(
+    @Body() dto: RecordLinkCountsDto,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getRecordLinkCounts(
+        dto.recordIds,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getRecordLinkCounts");
+    }
+  }
+
   // ─── DELETE ───────────────────────────────────────────────────────────
 
   @RequirePermission({ record: ["delete"] })
@@ -937,6 +955,42 @@ export class BoardController {
     }
   }
 
+  // Restoring is create, not configure: a role that can add a column and bin
+  // one has to be able to put that column back, or its own delete is one-way.
+  @RequirePermission({ field: ["create"] })
+  @Get("/column/trash")
+  async getDeletedColumns(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      return await this.boardService.getDeletedColumns(
+        moduleType || "LEAD",
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getDeletedColumns");
+    }
+  }
+
+  @RequirePermission({ field: ["create"] })
+  @Patch("/column/:columnId/restore")
+  async restoreColumn(
+    @Param("columnId") columnId: string,
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string
+  ) {
+    try {
+      return await this.boardService.restoreColumn(
+        columnId,
+        session.session.activeOrganizationId,
+        moduleType || "LEAD"
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.restoreColumn");
+    }
+  }
+
   @RequirePermission({ field: ["delete"] })
   @Delete("/column/:columnId")
   async deleteColumn(
@@ -948,7 +1002,8 @@ export class BoardController {
       return await this.boardService.deleteColumn(
         columnId,
         session.session.activeOrganizationId,
-        moduleType || "LEAD"
+        moduleType || "LEAD",
+        session.session.userId
       );
     } catch (error) {
       throw toSafeError(error, "boards.deleteColumn");
@@ -1007,6 +1062,23 @@ export class BoardController {
       );
     } catch (error) {
       throw toSafeError(error, "boards.deleteRecordFieldOption");
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Get("/field/options/:optionId/usage")
+  async getRecordFieldOptionUsage(
+    @Param("optionId") optionId: string,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getRecordFieldOptionUsage(
+        optionId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getRecordFieldOptionUsage");
     }
   }
 

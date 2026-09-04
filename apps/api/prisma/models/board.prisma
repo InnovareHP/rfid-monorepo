@@ -48,8 +48,16 @@ model Field {
   values  FieldValue[]
   history History[]
 
+  // Soft delete only, so a binned column can be put back with the values its
+  // records still hold. Mirrors FieldOption: a user id rather than a member id,
+  // because attribution has to outlive the member row.
+  deletedAt DateTime? @db.Timestamptz(3)
+  deletedBy String?
+  deleter   User?     @relation("FieldDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
   @@index([organizationId, moduleType, isDeleted, fieldOrder])
   @@index([moduleId, isDeleted, fieldOrder])
+  @@index([moduleId, isDeleted, deletedAt])
   @@schema("board_schema")
 }
 
@@ -177,6 +185,9 @@ model History {
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
   createdBy      String?
   organizationId String?
+  // Ties the rows written by one user action together - a status change also
+  // writes its reason and action date, and the timeline reads them as one entry.
+  groupId        String?
 
   record Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
   user   User?  @relation(fields: [createdBy], references: [id], onDelete: SetNull)
@@ -186,6 +197,7 @@ model History {
   @@index([organizationId])
   @@index([organizationId, createdAt])
   @@index([fieldId])
+  @@index([groupId])
   @@schema("board_schema")
 }
 

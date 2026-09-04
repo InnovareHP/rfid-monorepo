@@ -1,4 +1,5 @@
 import { WriteGate } from "@/components/write-gate";
+import { ColumnTrash } from "@/components/reusable-table/column-trash";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { createColumn } from "@/services/lead/lead-service";
 import { Button } from "@dashboard/ui/components/button";
@@ -207,6 +208,10 @@ export function CreateColumnModal({
                 )}
               />
             </DialogFormBody>
+
+            <ColumnTrash
+              moduleType={moduleType ?? (isReferral ? "REFERRAL" : "LEAD")}
+            />
 
             <DialogFormFooter>
               <Button

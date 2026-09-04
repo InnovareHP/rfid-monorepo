@@ -57,6 +57,7 @@ export function ManualArticleDetail({
                     src={step.imageUrl}
                     alt={step.title ?? `Step ${index + 1}`}
                     className="w-full object-contain"
+                    decoding="async"
                   />
                 </div>
               )}
