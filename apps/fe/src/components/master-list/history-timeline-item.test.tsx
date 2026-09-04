@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { groupHistory, type HistoryItem } from "./history-timeline-item";
+import {
+  formatHistoryValue,
+  groupHistory,
+  type HistoryItem,
+} from "./history-timeline-item";
 
 const row = (
   id: string,
@@ -79,5 +83,37 @@ describe("groupHistory", () => {
 
   it("returns nothing for an empty list", () => {
     expect(groupHistory([])).toEqual([]);
+  });
+});
+
+describe("formatHistoryValue", () => {
+  it("renders a date field's value as a readable day", () => {
+    expect(formatHistoryValue("2026-09-04")).toBe("4 September 2026");
+  });
+
+  // Status changes stamped a full timestamp into the Action Date field before
+  // that was fixed, so those rows still have to read properly.
+  it("renders a legacy full timestamp as a day", () => {
+    expect(formatHistoryValue("2026-09-04T20:22:00.951Z")).toBe(
+      "4 September 2026"
+    );
+  });
+
+  it("leaves an ordinary value alone", () => {
+    expect(formatHistoryValue("Denied")).toBe("Denied");
+    expect(formatHistoryValue("Patient did not show")).toBe(
+      "Patient did not show"
+    );
+  });
+
+  // A value that merely looks numeric must not be mangled into a date.
+  it("leaves a non-date alone even when it has digits and dashes", () => {
+    expect(formatHistoryValue("555-1234")).toBe("555-1234");
+    expect(formatHistoryValue("2026-13-45")).toBe("2026-13-45");
+  });
+
+  it("passes an empty value straight through", () => {
+    expect(formatHistoryValue(null)).toBeNull();
+    expect(formatHistoryValue("")).toBe("");
   });
 });

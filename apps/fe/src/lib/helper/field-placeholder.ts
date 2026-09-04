@@ -40,6 +40,7 @@ const PLACEHOLDER_BY_NAME: Record<string, string> = {
   assessor: "M. Reyes",
   "wrap up": "Awaiting insurance verification",
   "diagnosis / behavior": "Dementia, wandering risk",
+  "transport name": "MedTrans LLC",
 
   // Notes
   notes: "Met at the spring conference, prefers email",

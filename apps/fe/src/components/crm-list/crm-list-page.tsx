@@ -9,10 +9,10 @@ import {
   ExportCsvButton,
   type ExportRange,
 } from "@/components/export-csv-button";
-import { exportToCSV } from "@/lib/fe-helpers";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
+import { exportBoardCsv } from "@/services/lead/lead-service";
 import { useColumnOrder } from "@/hooks/use-column-order";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
-import { filterByCreatedAt } from "@/lib/helper/helper";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -196,20 +196,21 @@ export default function CrmListPage({
     },
   });
 
-  const handleExportCSV = (range: ExportRange) => {
+  // Server side like the lead and referral boards: the client only ever held
+  // the current page, and it wrote the name and assignee columns from keys the
+  // rows do not carry, so both came out blank.
+  const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {
       toast.error("No records available to export.");
       return;
     }
 
-    const scoped = filterByCreatedAt(rows, range);
-    if (scoped.length === 0) {
-      toast.error("No records in that date range.");
-      return;
-    }
+    const { blob, filename } = await exportBoardCsv(
+      { ...filterMeta, boardDateFrom: range.from, boardDateTo: range.to },
+      moduleType
+    );
 
-    const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(scoped, data?.columns ?? [], `${title}_${timestamp}`, [], true);
+    downloadCSVBlob(blob, filename);
     toast.success("CSV download started.");
   };
 

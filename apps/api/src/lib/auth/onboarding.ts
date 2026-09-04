@@ -177,6 +177,7 @@ const seedOrganization = async (organizationId: string) => {
     ["Assessor", BoardFieldType.TEXT],
     ["Wrap Up", BoardFieldType.TEXT],
     ["Diagnosis / Behavior", BoardFieldType.TEXT],
+    ["Transport Name", BoardFieldType.TEXT],
   ].map(([name, type], index) => ({
     fieldName: name,
     fieldType: type,

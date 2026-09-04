@@ -55,6 +55,28 @@ export const groupHistory = (items: HistoryItem[]): HistoryItem[][] => {
   return groups;
 };
 
+// A date field's value is an ISO day. Status changes used to stamp a full
+// timestamp into one, so rows written before that fix hold the long form too.
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/;
+
+// Read in UTC on purpose, not through shared formatDate: a stored day is a
+// calendar day, and localising it moves an evening timestamp to tomorrow and
+// a bare date to yesterday anywhere west of UTC.
+export const formatHistoryValue = (value: string | null) => {
+  if (!value) return value;
+  if (!ISO_DATE.test(value)) return value;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+};
+
 const initials = (name: string) =>
   name
     .split(" ")
@@ -151,16 +173,18 @@ export const HistoryTimelineItem = ({
             {change.oldValue && change.newValue ? (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-sm text-destructive">
-                  {change.oldValue}
+                  {formatHistoryValue(change.oldValue)}
                 </span>
                 <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
                 <span className="rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-sm text-success">
-                  {change.newValue}
+                  {formatHistoryValue(change.newValue)}
                 </span>
               </div>
             ) : (
               <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                {change.oldValue || change.newValue || "No value"}
+                {formatHistoryValue(change.oldValue) ||
+                  formatHistoryValue(change.newValue) ||
+                  "No value"}
               </p>
             )}
           </div>

@@ -20,7 +20,6 @@ const RETIRED = [
   "Admission Type",
   "CPAP",
   "Length of Assessment",
-  "Transport Name",
   "Referred Out To",
   "Additional Notes",
   "Assessed",

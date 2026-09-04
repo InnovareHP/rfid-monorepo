@@ -106,10 +106,6 @@ export function LiaisonAnalyticsCard({ data }: Props) {
             label="From own facilities"
             value={data.ownFacilityReferrals}
           />
-          <StatBlock
-            label="From others' facilities"
-            value={data.otherFacilityReferrals}
-          />
         </div>
 
         <div className="space-y-2">

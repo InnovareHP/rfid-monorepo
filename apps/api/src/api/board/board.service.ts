@@ -2196,7 +2196,9 @@ export class BoardService {
         });
       }
 
-      const now = new Date().toISOString();
+      // Action Date is a DATE field, so it stores a day the way every other
+      // date write does. A full timestamp here rendered raw in the timeline.
+      const actionDate = new Date().toISOString().split("T")[0];
 
       if (actionDateField) {
         await tx.fieldValue.upsert({
@@ -2206,11 +2208,11 @@ export class BoardService {
               fieldId: actionDateField.id,
             },
           },
-          update: { value: now },
+          update: { value: actionDate },
           create: {
             recordId: recordId,
             fieldId: actionDateField.id,
-            value: now,
+            value: actionDate,
             organizationId: organizationId,
           },
         });
@@ -2223,7 +2225,7 @@ export class BoardService {
 
       const actionDateData = {
         fieldName: actionDateField?.fieldName ?? "",
-        value: now ?? "",
+        value: actionDate,
       };
 
       await this.createRecordHistory(
@@ -2260,7 +2262,7 @@ export class BoardService {
         await this.createRecordHistory(
           recordId,
           previousBy.get(actionDateField.id) ?? "",
-          now,
+          actionDate,
           memberId,
           tx,
           "update",

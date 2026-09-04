@@ -2,7 +2,8 @@ import { EditableCell } from "@/components/reusable-table/editable-cell";
 import { RecordActions } from "@/components/reusable-table/record-actions";
 import { createSelectColumn } from "../reusable-table/select-column";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Bell, HistoryIcon } from "lucide-react";
+import { HistoryIcon } from "lucide-react";
+import { UnreadDot } from "@/components/reusable-table/unread-dot";
 import { ColumnHeader } from "../reusable-table/column-header";
 import { CreateColumnModal } from "../reusable-table/create-column";
 
@@ -90,15 +91,7 @@ export function generateReferralColumns(
     minSize: 150,
     cell: ({ row }) => (
       <div className="group flex items-center gap-2 w-full min-w-0">
-        {row.original.has_notification && (
-          <div className="relative flex items-center justify-center shrink-0 animate-bounce">
-            <Bell className="h-4 w-4 text-red-500 fill-red-500 drop-shadow-md" />
-            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-lg"></span>
-            </span>
-          </div>
-        )}
+        <UnreadDot unread={Boolean(row.original.has_notification)} />
 
         <div className="min-w-0 flex-1">
           <EditableCell

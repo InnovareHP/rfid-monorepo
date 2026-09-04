@@ -52,6 +52,8 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
       { name: "Assessor", span: "half", required: true },
       { name: "Wrap Up", span: "half", required: true },
       { name: "Diagnosis / Behavior", span: "full", required: true },
+      // Transport is not always arranged by the time intake is written up.
+      { name: "Transport Name", span: "half" },
     ],
   },
 ];
