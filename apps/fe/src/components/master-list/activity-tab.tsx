@@ -453,7 +453,7 @@ export function ActivityTab({
 
   if (isLoading) {
     return (
-      <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+      <ScrollArea className="h-full px-4 py-4 sm:px-6">
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
@@ -467,7 +467,7 @@ export function ActivityTab({
   }
 
   return (
-    <ScrollArea className="h-[calc(90vh-240px)] px-6 py-4">
+    <ScrollArea className="h-full px-4 py-4 sm:px-6">
       <div className="space-y-4">
         {/* Create Button / Form */}
         {!showForm ? (

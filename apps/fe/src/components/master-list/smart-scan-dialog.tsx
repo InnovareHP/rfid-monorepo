@@ -267,7 +267,7 @@ export function SmartScanDialog({ open, setOpen }: SmartScanDialogProps) {
         {step === "review" && scanResult && (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="space-y-4">
                 {preview && (
                   <div className="relative">
                     <img

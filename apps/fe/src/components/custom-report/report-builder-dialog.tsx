@@ -6,6 +6,7 @@ import { Checkbox } from "@dashboard/ui/components/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -117,7 +118,7 @@ export function ReportBuilderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent variant="shell" className="sm:max-w-2xl">
         <DialogFormHeader
           icon={<FileBarChart />}
           title="New Report"
@@ -128,7 +129,7 @@ export function ReportBuilderDialog({
           <form
             onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}
           >
-            <div className="max-h-[60vh] space-y-4 overflow-y-auto px-6 py-5">
+            <DialogFormBody className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -275,7 +276,7 @@ export function ReportBuilderDialog({
                   />
                 </div>
               )}
-            </div>
+            </DialogFormBody>
 
             <DialogFormFooter>
               <Button

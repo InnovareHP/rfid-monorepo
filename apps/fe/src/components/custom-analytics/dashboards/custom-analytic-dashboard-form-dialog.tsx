@@ -8,6 +8,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -94,7 +95,7 @@ export function CustomAnalyticDashboardFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent variant="shell" className="sm:max-w-lg">
         <DialogFormHeader
           icon={<LayoutTemplate />}
           title={dashboard ? "Rename Dashboard" : "New Dashboard"}
@@ -102,7 +103,7 @@ export function CustomAnalyticDashboardFormDialog({
         />
 
         <Form {...form}>
-          <div className="space-y-4 px-6 py-5">
+          <DialogFormBody className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -116,7 +117,7 @@ export function CustomAnalyticDashboardFormDialog({
                 </FormItem>
               )}
             />
-          </div>
+          </DialogFormBody>
         </Form>
 
         <DialogFormFooter>

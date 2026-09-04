@@ -9,6 +9,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -184,7 +185,7 @@ export function SenderSetupDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? null : close())}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent variant="shell" className="sm:max-w-2xl">
         <DialogFormHeader
           icon={<MailCheck />}
           title={created ? "Verify your domain" : "Add a sender"}
@@ -195,7 +196,7 @@ export function SenderSetupDialog({
           }
         />
 
-        <div className="max-h-[60vh] space-y-5 overflow-y-auto px-6 py-5">
+        <DialogFormBody className="space-y-5">
           {created ? (
             <DnsRecordsPanel
               sender={created}
@@ -364,7 +365,7 @@ export function SenderSetupDialog({
                 ))}
             </Form>
           )}
-        </div>
+        </DialogFormBody>
 
         <DialogFormFooter>
           <Button type="button" variant="outline" onClick={close}>

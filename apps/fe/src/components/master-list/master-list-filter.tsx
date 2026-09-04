@@ -11,7 +11,7 @@ import {
 } from "@dashboard/ui/components/sheet";
 
 import { ScrollArea } from "@dashboard/ui/components/scroll-area";
-import { Loader2, RefreshCcw, SearchIcon } from "lucide-react";
+import { Loader2, RefreshCcw, RotateCcw, SearchIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { FilterComponent } from "./filter-component";
@@ -193,33 +193,43 @@ export function MasterListFilters({
 
     return (
       <>
-        <div className="flex flex-wrap items-center gap-3">
-          <DateRangeFilter
-            from={pendingFilters.dateFrom}
-            to={pendingFilters.dateTo}
-            onChange={applyDateRange}
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="grid grid-cols-2 gap-2 sm:contents">
+            <DateRangeFilter
+              className="w-full sm:w-auto"
+              from={pendingFilters.dateFrom}
+              to={pendingFilters.dateTo}
+              onChange={applyDateRange}
+            />
 
-          <Button variant="outline" onClick={() => setIsSheetOpen(true)}>
-            Advanced Filters
-          </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setIsSheetOpen(true)}
+            >
+              Advanced Filters
+            </Button>
+          </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+          <div className="flex items-center gap-2 sm:ml-auto">
             <Button
               variant="ghost"
               onClick={handleRefresh}
               className="text-muted-foreground"
+              aria-label="Refresh"
             >
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Refresh
+              <RefreshCcw className="h-4 w-4" />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
 
             <Button
               variant="ghost"
               onClick={handleReset}
               className="text-muted-foreground"
+              aria-label="Reset filters"
             >
-              Reset
+              <RotateCcw className="h-4 w-4 sm:hidden" />
+              <span className="hidden sm:inline">Reset</span>
             </Button>
           </div>
         </div>
@@ -276,84 +286,99 @@ export function MasterListFilters({
   return (
     <>
       {/* === TOP BAR FILTERS === */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           {/* SEARCH BAR */}
-          <div className="w-auto">
-            <ButtonGroup>
-              <Input
-                placeholder={
-                  isReferral ? "Search referrals..." : "Search organization..."
+          <ButtonGroup className="w-full sm:w-auto">
+            <Input
+              placeholder={
+                isReferral ? "Search referrals..." : "Search organization..."
+              }
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSearch();
                 }
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSearch();
-                  }
-                }}
-                className="w-full bg-white sm:min-w-[240px]"
-              />
-              <Button variant="outline" onClick={handleSearch}>
-                <SearchIcon className="h-4 w-4" />
-              </Button>
-            </ButtonGroup>
+              }}
+              className="w-full bg-white sm:min-w-[240px]"
+            />
+            <Button
+              variant="outline"
+              onClick={handleSearch}
+              aria-label="Search"
+            >
+              <SearchIcon className="h-4 w-4" />
+            </Button>
+          </ButtonGroup>
+
+          {/* The two filters split one row on a phone, then rejoin the
+              toolbar as ordinary flex children. */}
+          <div className="grid grid-cols-2 gap-2 sm:contents">
+            {/* NORMAL DATE RANGE - Staged changes */}
+            <DateRangeFilter
+              className="w-full sm:w-auto"
+              from={filterMeta?.boardDateFrom}
+              to={filterMeta?.boardDateTo}
+              onChange={(range) =>
+                setFilterMeta((prev: any) => ({
+                  ...prev,
+                  boardDateFrom: range.from,
+                  boardDateTo: range.to,
+                }))
+              }
+            />
+
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setPendingFilters((prev: any) => ({
+                  ...prev,
+                  recordName: filterMeta?.search ?? "",
+                }));
+                setIsSheetOpen(true);
+              }}
+            >
+              Advanced Filters
+            </Button>
           </div>
-
-          {/* NORMAL DATE RANGE - Staged changes */}
-          <DateRangeFilter
-            from={filterMeta?.boardDateFrom}
-            to={filterMeta?.boardDateTo}
-            onChange={(range) =>
-              setFilterMeta((prev: any) => ({
-                ...prev,
-                boardDateFrom: range.from,
-                boardDateTo: range.to,
-              }))
-            }
-          />
-
-          <Button
-            variant="outline"
-            onClick={() => {
-              setPendingFilters((prev: any) => ({
-                ...prev,
-                recordName: filterMeta?.search ?? "",
-              }));
-              setIsSheetOpen(true);
-            }}
-          >
-            Advanced Filters
-          </Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+          {/* Labels drop below sm so the two utilities read as icon buttons
+              and the primary action keeps the rest of the row. */}
           <Button
             variant="ghost"
             onClick={handleRefresh}
             className="text-muted-foreground"
+            aria-label="Refresh"
           >
-            <RefreshCcw className="w-4 h-4 mr-2" />
-            Refresh
+            <RefreshCcw className="h-4 w-4" />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
 
           <Button
             variant="ghost"
             onClick={handleReset}
             className="text-muted-foreground"
+            aria-label="Reset filters"
           >
-            Reset
+            <RotateCcw className="h-4 w-4 sm:hidden" />
+            <span className="hidden sm:inline">Reset</span>
           </Button>
 
-          {actions}
+          <div className="flex-1 [&_button]:w-full sm:flex-none sm:[&_button]:w-auto">
+            {actions}
+          </div>
         </div>
       </div>
 
       {/* === FILTER SHEET === */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent side="right" className="w-full p-4 sm:w-[400px]">
-          <ScrollArea className="h-[calc(100vh-100px)]">
+          <ScrollArea className="h-[calc(100dvh-6rem)]">
             <SheetHeader>
               <SheetTitle>Advanced Filters</SheetTitle>
             </SheetHeader>

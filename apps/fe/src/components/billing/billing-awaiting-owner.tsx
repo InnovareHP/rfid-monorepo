@@ -22,7 +22,7 @@ export function BillingAwaitingOwner({
   onLogout?: () => void;
 } & React.ComponentProps<"div">) {
   return (
-    <div className={cn("w-full min-h-screen", className)} {...props}>
+    <div className={cn("w-full min-h-dvh", className)} {...props}>
       {standalone && <BillingTopBar onLogout={onLogout} />}
 
       <div className="mx-auto flex w-full max-w-lg flex-col justify-center p-6 py-20">

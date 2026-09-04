@@ -155,7 +155,7 @@ export default function LeadHistoryTimeline() {
   };
 
   return (
-    <div className="bg-background text-foreground p-6 rounded-lg min-h-[80vh] space-y-8">
+    <div className="bg-background text-foreground p-4 sm:p-6 rounded-lg min-h-full space-y-8">
       {/* ➕ Add Activity Button */}
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>

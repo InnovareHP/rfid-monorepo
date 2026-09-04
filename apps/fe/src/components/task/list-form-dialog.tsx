@@ -2,6 +2,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -50,7 +51,7 @@ export const ListFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+      <DialogContent variant="shell" className="max-w-lg">
         <DialogFormHeader
           icon={<List />}
           title="New List"
@@ -59,7 +60,7 @@ export const ListFormDialog = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-            <div className="px-6 py-5">
+            <DialogFormBody>
               <FormField
                 control={form.control}
                 name="name"
@@ -75,7 +76,7 @@ export const ListFormDialog = ({
                   </FormItem>
                 )}
               />
-            </div>
+            </DialogFormBody>
 
             <DialogFormFooter>
               <Button

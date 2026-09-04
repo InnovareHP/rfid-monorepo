@@ -92,7 +92,7 @@ export const GlobalSearch = React.memo(function GlobalSearch({
   return (
     <div
       ref={containerRef}
-      className={`relative hidden transition-[width] duration-200 ease-out md:block motion-reduce:transition-none ${
+      className={`relative hidden transition-[width] duration-200 ease-out lg:block motion-reduce:transition-none ${
         open ? "w-[26rem]" : "w-72"
       }`}
     >

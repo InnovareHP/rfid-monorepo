@@ -198,8 +198,8 @@ export function MasterListView({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-          <div className="border-b bg-table-header px-6 pb-5 pt-6">
+        <DialogContent variant="shell" className="max-w-5xl">
+          <div className="shrink-0 border-b bg-table-header px-4 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex size-11 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
@@ -232,7 +232,7 @@ export function MasterListView({
           </div>
 
           {isLoading ? (
-            <div className="px-6 pb-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
               <div className="space-y-3">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div
@@ -243,7 +243,7 @@ export function MasterListView({
               </div>
             </div>
           ) : isError ? (
-            <div className="px-6 pb-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-sm">
                 <div className="mb-2 font-semibold text-destructive">
                   Failed to load referral
@@ -261,9 +261,9 @@ export function MasterListView({
                   v as "details" | "history" | "suggestions" | "activities"
                 )
               }
-              className="w-full"
+              className="flex min-h-0 w-full flex-1 flex-col"
             >
-              <div className="border-b bg-table-header px-4 overflow-x-auto sm:px-6">
+              <div className="shrink-0 border-b bg-table-header px-4 overflow-x-auto sm:px-6">
                 <TabsList className="bg-transparent border-b-0">
                   <TabsTrigger
                     value="details"
@@ -301,8 +301,8 @@ export function MasterListView({
                 </TabsList>
               </div>
 
-              <TabsContent value="details" className="mt-0">
-                <ScrollArea className="h-[60dvh] sm:h-[calc(90vh-240px)]">
+              <TabsContent value="details" className="mt-0 min-h-0 flex-1">
+                <ScrollArea className="h-full">
                   <div className="px-6 py-4">
                     <div className="divide-y rounded-lg border bg-card">
                       {detailColumns.map((col) => (
@@ -344,8 +344,8 @@ export function MasterListView({
                 </ScrollArea>
               </TabsContent>
 
-              <TabsContent value="history" className="mt-0">
-                <ScrollArea className="h-[60dvh] px-4 py-4 sm:h-[calc(90vh-240px)] sm:px-6">
+              <TabsContent value="history" className="mt-0 min-h-0 flex-1">
+                <ScrollArea className="h-full px-4 py-4 sm:px-6">
                   {historyLoading && (
                     <div className="space-y-4">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -398,7 +398,7 @@ export function MasterListView({
               </TabsContent>
 
               {canUseAi && (
-                <TabsContent value="suggestions" className="mt-0">
+                <TabsContent value="suggestions" className="mt-0 min-h-0 flex-1">
                   <FollowUpSuggestions
                     recordId={leadId}
                     enabled={activeTab === "suggestions"}
@@ -406,7 +406,7 @@ export function MasterListView({
                 </TabsContent>
               )}
 
-              <TabsContent value="activities" className="mt-0">
+              <TabsContent value="activities" className="mt-0 min-h-0 flex-1">
                 <ActivityTab
                   recordId={leadId}
                   enabled={activeTab === "activities"}

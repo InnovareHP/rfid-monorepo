@@ -8,6 +8,7 @@ import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -143,7 +144,7 @@ export function GroupEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-4xl">
+      <DialogContent variant="shell" className="sm:max-w-4xl">
         <DialogFormHeader
           icon={<Users />}
           title={group ? "Edit Group" : "New Group"}
@@ -151,7 +152,7 @@ export function GroupEditorDialog({
         />
 
         <Form {...form}>
-          <div className="grid max-h-[60vh] grid-cols-1 gap-6 overflow-y-auto px-6 py-5 lg:grid-cols-2">
+          <DialogFormBody className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -275,7 +276,7 @@ export function GroupEditorDialog({
               </div>
               <GroupMembersTable page={preview} />
             </div>
-          </div>
+          </DialogFormBody>
         </Form>
 
         <DialogFormFooter>

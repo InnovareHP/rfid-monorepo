@@ -1,6 +1,7 @@
 ---
 import { Image } from "astro:assets";
 import logo from "../../assets/brand/refidly-logo.png";
+import poweredBy from "../../assets/brand/innovarehp-mark.png";
 import { APP_URL, LEGAL_LINKS, SUPPORT_EMAIL } from "../../config";
 
 const YEAR = new Date().getFullYear();
@@ -75,7 +76,23 @@ const COMPANY_LINKS = [
     <div
       class="site-shell flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-6 text-xs text-muted-foreground"
     >
-      <span>© {YEAR} Refidly. All rights reserved.</span>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span>© {YEAR} Refidly. All rights reserved.</span>
+        <span class="flex items-center gap-2">
+          {/* Decorative: the text beside it already names the company. Sized
+              by height because the mark is portrait, not square. */}
+          <Image
+            src={poweredBy}
+            alt=""
+            width={126}
+            height={216}
+            densities={[1, 2]}
+            loading="lazy"
+            class="h-4 w-auto"
+          />
+          Powered by Innovare HP
+        </span>
+      </div>
       <nav
         class="flex flex-wrap gap-x-5 gap-y-2"
         aria-label="Legal links"

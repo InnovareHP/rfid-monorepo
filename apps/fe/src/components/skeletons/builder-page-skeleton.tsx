@@ -6,7 +6,7 @@ const keys = (prefix: string, count: number) =>
 // Mirrors the form and landing-page builders: top bar, canvas card, right panel.
 export function BuilderPageSkeleton({ blocks = 4 }: { blocks?: number }) {
   return (
-    <div className="flex min-h-screen flex-col bg-muted">
+    <div className="flex min-h-full flex-col bg-muted">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-card px-6 py-4">
         <div className="flex items-center gap-3">
           <Skeleton className="size-9" />

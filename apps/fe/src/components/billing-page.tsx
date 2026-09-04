@@ -196,7 +196,7 @@ export function BillingPage({
 
   if (contract) {
     return (
-      <div className={cn("w-full", standalone && "min-h-screen")}>
+      <div className={cn("w-full", standalone && "min-h-dvh")}>
         {standalone && <BillingTopBar onLogout={handleLogout} />}
 
         <div className={cn("w-full space-y-8 p-6", className)} {...props}>
@@ -224,7 +224,7 @@ export function BillingPage({
   }
 
   return (
-    <div className={cn("w-full", standalone && "min-h-screen")}>
+    <div className={cn("w-full", standalone && "min-h-dvh")}>
       {standalone && <BillingTopBar onLogout={handleLogout} />}
 
       <div className={cn("w-full space-y-8 p-6", className)} {...props}>

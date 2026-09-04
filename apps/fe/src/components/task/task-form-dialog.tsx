@@ -12,6 +12,7 @@ import { DatePicker } from "@dashboard/ui/components/date-picker";
 import {
   Dialog,
   DialogContent,
+  DialogFormBody,
   DialogFormFooter,
   DialogFormHeader,
 } from "@dashboard/ui/components/dialog";
@@ -167,7 +168,7 @@ export const TaskFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent variant="shell" className="max-w-2xl">
         <DialogFormHeader
           icon={<ClipboardCheck />}
           title={parentTaskId ? "New Subtask" : "New Task"}
@@ -179,7 +180,7 @@ export const TaskFormDialog = ({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+            <DialogFormBody className="space-y-6">
               <Section title="Task Details">
                 <FormField
                   control={form.control}
@@ -447,7 +448,7 @@ export const TaskFormDialog = ({
                   />
                 </div>
               </Section>
-            </div>
+            </DialogFormBody>
 
             <DialogFormFooter>
               <Button
