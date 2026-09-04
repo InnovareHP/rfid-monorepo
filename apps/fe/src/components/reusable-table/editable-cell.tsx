@@ -52,7 +52,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
@@ -130,7 +130,9 @@ const parseMultiselectValue = (val: string): string[] => {
   return [];
 };
 
-export function EditableCell({
+// Memoized: the board mounts one of these per column per row, and each holds
+// three gated queries, so an unrelated parent render used to re-run all of them.
+export const EditableCell = memo(function EditableCell({
   id,
   fieldKey,
   fieldName,
@@ -1320,4 +1322,4 @@ export function EditableCell({
       {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
     </div>
   );
-}
+});

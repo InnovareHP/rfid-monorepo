@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_auth/sign-in-link")({
 
 function SignInLinkError() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md shadow-xl border border-border">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-foreground">
@@ -61,7 +61,7 @@ function SignInLinkError() {
 
 function RouteComponent() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-muted/30 px-4">
       <Spinner />
     </div>
   );

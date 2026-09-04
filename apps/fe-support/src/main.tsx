@@ -1,3 +1,4 @@
+import { RoutePending } from "@/components/Reusable/RoutePending";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
@@ -9,6 +10,13 @@ const router = createRouter({
   context: {},
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
+  // Covers every route at once, including the code-split chunk fetch.
+  // Strictly additive: pendingMinMs holds content back once the spinner is up,
+  // so it is 0 here. The spinner only appears on a load already past 700ms and
+  // never delays one.
+  defaultPendingComponent: RoutePending,
+  defaultPendingMs: 700,
+  defaultPendingMinMs: 0,
 });
 
 declare module "@tanstack/react-router" {

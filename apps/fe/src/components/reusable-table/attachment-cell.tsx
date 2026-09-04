@@ -252,6 +252,8 @@ export const AttachmentCell = memo(function AttachmentCell({
                           src={attachment.url}
                           alt={attachment.fileName}
                           className="h-8 w-8 rounded object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       </button>
                     ) : (
@@ -313,6 +315,7 @@ export const AttachmentCell = memo(function AttachmentCell({
               src={previewAttachment.url}
               alt={previewAttachment.fileName}
               className="max-h-[60dvh] w-full rounded-md object-contain"
+              decoding="async"
             />
           ) : previewable ? (
             <iframe
