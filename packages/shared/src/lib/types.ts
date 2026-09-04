@@ -183,7 +183,7 @@ export type AnalyticsResponse = {
   statusBreakdown: StatusBreakdownItem[];
   avgTimeByStatus: AvgTimeByStatus[];
   avgTimeTrend?: MonthlyTotal[]; // weighted avg days per month
-  admissionTypes: AdmissionTypeAnalytics[];
+  assessmentTypes: AssessmentTypeAnalytics[];
   clinicians: ClinicianAnalytics[];
   conversion: ConversionAnalytics;
   counties: CountyAnalytics[];
@@ -216,7 +216,7 @@ export type AvgTimeByStatus = {
   count: number;
 };
 
-export type AdmissionTypeAnalytics = {
+export type AssessmentTypeAnalytics = {
   value: string | null;
   _count: { value: number };
 };

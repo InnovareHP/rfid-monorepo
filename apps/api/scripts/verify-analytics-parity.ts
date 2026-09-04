@@ -180,7 +180,7 @@ async function main() {
           genericService.previewAnalytic(
             previewDto(referralModuleId, {
               chartType: "PIE",
-              dimensionFieldId: referralField("Status"),
+              dimensionFieldId: referralField("Admission Status"),
             }),
             organizationId
           ),
@@ -202,9 +202,9 @@ async function main() {
         expected: "generic adds an Unknown bucket",
       },
       {
-        name: "getAdmissionTypeBreakdown -> PIE on Admission Type",
+        name: "getAssessmentTypeBreakdown -> PIE on Type of Assessment",
         legacy: () =>
-          legacyService.getAdmissionTypeBreakdown(
+          legacyService.getAssessmentTypeBreakdown(
             organizationId,
             startDate,
             endDate
@@ -213,7 +213,7 @@ async function main() {
           genericService.previewAnalytic(
             previewDto(referralModuleId, {
               chartType: "PIE",
-              dimensionFieldId: referralField("Admission Type"),
+              dimensionFieldId: referralField("Type of Assessment"),
             }),
             organizationId
           ),
@@ -298,7 +298,7 @@ async function main() {
           genericService.previewAnalytic(
             previewDto(referralModuleId, {
               metricSource: "DAYS_TO_CHANGE",
-              durationFieldId: referralField("Status"),
+              durationFieldId: referralField("Admission Status"),
               metricAggregation: "AVG",
             }),
             organizationId
@@ -313,7 +313,7 @@ async function main() {
             previewDto(referralModuleId, {
               chartType: "LINE",
               metricSource: "DAYS_TO_CHANGE",
-              durationFieldId: referralField("Status"),
+              durationFieldId: referralField("Admission Status"),
               metricAggregation: "AVG",
             }),
             organizationId
@@ -338,7 +338,7 @@ async function main() {
                 match: "AND",
                 conditions: [
                   {
-                    fieldId: referralField("Status"),
+                    fieldId: referralField("Admission Status"),
                     operator: "eq",
                     value: "Admitted",
                   },

@@ -310,10 +310,10 @@ export default function ReferralAnalyticsDashboard() {
             />
           </ChartCard>
 
-          <ChartCard title="Admission Type">
+          <ChartCard title="Type of Assessment">
             <CategoryPie
-              data={charts.admissionTypes}
-              emptyMessage="No admission type data available"
+              data={charts.assessmentTypes}
+              emptyMessage="No assessment type data available"
             />
           </ChartCard>
 

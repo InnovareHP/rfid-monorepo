@@ -263,7 +263,7 @@ export function buildAnalyticsChartData(
     counties: toRankedRows(analytics?.counties, 10),
     payers: toCategoryRows(analytics?.payers),
     sources: toCategoryRows(analytics?.sources),
-    admissionTypes: toCategoryRows(analytics?.admissionTypes),
+    assessmentTypes: toCategoryRows(analytics?.assessmentTypes),
     statusSlices: toStatusSlices(analytics),
     referralTrend,
     denialTrend,

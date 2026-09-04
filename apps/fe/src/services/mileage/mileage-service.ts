@@ -1,4 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
+import { requestCsv } from "@/lib/helper/csv-download";
 
 export const getMileageLogs = async (filters?: any) => {
   const response = await axiosClient.get("/api/liaison/mileage", {
@@ -17,6 +18,14 @@ export const getMileageLogs = async (filters?: any) => {
     columns: data.columns || [],
   };
 };
+
+// Server assembles the csv so the export lands as one audited event rather
+// than as a burst of page reads.
+export const exportMileageCsv = async (range: {
+  from?: string;
+  to?: string;
+}) =>
+  requestCsv("/api/liaison/mileage/export", range, "mileage-report.csv");
 
 export const createMileageLog = async (data: any) => {
   const response = await axiosClient.post("/api/liaison/mileage", data);

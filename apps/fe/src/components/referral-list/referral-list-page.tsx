@@ -212,7 +212,7 @@ export default function ReferralListPage() {
         // already the real field name.
         const label =
           accessorKey === "record_name"
-            ? "Referral Liaison"
+            ? "Referrer"
             : (accessorKey ?? column.id ?? "Unnamed Column");
 
         return {

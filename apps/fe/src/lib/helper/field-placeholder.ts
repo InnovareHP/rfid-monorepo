@@ -10,7 +10,7 @@ const PLACEHOLDER_BY_NAME: Record<string, string> = {
   "contact name": "Jane Doe",
   "company name": "Sunrise Health Group",
   "facility name": "Sunrise Health Group",
-  "referral liaison": "Jane Doe",
+  referrer: "Jane Doe",
   "patient name": "Jane Doe",
   "full name": "Jane Doe",
   "first name": "Jane",
@@ -35,15 +35,11 @@ const PLACEHOLDER_BY_NAME: Record<string, string> = {
   "psychiatric services": "On-site, weekly visits",
 
   // Referral
-  number: "(555) 123-4567",
+  "contact number": "(555) 123-4567",
   reason: "Post-surgery rehab placement",
-  cpap: "Yes or No",
   assessor: "M. Reyes",
   "wrap up": "Awaiting insurance verification",
   "diagnosis / behavior": "Dementia, wandering risk",
-  "length of assessment": "45 minutes",
-  "transport name": "MedTrans LLC",
-  "referred out to": "Lakeside Health Center",
 
   // Notes
   notes: "Met at the spring conference, prefers email",

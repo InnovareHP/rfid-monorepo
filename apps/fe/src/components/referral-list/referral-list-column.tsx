@@ -75,7 +75,7 @@ export function generateReferralColumns(
       onSort ? (
         <ColumnHeader
           columnId="recordName"
-          columnName="Referral Liaison"
+          columnName="Referrer"
           sortBy={sortState?.sortBy}
           sortOrder={sortState?.sortOrder}
           onSort={onSort}
@@ -83,7 +83,7 @@ export function generateReferralColumns(
           canDelete={false}
         />
       ) : (
-        "Referral Liaison"
+        "Referrer"
       ),
     accessorKey: "record_name",
     size: 280,
@@ -104,7 +104,7 @@ export function generateReferralColumns(
           <EditableCell
             isReferral={true}
             id={row.original.id}
-            fieldName="Referral Liaison"
+            fieldName="Referrer"
             fieldKey="Record"
             value={row.original.recordName}
             type="TEXT"

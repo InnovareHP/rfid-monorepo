@@ -45,7 +45,7 @@ import { RestoreHistoryModal } from "../history-report/restore-history-modal";
 import { EditableCell } from "../reusable-table/editable-cell";
 import { ActivityTab } from "./activity-tab";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
-import { HistoryTimelineItem } from "./history-timeline-item";
+import { groupHistory, HistoryTimelineItem } from "./history-timeline-item";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
 import { RelatedRecords } from "../crm-list/related-records";
@@ -374,16 +374,16 @@ export function MasterListView({
                       <div className="absolute bottom-0 left-[19px] top-0 w-px bg-border" />
 
                       <div className="space-y-5">
-                        {historyData.pages
-                          .flatMap((page) => page.data)
-                          .map((item) => (
-                            <HistoryTimelineItem
-                              key={item.id}
-                              item={item}
-                              onRestore={handleOpenRestoreModal}
-                              isRestoring={isRestoring}
-                            />
-                          ))}
+                        {groupHistory(
+                          historyData.pages.flatMap((page) => page.data)
+                        ).map((group) => (
+                          <HistoryTimelineItem
+                            key={group[0].id}
+                            items={group}
+                            onRestore={handleOpenRestoreModal}
+                            isRestoring={isRestoring}
+                          />
+                        ))}
                       </div>
                     </div>
                   )}

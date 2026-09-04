@@ -190,3 +190,20 @@ export const priorityConfig: Record<string, { className: string }> = {
   MEDIUM: { className: "bg-warning/10 text-warning border-warning/20" },
   LOW: { className: "bg-muted text-muted-foreground border-border" },
 };
+
+// EMAIL_BLAST is a server-only touchpoint (bulk sends), labeled distinctly from
+// a liaison's individually-logged EMAIL touchpoint. Shared so the marketing
+// report and its export read the same.
+export const TOUCHPOINT_LABELS: Record<string, string> = {
+  IN_PERSON_MEETING: "In Person",
+  LINKED_IN: "LinkedIn",
+  FACEBOOK: "Facebook",
+  TEXT: "Text",
+  EMAIL: "Email",
+  EMAIL_BLAST: "Email (Blast)",
+  PHONE: "Phone",
+  OTHER: "Other",
+};
+
+export const touchpointLabel = (touchpoint: string) =>
+  TOUCHPOINT_LABELS[touchpoint] ?? touchpoint.replace(/_/g, " ");

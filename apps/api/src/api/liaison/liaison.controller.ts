@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from "@nestjs/common";
@@ -23,8 +24,11 @@ import {
   PermissionGuard,
   RequirePermission,
 } from "../../guard/permission/permission.guard";
+import type { Request } from "express";
 import { Response } from "express";
 import { AuditService } from "../../lib/audit/audit.service";
+import { clientIp } from "../../lib/http/client-ip";
+import { LiaisonExportService } from "./liaison-export.service";
 import {
   CreateExpenseDto,
   CreateMarketingDto,
@@ -46,8 +50,98 @@ import { LiaisonService } from "./liaison.service";
 export class LiaisonController {
   constructor(
     private readonly liaisonService: LiaisonService,
+    private readonly exportService: LiaisonExportService,
     private readonly audit: AuditService
   ) {}
+
+  private sendCsv(res: Response, file: { csv: string; filename: string }) {
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${file.filename}"`
+    );
+    res.send(file.csv);
+  }
+
+  private exportActor(session: MemberSession, req: Request) {
+    return {
+      userId: session.session.userId,
+      organizationId: session.session.activeOrganizationId,
+      role: session.session.memberRole ?? null,
+      memberId: isOrgAdmin(session.session.memberRole)
+        ? null
+        : session.session.memberId,
+      ip: clientIp(req),
+    };
+  }
+
+  // The csv exports sit ahead of the ":id" routes, which would otherwise match
+  // "export" as an id.
+  @RequireFeature("export")
+  @RequirePermission({ report: ["export"] })
+  @Get("mileage/export")
+  async exportMileage(
+    @Session() session: MemberSession,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query("from") from?: string,
+    @Query("to") to?: string
+  ) {
+    try {
+      const file = await this.exportService.exportMileageCsv(
+        this.exportActor(session, req),
+        { from, to }
+      );
+
+      this.sendCsv(res, file);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequireFeature("export")
+  @RequirePermission({ report: ["export"] })
+  @Get("marketing/export")
+  async exportMarketing(
+    @Session() session: MemberSession,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query("from") from?: string,
+    @Query("to") to?: string
+  ) {
+    try {
+      const file = await this.exportService.exportMarketingCsv(
+        this.exportActor(session, req),
+        { from, to }
+      );
+
+      this.sendCsv(res, file);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequireFeature("export")
+  @RequirePermission({ report: ["export"] })
+  @Get("expense/export/csv")
+  async exportExpense(
+    @Session() session: MemberSession,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query("from") from?: string,
+    @Query("to") to?: string
+  ) {
+    try {
+      const file = await this.exportService.exportExpenseCsv(
+        this.exportActor(session, req),
+        { from, to }
+      );
+
+      this.sendCsv(res, file);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 
   @RequirePermission({ log: ["create"] })
   @Post("mileage")

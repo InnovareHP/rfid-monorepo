@@ -6,7 +6,7 @@ import LocationCell, {
 import {
   SearchableSelect,
   type SearchableOption,
-} from "@/components/record-create/searchable-select";
+} from "@/components/reusable-table/searchable-select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { toFieldOptions } from "@/lib/helper/field-options";
 import { placeholderFor } from "@/lib/helper/field-placeholder";

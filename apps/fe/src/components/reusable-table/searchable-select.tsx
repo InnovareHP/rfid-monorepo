@@ -36,6 +36,8 @@ type SearchableSelectProps = {
   // the missing record rather than just saying it is missing.
   emptyText: ReactNode;
   className?: string;
+  // Lets a caller hold its query back until the list is actually opened.
+  onOpenChange?: (open: boolean) => void;
 };
 
 // Type-to-filter picker. The list comes back already filtered by the server, so
@@ -52,6 +54,7 @@ export const SearchableSelect = ({
   searchPlaceholder,
   emptyText,
   className,
+  onOpenChange,
 }: SearchableSelectProps) => {
   const [open, setOpen] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState("");
@@ -63,7 +66,13 @@ export const SearchableSelect = ({
     "";
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        onOpenChange?.(next);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"

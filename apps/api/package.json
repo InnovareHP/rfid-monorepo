@@ -35,6 +35,7 @@
     "seed:lead-kanban": "ts-node prisma/scripts/seed-lead-kanban.ts",
     "seed:default-analytics": "ts-node prisma/scripts/seed-default-analytics.ts",
     "backfill:referral-county-options": "ts-node prisma/scripts/backfill-referral-county-options.ts",
+    "migrate:referral-fields": "ts-node prisma/scripts/migrate-referral-fields.ts",
     "backfill:board-relations": "ts-node prisma/scripts/backfill-board-relations.ts",
     "cleanup:demo-records": "ts-node prisma/scripts/remove-seeded-demo-records.ts",
     "seed:demo": "ts-node prisma/scripts/seed-demo-data.ts",

@@ -162,27 +162,21 @@ const seedOrganization = async (organizationId: string) => {
   //
   const referralFieldData = [
     ["Referral Date", BoardFieldType.DATE],
-    ["County", BoardFieldType.DROPDOWN],
     ["Facility", BoardFieldType.REFERRAL_LINK],
-    ["Number", BoardFieldType.PHONE],
+    ["Contact Number", BoardFieldType.PHONE],
+    ["Fax", BoardFieldType.TEXT],
+    ["Email", BoardFieldType.EMAIL],
     ["Patient Name", BoardFieldType.PERSON],
     ["Date of Birth", BoardFieldType.DATE],
     ["Payor", BoardFieldType.DROPDOWN],
-    ["Remote or Onsite", BoardFieldType.DROPDOWN],
-    ["Assessed", BoardFieldType.CHECKBOX],
+    ["Type of Assessment", BoardFieldType.DROPDOWN],
     ["Reason", BoardFieldType.TEXT],
-    ["Status", BoardFieldType.STATUS],
-    ["Admission Type", BoardFieldType.DROPDOWN],
-    ["CPAP", BoardFieldType.TEXT],
+    ["Admission Status", BoardFieldType.STATUS],
+    ["Action Date", BoardFieldType.DATE],
     ["Location", BoardFieldType.LOCATION],
     ["Assessor", BoardFieldType.TEXT],
     ["Wrap Up", BoardFieldType.TEXT],
     ["Diagnosis / Behavior", BoardFieldType.TEXT],
-    ["Action Date (Accepted / Rejected)", BoardFieldType.DATE],
-    ["Length of Assessment", BoardFieldType.TEXT],
-    ["Transport Name", BoardFieldType.TEXT],
-    ["Additional Notes", BoardFieldType.TEXT],
-    ["Referred Out To", BoardFieldType.TEXT],
   ].map(([name, type], index) => ({
     fieldName: name,
     fieldType: type,
@@ -206,19 +200,24 @@ const seedOrganization = async (organizationId: string) => {
   //
   const dropdownMap: Record<string, string[]> = {
     Payor: ["Medicare", "Medicaid", "Private Insurance", "Self-Pay"],
-    "Remote or Onsite": ["Remote", "Onsite"],
-    "Admission Type": ["Emergency", "Routine", "Transfer"],
+    "Type of Assessment": ["Involuntary", "Voluntary", "Unknown"],
   };
 
   // Carries stage metadata so the referral Kanban has real outcomes: without a
   // stageType every column defaults to OPEN and win rate can never move.
   const statusOptionsMap: Record<string, ReferralStatusOption[]> = {
-    Status: [
+    "Admission Status": [
       {
         name: "Pending",
         color: "#eab308",
         stageType: StageType.OPEN,
-        probability: 50,
+        probability: 25,
+      },
+      {
+        name: "Accepted",
+        color: "#3b82f6",
+        stageType: StageType.OPEN,
+        probability: 75,
       },
       {
         name: "Admitted",
@@ -227,8 +226,20 @@ const seedOrganization = async (organizationId: string) => {
         probability: null,
       },
       {
-        name: "Rejected",
+        name: "Pulled by Facility",
+        color: "#f97316",
+        stageType: StageType.LOST,
+        probability: null,
+      },
+      {
+        name: "Denied",
         color: "#ef4444",
+        stageType: StageType.LOST,
+        probability: null,
+      },
+      {
+        name: "Transferred to another Facility",
+        color: "#a855f7",
         stageType: StageType.LOST,
         probability: null,
       },

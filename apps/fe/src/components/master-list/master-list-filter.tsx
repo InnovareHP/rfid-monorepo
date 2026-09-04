@@ -361,7 +361,7 @@ export function MasterListFilters({
             <div className="mt-6 space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-900">
-                  {isReferral ? "Referral Liaison" : "Facility"}
+                  {isReferral ? "Referrer" : "Facility"}
                 </label>
                 <Input
                   placeholder={`Filter by ${isReferral ? "referral liaison" : "facility"}`}

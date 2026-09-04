@@ -312,7 +312,7 @@ export class AnalyticsService {
       prisma.board.count({ where: recordWhere }),
       prisma.fieldValue.findMany({
         where: {
-          field: { fieldName: "Status" },
+          field: { fieldName: "Admission Status" },
           record: recordWhere,
         },
         select: { value: true, record: { select: { createdAt: true } } },
@@ -359,7 +359,7 @@ export class AnalyticsService {
   ) {
     const rows = await prisma.history.findMany({
       where: {
-        column: "Status",
+        column: "Admission Status",
         action: "update",
         record: this.referralRecordWhere(
           organizationId,
@@ -403,7 +403,7 @@ export class AnalyticsService {
     // Time from referral creation to each status change, from History
     const rows = await prisma.history.findMany({
       where: {
-        column: "Status",
+        column: "Admission Status",
         action: "update",
         record: this.referralRecordWhere(
           organizationId,
@@ -457,7 +457,9 @@ export class AnalyticsService {
       select: {
         assignedTo: true,
         values: {
-          where: { field: { fieldName: "Status", moduleType: "REFERRAL" } },
+          where: {
+            field: { fieldName: "Admission Status", moduleType: "REFERRAL" },
+          },
           select: { value: true },
         },
       },
@@ -555,7 +557,7 @@ export class AnalyticsService {
 
     const statusRows = await prisma.fieldValue.findMany({
       where: {
-        field: { fieldName: "Status", moduleType: "REFERRAL" },
+        field: { fieldName: "Admission Status", moduleType: "REFERRAL" },
         record: {
           organizationId,
           moduleType: "REFERRAL",
@@ -571,7 +573,7 @@ export class AnalyticsService {
     // Fetch status field options for colors
     const statusField = await prisma.field.findFirst({
       where: {
-        fieldName: "Status",
+        fieldName: "Admission Status",
         moduleType: "REFERRAL",
         organizationId,
         isDeleted: false,
@@ -590,8 +592,8 @@ export class AnalyticsService {
     }));
   }
 
-  // Admission type breakdown (Emergency, Routine, Transfer)
-  async getAdmissionTypeBreakdown(
+  // Assessment type breakdown (Involuntary, Voluntary, Unknown)
+  async getAssessmentTypeBreakdown(
     organizationId: string,
     startDate: Date,
     endDate: Date,
@@ -599,7 +601,7 @@ export class AnalyticsService {
   ) {
     const rows = await prisma.fieldValue.findMany({
       where: {
-        field: { fieldName: "Admission Type" },
+        field: { fieldName: "Type of Assessment" },
         record: this.referralRecordWhere(
           organizationId,
           startDate,
@@ -823,7 +825,7 @@ export class AnalyticsService {
       statusBreakdown,
       avgTimeByStatus,
       avgTimeTrend,
-      admissionTypes,
+      assessmentTypes,
       facilities,
       clinicians,
       counties,
@@ -839,7 +841,7 @@ export class AnalyticsService {
       this.getStatusBreakdown(organizationId, startDate, endDate, userId),
       this.getAverageTimeByStatus(organizationId, startDate, endDate, userId),
       this.getAvgTimeTrend(organizationId, startDate, endDate, userId),
-      this.getAdmissionTypeBreakdown(
+      this.getAssessmentTypeBreakdown(
         organizationId,
         startDate,
         endDate,
@@ -872,7 +874,7 @@ export class AnalyticsService {
       statusBreakdown,
       avgTimeByStatus,
       avgTimeTrend,
-      admissionTypes,
+      assessmentTypes,
       facilities,
       clinicians,
       counties,

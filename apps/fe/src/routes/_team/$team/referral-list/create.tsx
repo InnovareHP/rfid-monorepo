@@ -68,7 +68,7 @@ function RouteComponent() {
       description="Add one or multiple referrals to your list. Fields marked * are required to keep pipeline and outreach reporting accurate."
       entityLabel="Referral"
       entityLabelPlural="Referrals"
-      nameLabel="Referral Liaison"
+      nameLabel="Referrer"
       columns={columns}
       sections={REFERRAL_FORM_SECTIONS}
       isLoadingColumns={isLoadingColumns}

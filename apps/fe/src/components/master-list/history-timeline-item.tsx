@@ -13,6 +13,9 @@ export type HistoryItem = {
   newValue: string | null;
   createdBy: string;
   createdAt: string;
+  // Rows written by one action share this, so a status change and the reason
+  // and action date it stamped read as a single entry.
+  groupId: string | null;
 };
 
 // Create and delete are the only actions that earn a colour of their own.
@@ -26,6 +29,32 @@ const BADGE_TONE_BY_ACTION: Record<string, string> = {
   delete: "border-destructive/40 bg-destructive/10 text-destructive",
 };
 
+// Rows arrive newest first. Ungrouped rows stay on their own, so history
+// written before groupId existed reads exactly as it did.
+export const groupHistory = (items: HistoryItem[]): HistoryItem[][] => {
+  const groups: HistoryItem[][] = [];
+  const byGroupId = new Map<string, HistoryItem[]>();
+
+  for (const item of items) {
+    if (!item.groupId) {
+      groups.push([item]);
+      continue;
+    }
+
+    const existing = byGroupId.get(item.groupId);
+    if (existing) {
+      existing.push(item);
+      continue;
+    }
+
+    const group = [item];
+    byGroupId.set(item.groupId, group);
+    groups.push(group);
+  }
+
+  return groups;
+};
+
 const initials = (name: string) =>
   name
     .split(" ")
@@ -34,14 +63,15 @@ const initials = (name: string) =>
     .toUpperCase();
 
 export const HistoryTimelineItem = ({
-  item,
+  items,
   onRestore,
   isRestoring,
 }: {
-  item: HistoryItem;
+  items: HistoryItem[];
   onRestore: (item: HistoryItem) => void;
   isRestoring: boolean;
 }) => {
+  const [item] = items;
   const action = item.action.toLowerCase();
   const Icon = FILETYPE[item.action as keyof typeof FILETYPE] || FILETYPE.update;
   const tone = TONE_BY_ACTION[action] ?? "bg-primary text-primary-foreground";
@@ -91,43 +121,50 @@ export const HistoryTimelineItem = ({
               {formatDateTime(item.createdAt)}
             </span>
 
-            {canRestore && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 gap-2"
-                onClick={() => onRestore(item)}
-                disabled={isRestoring}
-              >
-                <RotateCcw className="size-3.5" />
-                Restore
-              </Button>
+          </div>
+        </div>
+
+        {items.map((change) => (
+          <div key={change.id} className="mt-4 border-t pt-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <FileText className="size-4 text-muted-foreground" />
+                <p className="text-sm font-medium text-foreground">
+                  {change.column}
+                </p>
+              </div>
+
+              {canRestore && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-2"
+                  onClick={() => onRestore(change)}
+                  disabled={isRestoring}
+                >
+                  <RotateCcw className="size-3.5" />
+                  Restore
+                </Button>
+              )}
+            </div>
+
+            {change.oldValue && change.newValue ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-sm text-destructive">
+                  {change.oldValue}
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+                <span className="rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-sm text-success">
+                  {change.newValue}
+                </span>
+              </div>
+            ) : (
+              <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                {change.oldValue || change.newValue || "No value"}
+              </p>
             )}
           </div>
-        </div>
-
-        <div className="mt-4 border-t pt-4">
-          <div className="mb-3 flex items-center gap-2">
-            <FileText className="size-4 text-muted-foreground" />
-            <p className="text-sm font-medium text-foreground">{item.column}</p>
-          </div>
-
-          {item.oldValue && item.newValue ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-sm text-destructive">
-                {item.oldValue}
-              </span>
-              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-              <span className="rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-sm text-success">
-                {item.newValue}
-              </span>
-            </div>
-          ) : (
-            <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-              {item.oldValue || item.newValue || "No value"}
-            </p>
-          )}
-        </div>
+        ))}
       </div>
     </div>
   );

@@ -367,7 +367,10 @@ export class LiaisonService {
               select: {
                 values: {
                   where: {
-                    field: { fieldName: "Status", moduleType: "REFERRAL" },
+                    field: {
+                      fieldName: "Admission Status",
+                      moduleType: "REFERRAL",
+                    },
                   },
                   select: { value: true },
                 },

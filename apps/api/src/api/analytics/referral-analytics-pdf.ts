@@ -98,7 +98,7 @@ export const renderReferralAnalyticsPdf = async (input: {
     ["Facilities", "Facility", named(input.report.facilities)],
     ["Counties", "County", named(input.report.counties)],
     ["Payers", "Payer", named(input.report.payers)],
-    ["Admission types", "Type", named(input.report.admissionTypes)],
+    ["Assessment types", "Type", named(input.report.assessmentTypes)],
     ["Clinicians", "Clinician", named(input.report.clinicians)],
   ];
 

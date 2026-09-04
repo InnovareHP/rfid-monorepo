@@ -3,8 +3,11 @@ import {
   type ExportRange,
 } from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
-import { exportToCSV } from "@/lib/fe-helpers";
-import { getMileageLogs } from "@/services/mileage/mileage-service";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
+import {
+  exportMileageCsv,
+  getMileageLogs,
+} from "@/services/mileage/mileage-service";
 import type { MileageLogRow } from "@dashboard/shared";
 import { formatDateTime } from "@dashboard/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -97,59 +100,13 @@ export default function MileageReportPage() {
       return;
     }
 
-    const limit = 100;
-    let exportPage = 1;
-    let total = 0;
-    let allData: MileageLogRow[] = [];
-
-    do {
-      const res = await getMileageLogs({
-        ...filterMeta,
-        filter: {
-          ...filterMeta.filter,
-          ...(range.from && { mileageDateFrom: range.from }),
-          ...(range.to && { mileageDateTo: range.to }),
-        },
-        limit,
-        page: exportPage,
-      });
-      total = res.total ?? 0;
-      allData = [...allData, ...res.data];
-      exportPage += 1;
-    } while (allData.length < total);
-
-    const exportColumns = [
-      { name: "Date" },
-      { name: "Destination" },
-      { name: "Counties Marketed" },
-      { name: "Beginning Mileage" },
-      { name: "Ending Mileage" },
-      { name: "Total Miles" },
-      { name: "Rate Type" },
-      { name: "Rate Per Mile" },
-      { name: "Reimbursement" },
-    ];
-    const exportRows = allData.map((row) => ({
-      Date: formatDateTime(row.createdAt),
-      Destination: row.destination ?? "",
-      "Counties Marketed": row.countiesMarketed ?? "",
-      "Beginning Mileage": row.beginningMileage ?? "",
-      "Ending Mileage": row.endingMileage ?? "",
-      "Total Miles": row.totalMiles ?? "",
-      "Rate Type": row.rateType ?? "",
-      "Rate Per Mile": row.ratePerMile ?? "",
-      Reimbursement: row.reimbursementAmount ?? "",
-    }));
-
-    const timestamp = new Date().toISOString().split("T")[0];
-    exportToCSV(
-      exportRows,
-      exportColumns,
-      `Mileage_Report_${timestamp}`,
-      [],
-      true
-    );
-    toast.success("CSV download started.");
+    try {
+      const { blob, filename } = await exportMileageCsv(range);
+      downloadCSVBlob(blob, filename);
+      toast.success("CSV download started.");
+    } catch {
+      toast.error("Export failed. Try again.");
+    }
   };
 
   return (

@@ -13,13 +13,9 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
       { name: "Facility", span: "full", required: true },
       { name: RECORD_NAME_FIELD, span: "full", required: true },
       { name: "Referral Date", span: "half", required: true },
-      {
-        name: "County",
-        span: "half",
-        helperText:
-          "Leave blank - the county is taken from the Facility's master list record.",
-      },
-      { name: "Number", span: "half", required: true },
+      { name: "Contact Number", span: "half", required: true },
+      { name: "Fax", span: "half" },
+      { name: "Email", span: "half" },
     ],
   },
   {
@@ -28,20 +24,19 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
       { name: "Patient Name", span: "half", required: true },
       { name: "Date of Birth", span: "half", required: true },
       { name: "Payor", span: "half", required: true },
-      { name: "Remote or Onsite", span: "half", required: true },
+      { name: "Type of Assessment", span: "half", required: true },
       { name: "Reason", span: "full", required: true },
-      { name: "Status", span: "third", required: true },
-      { name: "Admission Type", span: "third", required: true },
-      { name: "CPAP", span: "third", required: true },
+      // The action date is stamped by the status change, so it sits beside it.
+      { name: "Admission Status", span: "half", required: true },
+      { name: "Action Date", span: "half" },
     ],
   },
   {
-    title: "Assessment",
+    title: "Intake Notes",
     fields: [
       {
         name: "Location",
         span: "full",
-        required: true,
         helperText:
           "Selecting a result auto-fills City, State, and Zip below - you can still edit them after.",
         autoFill: {
@@ -50,23 +45,13 @@ export const REFERRAL_FORM_SECTIONS: RecordFormSection[] = [
           zipCode: "Zip Code",
         },
       },
-      { name: "City", span: "third", required: true },
-      { name: "State", span: "third", required: true },
-      { name: "Zip Code", span: "third", required: true },
+      // Optional alongside Location: these exist to be auto-filled from it.
+      { name: "City", span: "third" },
+      { name: "State", span: "third" },
+      { name: "Zip Code", span: "third" },
       { name: "Assessor", span: "half", required: true },
       { name: "Wrap Up", span: "half", required: true },
-      { name: "Diagnosis / Behavior", span: "third", required: true },
-      { name: "Action Date (Accepted / Rejected)", span: "third", required: true },
-      { name: "Length of Assessment", span: "third", required: true },
-    ],
-  },
-  {
-    title: "Logistics and Notes",
-    fields: [
-      { name: "Transport Name", span: "half", required: true },
-      { name: "Referred Out To", span: "half", required: true },
-      { name: "Additional Notes", span: "full", multiline: true, required: true },
-      { name: "Assessed", span: "full", required: true },
+      { name: "Diagnosis / Behavior", span: "full", required: true },
     ],
   },
 ];

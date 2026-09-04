@@ -12,9 +12,9 @@ const field = (
 ): SeedField => ({ id, fieldName, fieldType });
 
 const REFERRAL_FIELDS = [
-  field("f-status", "Status", BoardFieldType.STATUS),
+  field("f-status", "Admission Status", BoardFieldType.STATUS),
   field("f-payor", "Payor", BoardFieldType.DROPDOWN),
-  field("f-admission", "Admission Type", BoardFieldType.DROPDOWN),
+  field("f-assessment", "Type of Assessment", BoardFieldType.DROPDOWN),
   field("f-county", "County", BoardFieldType.DROPDOWN),
   field("f-reason", "Reason", BoardFieldType.TEXT),
 ];
@@ -23,7 +23,7 @@ const LEAD_FIELDS = [field("l-county", "County", BoardFieldType.DROPDOWN)];
 
 const context = (
   fields: SeedField[],
-  statusOptions: string[] = ["Pending", "Admitted", "Rejected"],
+  statusOptions: string[] = ["Pending", "Admitted", "Denied"],
   relatedFields: SeedField[] = LEAD_FIELDS
 ): SeedContext => ({
   fields,
@@ -46,13 +46,13 @@ describe("resolveDefaultCharts", () => {
       "Avg. Time by Status",
       "Payer Source Mix",
       "Conversion-to-Admission Rate",
-      "Status Breakdown",
+      "Admission Status Breakdown",
       "Monthly Referral Trend",
       "Monthly Denial Trend",
       "Top 10 Counties Generating Referrals",
       "Top 5 Denial Reasons",
       "Top 10 Referring Facilities",
-      "Admission Type",
+      "Type of Assessment",
       "Emerging Sources",
       "Referral Density by County",
       "Average Days to a Status Change",
@@ -117,11 +117,11 @@ describe("resolveDefaultCharts", () => {
   it("keeps only the denial statuses the organization actually defines", () => {
     const denials = resolveDefaultCharts(
       "REFERRAL",
-      context(REFERRAL_FIELDS, ["Pending", "Admitted", "Rejected"])
+      context(REFERRAL_FIELDS, ["Pending", "Admitted", "Denied"])
     ).find((chart) => chart.name === "Top 5 Denial Reasons");
 
     expect(denials?.filter.conditions).toEqual([
-      { fieldId: "f-status", operator: "in", value: "Rejected" },
+      { fieldId: "f-status", operator: "in", value: "Denied" },
     ]);
   });
 
@@ -133,7 +133,7 @@ describe("resolveDefaultCharts", () => {
 
     expect(names).not.toContain("Conversion-to-Admission Rate");
     expect(names).not.toContain("Top 5 Denial Reasons");
-    expect(names).toContain("Status Breakdown");
+    expect(names).toContain("Admission Status Breakdown");
   });
 
   it("drops a relation chart when the far module lacks the field", () => {
@@ -146,12 +146,12 @@ describe("resolveDefaultCharts", () => {
   it("skips a breakdown whose field the org renamed or deleted", () => {
     const names = byName(
       "REFERRAL",
-      context([field("f-status", "Status", BoardFieldType.STATUS)])
+      context([field("f-status", "Admission Status", BoardFieldType.STATUS)])
     );
 
     expect(names).not.toContain("Payer Source Mix");
     expect(names).not.toContain("Top 5 Denial Reasons");
-    expect(names).toContain("Status Breakdown");
+    expect(names).toContain("Admission Status Breakdown");
   });
 
   it("buckets the time series by month and leaves the KPI dimensionless", () => {

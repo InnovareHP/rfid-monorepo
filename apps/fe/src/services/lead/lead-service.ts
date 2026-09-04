@@ -1,4 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
+import { requestCsv } from "@/lib/helper/csv-download";
 import type {
   BoardStats,
   LeadAnalyze,
@@ -45,24 +46,16 @@ export const getLeads = async (filters: any) => {
 export const exportBoardCsv = async (
   filters: any,
   moduleType: string = "LEAD"
-) => {
-  const response = await axiosClient.get("/api/boards/export", {
-    params: {
+) =>
+  requestCsv(
+    "/api/boards/export",
+    {
       ...filters,
       filter: JSON.stringify(filters.filter ?? {}),
       moduleType,
     },
-    responseType: "blob",
-  });
-
-  const disposition: string = response.headers["content-disposition"] ?? "";
-  const match = disposition.match(/filename="?([^"]+)"?/);
-
-  return {
-    blob: response.data as Blob,
-    filename: match?.[1] ?? `${moduleType.toLowerCase()}-export.csv`,
-  };
-};
+    `${moduleType.toLowerCase()}-export.csv`
+  );
 
 export const getBoardStats = async (
   moduleType: string = "LEAD"

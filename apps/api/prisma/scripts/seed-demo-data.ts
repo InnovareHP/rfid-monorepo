@@ -123,8 +123,7 @@ const PATIENT_NAMES = [
 ];
 
 const PAYORS = ["Medicare", "Medicaid", "Private Insurance", "Self-Pay"];
-const ADMISSION_TYPES = ["Emergency", "Routine", "Transfer"];
-const REMOTE_ONSITE = ["Remote", "Onsite"];
+const ASSESSMENT_TYPES = ["Involuntary", "Voluntary", "Unknown"];
 const LEAD_STAGES = ["New", "Contacted", "Qualified", "Proposal", "Won", "Lost"];
 
 const DENIAL_REASONS = [
@@ -341,7 +340,7 @@ async function main() {
     const name = `${patient} — ${createdAt.toISOString().slice(0, 10)}-${index}`;
     const admitted = random() < 0.62;
     const rejected = !admitted && random() < 0.5;
-    const status = admitted ? "Admitted" : rejected ? "Rejected" : "Pending";
+    const status = admitted ? "Admitted" : rejected ? "Denied" : "Pending";
 
     referralRows.push({
       id,
@@ -363,28 +362,21 @@ async function main() {
 
     const pairs: [string, string][] = [
       ["Referral Date", createdAt.toISOString().slice(0, 10)],
-      ["County", facility.county],
       ["Facility", facility.id],
       ["Patient Name", patient],
       ["Contact", pick(CLINICIANS)],
       ["Assessor", pick(CLINICIANS)],
       ["Payor", pick(PAYORS)],
-      ["Admission Type", pick(ADMISSION_TYPES)],
-      ["Remote or Onsite", pick(REMOTE_ONSITE)],
-      ["Status", status],
-      ["Assessed", random() < 0.8 ? "true" : "false"],
-      ["Number", `(217) ${between(200, 899)}-${between(1000, 9999)}`],
-      ["Length of Assessment", `${between(30, 90)} minutes`],
+      ["Type of Assessment", pick(ASSESSMENT_TYPES)],
+      ["Admission Status", status],
+      ["Contact Number", `(217) ${between(200, 899)}-${between(1000, 9999)}`],
     ];
 
     if (rejected) pairs.push(["Reason", pick(DENIAL_REASONS)]);
     if (admitted) {
       const actioned = new Date(createdAt);
       actioned.setDate(actioned.getDate() + between(1, 9));
-      pairs.push([
-        "Action Date (Accepted / Rejected)",
-        actioned.toISOString().slice(0, 10),
-      ]);
+      pairs.push(["Action Date", actioned.toISOString().slice(0, 10)]);
     }
 
     for (const [fieldName, value] of pairs) {
