@@ -10,7 +10,6 @@ import {
   SheetTitle,
 } from "@dashboard/ui/components/sheet";
 
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Loader2, RefreshCcw, RotateCcw, SearchIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -378,7 +377,11 @@ export function MasterListFilters({
       {/* === FILTER SHEET === */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent side="right" className="w-full p-4 sm:w-[400px]">
-          <ScrollArea className="h-[calc(100dvh-6rem)]">
+          {/* No inner scroll container: SheetContent already scrolls, and a
+              second one sized size-full with no padding of its own clipped the
+              3px focus ring off both sides of every field. One plain wrapper so
+              the sheet's gap-4 still sees a single child and spacing holds. */}
+          <div>
             <SheetHeader>
               <SheetTitle>Advanced Filters</SheetTitle>
             </SheetHeader>
@@ -456,7 +459,7 @@ export function MasterListFilters({
                 )}
               </Button>
             </SheetFooter>
-          </ScrollArea>
+          </div>
         </SheetContent>
       </Sheet>
     </>

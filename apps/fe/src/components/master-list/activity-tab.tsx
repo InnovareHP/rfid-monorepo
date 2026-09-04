@@ -453,8 +453,11 @@ export function ActivityTab({
 
   if (isLoading) {
     return (
-      <ScrollArea className="h-full px-4 py-4 sm:px-6">
-        <div className="space-y-4">
+      <ScrollArea className="h-full">
+        {/* Padding sits inside the viewport: on the ScrollArea root it insets
+            the viewport instead, leaving a w-full child flush against the clip
+            edge with its focus ring sliced off both sides. */}
+        <div className="space-y-4 px-4 py-4 sm:px-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -467,8 +470,9 @@ export function ActivityTab({
   }
 
   return (
-    <ScrollArea className="h-full px-4 py-4 sm:px-6">
-      <div className="space-y-4">
+    <ScrollArea className="h-full">
+      {/* Padding inside the viewport, not on the root - see the loading branch. */}
+      <div className="space-y-4 px-4 py-4 sm:px-6">
         {/* Create Button / Form */}
         {!showForm ? (
           <Button onClick={() => setShowForm(true)} className="w-full">
