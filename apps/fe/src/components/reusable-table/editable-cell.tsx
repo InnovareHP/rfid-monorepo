@@ -1,14 +1,8 @@
+import { getLeadRecords } from "@/services/lead/lead-service";
 import {
-  createDropdownOption,
-  getDropdownOptions,
-  getLeadRecords,
-  updateLead,
-} from "@/services/lead/lead-service";
-import {
-  createReferralDropdownOption,
-  getReferralDropdownOptions,
-  updateReferral,
-} from "@/services/referral/referral-service";
+  createFieldOption,
+  getFieldOptions,
+} from "@/services/options/options-service";
 import {
   getLinkCandidates,
   updateModuleRecord,
@@ -37,6 +31,8 @@ import {
 } from "@dashboard/ui/components/select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { toFieldOptions } from "@/lib/helper/field-options";
+import { moduleOptionHref } from "@/lib/helper/module-route";
+import { can } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/helper/helper";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
@@ -45,7 +41,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useParams, useRouteContext } from "@tanstack/react-router";
 import { LinkTargetEmpty } from "@/components/record-create/link-target-empty";
 import { format, isValid, parseISO } from "date-fns";
 import {
@@ -153,9 +149,18 @@ export const EditableCell = memo(function EditableCell({
   const [syncedValue, setSyncedValue] = useState(value);
   const [validationError, setValidationError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const recordsKey = boardQueryKey(
-    moduleType ?? (isReferral ? "REFERRAL" : "LEAD")
-  );
+  // isReferral predates module keys and only ever meant one of two modules
+  const effectiveModule = moduleType ?? (isReferral ? "REFERRAL" : "LEAD");
+  const recordsKey = boardQueryKey(effectiveModule);
+
+  // Managing the option set is field configure, owners and admins only
+  const { memberData } = useRouteContext({ from: "/_team" }) as {
+    memberData?: { role: string };
+  };
+  const optionsHref =
+    team && can(memberData?.role, { field: ["configure"] })
+      ? moduleOptionHref(effectiveModule, team, fieldKey)
+      : null;
 
   // Adopt a new server value during render, never over an in-progress edit
   if (!editing && value !== syncedValue) {
@@ -169,28 +174,14 @@ export const EditableCell = memo(function EditableCell({
       field,
       value,
       reason,
-      previousValue,
     }: {
       id: string;
       field: string;
       fieldName: string;
       value: string;
       reason?: string;
-      previousValue?: string;
       displayValue?: string;
-    }) =>
-      moduleType
-        ? await updateModuleRecord(
-            moduleType,
-            id,
-            field,
-            value,
-            previousValue,
-            reason
-          )
-        : isReferral
-          ? await updateReferral(id, field, value, reason, previousValue)
-          : await updateLead(id, field, value, undefined, reason),
+    }) => await updateModuleRecord(effectiveModule, id, field, value, reason),
     onMutate: async ({ id, fieldName: patchKey, value, displayValue }) => {
       await queryClient.cancelQueries({ queryKey: recordsKey });
       const previous = queryClient.getQueriesData({ queryKey: recordsKey });
@@ -227,7 +218,8 @@ export const EditableCell = memo(function EditableCell({
     newVal: string,
     _location?: boolean,
     reason?: string,
-    previousValue?: string,
+    // Kept for the positional call sites; the service reads the prior value itself
+    _previousValue?: string,
     displayValue?: string
   ) => {
     // Don't update if value hasn't changed
@@ -261,7 +253,6 @@ export const EditableCell = memo(function EditableCell({
         fieldName,
         value: newVal,
         reason,
-        previousValue,
         displayValue,
       });
       // Only show success toast for significant changes, not for every edit
@@ -293,9 +284,7 @@ export const EditableCell = memo(function EditableCell({
   } = useQuery({
     queryKey,
     queryFn: () =>
-      isReferral
-        ? getReferralDropdownOptions(fieldKey, 1, PICKER_LIMIT, debouncedSearch)
-        : getDropdownOptions(fieldKey, 1, PICKER_LIMIT, debouncedSearch),
+      getFieldOptions(fieldKey, 1, PICKER_LIMIT, debouncedSearch),
     enabled: selectOpen || debouncedSearch.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 30,
@@ -306,9 +295,7 @@ export const EditableCell = memo(function EditableCell({
   const { mutate: createDropdownOptionMutation, isPending: isCreatingOption } =
     useMutation({
       mutationFn: async (option: string) =>
-        isReferral
-          ? createReferralDropdownOption(fieldKey, option)
-          : createDropdownOption(fieldKey, option),
+        createFieldOption(fieldKey, option),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey });
         refetch();
@@ -328,9 +315,7 @@ export const EditableCell = memo(function EditableCell({
       await queryClient.prefetchQuery({
         queryKey,
         queryFn: () =>
-          isReferral
-            ? getReferralDropdownOptions(fieldKey, 1, PICKER_LIMIT)
-            : getDropdownOptions(fieldKey, 1, PICKER_LIMIT),
+          getFieldOptions(fieldKey, 1, PICKER_LIMIT),
       });
     }
   };
@@ -374,7 +359,7 @@ export const EditableCell = memo(function EditableCell({
   const { data: assignedToOptionsData, isLoading: isLoadingAssignedTo } =
     useQuery({
       queryKey: ["assigned-to-users"],
-      queryFn: () => getDropdownOptions("ASSIGNED_TO"),
+      queryFn: async () => toFieldOptions(await getFieldOptions("ASSIGNED_TO")),
       enabled: type === "ASSIGNED_TO" || fieldName === "account_manager",
       staleTime: 1000 * 60 * 30,
     });
@@ -420,7 +405,6 @@ export const EditableCell = memo(function EditableCell({
       <StatusSelect
         val={val}
         fieldKey={fieldKey}
-        isReferral={isReferral}
         handleUpdate={(v, reason) => handleUpdate(v, undefined, reason, value)}
       />
     );
@@ -750,20 +734,15 @@ export const EditableCell = memo(function EditableCell({
                           + Add more option
                         </div>
 
-                        {team && (
-                          <Link
-                            to={
-                              isReferral
-                                ? "/$team/referral-list/option/$option"
-                                : "/$team/master-list/leads/option/$option"
-                            }
-                            params={{ team, option: fieldKey }}
+                        {optionsHref && (
+                          <a
+                            href={optionsHref}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="flex items-center gap-2 px-2 py-2 text-xs text-primary hover:bg-primary/10 cursor-pointer">
                               Proceed to Option Configuration
                             </div>
-                          </Link>
+                          </a>
                         )}
                       </div>
                     )}

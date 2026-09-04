@@ -84,9 +84,12 @@ import { Route as TeamTeamMarketingBlastsBlastIdRouteImport } from './routes/_te
 import { Route as TeamTeamHelpCategorySlugArticleSlugRouteImport } from './routes/_team/$team/help/$categorySlug/$articleSlug'
 import { Route as TeamTeamReferralListOptionOptionIndexRouteImport } from './routes/_team/$team/referral-list/option/$option/index'
 import { Route as TeamTeamRecordsModuleKeyAnalyticsIndexRouteImport } from './routes/_team/$team/records/$moduleKey/analytics/index'
+import { Route as TeamTeamContactsOptionOptionIndexRouteImport } from './routes/_team/$team/contacts/option/$option/index'
+import { Route as TeamTeamCompaniesOptionOptionIndexRouteImport } from './routes/_team/$team/companies/option/$option/index'
 import { Route as TeamTeamAnalyticsCustomDashboardsIndexRouteImport } from './routes/_team/$team/analytics/custom/dashboards/index'
 import { Route as TeamTeamMasterListLeadsLeadTimelineRouteImport } from './routes/_team/$team/master-list/leads/$lead/timeline'
 import { Route as TeamTeamAnalyticsCustomDashboardsDashboardIdRouteImport } from './routes/_team/$team/analytics/custom/dashboards/$dashboardId'
+import { Route as TeamTeamRecordsModuleKeyOptionOptionIndexRouteImport } from './routes/_team/$team/records/$moduleKey/option/$option/index'
 import { Route as TeamTeamMasterListLeadsOptionOptionIndexRouteImport } from './routes/_team/$team/master-list/leads/option/$option/index'
 
 const PasskeySetupRoute = PasskeySetupRouteImport.update({
@@ -491,6 +494,18 @@ const TeamTeamRecordsModuleKeyAnalyticsIndexRoute =
     path: '/$team/records/$moduleKey/analytics/',
     getParentRoute: () => TeamRoute,
   } as any)
+const TeamTeamContactsOptionOptionIndexRoute =
+  TeamTeamContactsOptionOptionIndexRouteImport.update({
+    id: '/$team/contacts/option/$option/',
+    path: '/$team/contacts/option/$option/',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamCompaniesOptionOptionIndexRoute =
+  TeamTeamCompaniesOptionOptionIndexRouteImport.update({
+    id: '/$team/companies/option/$option/',
+    path: '/$team/companies/option/$option/',
+    getParentRoute: () => TeamRoute,
+  } as any)
 const TeamTeamAnalyticsCustomDashboardsIndexRoute =
   TeamTeamAnalyticsCustomDashboardsIndexRouteImport.update({
     id: '/$team/analytics/custom/dashboards/',
@@ -507,6 +522,12 @@ const TeamTeamAnalyticsCustomDashboardsDashboardIdRoute =
   TeamTeamAnalyticsCustomDashboardsDashboardIdRouteImport.update({
     id: '/$team/analytics/custom/dashboards/$dashboardId',
     path: '/$team/analytics/custom/dashboards/$dashboardId',
+    getParentRoute: () => TeamRoute,
+  } as any)
+const TeamTeamRecordsModuleKeyOptionOptionIndexRoute =
+  TeamTeamRecordsModuleKeyOptionOptionIndexRouteImport.update({
+    id: '/$team/records/$moduleKey/option/$option/',
+    path: '/$team/records/$moduleKey/option/$option/',
     getParentRoute: () => TeamRoute,
   } as any)
 const TeamTeamMasterListLeadsOptionOptionIndexRoute =
@@ -591,9 +612,12 @@ export interface FileRoutesByFullPath {
   '/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/$team/analytics/custom/dashboards/': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/$team/companies/option/$option/': typeof TeamTeamCompaniesOptionOptionIndexRoute
+  '/$team/contacts/option/$option/': typeof TeamTeamContactsOptionOptionIndexRoute
   '/$team/records/$moduleKey/analytics/': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  '/$team/records/$moduleKey/option/$option/': typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -670,9 +694,12 @@ export interface FileRoutesByTo {
   '/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/$team/analytics/custom/dashboards': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/$team/companies/option/$option': typeof TeamTeamCompaniesOptionOptionIndexRoute
+  '/$team/contacts/option/$option': typeof TeamTeamContactsOptionOptionIndexRoute
   '/$team/records/$moduleKey/analytics': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/$team/referral-list/option/$option': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/$team/master-list/leads/option/$option': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  '/$team/records/$moduleKey/option/$option': typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -752,9 +779,12 @@ export interface FileRoutesById {
   '/_team/$team/analytics/custom/dashboards/$dashboardId': typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   '/_team/$team/master-list/leads/$lead/timeline': typeof TeamTeamMasterListLeadsLeadTimelineRoute
   '/_team/$team/analytics/custom/dashboards/': typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  '/_team/$team/companies/option/$option/': typeof TeamTeamCompaniesOptionOptionIndexRoute
+  '/_team/$team/contacts/option/$option/': typeof TeamTeamContactsOptionOptionIndexRoute
   '/_team/$team/records/$moduleKey/analytics/': typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   '/_team/$team/referral-list/option/$option/': typeof TeamTeamReferralListOptionOptionIndexRoute
   '/_team/$team/master-list/leads/option/$option/': typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  '/_team/$team/records/$moduleKey/option/$option/': typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -833,9 +863,12 @@ export interface FileRouteTypes {
     | '/$team/analytics/custom/dashboards/$dashboardId'
     | '/$team/master-list/leads/$lead/timeline'
     | '/$team/analytics/custom/dashboards/'
+    | '/$team/companies/option/$option/'
+    | '/$team/contacts/option/$option/'
     | '/$team/records/$moduleKey/analytics/'
     | '/$team/referral-list/option/$option/'
     | '/$team/master-list/leads/option/$option/'
+    | '/$team/records/$moduleKey/option/$option/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -912,9 +945,12 @@ export interface FileRouteTypes {
     | '/$team/analytics/custom/dashboards/$dashboardId'
     | '/$team/master-list/leads/$lead/timeline'
     | '/$team/analytics/custom/dashboards'
+    | '/$team/companies/option/$option'
+    | '/$team/contacts/option/$option'
     | '/$team/records/$moduleKey/analytics'
     | '/$team/referral-list/option/$option'
     | '/$team/master-list/leads/option/$option'
+    | '/$team/records/$moduleKey/option/$option'
   id:
     | '__root__'
     | '/'
@@ -993,9 +1029,12 @@ export interface FileRouteTypes {
     | '/_team/$team/analytics/custom/dashboards/$dashboardId'
     | '/_team/$team/master-list/leads/$lead/timeline'
     | '/_team/$team/analytics/custom/dashboards/'
+    | '/_team/$team/companies/option/$option/'
+    | '/_team/$team/contacts/option/$option/'
     | '/_team/$team/records/$moduleKey/analytics/'
     | '/_team/$team/referral-list/option/$option/'
     | '/_team/$team/master-list/leads/option/$option/'
+    | '/_team/$team/records/$moduleKey/option/$option/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1542,6 +1581,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamTeamRecordsModuleKeyAnalyticsIndexRouteImport
       parentRoute: typeof TeamRoute
     }
+    '/_team/$team/contacts/option/$option/': {
+      id: '/_team/$team/contacts/option/$option/'
+      path: '/$team/contacts/option/$option'
+      fullPath: '/$team/contacts/option/$option/'
+      preLoaderRoute: typeof TeamTeamContactsOptionOptionIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/companies/option/$option/': {
+      id: '/_team/$team/companies/option/$option/'
+      path: '/$team/companies/option/$option'
+      fullPath: '/$team/companies/option/$option/'
+      preLoaderRoute: typeof TeamTeamCompaniesOptionOptionIndexRouteImport
+      parentRoute: typeof TeamRoute
+    }
     '/_team/$team/analytics/custom/dashboards/': {
       id: '/_team/$team/analytics/custom/dashboards/'
       path: '/$team/analytics/custom/dashboards'
@@ -1561,6 +1614,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/analytics/custom/dashboards/$dashboardId'
       fullPath: '/$team/analytics/custom/dashboards/$dashboardId'
       preLoaderRoute: typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/records/$moduleKey/option/$option/': {
+      id: '/_team/$team/records/$moduleKey/option/$option/'
+      path: '/$team/records/$moduleKey/option/$option'
+      fullPath: '/$team/records/$moduleKey/option/$option/'
+      preLoaderRoute: typeof TeamTeamRecordsModuleKeyOptionOptionIndexRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/master-list/leads/option/$option/': {
@@ -1664,9 +1724,12 @@ interface TeamRouteChildren {
   TeamTeamAnalyticsCustomDashboardsDashboardIdRoute: typeof TeamTeamAnalyticsCustomDashboardsDashboardIdRoute
   TeamTeamMasterListLeadsLeadTimelineRoute: typeof TeamTeamMasterListLeadsLeadTimelineRoute
   TeamTeamAnalyticsCustomDashboardsIndexRoute: typeof TeamTeamAnalyticsCustomDashboardsIndexRoute
+  TeamTeamCompaniesOptionOptionIndexRoute: typeof TeamTeamCompaniesOptionOptionIndexRoute
+  TeamTeamContactsOptionOptionIndexRoute: typeof TeamTeamContactsOptionOptionIndexRoute
   TeamTeamRecordsModuleKeyAnalyticsIndexRoute: typeof TeamTeamRecordsModuleKeyAnalyticsIndexRoute
   TeamTeamReferralListOptionOptionIndexRoute: typeof TeamTeamReferralListOptionOptionIndexRoute
   TeamTeamMasterListLeadsOptionOptionIndexRoute: typeof TeamTeamMasterListLeadsOptionOptionIndexRoute
+  TeamTeamRecordsModuleKeyOptionOptionIndexRoute: typeof TeamTeamRecordsModuleKeyOptionOptionIndexRoute
 }
 
 const TeamRouteChildren: TeamRouteChildren = {
@@ -1728,12 +1791,18 @@ const TeamRouteChildren: TeamRouteChildren = {
     TeamTeamMasterListLeadsLeadTimelineRoute,
   TeamTeamAnalyticsCustomDashboardsIndexRoute:
     TeamTeamAnalyticsCustomDashboardsIndexRoute,
+  TeamTeamCompaniesOptionOptionIndexRoute:
+    TeamTeamCompaniesOptionOptionIndexRoute,
+  TeamTeamContactsOptionOptionIndexRoute:
+    TeamTeamContactsOptionOptionIndexRoute,
   TeamTeamRecordsModuleKeyAnalyticsIndexRoute:
     TeamTeamRecordsModuleKeyAnalyticsIndexRoute,
   TeamTeamReferralListOptionOptionIndexRoute:
     TeamTeamReferralListOptionOptionIndexRoute,
   TeamTeamMasterListLeadsOptionOptionIndexRoute:
     TeamTeamMasterListLeadsOptionOptionIndexRoute,
+  TeamTeamRecordsModuleKeyOptionOptionIndexRoute:
+    TeamTeamRecordsModuleKeyOptionOptionIndexRoute,
 }
 
 const TeamRouteWithChildren = TeamRoute._addFileChildren(TeamRouteChildren)

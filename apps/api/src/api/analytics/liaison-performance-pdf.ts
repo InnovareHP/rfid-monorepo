@@ -80,7 +80,11 @@ export const renderLiaisonPerformancePdf = async (input: {
       )} interactions · ${rate(
         liaison.admissions,
         liaison.totalReferrals
-      )} conversion`
+      )} conversion · ${num(
+        liaison.ownFacilityReferrals
+      )} referrals from own facilities, ${num(
+        liaison.otherFacilityReferrals
+      )} from others'`
     );
 
     if (liaison.touchpointsUsed.length) {

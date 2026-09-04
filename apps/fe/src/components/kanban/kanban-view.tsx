@@ -1,6 +1,6 @@
 import { useCanWrite } from "@/hooks/use-can-write";
 import { KanbanSummaryTile } from "@/components/kanban/kanban-summary-tile";
-import { updateLead } from "@/services/lead/lead-service";
+import { updateModuleRecord } from "@/services/board/board-module-service";
 import {
   getKanban,
   getKanbanCards,
@@ -71,7 +71,13 @@ export default function KanbanView({
       fromStageId: string;
       toStageId: string;
       toStageName: string;
-    }) => updateLead(card.id, stageFieldId as string, toStageName, moduleType),
+    }) =>
+      updateModuleRecord(
+        moduleType,
+        card.id,
+        stageFieldId as string,
+        toStageName
+      ),
     onMutate: async ({ card, fromStageId, toStageId }) => {
       await queryClient.cancelQueries({
         queryKey: ["kanban-cards", moduleType],

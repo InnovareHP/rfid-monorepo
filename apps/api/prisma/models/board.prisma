@@ -185,6 +185,9 @@ model History {
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
   createdBy      String?
   organizationId String?
+  // Ties the rows written by one user action together - a status change also
+  // writes its reason and action date, and the timeline reads them as one entry.
+  groupId        String?
 
   record Board  @relation(fields: [recordId], references: [id], onDelete: Cascade)
   user   User?  @relation(fields: [createdBy], references: [id], onDelete: SetNull)
@@ -194,6 +197,7 @@ model History {
   @@index([organizationId])
   @@index([organizationId, createdAt])
   @@index([fieldId])
+  @@index([groupId])
   @@schema("board_schema")
 }
 

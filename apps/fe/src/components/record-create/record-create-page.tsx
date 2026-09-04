@@ -6,9 +6,10 @@ import LocationCell, {
 import {
   SearchableSelect,
   type SearchableOption,
-} from "@/components/record-create/searchable-select";
+} from "@/components/reusable-table/searchable-select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { toFieldOptions } from "@/lib/helper/field-options";
+import { moduleOptionHref } from "@/lib/helper/module-route";
 import { placeholderFor } from "@/lib/helper/field-placeholder";
 import { getLinkCandidates } from "@/services/board/board-module-service";
 import { Badge } from "@dashboard/ui/components/badge";
@@ -42,8 +43,9 @@ import {
   Loader2,
   Plus,
 } from "lucide-react";
-import { Link, useParams } from "@tanstack/react-router";
+import { useParams } from "@tanstack/react-router";
 import { LinkTargetEmpty } from "./link-target-empty";
+import { OptionFieldActions } from "./option-field-actions";
 import { useMemo, useState } from "react";
 import { useFieldArray, useForm, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -96,8 +98,9 @@ interface RecordCreatePageProps {
   onSubmit: (records: CreatedRecord[]) => void;
   onBack: () => void;
   sections?: RecordFormSection[];
-  // Which option-configuration screen an empty picker should send the user to
-  optionModule?: "LEAD" | "REFERRAL";
+  // Module key the record belongs to, so option pickers can reach that module's
+  // option-configuration screen
+  optionModule?: string;
 }
 
 type FormValues = { records: Record<string, any>[] };
@@ -558,19 +561,17 @@ const RecordField = ({
     search: string,
     limit: number
   ) => Promise<any>;
-  optionModule?: "LEAD" | "REFERRAL";
+  optionModule?: string;
 }) => {
   const fieldName = `records.${index}.${column.id}` as const;
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
   const { team } = useParams({ strict: false });
 
-  const optionRoute =
-    optionModule === "REFERRAL"
-      ? "/$team/referral-list/option/$option"
-      : optionModule === "LEAD"
-        ? "/$team/master-list/leads/option/$option"
-        : null;
+  const optionsHref =
+    optionModule && team
+      ? moduleOptionHref(optionModule, team, column.id)
+      : null;
 
   const { data: dropdownOptions, isFetching: isFetchingOptions } = useQuery({
     queryKey: ["record-dropdown-options", column.id, debouncedSearch],
@@ -628,14 +629,15 @@ const RecordField = ({
     hasNoOptions && layout?.required ? (
       <span className="text-xs font-normal text-warning">
         No options yet -{" "}
-        {optionRoute && team ? (
-          <Link
-            to={optionRoute}
-            params={{ team, option: column.id }}
+        {optionsHref ? (
+          <a
+            href={optionsHref}
+            target="_blank"
+            rel="noreferrer"
             className="font-semibold underline underline-offset-2"
           >
             add them in settings
-          </Link>
+          </a>
         ) : (
           "add them in settings"
         )}
@@ -786,6 +788,21 @@ const RecordField = ({
                   searchPlaceholder={`Search ${column.name.toLowerCase()}...`}
                   emptyText={`No ${column.name.toLowerCase()} found.`}
                   className={FIELD_CONTROL_CLASS}
+                  footer={
+                    isOptionBacked(column.type)
+                      ? (close) => (
+                          <OptionFieldActions
+                            fieldId={column.id}
+                            fieldLabel={column.name}
+                            search={search}
+                            moduleKey={optionModule}
+                            team={team}
+                            onAdded={field.onChange}
+                            onClose={close}
+                          />
+                        )
+                      : undefined
+                  }
                 />
               </FormControl>
               <FormMessage />

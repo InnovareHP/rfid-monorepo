@@ -17,6 +17,8 @@ export type LiaisonAnalytics = {
   newLeads: number;
   totalReferrals: number;
   admissions: number;
+  ownFacilityReferrals: number;
+  otherFacilityReferrals: number;
   totalInteractions: number;
   engagementLevel: "High" | "Medium" | "Low";
   facilitiesCovered: string[];
@@ -183,7 +185,7 @@ export type AnalyticsResponse = {
   statusBreakdown: StatusBreakdownItem[];
   avgTimeByStatus: AvgTimeByStatus[];
   avgTimeTrend?: MonthlyTotal[]; // weighted avg days per month
-  admissionTypes: AdmissionTypeAnalytics[];
+  assessmentTypes: AssessmentTypeAnalytics[];
   clinicians: ClinicianAnalytics[];
   conversion: ConversionAnalytics;
   counties: CountyAnalytics[];
@@ -216,7 +218,7 @@ export type AvgTimeByStatus = {
   count: number;
 };
 
-export type AdmissionTypeAnalytics = {
+export type AssessmentTypeAnalytics = {
   value: string | null;
   _count: { value: number };
 };
@@ -378,6 +380,11 @@ export type LiaisonAnalyticsCardData = {
   newLeads: number;
   totalReferrals: number;
   admissions: number;
+  // Of their referrals, how many came from a facility they are the account
+  // manager for. The remainder of totalReferrals had no facility, or one
+  // nobody manages.
+  ownFacilityReferrals: number;
+  otherFacilityReferrals: number;
   totalInteractions: number;
   engagementLevel: "Low" | "Medium" | "High";
   facilitiesCovered: string[];

@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@dashboard/ui/components/card";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -67,9 +66,7 @@ export function FollowUpSuggestions({
       toast.success("Suggestions refreshed");
     },
     onError: (err: unknown) =>
-      toast.error(
-        getApiErrorMessage(err, "Failed to refresh suggestions")
-      ),
+      toast.error(getApiErrorMessage(err, "Failed to refresh suggestions")),
   });
 
   const createActivityMutation = useMutation({
@@ -84,7 +81,7 @@ export function FollowUpSuggestions({
 
   if (isLoading) {
     return (
-      <ScrollArea className="h-full px-4 py-4 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="space-y-4">
           <div className="h-20 w-full animate-pulse rounded-lg bg-primary/10" />
           {Array.from({ length: 3 }).map((_, i) => (
@@ -95,13 +92,13 @@ export function FollowUpSuggestions({
           ))}
           <div className="h-16 w-full animate-pulse rounded-lg bg-muted" />
         </div>
-      </ScrollArea>
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <ScrollArea className="h-full px-4 py-4 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <div className="rounded-full bg-destructive/10 p-4">
             <AlertTriangle className="size-8 text-destructive" />
@@ -113,14 +110,14 @@ export function FollowUpSuggestions({
             Try again
           </Button>
         </div>
-      </ScrollArea>
+      </div>
     );
   }
 
   if (!data) return null;
 
   return (
-    <ScrollArea className="h-full px-4 py-4 sm:px-6">
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
       <div className="space-y-5">
         <div className="flex items-center justify-end">
           <Button
@@ -272,6 +269,6 @@ export function FollowUpSuggestions({
           </Card>
         )}
       </div>
-    </ScrollArea>
+    </div>
   );
 }

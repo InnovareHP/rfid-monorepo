@@ -1,4 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
+import { requestCsv } from "@/lib/helper/csv-download";
 import type { MarketingReportResponse } from "@dashboard/shared";
 
 type MarketLogsResponse = MarketingReportResponse & {
@@ -24,6 +25,14 @@ export const getMarketLogs = async (
     columns: data.columns || [],
   };
 };
+
+// Server assembles the csv so the export lands as one audited event rather
+// than as a burst of page reads.
+export const exportMarketingCsv = async (range: {
+  from?: string;
+  to?: string;
+}) =>
+  requestCsv("/api/liaison/marketing/export", range, "marketing-report.csv");
 
 export const createMarketLog = async (data: any) => {
   const response = await axiosClient.post("/api/liaison/marketing", {

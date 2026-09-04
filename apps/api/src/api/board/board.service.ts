@@ -23,6 +23,7 @@ import {
   Prisma,
 } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
+import { randomUUID } from "node:crypto";
 import { appConfig } from "src/config/app-config";
 import { aiGenerateVision } from "src/lib/aws/ai-guard";
 import { businessCardScanPrompt, followUpPrompt } from "src/lib/aws/prompts";
@@ -655,6 +656,7 @@ export class BoardService {
         oldValue: h.oldValue,
         newValue: h.newValue,
         column: h.column,
+        groupId: h.groupId,
       };
     });
 
@@ -763,6 +765,7 @@ export class BoardService {
         oldValue: h.oldValue,
         newValue: h.newValue,
         column: h.column,
+        groupId: h.groupId,
       };
     });
 
@@ -1160,7 +1163,9 @@ export class BoardService {
       metadata: {
         daysSinceCreation,
         daysSinceLastUpdate,
-        currentStatus: fieldValues["Status"] ?? null,
+        // Leads call it Status, referrals call it Admission Status.
+        currentStatus:
+          fieldValues["Status"] ?? fieldValues["Admission Status"] ?? null,
         totalHistoryEvents,
       },
     };
@@ -2123,7 +2128,7 @@ export class BoardService {
       const statusFields = await tx.field.findMany({
         where: {
           fieldName: {
-            in: ["Reason", "Action Date (Accepted / Rejected)"],
+            in: ["Reason", "Action Date"],
           },
           isDeleted: false,
           organizationId: organizationId,
@@ -2134,15 +2139,28 @@ export class BoardService {
 
       const reasonField = statusFields.find((f) => f.fieldName === "Reason");
       const actionDateField = statusFields.find(
-        (f) => f.fieldName === "Action Date (Accepted / Rejected)"
+        (f) => f.fieldName === "Action Date"
       );
 
-      const previousStatus = await tx.fieldValue.findUnique({
+      // One status change is three writes; the timeline needs them as one entry.
+      const groupId = randomUUID();
+
+      const satelliteIds = [reasonField?.id, actionDateField?.id].filter(
+        (id): id is string => Boolean(id)
+      );
+
+      const previousValues = await tx.fieldValue.findMany({
         where: {
-          recordId_fieldId: { recordId: recordId, fieldId: field.id },
+          recordId: recordId,
+          fieldId: { in: [field.id, ...satelliteIds] },
         },
-        select: { value: true },
+        select: { fieldId: true, value: true },
       });
+
+      const previousBy = new Map(
+        previousValues.map((row) => [row.fieldId, row.value])
+      );
+      const previousStatus = { value: previousBy.get(field.id) ?? null };
 
       await tx.fieldValue.upsert({
         where: {
@@ -2178,7 +2196,9 @@ export class BoardService {
         });
       }
 
-      const now = new Date().toISOString();
+      // Action Date is a DATE field, so it stores a day the way every other
+      // date write does. A full timestamp here rendered raw in the timeline.
+      const actionDate = new Date().toISOString().split("T")[0];
 
       if (actionDateField) {
         await tx.fieldValue.upsert({
@@ -2188,11 +2208,11 @@ export class BoardService {
               fieldId: actionDateField.id,
             },
           },
-          update: { value: now },
+          update: { value: actionDate },
           create: {
             recordId: recordId,
             fieldId: actionDateField.id,
-            value: now,
+            value: actionDate,
             organizationId: organizationId,
           },
         });
@@ -2205,7 +2225,7 @@ export class BoardService {
 
       const actionDateData = {
         fieldName: actionDateField?.fieldName ?? "",
-        value: now ?? "",
+        value: actionDate,
       };
 
       await this.createRecordHistory(
@@ -2217,8 +2237,41 @@ export class BoardService {
         "update",
         field.fieldName,
         field.id,
-        organizationId
+        organizationId,
+        groupId
       );
+
+      // The satellites were silently overwritten before; they now carry their
+      // own rows so the reason and the date it applied to survive the next edit.
+      if (reason && reasonField) {
+        await this.createRecordHistory(
+          recordId,
+          previousBy.get(reasonField.id) ?? "",
+          reason,
+          memberId,
+          tx,
+          "update",
+          reasonField.fieldName,
+          reasonField.id,
+          organizationId,
+          groupId
+        );
+      }
+
+      if (actionDateField) {
+        await this.createRecordHistory(
+          recordId,
+          previousBy.get(actionDateField.id) ?? "",
+          actionDate,
+          memberId,
+          tx,
+          "update",
+          actionDateField.fieldName,
+          actionDateField.id,
+          organizationId,
+          groupId
+        );
+      }
 
       await purgeBoardCaches(organizationId, moduleType);
 
@@ -2736,7 +2789,7 @@ export class BoardService {
           newValue: referralData.referral_name,
           action: "create",
           createdBy: memberId,
-          column: moduleType === "REFERRAL" ? "Referral Liaison" : "Name",
+          column: moduleType === "REFERRAL" ? "Referrer" : "Name",
           organizationId: organizationId,
         });
 
@@ -3765,7 +3818,9 @@ export class BoardService {
     column?: string,
     fieldId?: string,
     // Callers that already hold the org skip a round trip inside the 5s window.
-    organizationId?: string
+    organizationId?: string,
+    // Set by callers that write more than one row for a single user action.
+    groupId?: string
   ) {
     const scopedOrganizationId =
       organizationId ??
@@ -3787,6 +3842,7 @@ export class BoardService {
         column: column,
         fieldId: fieldId,
         organizationId: scopedOrganizationId,
+        groupId: groupId,
       },
     });
   }

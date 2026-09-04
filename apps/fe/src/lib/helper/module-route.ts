@@ -27,3 +27,25 @@ const SYSTEM_MODULE_LABELS: Record<string, string> = {
 
 export const moduleLabel = (moduleKey: string) =>
   SYSTEM_MODULE_LABELS[moduleKey] ?? moduleKey;
+
+// The lead options page shipped one level deeper than its list, so option paths
+// are mapped rather than derived from modulePath.
+const SYSTEM_OPTION_PATHS: Record<string, string> = {
+  LEAD: "master-list/leads",
+  REFERRAL: "referral-list",
+  CONTACT: "contacts",
+  COMPANY: "companies",
+};
+
+// Built as an href rather than through Link params: a picker opens this in a new
+// tab so the record being filled in is not lost, and an anchor takes a string.
+export const moduleOptionHref = (
+  moduleKey: string,
+  team: string,
+  fieldId: string
+) => {
+  const base =
+    SYSTEM_OPTION_PATHS[moduleKey] ?? `records/${moduleParam(moduleKey)}`;
+
+  return `/${team}/${base}/option/${fieldId}`;
+};

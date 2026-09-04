@@ -111,6 +111,38 @@ describe("BoardExportService", () => {
     expect(lines(csv)[1]).toBe("Acme,");
   });
 
+  // getAllBoards resolves a link cell to the target's recordName before it
+  // builds the flat row, so a link column exports as that name, not an id.
+  it("exports link columns for a crm module", async () => {
+    moduleFindFirst.mockResolvedValue({
+      label: "Phonebook",
+      labelSingular: "Contact",
+    });
+    getAllBoards.mockResolvedValue({
+      data: [
+        {
+          recordName: "Dana Reed",
+          assignedTo: "u1",
+          Company: "Acme Health",
+          Facility: "Lakeside",
+        },
+      ],
+      columns: [
+        { name: "Company", type: "COMPANY_LINK" },
+        { name: "Facility", type: "REFERRAL_LINK" },
+      ],
+    });
+
+    const { csv } = await service().exportCsv(
+      "org_a",
+      { moduleType: "CONTACT" },
+      actor
+    );
+
+    expect(lines(csv)[0]).toBe("Contact,Account Manager,Company,Facility");
+    expect(lines(csv)[1]).toBe("Dana Reed,Dana Reed,Acme Health,Lakeside");
+  });
+
   it("rejects a module the organization does not own", async () => {
     moduleFindFirst.mockResolvedValue(null);
 

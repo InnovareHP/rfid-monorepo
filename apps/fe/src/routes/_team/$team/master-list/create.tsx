@@ -9,9 +9,9 @@ import RecordCreatePage, {
 } from "@/components/record-create/record-create-page";
 import {
   createLead,
-  getDropdownOptions,
   getLeadColumnOptions,
 } from "@/services/lead/lead-service";
+import { getFieldOptions } from "@/services/options/options-service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -74,7 +74,7 @@ function RouteComponent() {
           createFacilitiesMutation.isPending || duplicateCheck.isChecking
         }
         fetchDropdownOptions={(fieldId, search, limit) =>
-          getDropdownOptions(fieldId, 1, limit, search)
+          getFieldOptions(fieldId, 1, limit, search)
         }
         optionModule="LEAD"
         onSubmit={duplicateCheck.submit}

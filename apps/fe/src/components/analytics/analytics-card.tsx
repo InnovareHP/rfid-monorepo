@@ -100,8 +100,12 @@ export function LiaisonAnalyticsCard({ data }: Props) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <StatBlock label="Referrals" value={data.totalReferrals} />
+          <StatBlock label="Referrals assigned" value={data.totalReferrals} />
           <StatBlock label="Admissions" value={data.admissions} />
+          <StatBlock
+            label="From own facilities"
+            value={data.ownFacilityReferrals}
+          />
         </div>
 
         <div className="space-y-2">

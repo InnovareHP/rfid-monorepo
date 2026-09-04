@@ -14,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@dashboard/ui/components/dialog";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import {
   Tabs,
   TabsContent,
@@ -159,8 +158,11 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
               </TabsList>
             </div>
 
-            <TabsContent value="details" className="mt-0 min-h-0 flex-1">
-              <ScrollArea className="h-full px-4 py-4 sm:px-6">
+            <TabsContent
+              value="details"
+              className="mt-0 flex min-h-0 flex-1 flex-col"
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {entries.map(([key, rawValue]) => {
                     const value = serializeValue(rawValue);
@@ -188,11 +190,14 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                     );
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             </TabsContent>
 
-            <TabsContent value="history" className="mt-0 min-h-0 flex-1">
-              <ScrollArea className="h-full px-4 py-4 sm:px-6">
+            <TabsContent
+              value="history"
+              className="mt-0 flex min-h-0 flex-1 flex-col"
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
                 {historyLoading && (
                   <div className="space-y-3">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -268,7 +273,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                     </div>
                   </div>
                 )}
-              </ScrollArea>
+              </div>
             </TabsContent>
           </Tabs>
         )}

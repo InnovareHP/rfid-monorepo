@@ -16,13 +16,10 @@ import {
   getGmailStatus,
   getOutlookStatus,
   getSpecificLead,
-  updateLead,
   type Activity,
 } from "@/services/lead/lead-service";
-import {
-  getSpecificReferral,
-  updateReferral,
-} from "@/services/referral/referral-service";
+import { getSpecificReferral } from "@/services/referral/referral-service";
+import { updateModuleRecord } from "@/services/board/board-module-service";
 import { formatDateTime } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
@@ -40,7 +37,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@dashboard/ui/components/popover";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import {
   Select,
   SelectContent,
@@ -291,9 +287,12 @@ export function ActivityTab({
 
   const faxWriteBackMutation = useMutation({
     mutationFn: ({ fieldId, value }: { fieldId: string; value: string }) =>
-      isReferral
-        ? updateReferral(recordId, fieldId, value, undefined)
-        : updateLead(recordId, fieldId, value, "LEAD"),
+      updateModuleRecord(
+        isReferral ? "REFERRAL" : "LEAD",
+        recordId,
+        fieldId,
+        value
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [isReferral ? "referral" : "lead", recordId],
@@ -453,11 +452,8 @@ export function ActivityTab({
 
   if (isLoading) {
     return (
-      <ScrollArea className="h-full">
-        {/* Padding sits inside the viewport: on the ScrollArea root it insets
-            the viewport instead, leaving a w-full child flush against the clip
-            edge with its focus ring sliced off both sides. */}
-        <div className="space-y-4 px-4 py-4 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+        <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -465,14 +461,13 @@ export function ActivityTab({
             />
           ))}
         </div>
-      </ScrollArea>
+      </div>
     );
   }
 
   return (
-    <ScrollArea className="h-full">
-      {/* Padding inside the viewport, not on the root - see the loading branch. */}
-      <div className="space-y-4 px-4 py-4 sm:px-6">
+    <ScrollArea className="h-full px-4 py-4 sm:px-6">
+      <div className="space-y-4">
         {/* Create Button / Form */}
         {!showForm ? (
           <Button onClick={() => setShowForm(true)} className="w-full">
@@ -957,7 +952,7 @@ export function ActivityTab({
           </div>
         )}
       </div>
-    </ScrollArea>
+    </div>
   );
 }
 

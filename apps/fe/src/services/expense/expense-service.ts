@@ -1,4 +1,5 @@
 import { axiosClient } from "@/lib/axios-client";
+import { requestCsv } from "@/lib/helper/csv-download";
 
 export const getExpenseLogs = async (filters?: any) => {
   const response = await axiosClient.get("/api/liaison/expense", {
@@ -42,6 +43,9 @@ export const exportExpenseLogs = async (filters?: any) => {
   link.remove();
   window.URL.revokeObjectURL(url);
 };
+
+export const exportExpenseCsv = async (range: { from?: string; to?: string }) =>
+  requestCsv("/api/liaison/expense/export/csv", range, "expense-report.csv");
 
 export const createExpenseLog = async (data: any) => {
   const response = await axiosClient.post("/api/liaison/expense", {
