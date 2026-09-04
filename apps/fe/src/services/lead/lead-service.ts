@@ -116,42 +116,6 @@ export const getLeadAnalysis = async (leadId: string, moduleType?: string) => {
   return response.data as LeadAnalyze;
 };
 
-export const getDropdownOptions = async (
-  fieldKey: string,
-  page?: number,
-  limit?: number,
-  search?: string
-) => {
-  const response = await axiosClient.get(
-    `/api/boards/field/${fieldKey}/options`,
-    {
-      params: {
-        page: page,
-        limit: limit,
-        search: search || undefined,
-      },
-    }
-  );
-
-  return response.data as any;
-};
-
-export const createDropdownOption = async (
-  fieldKey: string,
-  option: string,
-  color?: string
-) => {
-  const response = await axiosClient.post(
-    `/api/boards/field/${fieldKey}/options`,
-    {
-      optionName: option,
-      ...(color && { color }),
-    }
-  );
-
-  return response.data;
-};
-
 export const seenLeads = async (recordId: string) => {
   const response = await axiosClient.post("/api/boards/notification-state", {
     recordId: recordId,
@@ -183,23 +147,6 @@ export const getLeadRecords = async (
       search: search || undefined,
     },
   });
-  return response.data;
-};
-
-export const updateLead = async (
-  recordId: string,
-  fieldId: string,
-  value: string,
-  moduleType?: string,
-  reason?: string
-) => {
-  const response = await axiosClient.patch(`/api/boards/${recordId}`, {
-    value,
-    fieldId: fieldId,
-    moduleType: moduleType || "LEAD",
-    reason,
-  });
-
   return response.data;
 };
 

@@ -38,6 +38,10 @@ type SearchableSelectProps = {
   className?: string;
   // Lets a caller hold its query back until the list is actually opened.
   onOpenChange?: (open: boolean) => void;
+  // Sits below the list, so an option-backed field can offer to add the value
+  // the user searched for even when the search did match something. Takes the
+  // close callback because only this component owns the open state.
+  footer?: (close: () => void) => ReactNode;
 };
 
 // Type-to-filter picker. The list comes back already filtered by the server, so
@@ -55,6 +59,7 @@ export const SearchableSelect = ({
   emptyText,
   className,
   onOpenChange,
+  footer,
 }: SearchableSelectProps) => {
   const [open, setOpen] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState("");
@@ -132,6 +137,9 @@ export const SearchableSelect = ({
               ))}
             </CommandGroup>
           </CommandList>
+          {footer && (
+            <div className="border-t">{footer(() => setOpen(false))}</div>
+          )}
         </Command>
       </PopoverContent>
     </Popover>

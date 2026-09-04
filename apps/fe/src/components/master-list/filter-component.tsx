@@ -5,10 +5,8 @@ import {
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { toFieldOptions } from "@/lib/helper/field-options";
 import { getLinkCandidates } from "@/services/board/board-module-service";
-import {
-  getDropdownOptions,
-  getLeadRecords,
-} from "@/services/lead/lead-service";
+import { getLeadRecords } from "@/services/lead/lead-service";
+import { getFieldOptions } from "@/services/options/options-service";
 import { Input } from "@dashboard/ui/components/input";
 import {
   Select,
@@ -64,7 +62,7 @@ export function FilterComponent({
 
   const { data: optionsResponse, isFetching: isFetchingOptions } = useQuery({
     queryKey: ["dropdown-options", col.id, debouncedSearch],
-    queryFn: () => getDropdownOptions(col.id, 1, PICKER_LIMIT, debouncedSearch),
+    queryFn: () => getFieldOptions(col.id, 1, PICKER_LIMIT, debouncedSearch),
     enabled: hasOptions && wasOpened,
     placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 30,

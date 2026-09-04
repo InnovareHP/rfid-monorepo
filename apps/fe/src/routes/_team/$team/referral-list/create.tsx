@@ -8,8 +8,8 @@ import RecordCreatePage, {
 import {
   createReferral,
   getReferralColumnOptions,
-  getReferralDropdownOptions,
 } from "@/services/referral/referral-service";
+import { getFieldOptions } from "@/services/options/options-service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -74,7 +74,7 @@ function RouteComponent() {
       isLoadingColumns={isLoadingColumns}
       isSubmitting={createReferralMutation.isPending}
       fetchDropdownOptions={(fieldId, search, limit) =>
-        getReferralDropdownOptions(fieldId, 1, limit, search)
+        getFieldOptions(fieldId, 1, limit, search)
       }
       optionModule="REFERRAL"
       onSubmit={handleSubmit}

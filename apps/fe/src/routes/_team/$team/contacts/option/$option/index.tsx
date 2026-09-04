@@ -1,7 +1,7 @@
 import FieldOptionPage from "@/components/field-option/field-option-page";
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_team/$team/master-list/leads/option/$option/")({
+export const Route = createFileRoute("/_team/$team/contacts/option/$option/")({
   component: RouteComponent,
 });
 

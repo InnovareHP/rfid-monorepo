@@ -47,60 +47,6 @@ export const getReferralColumnOptions = async () => {
   return response.data;
 };
 
-export const getReferralDropdownOptions = async (
-  fieldKey: string,
-  page?: number,
-  limit?: number,
-  search?: string
-) => {
-  const response = await axiosClient.get(
-    `/api/boards/field/${fieldKey}/options`,
-    {
-      params: {
-        page: page,
-        limit: limit,
-        search: search || undefined,
-      },
-    }
-  );
-
-  return response.data as any;
-};
-
-export const createReferralDropdownOption = async (
-  fieldKey: string,
-  option: string,
-  color?: string
-) => {
-  const response = await axiosClient.post(
-    `/api/boards/field/${fieldKey}/options`,
-    {
-      optionName: option,
-      ...(color && { color }),
-    }
-  );
-
-  return response.data;
-};
-
-export const updateReferral = async (
-  referralId: string,
-  fieldId: string,
-  value: string,
-  reason: string | undefined,
-  previousValue?: string
-) => {
-  const response = await axiosClient.patch(`/api/boards/${referralId}`, {
-    value,
-    fieldId,
-    reason,
-    moduleType: "REFERRAL",
-    previousValue,
-  });
-
-  return response.data;
-};
-
 export const createReferral = async (data: any) => {
   const response = await axiosClient.post("/api/boards", {
     data,
@@ -196,10 +142,3 @@ export const seenReferrals = async (referralId: string) => {
   return response.data;
 };
 
-export const deleteReferralDropdownOption = async (optionId: string) => {
-  const response = await axiosClient.delete(
-    `/api/boards/field/options/${optionId}`
-  );
-
-  return response.data;
-};
