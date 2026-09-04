@@ -17,6 +17,8 @@ export type LiaisonAnalytics = {
   newLeads: number;
   totalReferrals: number;
   admissions: number;
+  ownFacilityReferrals: number;
+  otherFacilityReferrals: number;
   totalInteractions: number;
   engagementLevel: "High" | "Medium" | "Low";
   facilitiesCovered: string[];
@@ -378,6 +380,11 @@ export type LiaisonAnalyticsCardData = {
   newLeads: number;
   totalReferrals: number;
   admissions: number;
+  // Of their referrals, how many came from a facility they are the account
+  // manager for. The remainder of totalReferrals had no facility, or one
+  // nobody manages.
+  ownFacilityReferrals: number;
+  otherFacilityReferrals: number;
   totalInteractions: number;
   engagementLevel: "Low" | "Medium" | "High";
   facilitiesCovered: string[];

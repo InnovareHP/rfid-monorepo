@@ -14,6 +14,12 @@ import {
   stampLetterhead,
 } from "../../lib/documents/letterhead";
 import * as sharp from "sharp";
+import {
+  referralRecordWhere,
+  resolveReferralFacilities,
+  type ReferralFacility,
+} from "../../lib/analytics/referral-facilities";
+import { recordNameIndex } from "../../lib/crypto/record-name-index";
 import { prisma } from "../../lib/prisma/prisma";
 import { TOUCHPOINT_ACTIVITIES } from "./liaison-activity.service";
 import {
@@ -334,73 +340,82 @@ export class LiaisonService {
       }),
     ]);
 
-    const facilityIds = [
-      ...new Set(
-        scopedRows
-          .map((row) => row.facilityRecordId)
-          .filter((id): id is string => id !== null)
-      ),
-    ];
+    // A marketing row names its facility by record id, or by plain text on
+    // legacy rows that never got one. Both have to resolve, or a name-only
+    // facility reports zero referrals however many it generated.
+    const groupKeyByFacilityId = new Map<string, string>();
+    const groupKeyByNameHash = new Map<string, string>();
+    for (const row of scopedRows) {
+      if (row.facilityRecordId) {
+        groupKeyByFacilityId.set(row.facilityRecordId, row.facilityRecordId);
+        continue;
+      }
+      groupKeyByNameHash.set(
+        recordNameIndex(row.facility),
+        `name:${row.facility}`
+      );
+    }
 
-    // source is the REFERRAL-type record, target is the LEAD/facility record
-    // (BoardRelation.REFERRAL_LINK), mirroring analytics.service.ts's
-    // referralRecordWhere/fetchReferralLinkedLeads shape. The date filter
-    // belongs on source.createdAt (the referral's own creation date), not the
-    // facility's, and organizationId must be checked on source explicitly
-    // since BoardRelation.organizationId is nullable and unenforced.
-    const referralLinks = facilityIds.length
-      ? await prisma.boardRelation.findMany({
-          where: {
-            relationType: "REFERRAL_LINK",
-            target: { id: { in: facilityIds } },
-            source: {
-              moduleType: "REFERRAL",
-              isDeleted: false,
-              organizationId,
-              ...(startDate &&
-                endDate && { createdAt: { gte: startDate, lte: endDate } }),
-            },
-          },
-          select: {
-            targetId: true,
-            source: {
-              select: {
-                values: {
-                  where: {
-                    field: {
-                      fieldName: "Admission Status",
-                      moduleType: "REFERRAL",
-                    },
+    const hasFacilities =
+      groupKeyByFacilityId.size > 0 || groupKeyByNameHash.size > 0;
+
+    // The shared resolver, not BoardRelation alone: an imported referral has
+    // no relation and carries its facility in the cell, so reading relations
+    // dropped every one of them out of these counts.
+    type ReferralStatus = { id: string; values: { value: string | null }[] };
+
+    const [referralFacilities, referralStatuses]: [
+      Map<string, ReferralFacility>,
+      ReferralStatus[],
+    ] = hasFacilities
+      ? await Promise.all([
+          resolveReferralFacilities(organizationId, startDate, endDate),
+          prisma.board.findMany({
+            where: referralRecordWhere(organizationId, startDate, endDate),
+            select: {
+              id: true,
+              values: {
+                where: {
+                  field: {
+                    fieldName: "Admission Status",
+                    moduleType: "REFERRAL",
                   },
-                  select: { value: true },
                 },
+                select: { value: true },
               },
             },
-          },
-        })
-      : [];
+          }),
+        ])
+      : [new Map<string, ReferralFacility>(), []];
 
-    const referrals = referralLinks.length;
+    const admittedByReferralId = new Map(
+      referralStatuses.map((record) => [
+        record.id,
+        record.values.some((v) => v.value === "Admitted"),
+      ])
+    );
 
-    const referralCountByFacilityId = new Map<string, number>();
-    const admissionCountByFacilityId = new Map<string, number>();
+    const referralCountByKey = new Map<string, number>();
+    const admissionCountByKey = new Map<string, number>();
+    let referrals = 0;
     let admissions = 0;
 
-    for (const link of referralLinks) {
-      referralCountByFacilityId.set(
-        link.targetId,
-        (referralCountByFacilityId.get(link.targetId) ?? 0) + 1
-      );
+    for (const [referralId, facility] of referralFacilities) {
+      const key =
+        groupKeyByFacilityId.get(facility.id) ??
+        groupKeyByNameHash.get(recordNameIndex(facility.recordName));
+      // A referral from a facility this liaison never logged is not theirs.
+      if (!key) continue;
+
+      referrals += 1;
+      referralCountByKey.set(key, (referralCountByKey.get(key) ?? 0) + 1);
 
       // Status is the referral's own field, so an admission is attributed to
       // the facility the outreach was logged against.
-      if (!link.source?.values.some((v) => v.value === "Admitted")) continue;
+      if (!admittedByReferralId.get(referralId)) continue;
 
       admissions += 1;
-      admissionCountByFacilityId.set(
-        link.targetId,
-        (admissionCountByFacilityId.get(link.targetId) ?? 0) + 1
-      );
+      admissionCountByKey.set(key, (admissionCountByKey.get(key) ?? 0) + 1);
     }
 
     // Group by facilityRecordId, falling back to the plain-text facility name
@@ -424,14 +439,10 @@ export class LiaisonService {
       }
     }
 
-    const facilityBreakdown = [...facilityGroups.values()]
-      .map((group) => {
-        const groupReferrals = group.facilityRecordId
-          ? (referralCountByFacilityId.get(group.facilityRecordId) ?? 0)
-          : 0;
-        const groupAdmissions = group.facilityRecordId
-          ? (admissionCountByFacilityId.get(group.facilityRecordId) ?? 0)
-          : 0;
+    const facilityBreakdown = [...facilityGroups.entries()]
+      .map(([key, group]) => {
+        const groupReferrals = referralCountByKey.get(key) ?? 0;
+        const groupAdmissions = admissionCountByKey.get(key) ?? 0;
         return {
           facility: group.facility,
           facilityRecordId: group.facilityRecordId,
