@@ -127,21 +127,18 @@ export default function ExpenseReportPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <PageHeader
-        title="Expense Report"
-        description="Track and manage business expenses and receipts."
-      />
+            title="Expense Report"
+            description="Track and manage business expenses and receipts."
+          />
 
           <div className="flex gap-2">
             <ExportCsvButton
               onExport={handleExportCSV}
-              className="bg-brand text-white hover:bg-brand/90"
+              className="bg-brand text-brand-foreground hover:bg-brand/90"
             />
 
             {canExport && (
-              <Button
-                onClick={handleExportPDF}
-                variant="outline"
-              >
+              <Button onClick={handleExportPDF} variant="outline">
                 <FileDown className="mr-1 h-4 w-4" />
                 Export PDF
               </Button>

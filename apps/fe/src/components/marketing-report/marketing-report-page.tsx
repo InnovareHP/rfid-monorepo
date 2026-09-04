@@ -143,9 +143,9 @@ export default function MarketingReportPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <PageHeader
-        title="Marketing Report"
-        description="Track outreach activities and referral generation efforts."
-      />
+            title="Marketing Report"
+            description="Track outreach activities and referral generation efforts."
+          />
 
           <ExportCsvButton
             onExport={handleExportCSV}

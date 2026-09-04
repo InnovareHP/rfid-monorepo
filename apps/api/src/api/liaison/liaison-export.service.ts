@@ -20,7 +20,9 @@ export type ExportActor = {
 export type ExportRange = { from?: string; to?: string };
 
 const isoDate = (value: Date | string) =>
-  (value instanceof Date ? value.toISOString() : value).replace("T", " ").slice(0, 16);
+  (value instanceof Date ? value.toISOString() : value)
+    .replace("T", " ")
+    .slice(0, 16);
 
 // The report pages paged the read endpoint a hundred rows at a time and built
 // the file in the browser, so an export looked like ordinary browsing and no

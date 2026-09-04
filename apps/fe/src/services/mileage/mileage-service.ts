@@ -21,10 +21,7 @@ export const getMileageLogs = async (filters?: any) => {
 
 // Server assembles the csv so the export lands as one audited event rather
 // than as a burst of page reads.
-export const exportMileageCsv = async (range: {
-  from?: string;
-  to?: string;
-}) =>
+export const exportMileageCsv = async (range: { from?: string; to?: string }) =>
   requestCsv("/api/liaison/mileage/export", range, "mileage-report.csv");
 
 export const createMileageLog = async (data: any) => {
