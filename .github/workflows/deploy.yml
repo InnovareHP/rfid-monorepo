@@ -86,11 +86,6 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
 
-      # Temporary: prints every variable this job can see, to find why one
-      # vars. reference expands empty. Remove once the cause is known.
-      - name: Debug vars
-        run: echo '${{ toJSON(vars) }}'
-
       - name: Build and push image
         id: build
         env:
@@ -100,13 +95,19 @@ jobs:
           VITE_APP_URL: ${{ vars.VITE_APP_URL }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_AWS_REGION: ${{ vars.VITE_AWS_REGION }}
-          VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
           VITE_DASHBOARD_URL: ${{ vars.VITE_DASHBOARD_URL }}
+          VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
+
+          # Every variable this job can actually see, so an empty name says
+          # whether it is missing, blank, or invisible from this scope.
+          VISIBLE_VARS: ${{ toJSON(vars) }}
         run: |
           # Vite inlines these into the bundle at build time, so an unset name
           # renders as "" and ships a broken image with a green build. An
           # undefined vars./secrets. reference is empty, never an error, so the
           # only place this can be caught is here.
+          echo "Variables visible to this job: $VISIBLE_VARS"
+
           require() {
             for name in "$@"; do
               if [ -z "${!name}" ]; then
