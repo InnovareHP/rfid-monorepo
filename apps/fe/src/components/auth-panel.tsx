@@ -17,11 +17,19 @@ export function AuthPanel({
     >
       <div className="flex items-stretch justify-center w-full mx-auto max-w-[96rem] lg:gap-[var(--gapw)] lg:h-[min(calc(100svh-var(--framew)),calc((100vw-var(--panelw)-var(--gapw)-var(--framew))*1.183),64rem)]">
         <div className="hidden lg:block h-full aspect-[1300/1538] shrink-0 overflow-hidden rounded-3xl shadow-xl">
-          <img
-            src="/login-page/Inner.png"
-            alt="See every referral. Track every opportunity."
-            className="h-full w-full object-cover"
-          />
+          {/* The LCP element on login, so it asks for high priority. picture
+              carries the fill classes itself: inline between the box and the
+              img, it would break what h-full resolves against. */}
+          <picture className="block h-full w-full">
+            <source srcSet="/login-page/Inner.webp" type="image/webp" />
+            <img
+              src="/login-page/Inner.png"
+              alt="See every referral. Track every opportunity."
+              className="h-full w-full object-cover"
+              fetchPriority="high"
+              decoding="async"
+            />
+          </picture>
         </div>
 
         <div className="w-full lg:w-[var(--panelw)] lg:shrink-0 min-h-svh lg:min-h-0 lg:h-full lg:overflow-y-auto rounded-none lg:rounded-3xl shadow-none lg:shadow-xl bg-gradient-to-b from-blue-900 via-blue-600 to-sky-300 lg:bg-gradient-to-br lg:from-sky-200 lg:via-blue-100 lg:to-blue-200 flex flex-col items-center justify-center gap-8 px-4 py-10 sm:px-8 lg:gap-6 lg:p-6 xl:p-8">

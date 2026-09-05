@@ -1,13 +1,21 @@
-import { getLeadRecords } from "@/services/lead/lead-service";
-import {
-  createFieldOption,
-  getFieldOptions,
-} from "@/services/options/options-service";
+import { LinkTargetEmpty } from "@/components/record-create/link-target-empty";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { boardQueryKey, historyQueryKey } from "@/lib/helper/board-query-key";
+import { toFieldOptions } from "@/lib/helper/field-options";
+import { getApiErrorMessage } from "@/lib/helper/helper";
+import { toLocalDateValue } from "@/lib/helper/local-date";
+import { moduleOptionHref } from "@/lib/helper/module-route";
+import { can } from "@/lib/permissions";
 import {
   getLinkCandidates,
   updateModuleRecord,
   type CrmModuleType,
 } from "@/services/board/board-module-service";
+import { getLeadRecords } from "@/services/lead/lead-service";
+import {
+  createFieldOption,
+  getFieldOptions,
+} from "@/services/options/options-service";
 import {
   formatPhoneNumber,
   type LeadRow,
@@ -29,11 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { toFieldOptions } from "@/lib/helper/field-options";
-import { moduleOptionHref } from "@/lib/helper/module-route";
-import { can } from "@/lib/permissions";
-import { getApiErrorMessage } from "@/lib/helper/helper";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
   keepPreviousData,
@@ -42,7 +45,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Link, useParams, useRouteContext } from "@tanstack/react-router";
-import { LinkTargetEmpty } from "@/components/record-create/link-target-empty";
 import { format, isValid, parseISO } from "date-fns";
 import {
   AlertCircle,
@@ -52,9 +54,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
-import { boardQueryKey, historyQueryKey } from "@/lib/helper/board-query-key";
-import { toLocalDateValue } from "@/lib/helper/local-date";
+import { memo, useState } from "react";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
@@ -131,7 +131,9 @@ const parseMultiselectValue = (val: string): string[] => {
   return [];
 };
 
-export function EditableCell({
+// Memoized: the board mounts one of these per column per row, and each holds
+// three gated queries, so an unrelated parent render used to re-run all of them.
+export const EditableCell = memo(function EditableCell({
   id,
   fieldKey,
   fieldName,
@@ -215,8 +217,6 @@ export function EditableCell({
     },
   });
 
-
-
   const handleUpdate = async (
     newVal: string,
     _location?: boolean,
@@ -286,8 +286,7 @@ export function EditableCell({
     isLoading: isLoadingOptions,
   } = useQuery({
     queryKey,
-    queryFn: () =>
-      getFieldOptions(fieldKey, 1, PICKER_LIMIT, debouncedSearch),
+    queryFn: () => getFieldOptions(fieldKey, 1, PICKER_LIMIT, debouncedSearch),
     enabled: selectOpen || debouncedSearch.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 30,
@@ -297,8 +296,7 @@ export function EditableCell({
 
   const { mutate: createDropdownOptionMutation, isPending: isCreatingOption } =
     useMutation({
-      mutationFn: async (option: string) =>
-        createFieldOption(fieldKey, option),
+      mutationFn: async (option: string) => createFieldOption(fieldKey, option),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey });
         refetch();
@@ -317,8 +315,7 @@ export function EditableCell({
     if (!existing) {
       await queryClient.prefetchQuery({
         queryKey,
-        queryFn: () =>
-          getFieldOptions(fieldKey, 1, PICKER_LIMIT),
+        queryFn: () => getFieldOptions(fieldKey, 1, PICKER_LIMIT),
       });
     }
   };
@@ -519,9 +516,7 @@ export function EditableCell({
               the raw value as placeholder that rendered the user's id. The
               resolved name is passed as children instead, which Radix prefers
               over the selected item's label. */}
-          <SelectValue placeholder="Select user">
-            {assignedToName}
-          </SelectValue>
+          <SelectValue placeholder="Select user">{assignedToName}</SelectValue>
         </SelectTrigger>
 
         <SelectContent>
@@ -1325,4 +1320,4 @@ export function EditableCell({
       {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
     </div>
   );
-}
+});

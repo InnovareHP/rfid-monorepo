@@ -7,7 +7,12 @@ export const ImageSection = ({ section }: ImageSectionProps) => {
 
   return (
     <section className="py-10 px-6 max-w-3xl mx-auto space-y-2 text-center">
-      <img src={src} alt={alt} className="w-full rounded-lg object-cover" />
+      <img
+        src={src}
+        alt={alt}
+        className="w-full rounded-lg object-cover"
+        decoding="async"
+      />
       {caption && <p className="text-xs text-gray-400">{caption}</p>}
       {ctaLabel && ctaHref && (
         <a

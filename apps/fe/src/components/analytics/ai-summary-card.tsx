@@ -61,6 +61,8 @@ export function AiSummaryCard({
           src="/branding/Mascot/Refidly%20Brand%20Mascot-02%202.png"
           alt=""
           className="size-44 shrink-0 self-center object-contain"
+          loading="lazy"
+          decoding="async"
         />
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">

@@ -97,6 +97,7 @@ export function InviteMemberDialog({
               src="/branding/Mascot/Refidly%20Brand%20Mascot-02%202.png"
               alt=""
               className="size-full object-contain"
+              decoding="async"
             />
           }
           iconClassName="size-16 bg-transparent"
