@@ -466,7 +466,7 @@ export function ActivityTab({
   }
 
   return (
-    <ScrollArea className="h-full px-4 py-4 sm:px-6">
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
       <div className="space-y-4">
         {/* Create Button / Form */}
         {!showForm ? (
