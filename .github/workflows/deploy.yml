@@ -86,6 +86,11 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
 
+      # Temporary: prints every variable this job can see, to find why one
+      # vars. reference expands empty. Remove once the cause is known.
+      - name: Debug vars
+        run: echo '${{ toJSON(vars) }}'
+
       - name: Build and push image
         id: build
         env:
