@@ -35,14 +35,20 @@ export const cell = (value: unknown): string => {
   return `"${rendered.replace(/"/g, '""')}"`;
 };
 
+// A paged export writes the header once and sends later pages as rows only.
+export const csvRows = (
+  headers: string[],
+  rows: Record<string, unknown>[]
+): string =>
+  rows.map((row) => headers.map((h) => cell(row[h])).join(",")).join("\r\n");
+
 export const toCsv = (
   headers: string[],
   rows: Record<string, unknown>[]
 ): string =>
-  [
-    headers.map(cell).join(","),
-    ...rows.map((row) => headers.map((h) => cell(row[h])).join(",")),
-  ].join("\r\n");
+  rows.length === 0
+    ? headers.map(cell).join(",")
+    : [headers.map(cell).join(","), csvRows(headers, rows)].join("\r\n");
 
 // Excel reads a UTF-8 csv as latin-1 without it, which mangles every accented name.
 const BOM = "\uFEFF";
@@ -55,6 +61,10 @@ export const csvFile = (
 // A ceiling so one request cannot pull an unbounded result set into memory.
 // Above this the caller has to narrow the date range.
 export const EXPORT_ROW_LIMIT = 50_000;
+
+// One page of a client-looped export. Small enough that no single response
+// holds the whole board, large enough that 50k rows is fifty requests.
+export const EXPORT_PAGE_LIMIT = 1_000;
 
 // The date only ends of a picker range. The read paths apply a window only when
 // both ends are set, and an end date parsed at midnight would drop that day's

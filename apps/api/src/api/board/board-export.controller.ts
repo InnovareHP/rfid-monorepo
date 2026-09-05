@@ -1,6 +1,6 @@
-import { Controller, Get, Query, Req, Res, UseGuards } from "@nestjs/common";
+import { Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
-import type { Request, Response } from "express";
+import type { Request } from "express";
 import { EntitlementGuard } from "../../guard/entitlement/entitlement.guard";
 import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import {
@@ -30,17 +30,19 @@ export class BoardExportController {
   async exportCsv(
     @Session() session: MemberSession,
     @Req() req: Request,
-    @Res() res: Response,
     @Query("moduleType") moduleType?: string,
     @Query("filter") filtersQuery?: string,
     @Query("boardDateFrom") boardDateFrom?: string,
     @Query("boardDateTo") boardDateTo?: string,
     @Query("search") search?: string,
     @Query("sortBy") sortBy?: string,
-    @Query("sortOrder") sortOrder?: "asc" | "desc"
+    @Query("sortOrder") sortOrder?: "asc" | "desc",
+    @Query("page") page?: string,
+    @Query("limit") limit?: string
   ) {
     try {
-      const { csv, filename } = await this.exportService.exportCsv(
+      // One page of csv text per call; the client loops until hasMore is false.
+      return await this.exportService.exportCsv(
         session.session.activeOrganizationId,
         {
           moduleType: moduleType ?? "LEAD",
@@ -50,6 +52,8 @@ export class BoardExportController {
           search,
           sortBy,
           sortOrder,
+          page: page ? Number(page) : 1,
+          limit: limit ? Number(limit) : undefined,
         },
         {
           userId: session.user.id,
@@ -57,13 +61,6 @@ export class BoardExportController {
           ip: clientIp(req),
         }
       );
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${filename}"`
-      );
-      res.send(csv);
     } catch (error) {
       throw toSafeError(error, "boards.export.exportCsv");
     }

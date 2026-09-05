@@ -1730,3 +1730,24 @@ replacement.
 
 Verified: `pnpm build:shared`, `pnpm build:fe` (vite + tsc clean),
 `pnpm build:api`, `pnpm lint` (0 errors). No runtime check against a database.
+
+## Board csv export: module-true columns and paged fetch
+
+The export injected an `Account Manager` column into every module. Only the
+master list renders one, so a Phonebook, Companies or Referral csv shipped a
+column the board does not have. `BoardExportService` now emits the assignee
+column only when the module key is `LEAD`; every other header comes from that
+module's own fields plus its record-name label, so the file matches the board.
+
+The endpoint also answers one page at a time instead of assembling up to 50k
+rows in a single response. `GET /api/boards/export` takes `page` and `limit`
+(capped at `EXPORT_PAGE_LIMIT`, 1000) and returns
+`{ csv, rows, filename, hasMore }` as json. Page 1 carries the BOM and the
+header row; later pages are rows only (`csvRows` in `lib/documents/csv.ts`).
+`exportBoardCsv` in `apps/fe/src/services/lead/lead-service.ts` loops until
+`hasMore` is false, joins the chunks with CRLF and downloads one Blob, so the
+three board pages calling it are unchanged. Audit writes one row per page with
+the page number and the total row count.
+
+Verified: `apps/api` jest `board-export.spec.ts` 16 passed, `tsc --noEmit`
+clean in `apps/api` and `apps/fe`. No run against a live database.

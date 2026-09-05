@@ -53,7 +53,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { boardQueryKey, historyQueryKey } from "@/lib/helper/board-query-key";
+import { toLocalDateValue } from "@/lib/helper/local-date";
 import { toast } from "sonner";
 import { MasterListView } from "../master-list/master-list-view";
 import { ContactTooltipForm } from "../master-list/person-cell";
@@ -204,9 +205,13 @@ export function EditableCell({
     },
     // No board-list invalidate: the optimistic write is authoritative locally
     // and the board socket reconciles other clients + server-derived fields.
-    // Stat tiles are aggregates, so they still need a refetch.
-    onSuccess: () => {
+    // Stat tiles are aggregates, so they still need a refetch, and the edit
+    // wrote a history row the open record timeline cannot know about.
+    onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
+      queryClient.invalidateQueries({
+        queryKey: historyQueryKey(effectiveModule, id),
+      });
     },
   });
 
@@ -429,7 +434,7 @@ export function EditableCell({
     const handleSelectToday = () => {
       const today = new Date();
       setDate(today);
-      const iso = today.toISOString().split("T")[0];
+      const iso = toLocalDateValue(today);
       handleUpdate(iso);
     };
 
@@ -477,7 +482,7 @@ export function EditableCell({
             onSelect={(selectedDate) => {
               if (!selectedDate) return;
               setDate(selectedDate);
-              const iso = selectedDate.toISOString().split("T")[0];
+              const iso = toLocalDateValue(selectedDate);
               handleUpdate(iso);
             }}
           />

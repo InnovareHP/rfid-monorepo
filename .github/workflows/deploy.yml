@@ -98,9 +98,23 @@ jobs:
           VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
           VITE_DASHBOARD_URL: ${{ vars.VITE_DASHBOARD_URL }}
         run: |
+          # Vite inlines these into the bundle at build time, so an unset name
+          # renders as "" and ships a broken image with a green build. An
+          # undefined vars./secrets. reference is empty, never an error, so the
+          # only place this can be caught is here.
+          require() {
+            for name in "$@"; do
+              if [ -z "${!name}" ]; then
+                echo "::error::$name resolved empty. Check Settings > Secrets and variables > Actions - 'Secrets' and 'Variables' are separate tabs. If it is scoped to an Environment, this job needs a matching 'environment:' key to see it."
+                exit 1
+              fi
+            done
+          }
+
           BUILD_ARGS=()
           case "${{ matrix.service }}" in
             fe)
+              require VITE_APP_URL VITE_API_URL VITE_AWS_REGION VITE_AWS_LOCATION_API_KEY
               BUILD_ARGS=(
                 --build-arg "VITE_APP_URL=$VITE_APP_URL"
                 --build-arg "VITE_API_URL=$VITE_API_URL"
@@ -109,6 +123,7 @@ jobs:
               )
               ;;
             fe-support)
+              require VITE_API_URL VITE_DASHBOARD_URL
               BUILD_ARGS=(
                 --build-arg "VITE_API_URL=$VITE_API_URL"
                 --build-arg "VITE_DASHBOARD_URL=$VITE_DASHBOARD_URL"

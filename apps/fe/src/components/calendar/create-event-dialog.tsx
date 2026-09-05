@@ -35,6 +35,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toLocalDateTimeValue } from "@/lib/helper/local-date";
 import { z } from "zod";
 
 const eventSchema = z
@@ -53,8 +54,6 @@ const eventSchema = z
   });
 
 type EventFormValues = z.infer<typeof eventSchema>;
-
-const toLocalInput = (date: Date) => date.toISOString().slice(0, 16);
 
 interface CreateEventDialogProps {
   open: boolean;
@@ -86,8 +85,8 @@ export function CreateEventDialog({
       title: "",
       description: "",
       allDay: false,
-      startDate: toLocalInput(start),
-      endDate: toLocalInput(end),
+      startDate: toLocalDateTimeValue(start),
+      endDate: toLocalDateTimeValue(end),
       location: "",
     },
   });

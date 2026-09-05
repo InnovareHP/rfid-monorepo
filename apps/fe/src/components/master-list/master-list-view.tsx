@@ -1,4 +1,4 @@
-import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { boardQueryKey, historyQueryKey } from "@/lib/helper/board-query-key";
 import {
   getLeadTimeline,
   getSpecificLead,
@@ -78,6 +78,7 @@ export function MasterListView({
 }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState(initialTab);
+  const moduleKey = isReferral ? "REFERRAL" : "LEAD";
 
   const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
     activeOrganizationId: string;
@@ -112,7 +113,7 @@ export function MasterListView({
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: [isReferral ? "referral-history" : "lead-history", leadId],
+    queryKey: historyQueryKey(moduleKey, leadId),
     enabled: open && activeTab === "history",
     queryFn: ({ pageParam = 1 }) =>
       isReferral
@@ -183,14 +184,18 @@ export function MasterListView({
         leadId,
         historyId,
         eventType,
-        isReferral ? "REFERRAL" : "LEAD"
+        moduleKey
       );
       toast.success("History restored successfully");
 
-      await queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
-      await queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
       await queryClient.invalidateQueries({
-        queryKey: ["lead-history", leadId],
+        queryKey: [isReferral ? "referral" : "lead", leadId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: boardQueryKey(moduleKey),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: historyQueryKey(moduleKey, leadId),
       });
     } catch (error) {
       toast.error("Failed to restore history");

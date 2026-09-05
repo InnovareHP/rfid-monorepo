@@ -50,6 +50,8 @@ export const updateModuleRecord = async (
     fieldId,
     moduleType,
     reason,
+    // A status change stamps Action Date, and the server runs in UTC.
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 
   return response.data;

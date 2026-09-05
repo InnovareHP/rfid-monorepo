@@ -3,6 +3,7 @@ import {
   getSpecificReferral,
 } from "@/services/referral/referral-service";
 import { formatDateTime } from "@dashboard/shared";
+import { historyQueryKey } from "@/lib/helper/board-query-key";
 import { FILETYPE } from "@/lib/fe-helpers";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
@@ -53,7 +54,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
   });
 
   const { data: historyData, isLoading: historyLoading } = useInfiniteQuery({
-    queryKey: ["referral-history", referralId],
+    queryKey: historyQueryKey("REFERRAL", referralId),
     enabled: open && activeTab === "history",
     queryFn: ({ pageParam = 1 }) =>
       getReferralHistory(referralId, 15, pageParam as number),

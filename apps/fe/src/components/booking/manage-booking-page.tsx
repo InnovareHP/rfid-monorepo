@@ -17,8 +17,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarX2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toLocalDateValue } from "@/lib/helper/local-date";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => toLocalDateValue(new Date());
 
 // Times render in the invitee's own zone, which is what the booking recorded,
 // so the page never asks them to convert.

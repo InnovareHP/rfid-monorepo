@@ -1,11 +1,18 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { AuditService } from "../../lib/audit/audit.service";
-import { csvFile, EXPORT_ROW_LIMIT } from "../../lib/documents/csv";
+import {
+  csvFile,
+  csvRows,
+  EXPORT_PAGE_LIMIT,
+  EXPORT_ROW_LIMIT,
+} from "../../lib/documents/csv";
 import { prisma } from "../../lib/prisma/prisma";
 import { BoardService } from "./board.service";
 
 export interface ExportRequest {
   moduleType: string;
+  page?: number;
+  limit?: number;
   boardDateFrom?: string;
   boardDateTo?: string;
   search?: string;
@@ -25,12 +32,17 @@ export class BoardExportService {
     organizationId: string,
     request: ExportRequest,
     actor: { userId: string; role: string | null; ip: string | null }
-  ): Promise<{ csv: string; rows: number; filename: string }> {
+  ): Promise<{
+    csv: string;
+    rows: number;
+    filename: string;
+    hasMore: boolean;
+  }> {
     // Every module exports, so the name column is headed by whatever this
     // organization calls one of its records rather than a hardcoded label.
     const board = await prisma.module.findFirst({
       where: { key: request.moduleType, organizationId },
-      select: { label: true, labelSingular: true },
+      select: { key: true, label: true, labelSingular: true },
     });
 
     if (!board) {
@@ -39,39 +51,53 @@ export class BoardExportService {
       );
     }
 
+    const page = Math.max(1, Number(request.page ?? 1));
+    const limit = Math.min(
+      Math.max(1, Number(request.limit ?? EXPORT_PAGE_LIMIT)),
+      EXPORT_PAGE_LIMIT
+    );
+
     const result: any = await this.boardService.getAllBoards(organizationId, {
       ...request,
-      page: 1,
-      limit: EXPORT_ROW_LIMIT,
+      page,
+      limit,
     } as any);
 
     const data: Record<string, unknown>[] = result.data ?? [];
     const columns: { name: string }[] = result.columns ?? [];
+    const total: number = result.pagination?.count ?? data.length;
 
     const nameHeader = board.labelSingular;
-    const ASSIGNEE_HEADER = "Account Manager";
+    // Only the master list renders an Account Manager column, so no other
+    // module exports one the board itself does not have.
+    const assigneeHeader = board.key === "LEAD" ? "Account Manager" : null;
 
     // A module can own a field named the same as its own label (REFERRAL has a
     // "Facility" field), and a duplicated header would drop one of the two.
     const headers = [
       nameHeader,
-      ASSIGNEE_HEADER,
+      ...(assigneeHeader ? [assigneeHeader] : []),
       ...columns
         .filter((c) => c.name !== "History")
         .map((c) => c.name)
-        .filter((name) => name !== nameHeader && name !== ASSIGNEE_HEADER),
+        .filter((name) => name !== nameHeader && name !== assigneeHeader),
     ];
 
-    const names = await this.memberNames(organizationId);
+    const names = assigneeHeader
+      ? await this.memberNames(organizationId)
+      : null;
 
     const rows = data.map((row) => {
       const out: Record<string, unknown> = {};
 
       // recordName and assignedTo are what getAllBoards puts on a flat row.
-      const assignedTo = row["assignedTo"];
       out[nameHeader] = row["recordName"] ?? "";
-      out[ASSIGNEE_HEADER] =
-        typeof assignedTo === "string" ? (names.get(assignedTo) ?? "") : "";
+
+      if (assigneeHeader && names) {
+        const assignedTo = row["assignedTo"];
+        out[assigneeHeader] =
+          typeof assignedTo === "string" ? (names.get(assignedTo) ?? "") : "";
+      }
 
       for (const header of headers) {
         if (header in out) continue;
@@ -92,8 +118,10 @@ export class BoardExportService {
       resourceType: "Board",
       metadata: {
         moduleType: request.moduleType,
+        page,
         rows: rows.length,
-        truncated: rows.length >= EXPORT_ROW_LIMIT,
+        total,
+        truncated: total > EXPORT_ROW_LIMIT,
         boardDateFrom: request.boardDateFrom ?? null,
         boardDateTo: request.boardDateTo ?? null,
         search: request.search ? "[redacted]" : null,
@@ -104,9 +132,11 @@ export class BoardExportService {
     const prefix = board.label.replace(/[^a-zA-Z0-9]+/g, "_");
 
     return {
-      csv: csvFile(headers, rows),
+      // The browser stitches the pages, so only the first one carries headers.
+      csv: page === 1 ? csvFile(headers, rows) : csvRows(headers, rows),
       rows: rows.length,
       filename: `${prefix}_${stamp}.csv`,
+      hasMore: page * limit < Math.min(total, EXPORT_ROW_LIMIT),
     };
   }
 

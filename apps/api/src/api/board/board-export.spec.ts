@@ -33,6 +33,7 @@ describe("BoardExportService", () => {
     jest.clearAllMocks();
     findMany.mockResolvedValue([{ userId: "u1", user: { name: "Dana Reed" } }]);
     moduleFindFirst.mockResolvedValue({
+      key: "LEAD",
       label: "Master Marketing List",
       labelSingular: "Lead",
     });
@@ -71,6 +72,7 @@ describe("BoardExportService", () => {
   // Every module exports its record name, headed by that module's own label.
   it("heads the name column with the module label", async () => {
     moduleFindFirst.mockResolvedValue({
+      key: "FACILITY",
       label: "Facilities",
       labelSingular: "Facility",
     });
@@ -85,7 +87,7 @@ describe("BoardExportService", () => {
       actor
     );
 
-    expect(lines(csv)[0]).toBe("Facility,Account Manager,Stage");
+    expect(lines(csv)[0]).toBe("Facility,Stage");
     expect(filename).toMatch(/^Facilities_/);
   });
 
@@ -93,6 +95,7 @@ describe("BoardExportService", () => {
   // collides with one of its own fields must not emit that column twice.
   it("does not repeat a column that matches the module label", async () => {
     moduleFindFirst.mockResolvedValue({
+      key: "REFERRAL",
       label: "Referral Logs",
       labelSingular: "Facility",
     });
@@ -107,14 +110,15 @@ describe("BoardExportService", () => {
       actor
     );
 
-    expect(lines(csv)[0]).toBe("Facility,Account Manager");
-    expect(lines(csv)[1]).toBe("Acme,");
+    expect(lines(csv)[0]).toBe("Facility");
+    expect(lines(csv)[1]).toBe("Acme");
   });
 
   // getAllBoards resolves a link cell to the target's recordName before it
   // builds the flat row, so a link column exports as that name, not an id.
   it("exports link columns for a crm module", async () => {
     moduleFindFirst.mockResolvedValue({
+      key: "CONTACT",
       label: "Phonebook",
       labelSingular: "Contact",
     });
@@ -139,8 +143,41 @@ describe("BoardExportService", () => {
       actor
     );
 
-    expect(lines(csv)[0]).toBe("Contact,Account Manager,Company,Facility");
-    expect(lines(csv)[1]).toBe("Dana Reed,Dana Reed,Acme Health,Lakeside");
+    expect(lines(csv)[0]).toBe("Contact,Company,Facility");
+    expect(lines(csv)[1]).toBe("Dana Reed,Acme Health,Lakeside");
+  });
+
+  // The browser loops pages and joins them, so only the first page may carry
+  // the BOM and the header row.
+  it("writes the header on the first page only and reports more pages", async () => {
+    getAllBoards.mockResolvedValue({
+      data: [{ recordName: "Acme", Stage: "New" }],
+      columns: [{ name: "Stage" }],
+      pagination: { count: 3 },
+    });
+
+    const first = await service().exportCsv(
+      "org_a",
+      { moduleType: "LEAD", page: 1, limit: 1 },
+      actor
+    );
+    const second = await service().exportCsv(
+      "org_a",
+      { moduleType: "LEAD", page: 2, limit: 1 },
+      actor
+    );
+    const last = await service().exportCsv(
+      "org_a",
+      { moduleType: "LEAD", page: 3, limit: 1 },
+      actor
+    );
+
+    expect(first.csv.startsWith("\ufeff")).toBe(true);
+    expect(lines(first.csv)[0]).toBe("Lead,Account Manager,Stage");
+    expect(first.hasMore).toBe(true);
+    expect(second.csv).toBe("Acme,,New");
+    expect(second.hasMore).toBe(true);
+    expect(last.hasMore).toBe(false);
   });
 
   it("rejects a module the organization does not own", async () => {
@@ -224,7 +261,12 @@ describe("BoardExportService", () => {
       actorUserId: "user_a",
       actorOrgId: "org_a",
       resourceType: "Board",
-      metadata: { moduleType: "LEAD", rows: 2, boardDateFrom: "2026-01-01" },
+      metadata: {
+        moduleType: "LEAD",
+        page: 1,
+        rows: 2,
+        boardDateFrom: "2026-01-01",
+      },
     });
   });
 

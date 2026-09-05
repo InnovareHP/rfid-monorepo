@@ -46,6 +46,7 @@ import {
   NAME_SIMILARITY_THRESHOLD,
   nameSimilarity,
 } from "../../lib/board/name-similarity";
+import { todayInZone } from "../../lib/board/local-date";
 import {
   GENERIC_ERROR_MESSAGE,
   toSafeError,
@@ -104,6 +105,7 @@ type RecordUpdateContext = {
   memberId: string;
   moduleType: string;
   reason?: string;
+  timezone: string;
 };
 
 type FieldUpdateContext = RecordUpdateContext & {
@@ -1424,7 +1426,8 @@ export class BoardService {
     // No previousValue parameter on purpose: each sub-handler reads the prior
     // value from the row it is updating, which cannot be stale or forged the
     // way a client-supplied one can.
-    reason?: string
+    reason?: string,
+    timezone = "UTC"
   ) {
     const scopedModuleId = await resolveModuleId(moduleType, organizationId);
     try {
@@ -1481,6 +1484,7 @@ export class BoardService {
             memberId,
             moduleType,
             reason,
+            timezone,
           };
 
           if (fieldId === BoardFieldType.ASSIGNED_TO) {
@@ -2198,7 +2202,7 @@ export class BoardService {
 
       // Action Date is a DATE field, so it stores a day the way every other
       // date write does. A full timestamp here rendered raw in the timeline.
-      const actionDate = new Date().toISOString().split("T")[0];
+      const actionDate = todayInZone(ctx.timezone);
 
       if (actionDateField) {
         await tx.fieldValue.upsert({

@@ -873,7 +873,8 @@ export class BoardController {
         organizationId,
         session.session.userId,
         dto.moduleType,
-        dto.reason
+        dto.reason,
+        dto.timezone
       );
     } catch (error) {
       throw toSafeError(error, "boards.updateRecordValue");

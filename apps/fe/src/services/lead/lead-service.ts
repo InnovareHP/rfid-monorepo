@@ -1,5 +1,4 @@
 import { axiosClient } from "@/lib/axios-client";
-import { requestCsv } from "@/lib/helper/csv-download";
 import type {
   BoardStats,
   LeadAnalyze,
@@ -42,20 +41,47 @@ export const getLeads = async (filters: any) => {
 };
 
 // Server assembles the csv so the export lands as one auditable event rather
-// than as a burst of page reads indistinguishable from browsing.
+// than as a burst of page reads indistinguishable from browsing. It answers a
+// page at a time, so the loop here stitches them instead of one request holding
+// the whole board in memory on either side.
+const EXPORT_PAGE_SIZE = 1000;
+
 export const exportBoardCsv = async (
   filters: any,
   moduleType: string = "LEAD"
-) =>
-  requestCsv(
-    "/api/boards/export",
-    {
-      ...filters,
-      filter: JSON.stringify(filters.filter ?? {}),
-      moduleType,
-    },
-    `${moduleType.toLowerCase()}-export.csv`
-  );
+) => {
+  const chunks: string[] = [];
+  let filename = `${moduleType.toLowerCase()}-export.csv`;
+
+  for (let page = 1; ; page++) {
+    const response = await axiosClient.get("/api/boards/export", {
+      params: {
+        ...filters,
+        filter: JSON.stringify(filters.filter ?? {}),
+        moduleType,
+        page,
+        limit: EXPORT_PAGE_SIZE,
+      },
+    });
+
+    const { csv, hasMore } = response.data as {
+      csv: string;
+      hasMore: boolean;
+      filename: string;
+    };
+
+    filename = response.data.filename ?? filename;
+    if (csv) chunks.push(csv);
+    if (!hasMore) break;
+  }
+
+  return {
+    blob: new Blob([chunks.join("\r\n")], {
+      type: "text/csv;charset=utf-8;",
+    }),
+    filename,
+  };
+};
 
 export const getBoardStats = async (
   moduleType: string = "LEAD"

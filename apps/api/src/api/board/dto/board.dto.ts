@@ -1,5 +1,6 @@
 import { BoardFieldType } from "@prisma/client";
 import { z } from "zod";
+import { isValidTimeZone } from "../../../lib/board/local-date";
 
 export const CreateRecordSchema = z
   .object({
@@ -31,6 +32,12 @@ export const UpdateRecordValueSchema = z.object({
   fieldId: z.string(),
   moduleType: z.string().default("LEAD"),
   reason: z.string().optional(),
+  // A status change stamps Action Date with the day the user is on, not the
+  // day the UTC server is on.
+  timezone: z
+    .string()
+    .refine(isValidTimeZone, "Invalid IANA timezone")
+    .default("UTC"),
 });
 
 export const RestoreHistorySchema = z.object({

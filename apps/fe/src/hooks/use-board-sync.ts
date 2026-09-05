@@ -1,5 +1,5 @@
 import { authClient } from "@/lib/auth-client";
-import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { boardQueryKey, historyQueryKey } from "@/lib/helper/board-query-key";
 import { connectSocket, setTokenGenerator } from "@/lib/socket-io/socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -35,6 +35,14 @@ export function useBoardSync() {
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
     };
 
+    // A cell written elsewhere also wrote a history row, so an open record
+    // timeline is stale even though its row was patched in place.
+    const invalidateHistory = (moduleType: string | undefined, recordId: string) => {
+      queryClient.invalidateQueries({
+        queryKey: historyQueryKey(moduleType ?? "LEAD", recordId),
+      });
+    };
+
     const handleUpdate = ({ recordId, fieldName, value, moduleType }: any) => {
       patchRows(moduleType, (rows) =>
         rows.map((r: any) =>
@@ -43,6 +51,7 @@ export function useBoardSync() {
             : r
         )
       );
+      invalidateHistory(moduleType, recordId);
     };
 
     const handleCreated = ({ record, moduleType }: any) => {
@@ -74,6 +83,7 @@ export function useBoardSync() {
           r.id === recordId ? { ...r, ...data, has_notification: true } : r
         )
       );
+      invalidateHistory(moduleType, recordId);
     };
 
     const handleUpdateNotificationState = ({ recordId, moduleType }: any) => {
@@ -109,6 +119,7 @@ export function useBoardSync() {
             : r
         )
       );
+      invalidateHistory(moduleType, recordId);
     };
 
     const handleColumnCreated = ({ column, moduleType }: any) => {
