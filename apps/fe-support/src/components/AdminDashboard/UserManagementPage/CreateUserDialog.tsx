@@ -26,15 +26,32 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const schema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(120),
-  email: z.string().trim().email("Enter a valid email"),
-  organizationName: z
-    .string()
-    .trim()
-    .min(1, "Organization name is required")
-    .max(120),
-});
+const schema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(120),
+    email: z.string().trim().email("Enter a valid email"),
+    organizationName: z
+      .string()
+      .trim()
+      .min(1, "Organization name is required")
+      .max(120),
+    // Matches minPasswordLength in the auth config, so a password that passes
+    // here is one the account can actually sign in with.
+    password: z
+      .string()
+      .min(12, "Use at least 12 characters")
+      .max(128, "Use at most 128 characters"),
+    confirmPassword: z.string(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.password !== values.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["confirmPassword"],
+        message: "Passwords do not match",
+      });
+    }
+  });
 
 type CreateUserValues = z.infer<typeof schema>;
 
@@ -54,11 +71,18 @@ export function CreateUserDialog({
 
   const form = useForm<CreateUserValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", organizationName: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      organizationName: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (values: CreateUserValues) => createUser(values, setStep),
+    mutationFn: ({ confirmPassword: _confirm, ...values }: CreateUserValues) =>
+      createUser(values, setStep),
     onSuccess: () => {
       toast.success("User created. A welcome email is on its way.");
       form.reset();
@@ -88,8 +112,9 @@ export function CreateUserDialog({
         <DialogHeader>
           <DialogTitle>Create user</DialogTitle>
           <DialogDescription>
-            Creates the account and its organization, then emails the owner. The
-            organization has no subscription until they check out.
+            Creates the account and its organization with the password you set,
+            then emails the owner. The organization has no subscription until
+            they check out.
           </DialogDescription>
         </DialogHeader>
 
@@ -135,8 +160,8 @@ export function CreateUserDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    They sign in by enrolling a passkey from the login page, so
-                    no password is set here.
+                    They can still enrol a passkey from the login page once they
+                    have signed in.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -151,6 +176,47 @@ export function CreateUserDialog({
                   <FormLabel>Organization name</FormLabel>
                   <FormControl>
                     <Input placeholder="Reyes Care Group" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="At least 12 characters"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Hand this to the owner over a channel you trust. It is not
+                    shown again once the dialog closes.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      autoComplete="new-password"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

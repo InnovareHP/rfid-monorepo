@@ -10,6 +10,8 @@ import {
   setUserRole,
   unbanUser,
   verifyEmail,
+  createUserSignInLink,
+  type SignInLink,
   type AdminUser,
 } from "@/services/admin/admin-service";
 import { formatDate } from "@dashboard/shared";
@@ -47,7 +49,9 @@ import {
   Building2,
   Calendar,
   KeyRound,
+  Link2,
   LogOut,
+  MailCheck,
   MoreHorizontal,
   Search,
   Shield,
@@ -66,6 +70,7 @@ import { BanUserDialog } from "./BanUserDialog";
 import { CreateUserDialog } from "./CreateUserDialog";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { ImpersonateUserDialog } from "./ImpersonateUserDialog";
+import { SignInLinkDialog } from "./SignInLinkDialog";
 
 const ROLE_LABELS: Record<AdminRole, string> = {
   [ROLES.USER]: "User",
@@ -122,6 +127,10 @@ export function UserManagementPage() {
   const [impersonateTarget, setImpersonateTarget] = useState<AdminUser | null>(
     null
   );
+  const [signInLinkTarget, setSignInLinkTarget] = useState<AdminUser | null>(
+    null
+  );
+  const [signInLink, setSignInLink] = useState<SignInLink | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -226,6 +235,18 @@ export function UserManagementPage() {
       invalidateUsers();
     },
     onError: () => toast.error("Failed to verify email"),
+  });
+
+  const signInLinkMutation = useMutation({
+    mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
+      createUserSignInLink(userId, reason),
+    onSuccess: (link) => setSignInLink(link),
+    // The API says why a link was refused, and that reason is more useful
+    // than a generic failure for the admin who asked.
+    onError: (error: { response?: { data?: { message?: string } } }) =>
+      toast.error(
+        error.response?.data?.message ?? "Failed to generate the link"
+      ),
   });
 
   const passwordMutation = useMutation({
@@ -379,6 +400,16 @@ export function UserManagementPage() {
             </DropdownMenuItem>
 
             <DropdownMenuItem
+              onClick={() => {
+                setSignInLink(null);
+                setSignInLinkTarget(row);
+              }}
+            >
+              <Link2 className="mr-2 h-4 w-4" />
+              Generate sign-in link
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
               onClick={() => revokeSessionsMutation.mutate(row.id)}
               disabled={revokeSessionsMutation.isPending}
             >
@@ -394,7 +425,7 @@ export function UserManagementPage() {
                 onClick={() => verifyEmailMutation.mutate(row.id)}
                 disabled={verifyEmailMutation.isPending}
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <MailCheck className="mr-2 h-4 w-4" />
                 Verify email
               </DropdownMenuItem>
             )}
@@ -528,6 +559,23 @@ export function UserManagementPage() {
         onConfirm={(reason) =>
           impersonateTarget &&
           impersonateMutation.mutate({ userId: impersonateTarget.id, reason })
+        }
+      />
+
+      {/* Sign-in link dialog */}
+      <SignInLinkDialog
+        open={!!signInLinkTarget}
+        onOpenChange={(open) => {
+          if (open) return;
+          setSignInLinkTarget(null);
+          setSignInLink(null);
+        }}
+        userName={signInLinkTarget?.name ?? ""}
+        isPending={signInLinkMutation.isPending}
+        link={signInLink}
+        onConfirm={(reason) =>
+          signInLinkTarget &&
+          signInLinkMutation.mutate({ userId: signInLinkTarget.id, reason })
         }
       />
 

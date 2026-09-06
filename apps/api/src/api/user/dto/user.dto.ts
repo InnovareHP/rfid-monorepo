@@ -37,6 +37,9 @@ export const CreateAdminUserSchema = z.object({
   name: z.string().trim().min(1).max(120),
   email: z.string().trim().toLowerCase().email(),
   organizationName: z.string().trim().min(1).max(120),
+  // Matches minPasswordLength in the auth config, since a shorter password
+  // would insert here and then be refused at sign-in.
+  password: z.string().min(12).max(128),
 });
 
 export type CreateAdminUserData = z.infer<typeof CreateAdminUserSchema>;

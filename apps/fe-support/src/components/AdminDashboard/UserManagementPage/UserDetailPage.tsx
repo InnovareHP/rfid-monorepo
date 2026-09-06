@@ -10,6 +10,7 @@ import {
   setUserPassword,
   setUserRole,
   unbanUser,
+  verifyEmail,
   type AdminUser,
   type SignInLink,
 } from "@/services/admin/admin-service";
@@ -67,6 +68,7 @@ import {
   Link2,
   LogOut,
   Mail,
+  MailCheck,
   MoreHorizontal,
   Shield,
   ShieldOff,
@@ -209,6 +211,15 @@ export function UserDetailPage({ userId }: { userId: string }) {
     onError: () => toast.error("Failed to revoke sessions"),
   });
 
+  const verifyEmailMutation = useMutation({
+    mutationFn: () => verifyEmail(userId),
+    onSuccess: () => {
+      toast.success("Email verified");
+      invalidate();
+    },
+    onError: () => toast.error("Failed to verify the email"),
+  });
+
   const passwordMutation = useMutation({
     mutationFn: (newPassword: string) => setUserPassword(userId, newPassword),
     onSuccess: () => {
@@ -264,11 +275,13 @@ export function UserDetailPage({ userId }: { userId: string }) {
             }}
             onRevokeSession={() => revokeSessionMutation.mutate()}
             onChangePassword={() => setPasswordOpen(true)}
+            onVerifyEmail={() => verifyEmailMutation.mutate()}
             onRoleChange={(role) => roleMutation.mutate(role)}
             isPending={
               unbanMutation.isPending ||
               impersonateMutation.isPending ||
               revokeSessionMutation.isPending ||
+              verifyEmailMutation.isPending ||
               roleMutation.isPending
             }
           />
@@ -483,6 +496,7 @@ function ActionsDropdown({
   onRemove,
   onImpersonate,
   onSignInLink,
+  onVerifyEmail,
   onRevokeSession,
   onChangePassword,
   onRoleChange,
@@ -494,6 +508,7 @@ function ActionsDropdown({
   onRemove: () => void;
   onImpersonate: () => void;
   onSignInLink: () => void;
+  onVerifyEmail: () => void;
   onRevokeSession: () => void;
   onChangePassword: () => void;
   onRoleChange: (role: AdminRole) => void;
@@ -559,6 +574,13 @@ function ActionsDropdown({
           <KeyRound className="mr-2 h-4 w-4" />
           Change password
         </DropdownMenuItem>
+
+        {!user.emailVerified && (
+          <DropdownMenuItem onClick={onVerifyEmail}>
+            <MailCheck className="mr-2 h-4 w-4" />
+            Verify email
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
 
         <DropdownMenuItem

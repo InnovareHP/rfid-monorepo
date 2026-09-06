@@ -201,6 +201,7 @@ export type CreateUserPayload = {
   name: string;
   email: string;
   organizationName: string;
+  password: string;
 };
 
 export type CreateUserResult = { userId: string; organizationId: string };

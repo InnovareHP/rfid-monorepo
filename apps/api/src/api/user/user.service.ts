@@ -110,14 +110,14 @@ export class UserService {
     yield { type: "done", organizationId: organization.id };
   }
 
-  // Support-side provisioning. Same two rows self-serve signup ends with, in
-  // the same order, minus the credential: the account holds none, so the owner
-  // enrols their own passkey from the login page.
+  // Support-side provisioning. Same rows self-serve signup ends with, in the
+  // same order: the account is created with a credential the admin sets, and
+  // the owner can still enrol a passkey from the login page afterwards.
   async *createAdminUser(
     dto: CreateAdminUserData,
     admin: { id: string; name: string }
   ): AsyncGenerator<AdminUserCreateStreamEvent> {
-    const { email, name, organizationName } = dto;
+    const { email, name, organizationName, password } = dto;
     const slug = toSlug(organizationName);
 
     yield { type: "progress", step: "checking", label: "Checking the email" };
@@ -147,11 +147,28 @@ export class UserService {
       label: "Creating the account",
     };
 
-    const user = await prisma.user.create({
-      // The admin vouched for the address, and the welcome email is the proof
-      // of delivery: an unverified owner cannot receive an invitation either.
-      data: { email, name, emailVerified: true },
-      select: { id: true },
+    // Better Auth's configured hasher, so sign-in verifies the same way.
+    const { password: passwordCtx } = await auth.$context;
+    const hashed = await passwordCtx.hash(password);
+
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        // The admin vouched for the address, and the welcome email is the proof
+        // of delivery: an unverified owner cannot receive an invitation either.
+        data: { email, name, emailVerified: true },
+        select: { id: true },
+      });
+
+      await tx.userAccount.create({
+        data: {
+          accountId: created.id,
+          providerId: "credential",
+          userId: created.id,
+          password: hashed,
+        },
+      });
+
+      return created;
     });
 
     yield {
