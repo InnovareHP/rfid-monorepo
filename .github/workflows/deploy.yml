@@ -75,8 +75,6 @@ jobs:
         service: ${{ fromJson(needs.changes.outputs.services) }}
       fail-fast: false
     runs-on: ubuntu-latest
-    # Variables and secrets scoped to this environment are invisible without it.
-
     steps:
       - uses: actions/checkout@v4
 
