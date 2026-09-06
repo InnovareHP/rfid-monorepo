@@ -1751,3 +1751,42 @@ the page number and the total row count.
 
 Verified: `apps/api` jest `board-export.spec.ts` 16 passed, `tsc --noEmit`
 clean in `apps/api` and `apps/fe`. No run against a live database.
+
+## Module singular labels and demo seeder refresh
+
+Board csv exports headed the record-name column `Lead` and `Referral` while the
+master list and referral log render `Facility` and `Referrer`. The header comes
+from `Module.labelSingular` (`BoardExportService`), so the mismatch is data, not
+export code. `rename_lead_module_label_to_facility` already existed and was
+never applied. Added the matching
+`rename_referral_module_label_to_referrer` migration and changed the REFERRAL
+seed in `src/lib/module/system-modules.ts` to `Referrer`. Both migrations are
+hand-written UPDATEs guarded on `isSystem` and the exact seeded wording, so an
+organization that renamed its own module keeps its label. Neither has been run
+against a database yet.
+
+The frontend still hardcodes those two headers (`master-list-column.tsx`,
+`referral-list-column.tsx`) instead of reading `module.labelSingular` the way
+`module-list-route.tsx` does. That is what lets the label drift; left as is.
+
+`seed-demo-data.ts` was rewritten against the current schema and split into
+`prisma/scripts/demo/`. Drift fixed: `Marketing.userId` is now written, because
+liaison analytics key every map by user id and a log without one is invisible to
+the per-liaison reports it feeds; fields resolve through `Field.moduleId`
+instead of the legacy `moduleType`; `--wipe` matches decrypted record names
+against this script's own vocabulary rather than deleting every board, visit log
+and relation in the organization.
+
+Coverage added: companies and contacts with `COMPANY_LINK` relations, the three
+`CONTACT_LINK` columns on each facility, `History` rows for creates and stage
+moves, a task project with three lists and 36 tasks, 60 expenses and 70 mileage
+entries. Contact names come from a shuffled pool of every first/last pairing
+because `add_record_name_uniqueness` puts a unique blind index on the record
+name, and `persistRecords` writes values only for board rows that actually
+landed so a re-run cannot orphan a foreign key. Task statuses are checked in
+`loadContext` so a missing set fails before any record is written.
+
+Verified: `tsc --noEmit` clean across `apps/api` with `prisma/scripts` included
+(the app tsconfig covers `scripts`, not `prisma/scripts`, so neither
+`nest build` nor `pnpm --filter api lint` reaches these files). `pnpm build:api`
+clean. Not run against a database.

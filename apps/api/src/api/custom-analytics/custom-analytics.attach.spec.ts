@@ -1,5 +1,13 @@
 // A chart built from inside a dashboard joins it in the same write, so it can
 // never end up saved but unattached.
+// The service imports the redis singleton at module load; mocked so the suite
+// never opens a connection.
+jest.mock("../../lib/redis/redis", () => ({
+  cacheData: jest.fn(),
+  getData: jest.fn().mockResolvedValue(null),
+  purgeAllCacheKeys: jest.fn(),
+}));
+
 jest.mock("../../lib/prisma/prisma", () => ({
   prisma: {
     module: { findFirst: jest.fn() },

@@ -2,6 +2,14 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 // The service imports the prisma singleton directly, so the module is mocked
 // and the interactive transaction is run against the same mocked delegates.
+// The service imports the redis singleton at module load; mocked so the suite
+// never opens a connection.
+jest.mock("../../lib/redis/redis", () => ({
+  cacheData: jest.fn(),
+  getData: jest.fn().mockResolvedValue(null),
+  purgeAllCacheKeys: jest.fn(),
+}));
+
 jest.mock("../../lib/prisma/prisma", () => {
   const client = {
     customAnalyticDashboard: { findFirst: jest.fn() },

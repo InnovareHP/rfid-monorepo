@@ -15,7 +15,7 @@ export const SYSTEM_MODULES = [
   {
     key: "REFERRAL",
     label: "Referral Logs",
-    labelSingular: "Referral",
+    labelSingular: "Referrer",
     icon: "Users",
     moduleOrder: 1,
   },
