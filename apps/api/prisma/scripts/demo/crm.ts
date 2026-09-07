@@ -9,7 +9,7 @@ import {
   CONTACT_STAGES,
   CONTACT_TITLES,
   INDUSTRIES,
-} from "./catalog";
+} from "./catalog/crm";
 import {
   boardRow,
   type DemoBoardRow,
@@ -19,12 +19,11 @@ import {
   type DemoContext,
   type FieldValueRow,
 } from "./context";
+import { anyAddress } from "./address";
 import { between, daysAgo, pick, random } from "./random";
 
 export type DemoCompany = { id: string; name: string };
 export type DemoContact = { id: string; name: string; title: string };
-
-const CONTACTS_PER_COMPANY = 3;
 
 const phone = () => `(217) ${between(200, 899)}-${between(1000, 9999)}`;
 
@@ -51,7 +50,7 @@ export async function seedCrm(
   prisma: PrismaClient,
   ctx: DemoContext
 ): Promise<{ companies: DemoCompany[]; contacts: DemoContact[] }> {
-  const { organizationId } = ctx;
+  const { organizationId, profile } = ctx;
   const companyModuleId = ctx.moduleIdFor("COMPANY");
   const contactModuleId = ctx.moduleIdFor("CONTACT");
   const companyFields = ctx.fieldsFor("COMPANY");
@@ -62,10 +61,15 @@ export async function seedCrm(
   const values: FieldValueRow[] = [];
   const history: Prisma.HistoryCreateManyInput[] = [];
 
-  for (const name of COMPANY_NAMES) {
+  for (const name of COMPANY_NAMES.slice(0, profile.companies)) {
     const id = uuidv4();
     const owner = pick(ctx.assignable);
-    const createdAt = daysAgo(between(200, 420));
+    const createdAt = daysAgo(
+      between(
+        Math.round(profile.windowDays * 0.6),
+        Math.round(profile.windowDays * 1.3)
+      )
+    );
 
     companies.push({ id, name });
     rows.push(
@@ -87,6 +91,7 @@ export async function seedCrm(
         ["Website", `https://www.${slug(name)}.example`],
         ["Industry", pick(INDUSTRIES)],
         ["Phone", phone()],
+        ["Address", anyAddress()],
         ["Status", pick(COMPANY_STATUSES)],
         ["Notes", "Imported during the territory review"],
       ],
@@ -123,7 +128,7 @@ export async function seedCrm(
   let cursor = 0;
 
   for (const company of liveCompanies) {
-    for (let index = 0; index < CONTACTS_PER_COMPANY; index += 1) {
+    for (let index = 0; index < profile.contactsPerCompany; index += 1) {
       const name = names[cursor];
       cursor += 1;
       if (!name) break;
@@ -131,7 +136,12 @@ export async function seedCrm(
       const id = uuidv4();
       const title = pick(CONTACT_TITLES);
       const owner = pick(ctx.assignable);
-      const createdAt = daysAgo(between(60, 380));
+      const createdAt = daysAgo(
+        between(
+          Math.round(profile.windowDays * 0.2),
+          Math.round(profile.windowDays * 1.15)
+        )
+      );
 
       contacts.push({ id, name, title });
       contactRows.push(
@@ -160,6 +170,7 @@ export async function seedCrm(
           ["Phone", phone()],
           // A link field stores the id of the record it points at.
           ["Company", company.id],
+          ["Address", anyAddress()],
           ["Lifecycle Stage", pick(CONTACT_STAGES)],
           ["Notes", pick(CONTACT_NOTES)],
         ],

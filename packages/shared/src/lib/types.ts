@@ -193,8 +193,6 @@ export type AnalyticsResponse = {
   facilities: FacilityAnalytics[];
   outreach: OutreachAnalytics[];
   payers: PayerAnalytics[];
-  sources: SourceAnalytics[];
-  scorecard: ReferralSourceScore[];
   denials: DenialAnalytics;
   analytics: string;
 };
@@ -257,13 +255,6 @@ export type CountyAnalytics = {
   };
 };
 
-export type SourceAnalytics = {
-  value: string | null;
-  _count: {
-    value: number;
-  };
-};
-
 export type PayerAnalytics = {
   value: string | null;
   _count: {
@@ -279,13 +270,6 @@ export type DischargeAnalytics = {
 export type OutreachAnalytics = {
   facility: string | null;
   recent_referrals: number;
-};
-
-export type ReferralSourceScore = {
-  sourceName: string;
-  referralCount: number;
-  tier: "Tier 1" | "Tier 2" | "Infrequent";
-  referralsPerWeek: number;
 };
 
 export type DenialReasonAnalytics = {

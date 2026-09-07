@@ -1,3 +1,4 @@
+import { ACCOUNT_MANAGER_ROLES } from "@dashboard/shared";
 import { Injectable } from "@nestjs/common";
 import { prisma } from "../../lib/prisma/prisma";
 
@@ -44,7 +45,10 @@ export class OptionsService {
     if (isLiaison) {
       return await prisma.member
         .findMany({
-          where: { organizationId: organizationId, role: "liason" },
+          where: {
+            organizationId: organizationId,
+            role: { in: [...ACCOUNT_MANAGER_ROLES] },
+          },
           select: {
             id: true,
             user: {
@@ -54,6 +58,7 @@ export class OptionsService {
               },
             },
           },
+          orderBy: { user: { name: "asc" } },
         })
         .then((members) =>
           members.map((m) => ({

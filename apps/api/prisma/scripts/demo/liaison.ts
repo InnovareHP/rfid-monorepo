@@ -1,20 +1,16 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { COUNTIES } from "./catalog/facilities";
 import {
-  CLINICIANS,
-  COUNTIES,
   EXPENSE_DESCRIPTIONS,
   EXPENSE_NOTES,
   MILEAGE_DESTINATIONS,
   TOUCHPOINTS,
   VISIT_REASONS,
-} from "./catalog";
+} from "./catalog/liaison";
+import { CLINICIANS } from "./catalog/referrals";
 import type { DemoContext } from "./context";
 import type { DemoFacility } from "./facilities";
 import { between, daysAgo, pick, random } from "./random";
-
-const VISIT_COUNT = 180;
-const EXPENSE_COUNT = 60;
-const MILEAGE_COUNT = 70;
 
 const RATES = { FEDERAL: 0.67, STATE: 0.39 } as const;
 
@@ -23,13 +19,13 @@ export async function seedLiaisonLogs(
   ctx: DemoContext,
   facilities: DemoFacility[]
 ): Promise<{ visits: number; expenses: number; trips: number }> {
-  const { organizationId } = ctx;
+  const { organizationId, profile } = ctx;
 
   // The Analyze dialog reads these, and it matches on the facility name, so the
   // names written here are the facility names verbatim.
   const marketing: Prisma.MarketingCreateManyInput[] = [];
 
-  for (let index = 0; index < VISIT_COUNT; index += 1) {
+  for (let index = 0; index < profile.visits; index += 1) {
     const facility = facilities[between(0, facilities.length - 1)];
     const member = pick(ctx.assignable);
 
@@ -47,13 +43,13 @@ export async function seedLiaisonLogs(
       userId: member.userId,
       organizationId,
       facilityRecordId: facility.id,
-      createdAt: daysAgo(between(1, 300)),
+      createdAt: daysAgo(between(1, profile.windowDays)),
     });
   }
 
   const expenses: Prisma.ExpenseCreateManyInput[] = [];
 
-  for (let index = 0; index < EXPENSE_COUNT; index += 1) {
+  for (let index = 0; index < profile.expenses; index += 1) {
     const member = pick(ctx.assignable);
 
     expenses.push({
@@ -66,13 +62,13 @@ export async function seedLiaisonLogs(
       memberId: member.id,
       userId: member.userId,
       organizationId,
-      createdAt: daysAgo(between(1, 300)),
+      createdAt: daysAgo(between(1, profile.windowDays)),
     });
   }
 
   const mileage: Prisma.MileageCreateManyInput[] = [];
 
-  for (let index = 0; index < MILEAGE_COUNT; index += 1) {
+  for (let index = 0; index < profile.mileage; index += 1) {
     const member = pick(ctx.assignable);
     const beginningMileage = between(8000, 42000);
     const totalMiles = between(12, 180);
@@ -91,7 +87,7 @@ export async function seedLiaisonLogs(
       memberId: member.id,
       userId: member.userId,
       organizationId,
-      createdAt: daysAgo(between(1, 300)),
+      createdAt: daysAgo(between(1, profile.windowDays)),
     });
   }
 

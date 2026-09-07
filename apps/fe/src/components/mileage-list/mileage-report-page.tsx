@@ -155,6 +155,7 @@ export default function MileageReportPage() {
           rows={rows}
           isLoading={isFetching}
           emptyMessage="No mileage logs found"
+          tableClassName="min-w-[1200px]"
           currentPage={page}
           pageSize={filterMeta.limit}
           totalCount={data?.total ?? 0}

@@ -75,26 +75,7 @@ export const renderReferralAnalyticsPdf = async (input: {
     );
   }
 
-  if (input.report.scorecard.length) {
-    report.sectionTitle("Referral source scorecard");
-    report.table(
-      [
-        { header: "Source", width: 246 },
-        { header: "Tier", width: 90 },
-        { header: "Referrals", width: 90, align: "right" },
-        { header: "Per week", width: 90, align: "right" },
-      ],
-      input.report.scorecard.map((row) => [
-        row.sourceName,
-        row.tier,
-        num(row.referralCount),
-        row.referralsPerWeek.toFixed(1),
-      ])
-    );
-  }
-
   const breakdowns: [string, string, { name: string; count: number }[]][] = [
-    ["Referral sources", "Source", named(input.report.sources)],
     ["Facilities", "Facility", named(input.report.facilities)],
     ["Counties", "County", named(input.report.counties)],
     ["Payers", "Payer", named(input.report.payers)],

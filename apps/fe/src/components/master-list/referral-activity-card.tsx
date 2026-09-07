@@ -8,7 +8,7 @@ import {
 import { Separator } from "@dashboard/ui/components/separator";
 import { Send } from "lucide-react";
 
-// Matches the tiering in the analytics referral source scorecard.
+// Tiering mirrors getRecordReferralStats in the board service.
 const TIER_BADGE: Record<RecordReferralStats["tier"], string> = {
   "Tier 1": "bg-success/10 text-success border-success/30",
   "Tier 2": "bg-warning/10 text-warning border-warning/30",

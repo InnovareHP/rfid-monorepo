@@ -262,7 +262,6 @@ export function buildAnalyticsChartData(
     clinicians: toRankedRows(analytics?.clinicians, 10),
     counties: toRankedRows(analytics?.counties, 10),
     payers: toCategoryRows(analytics?.payers),
-    sources: toCategoryRows(analytics?.sources),
     assessmentTypes: toCategoryRows(analytics?.assessmentTypes),
     statusSlices: toStatusSlices(analytics),
     referralTrend,
@@ -283,7 +282,6 @@ export function buildAnalyticsChartData(
       }))
       .sort((a, b) => b.count - a.count),
     emergingSources: analytics?.outreach ?? [],
-    scorecard: analytics?.scorecard ?? [],
     avgDays: weightedAverageDays(analytics),
   };
 }

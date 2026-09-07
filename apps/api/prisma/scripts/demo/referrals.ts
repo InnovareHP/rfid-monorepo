@@ -6,7 +6,7 @@ import {
   DENIAL_REASONS,
   PATIENT_NAMES,
   PAYORS,
-} from "./catalog";
+} from "./catalog/referrals";
 import {
   boardRow,
   type DemoBoardRow,
@@ -19,17 +19,16 @@ import {
 import type { DemoFacility } from "./facilities";
 import { between, daysAgo, isoDate, pick, random } from "./random";
 
-const REFERRAL_COUNT = 320;
+const HOT_FACILITIES = 6;
 
 // Volume rises over the window so the trend charts slope instead of sitting
 // flat, and a fifth are rejected so denial reporting has something to show.
 export async function seedReferrals(
   prisma: PrismaClient,
   ctx: DemoContext,
-  facilities: DemoFacility[],
-  contacts: { id: string; name: string }[]
+  facilities: DemoFacility[]
 ): Promise<number> {
-  const { organizationId } = ctx;
+  const { organizationId, profile } = ctx;
   const moduleId = ctx.moduleIdFor("REFERRAL");
   const fields = ctx.fieldsFor("REFERRAL");
   const statusField = fields.find(
@@ -41,17 +40,26 @@ export async function seedReferrals(
   const history: Prisma.HistoryCreateManyInput[] = [];
   const relations: Prisma.BoardRelationCreateManyInput[] = [];
 
-  for (let index = 0; index < REFERRAL_COUNT; index += 1) {
+  // A handful of facilities carry most of the volume, which is what makes a
+  // top-sources report worth looking at. Sampled by stride rather than off the
+  // front of the list, which is grouped by prefix: taking the first six would
+  // make every top source a Cedar Ridge on a profile with six suffixes.
+  const hotCount = Math.min(HOT_FACILITIES, facilities.length);
+  const stride = Math.floor(facilities.length / hotCount);
+  const hot = Array.from(
+    { length: hotCount },
+    (_, index) => facilities[index * stride]
+  );
+
+  for (let index = 0; index < profile.referrals; index += 1) {
     const id = uuidv4();
     // Weighted towards recent months.
-    const age = Math.floor(Math.pow(random(), 1.7) * 330);
+    const age = Math.floor(Math.pow(random(), 1.7) * profile.windowDays);
     const createdAt = daysAgo(age);
 
-    // A handful of facilities carry most of the volume, which is what makes a
-    // top-sources report worth looking at.
     const facility =
       random() < 0.55
-        ? facilities[between(0, 5)]
+        ? hot[between(0, hot.length - 1)]
         : facilities[between(0, facilities.length - 1)];
 
     const patient = pick(PATIENT_NAMES);
@@ -60,7 +68,6 @@ export async function seedReferrals(
     const admitted = random() < 0.62;
     const rejected = !admitted && random() < 0.5;
     const status = admitted ? "Admitted" : rejected ? "Denied" : "Pending";
-    const contact = contacts[between(0, contacts.length - 1)];
 
     rows.push(
       boardRow({
@@ -85,7 +92,6 @@ export async function seedReferrals(
       ["Referral Date", isoDate(createdAt)],
       ["Facility", facility.id],
       ["Patient Name", patient],
-      ["Contact", contact.name],
       ["Assessor", pick(CLINICIANS)],
       ["Payor", pick(PAYORS)],
       ["Type of Assessment", pick(ASSESSMENT_TYPES)],

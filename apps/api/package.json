@@ -39,6 +39,7 @@
     "backfill:board-relations": "ts-node prisma/scripts/backfill-board-relations.ts",
     "cleanup:demo-records": "ts-node prisma/scripts/remove-seeded-demo-records.ts",
     "seed:demo": "ts-node prisma/scripts/seed-demo-data.ts",
+    "wipe:demo": "ts-node prisma/scripts/seed-demo-data.ts --wipe-only",
     "backfill:facility-links": "ts-node prisma/scripts/backfill-referral-facility-links.ts",
     "migrate:cloudinary-s3": "ts-node prisma/scripts/migrate-cloudinary-to-s3.ts",
     "docker:build": "docker build -t dashboard-backend .",

@@ -177,6 +177,7 @@ export default function ExpenseReportPage() {
           rows={rows}
           isLoading={isFetching}
           emptyMessage="No expense logs found"
+          tableClassName="min-w-[900px]"
           currentPage={page}
           pageSize={filterMeta.limit}
           totalCount={data?.total ?? 0}

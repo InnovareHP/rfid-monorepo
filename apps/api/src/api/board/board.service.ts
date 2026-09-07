@@ -1,5 +1,6 @@
 import { GeocodeCommand } from "@aws-sdk/client-geo-places";
 import {
+  ACCOUNT_MANAGER_ROLES,
   BOARD_NOTIFICATION_EVENT,
   formatPhoneNumber,
   labelKey,
@@ -72,9 +73,6 @@ const MS_IN_WEEK = 7 * 24 * 60 * 60 * 1000;
 // most recent slice of a module rather than all of it. Beyond this only the
 // hash indexes apply.
 const SIMILARITY_SCAN_LIMIT = 5000;
-
-// The organization role that owns records; spelled as better-auth stores it.
-const LIAISON_ROLE = "liason";
 
 interface BoardFilters {
   filter?: Record<string, string>;
@@ -808,8 +806,7 @@ export class BoardService {
   }
 
   // Referrals reach a facility through the REFERRAL_LINK relation, not a field,
-  // so the count is a join rather than a value lookup. Tier thresholds mirror
-  // getReferralSourceScorecard in the analytics service.
+  // so the count is a join rather than a value lookup.
   private async getRecordReferralStats(
     recordId: string,
     organizationId: string,
@@ -1347,7 +1344,7 @@ export class BoardService {
       const assignedTo = await prisma.member.findMany({
         where: {
           organizationId: organizationId,
-          role: LIAISON_ROLE,
+          role: { in: [...ACCOUNT_MANAGER_ROLES] },
         },
         select: {
           user: {
@@ -1357,6 +1354,7 @@ export class BoardService {
             },
           },
         },
+        orderBy: { user: { name: "asc" } },
       });
 
       const members = assignedTo.map((a) => ({
@@ -3455,16 +3453,20 @@ export class BoardService {
     memberId: string,
     organizationId: string
   ) {
-    // Analytics group referrals and marketing logs by the assigned user, so a
-    // non-liaison owner would surface as a liaison row that no report expects.
+    // Analytics group referrals and marketing logs by the assigned user, so the
+    // assignee must be a role liaison performance reports on.
     const assignee = await tx.member.findFirst({
-      where: { organizationId, userId: value, role: LIAISON_ROLE },
+      where: {
+        organizationId,
+        userId: value,
+        role: { in: [...ACCOUNT_MANAGER_ROLES] },
+      },
       select: { id: true },
     });
 
     if (!assignee) {
       throw new BadRequestException(
-        "A record can only be assigned to a liaison in this organization."
+        "A record can only be assigned to an owner, admin, or liaison in this organization."
       );
     }
 

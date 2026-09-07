@@ -24,16 +24,46 @@ section the day before; the numbered beats are what you say and click on the day
    pnpm --filter api seed:demo -- --org=<organizationId> --wipe
    ```
 
-   `--wipe` deletes every lead and referral in that org. Check the id twice.
+   `--wipe` clears the seeded rows and writes a fresh set, so the org still
+   ends up full. To clear them and stop:
 
-5. **Restart the API** if you have changed code since it started, then hard
+   ```bash
+   pnpm --filter api wipe:demo -- --org=<organizationId>
+   ```
+
+   Both delete the records whose names come out of the seeder's own catalog,
+   plus the visit logs, expenses, mileage and the Territory Operations task
+   project that go with them. A record someone typed is left alone. The delete
+   is permanent, not a soft delete, so check the org id twice.
+
+5. **Pick a size** with `--profile`, if the default is the wrong shape for the
+   room:
+
+   ```bash
+   pnpm --filter api seed:demo -- --org=<organizationId> --profile=starter
+   ```
+
+   | Profile | Facilities | Referrals | Visit logs | Tasks | History window |
+   | --- | --- | --- | --- | --- | --- |
+   | `starter` | 12 | 60 | 40 | 15 | 6 months |
+   | `growth` (default) | 40 | 320 | 180 | 36 | 11 months |
+   | `enterprise` | 120 | 1200 | 520 | 75 | 18 months |
+
+   Only volume and how far back the data reaches change. The vocabulary, the
+   link shapes and the admit/deny mix are the same in all three, so a run sheet
+   rehearsed on one reads the same on another. `starter` is for a short call
+   where a long table is a distraction; `enterprise` is for showing that the
+   board, the filters and the charts hold up at volume.
+
+6. **Restart the API** if you have changed code since it started, then hard
    refresh the browser.
-6. **Rehearse once, end to end.** The data is deterministic, so what you see in
+7. **Rehearse once, end to end.** The data is deterministic, so what you see in
    the rehearsal is what you get on the day.
 
-What you get: 40 facilities, 320 referrals linked to them, roughly 4,000 field
-values and 180 visit logs, spread across the last eleven months and weighted
-toward recent weeks so the trends slope.
+What `growth` gives you: 40 facilities, 320 referrals linked to them, roughly
+4,000 field values and 180 visit logs, spread across the last eleven months and
+weighted toward recent weeks so the trends slope. Facilities, contacts and
+companies each carry an Address consistent with the city and zip on the row.
 
 ## The run sheet
 

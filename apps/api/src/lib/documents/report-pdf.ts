@@ -60,7 +60,7 @@ export const createReport = (input: {
   meta: { label: string; value: string }[];
 }) => {
   const doc = new PDFDocument({
-    size: "LETTER",
+    size: "A4",
     margins: {
       top: LETTERHEAD_TOP_INSET,
       bottom: LETTERHEAD_BOTTOM_INSET,

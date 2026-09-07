@@ -2,7 +2,6 @@ import type { TaskSort, TaskSortKey } from "@/lib/helper/task-insights";
 import type { TaskListDto, TaskListItemDto } from "@dashboard/shared";
 import { cn } from "@dashboard/ui/lib/utils";
 import { ArrowDownAZ, ArrowUpAZ, ChevronsUpDown } from "lucide-react";
-import { TablePagination } from "../reusable-table/table-pagination";
 import { TaskListSection } from "./task-list-section";
 
 const COLUMNS: { key: TaskSortKey; label: string }[] = [
@@ -15,17 +14,11 @@ const COLUMNS: { key: TaskSortKey; label: string }[] = [
 
 type TaskTableProps = {
   lists: TaskListDto[];
-  pagedTasksByList: Map<string, TaskListItemDto[]>;
-  countsByList: Map<string, number>;
+  tasksByList: Map<string, TaskListItemDto[]>;
   sort: TaskSort | null;
   onSortChange: (sort: TaskSort | null) => void;
-  currentPage: number;
-  totalPages: number;
   totalCount: number;
   completedCount: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
   onToggleComplete: (task: TaskListItemDto) => void;
   onOpenTask: (task: TaskListItemDto) => void;
 };
@@ -69,17 +62,11 @@ const SortHeader = ({
 
 export const TaskTable = ({
   lists,
-  pagedTasksByList,
-  countsByList,
+  tasksByList,
   sort,
   onSortChange,
-  currentPage,
-  totalPages,
   totalCount,
   completedCount,
-  pageSize,
-  onPageChange,
-  onPageSizeChange,
   onToggleComplete,
   onOpenTask,
 }: TaskTableProps) => (
@@ -113,8 +100,7 @@ export const TaskTable = ({
           <TaskListSection
             key={list.id}
             list={list}
-            tasks={pagedTasksByList.get(list.id) ?? []}
-            totalCount={countsByList.get(list.id) ?? 0}
+            tasks={tasksByList.get(list.id) ?? []}
             draggable={!sort}
             showHeader={lists.length > 1}
             onToggleComplete={onToggleComplete}
@@ -124,15 +110,8 @@ export const TaskTable = ({
       </table>
     </div>
 
-    <TablePagination
-      currentPage={currentPage}
-      totalPages={totalPages}
-      totalCount={totalCount}
-      selectedCount={completedCount}
-      label={`${completedCount} of ${totalCount} task(s) completed.`}
-      pageSize={pageSize}
-      setCurrentPage={onPageChange}
-      onPageSizeChange={onPageSizeChange}
-    />
+    <div className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
+      {completedCount} of {totalCount} task(s) completed.
+    </div>
   </div>
 );

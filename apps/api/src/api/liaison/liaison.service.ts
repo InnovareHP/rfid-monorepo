@@ -707,10 +707,10 @@ export class LiaisonService {
       activeOrganizationId
     );
 
-    // Letter with a top margin clear of the letterhead's header band. A4 would
-    // be scaled to fit the artwork and leave white down one edge.
+    // A4 to match the letterhead artwork, with a top margin clear of its header
+    // band. Any other size would be scaled to fit and leave white down the edges.
     const doc = new PDFDocument({
-      size: "LETTER",
+      size: "A4",
       margins: {
         top: LETTERHEAD_TOP_INSET,
         bottom: LETTERHEAD_BOTTOM_INSET,

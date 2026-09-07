@@ -8,22 +8,23 @@ import { PDFDocument } from "pdf-lib";
 // can produce a PDF - pdf-lib here, pdfkit in the liaison report - instead of
 // each generator needing its own copy of the artwork.
 //
-// The letterhead is US Letter (612 x 792). A page of another size is scaled to
-// fit rather than stretched, so nothing is distorted, but a document meant to
-// carry the letterhead should be Letter to begin with.
+// The letterhead is A4 (595 x 842). A page of another size is scaled to fit
+// rather than stretched, so nothing is distorted, but the artwork is full bleed
+// and a non-A4 page leaves white down both edges, so a document meant to carry
+// the letterhead should be A4 to begin with.
 //
-// Only the header and footer bands are used. The artwork is a correspondence
-// template, so its body carries a date line and an address block; drawing the
-// whole page behind a report laid that furniture over the data.
+// Only the header and footer bands are used. Cropping to them keeps the stamp
+// independent of whatever the artwork puts between them.
 
 // The artwork's own header and footer bands. Content drawn inside them collides
-// with the logo or the address block, so a generator that stamps needs to keep
-// clear of these. Measured against the supplied file; adjust both if the
-// artwork is replaced.
-export const LETTERHEAD_TOP_INSET = 108;
-export const LETTERHEAD_BOTTOM_INSET = 72;
+// with the logo or the footer strip, so a generator that stamps needs to keep
+// clear of these. Measured off the image clip rects in the artwork's content
+// stream (85.85 and 63.3, rounded out); adjust both if the artwork is
+// replaced.
+export const LETTERHEAD_TOP_INSET = 86;
+export const LETTERHEAD_BOTTOM_INSET = 66;
 
-const LETTER = { width: 612, height: 792 };
+const ARTWORK = { width: 595, height: 842 };
 
 // dist keeps the same layout as src because nest-cli copies assets across, so
 // one relative path serves both the compiled and the ts-node case.
@@ -74,22 +75,19 @@ export const stampLetterhead = async (
     const output = await PDFDocument.create();
     const artwork = letterhead.getPage(0);
 
-    // Only the two bands are taken, not the whole page. The supplied artwork is
-    // a letter template, so its middle carries the date line and address block
-    // meant for correspondence - drawing that behind a report put furniture
-    // over the data. Cropping to the header and footer keeps the branding and
-    // discards the letter layout.
+    // Only the two bands are taken, not the whole page, so anything the artwork
+    // carries between them stays out of the document body.
     const [header, footer] = await Promise.all([
       output.embedPage(artwork, {
         left: 0,
-        bottom: LETTER.height - LETTERHEAD_TOP_INSET,
-        right: LETTER.width,
-        top: LETTER.height,
+        bottom: ARTWORK.height - LETTERHEAD_TOP_INSET,
+        right: ARTWORK.width,
+        top: ARTWORK.height,
       }),
       output.embedPage(artwork, {
         left: 0,
         bottom: 0,
-        right: LETTER.width,
+        right: ARTWORK.width,
         top: LETTERHEAD_BOTTOM_INSET,
       }),
     ]);
@@ -99,20 +97,20 @@ export const stampLetterhead = async (
     contentPages.forEach((content, index) => {
       const { width, height } = source.getPage(index).getSize();
       // Uniform scale, so the artwork keeps its proportions on a page that is
-      // not Letter instead of being squashed to fit.
-      const scale = Math.min(width / LETTER.width, height / LETTER.height);
+      // not A4 instead of being squashed to fit.
+      const scale = Math.min(width / ARTWORK.width, height / ARTWORK.height);
       const page = output.addPage([width, height]);
-      const inset = (width - LETTER.width * scale) / 2;
+      const inset = (width - ARTWORK.width * scale) / 2;
 
       page.drawPage(header, {
-        width: LETTER.width * scale,
+        width: ARTWORK.width * scale,
         height: LETTERHEAD_TOP_INSET * scale,
         x: inset,
         y: height - LETTERHEAD_TOP_INSET * scale,
       });
 
       page.drawPage(footer, {
-        width: LETTER.width * scale,
+        width: ARTWORK.width * scale,
         height: LETTERHEAD_BOTTOM_INSET * scale,
         x: inset,
         y: 0,

@@ -326,15 +326,8 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
       name: "Top 10 Referring Clinicians",
       chartType: "BAR",
       span: "THIRD",
-      fieldName: "Contact",
+      fieldName: "Assessor",
       groupLimit: 10,
-    },
-    // getReferralSourceBreakdown
-    {
-      name: "Referral Source Type Breakdown",
-      chartType: "PIE",
-      span: "THIRD",
-      fieldName: "Referral Source Type",
     },
     // getAssessmentTypeBreakdown
     {

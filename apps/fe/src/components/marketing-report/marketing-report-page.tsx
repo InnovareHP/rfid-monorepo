@@ -19,6 +19,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
 import { MasterListFilters } from "../master-list/master-list-filter";
+import { PagedReportTable } from "../reusable-table/paged-report-table";
 import {
   ReportChip,
   ReportTable,
@@ -189,6 +190,7 @@ export default function MarketingReportPage() {
           rows={rows}
           isLoading={isFetching}
           emptyMessage="No marketing logs found"
+          tableClassName="min-w-[1100px]"
           currentPage={page}
           pageSize={filterMeta.limit}
           totalCount={data?.total ?? 0}
@@ -200,23 +202,24 @@ export default function MarketingReportPage() {
         />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <h3 className="text-base font-medium text-foreground">
               Facility Breakdown
             </h3>
-            <ReportTable
+            <PagedReportTable
               columns={facilityColumns}
               rows={facilityBreakdown}
               isLoading={isFetching}
               emptyMessage="No facility activity found"
+              tableClassName="min-w-[620px]"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <h3 className="text-base font-medium text-foreground">
               Touchpoint Breakdown
             </h3>
-            <ReportTable
+            <PagedReportTable
               columns={touchpointColumns}
               rows={touchpointBreakdown}
               isLoading={isFetching}

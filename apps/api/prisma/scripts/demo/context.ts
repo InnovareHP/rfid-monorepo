@@ -1,6 +1,7 @@
 import type { ModuleType, Prisma, PrismaClient } from "@prisma/client";
 import { encryptString } from "../../../src/lib/crypto/crypto";
 import { recordNameIndexes } from "../../../src/lib/crypto/record-name-index";
+import type { DemoProfile } from "./profiles";
 
 // Board.moduleType is the legacy column and still required, so a write needs
 // both it and the moduleId that replaced it.
@@ -29,15 +30,19 @@ export type FieldValueRow = {
 export type DemoContext = {
   organizationId: string;
   organizationName: string;
+  profile: DemoProfile;
   moduleIdFor: (key: string) => string;
   fieldsFor: (key: string) => DemoField[];
   assignable: DemoMember[];
 };
 
-export async function loadContext(
+// Separate from loadContext because a wipe needs the organization and nothing
+// else: it must not fail on modules or task statuses it is about to delete
+// records for anyway.
+export async function resolveOrganization(
   prisma: PrismaClient,
   organizationId?: string
-): Promise<DemoContext> {
+): Promise<{ id: string; name: string }> {
   const organization = organizationId
     ? await prisma.organization.findUnique({ where: { id: organizationId } })
     : await prisma.organization.findFirst({ orderBy: { createdAt: "asc" } });
@@ -48,6 +53,15 @@ export async function loadContext(
     );
   }
 
+  return { id: organization.id, name: organization.name };
+}
+
+export async function loadContext(
+  prisma: PrismaClient,
+  profile: DemoProfile,
+  organizationId?: string
+): Promise<DemoContext> {
+  const organization = await resolveOrganization(prisma, organizationId);
   const scope = organization.id;
 
   const modules = await prisma.module.findMany({
@@ -112,6 +126,7 @@ export async function loadContext(
   return {
     organizationId: scope,
     organizationName: organization.name,
+    profile,
     moduleIdFor,
     fieldsFor,
     assignable,
@@ -137,6 +152,9 @@ export const boardRow = (input: {
   createdAt: input.createdAt,
 });
 
+// A pair naming a field the module does not have is a bug in the seeder, not
+// an optional value: it used to vanish silently, which is how a whole column
+// of demo data went missing without a single failed run.
 export const valueRow = (
   recordId: string,
   fields: DemoField[],
@@ -145,7 +163,15 @@ export const valueRow = (
   organizationId: string
 ): FieldValueRow | null => {
   const field = fields.find((candidate) => candidate.fieldName === fieldName);
-  if (!field || !value) return null;
+
+  if (!field) {
+    throw new Error(
+      `No field named "${fieldName}" on this module. Onboarding seeds the ` +
+        `field list, so either the name is wrong or a migration has not run.`
+    );
+  }
+
+  if (!value) return null;
 
   return {
     recordId,

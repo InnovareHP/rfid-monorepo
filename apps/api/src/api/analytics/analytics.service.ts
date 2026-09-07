@@ -1,4 +1,8 @@
-import { LiaisonAnalytics, ROLES } from "@dashboard/shared";
+import {
+  ACCOUNT_MANAGER_ROLES,
+  LiaisonAnalytics,
+  ROLES,
+} from "@dashboard/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
@@ -103,9 +107,11 @@ export class AnalyticsService {
     endDate: Date,
     userId?: string | null
   ) {
+    // Assessor, not Contact: REFERRAL has never carried a Contact field, so
+    // this counted an empty set on every organization.
     const rows = await prisma.fieldValue.findMany({
       where: {
-        field: { fieldName: "Contact" },
+        field: { fieldName: "Assessor" },
         record: referralRecordWhere(organizationId, startDate, endDate, userId),
       },
       select: { value: true },
@@ -153,22 +159,6 @@ export class AnalyticsService {
     }
 
     return this.countByValue(rows).filter((r) => r.value !== null);
-  }
-
-  async getReferralSourceBreakdown(
-    organizationId: string,
-    startDate: Date,
-    endDate: Date,
-    userId?: string | null
-  ) {
-    const rows = await prisma.fieldValue.findMany({
-      where: {
-        field: { fieldName: "Referral Source Type" },
-        record: referralRecordWhere(organizationId, startDate, endDate, userId),
-      },
-      select: { value: true },
-    });
-    return this.countByValue(rows);
   }
 
   async getConversionRate(
@@ -574,53 +564,6 @@ export class AnalyticsService {
       }));
   }
 
-  async getReferralSourceScorecard(
-    organizationId: string,
-    startDate: Date,
-    endDate: Date,
-    userId?: string | null
-  ) {
-    const facilities = await this.facilitiesByReferral(
-      organizationId,
-      startDate,
-      endDate,
-      userId
-    );
-
-    const byLead = new Map<string, { name: string; count: number }>();
-    for (const facility of facilities.values()) {
-      const entry = byLead.get(facility.id) ?? {
-        name: facility.recordName,
-        count: 0,
-      };
-      entry.count += 1;
-      byLead.set(facility.id, entry);
-    }
-
-    const results = [...byLead.values()].sort((a, b) => b.count - a.count);
-
-    const msInWeek = 7 * 24 * 60 * 60 * 1000;
-    const weeks =
-      startDate && endDate
-        ? Math.max(1, (endDate.getTime() - startDate.getTime()) / msInWeek)
-        : 4;
-
-    return results.map((r) => {
-      const rate = r.count / weeks;
-      let tier: "Tier 1" | "Tier 2" | "Infrequent";
-      if (rate > 1) tier = "Tier 1";
-      else if (rate >= 0.25) tier = "Tier 2";
-      else tier = "Infrequent";
-
-      return {
-        sourceName: r.name,
-        referralCount: r.count,
-        tier,
-        referralsPerWeek: Number(rate.toFixed(2)),
-      };
-    });
-  }
-
   async getDenialTracking(
     organizationId: string,
     startDate: Date,
@@ -636,7 +579,7 @@ export class AnalyticsService {
             field: {
               moduleType: "REFERRAL",
               isDeleted: false,
-              fieldName: { in: ["Status", "Reason"] },
+              fieldName: { in: ["Admission Status", "Reason"] },
             },
           },
           select: {
@@ -650,7 +593,7 @@ export class AnalyticsService {
     const denied = boards.filter((b) =>
       b.values.some(
         (v) =>
-          v.field.fieldName === "Status" &&
+          v.field.fieldName === "Admission Status" &&
           (v.value === "Rejected" || v.value === "Denied")
       )
     );
@@ -706,12 +649,10 @@ export class AnalyticsService {
       facilities,
       clinicians,
       counties,
-      sources,
       conversion,
       payers,
       discharge,
       outreach,
-      scorecard,
       denials,
     ] = await Promise.all([
       this.getTotalCounts(organizationId, startDate, endDate, userId),
@@ -727,22 +668,10 @@ export class AnalyticsService {
       this.getTopFacilities(organizationId, startDate, endDate, userId),
       this.getTopClinicians(organizationId, startDate, endDate, userId),
       this.getTopCounties(organizationId, startDate, endDate, userId),
-      this.getReferralSourceBreakdown(
-        organizationId,
-        startDate,
-        endDate,
-        userId
-      ),
       this.getConversionRate(organizationId, startDate, endDate, userId),
       this.getPayerMix(organizationId, startDate, endDate, userId),
       this.getOutreachImpact(organizationId, startDate, endDate, userId),
       this.getEmergingSources(organizationId, startDate, endDate, userId),
-      this.getReferralSourceScorecard(
-        organizationId,
-        startDate,
-        endDate,
-        userId
-      ),
       this.getDenialTracking(organizationId, startDate, endDate, userId),
     ]);
 
@@ -755,12 +684,10 @@ export class AnalyticsService {
       facilities,
       clinicians,
       counties,
-      sources,
       conversion,
       payers,
       discharge,
       outreach,
-      scorecard,
       denials,
     };
 
@@ -970,10 +897,14 @@ export class AnalyticsService {
       prisma.member.findMany({
         where: {
           organizationId,
-          role: ROLES.LIAISON,
+          role: { in: [...ACCOUNT_MANAGER_ROLES] },
           ...(userId && { user: { id: userId } }),
         },
-        select: { id: true, user: { select: { id: true, name: true } } },
+        select: {
+          id: true,
+          role: true,
+          user: { select: { id: true, name: true } },
+        },
       }),
     ]);
 
@@ -1037,7 +968,16 @@ export class AnalyticsService {
       });
     };
 
+    // A liaison always gets a card. An owner or admin only earns one once they
+    // actually carry work, so the roster does not fill with empty admin cards.
     for (const member of liaisonMembers) {
+      const isLiaison = member.role === ROLES.LIAISON;
+      const hasActivity =
+        marketingByMember.has(member.user.id) ||
+        referralCounts.byUser.has(member.user.id);
+
+      if (!isLiaison && !hasActivity) continue;
+
       seed(member.user.id, member.id, member.user.name);
     }
 

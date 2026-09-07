@@ -59,8 +59,6 @@ const TaskPage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [listDialogOpen, setListDialogOpen] = useState(false);
   const [sort, setSort] = useState<TaskSort | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
 
   // The org id already rides in the route context, so this avoids a per-mount
   // auth fetch and the undefined first render that flickered role-gated UI.
@@ -125,31 +123,9 @@ const TaskPage = () => {
     return grouped;
   }, [tasks, sort]);
 
-  // Pagination runs over the lists in order so a page never splits a list oddly.
-  const orderedTasks = useMemo(
+  // Each list section reveals its own rows, so totals count every listed task.
+  const listedTasks = useMemo(
     () => lists.flatMap((list) => tasksByList.get(list.id) ?? []),
-    [lists, tasksByList]
-  );
-
-  const totalPages = Math.max(Math.ceil(orderedTasks.length / pageSize), 1);
-  const currentPage = Math.min(page, totalPages);
-
-  const pagedTasksByList = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    const grouped = new Map<string, TaskListItemDto[]>();
-    for (const task of orderedTasks.slice(start, start + pageSize)) {
-      const existing = grouped.get(task.listId) ?? [];
-      existing.push(task);
-      grouped.set(task.listId, existing);
-    }
-    return grouped;
-  }, [orderedTasks, currentPage, pageSize]);
-
-  const countsByList = useMemo(
-    () =>
-      new Map(
-        lists.map((list) => [list.id, tasksByList.get(list.id)?.length ?? 0])
-      ),
     [lists, tasksByList]
   );
 
@@ -280,10 +256,7 @@ const TaskPage = () => {
             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Search tasks..."
               className="pl-9"
             />
@@ -293,10 +266,7 @@ const TaskPage = () => {
             <Switch
               id="show-archived"
               checked={includeArchived}
-              onCheckedChange={(checked) => {
-                setIncludeArchived(checked);
-                setPage(1);
-              }}
+              onCheckedChange={setIncludeArchived}
             />
             <Label htmlFor="show-archived" className="text-sm text-gray-600">
               Show archived
@@ -348,25 +318,13 @@ const TaskPage = () => {
           >
             <TaskTable
               lists={lists}
-              pagedTasksByList={pagedTasksByList}
-              countsByList={countsByList}
+              tasksByList={tasksByList}
               sort={sort}
-              onSortChange={(next) => {
-                setSort(next);
-                setPage(1);
-              }}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalCount={orderedTasks.length}
+              onSortChange={setSort}
+              totalCount={listedTasks.length}
               completedCount={
-                orderedTasks.filter((task) => Boolean(task.completedAt)).length
+                listedTasks.filter((task) => Boolean(task.completedAt)).length
               }
-              pageSize={pageSize}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setPage(1);
-              }}
               onToggleComplete={(task) =>
                 completeTaskMutation.mutate({
                   id: task.id,

@@ -12,6 +12,14 @@ export const ROLES = {
 export const isOrgAdmin = (role?: string | null) =>
   role === ROLES.OWNER || role === ROLES.ADMIN;
 
+// Owner and admin can carry records themselves, so they are offered anywhere a
+// liaison is: account manager pickers, task assignees, liaison performance.
+export const ACCOUNT_MANAGER_ROLES = [
+  ROLES.OWNER,
+  ROLES.ADMIN,
+  ROLES.LIAISON,
+] as const;
+
 // Referral analytics is org-wide for a liaison too; lower roles read only the
 // referrals assigned to them.
 export const readsOrgWideReferrals = (role?: string | null) =>

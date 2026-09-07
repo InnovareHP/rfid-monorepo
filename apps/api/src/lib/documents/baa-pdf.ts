@@ -14,7 +14,7 @@ import {
   stampLetterhead,
 } from "./letterhead";
 
-const PAGE = { width: 612, height: 792 };
+const PAGE = { width: 595, height: 842 };
 const MARGIN = 56;
 // The letterhead owns the top and bottom of the page, so body text starts and
 // stops inside those bands rather than at the plain margin.

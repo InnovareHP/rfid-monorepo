@@ -1,21 +1,17 @@
 import type { PrismaClient } from "@prisma/client";
 import { decryptNullable } from "../../../src/lib/crypto/crypto";
-import {
-  COMPANY_NAMES,
-  CONTACT_FIRST,
-  CONTACT_LAST,
-  EXPENSE_DESCRIPTIONS,
-  FACILITY_PREFIX,
-  FACILITY_SUFFIX,
-  MILEAGE_DESTINATIONS,
-  PATIENT_NAMES,
-} from "./catalog";
+import { COMPANY_NAMES, CONTACT_FIRST, CONTACT_LAST } from "./catalog/crm";
+import { FACILITY_PREFIX, FACILITY_SUFFIX } from "./catalog/facilities";
+import { EXPENSE_DESCRIPTIONS, MILEAGE_DESTINATIONS } from "./catalog/liaison";
+import { PATIENT_NAMES } from "./catalog/referrals";
 
 const DEMO_PROJECT_NAME = "Territory Operations";
 
+// Every prefix and suffix the catalog can pair, not the subset one profile
+// happens to use, so a wipe after an enterprise run clears an earlier one too.
 const FACILITY_NAMES = new Set(
   FACILITY_PREFIX.flatMap((prefix) =>
-    FACILITY_SUFFIX.slice(0, 2).map((suffix) => `${prefix} ${suffix}`)
+    FACILITY_SUFFIX.map((suffix) => `${prefix} ${suffix}`)
   )
 );
 

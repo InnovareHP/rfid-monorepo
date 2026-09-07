@@ -9,10 +9,13 @@ import {
 } from "@dashboard/ui/components/select";
 import { Download, Filter, Loader2, RefreshCcw } from "lucide-react";
 
+// Radix Select has no empty value, so "everyone" travels as a sentinel.
+const ALL_LIAISONS = "all";
+
 type MarketingFiltersProps = {
   liaisons: OptionsResponse[];
   selectedLiaison: string | null;
-  onSelectLiaison: (userId: string) => void;
+  onSelectLiaison: (userId: string | null) => void;
   canSelectLiaison: boolean;
   onApply: () => void;
   onReset: () => void;
@@ -37,16 +40,21 @@ export function MarketingFilters({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Select
-        value={selectedLiaison ?? undefined}
-        onValueChange={onSelectLiaison}
+        value={selectedLiaison ?? ALL_LIAISONS}
+        onValueChange={(value) =>
+          onSelectLiaison(value === ALL_LIAISONS ? null : value)
+        }
         disabled={!canSelectLiaison}
       >
         <SelectTrigger className="h-10 w-full rounded-lg sm:w-[220px]">
           <SelectValue
-            placeholder={canSelectLiaison ? "All liaisons" : "Your report"}
+            placeholder={canSelectLiaison ? "Everyone" : "Your report"}
           />
         </SelectTrigger>
         <SelectContent>
+          {canSelectLiaison ? (
+            <SelectItem value={ALL_LIAISONS}>Everyone</SelectItem>
+          ) : null}
           {liaisons.length > 0 ? (
             liaisons.map((liaison) => (
               <SelectItem key={liaison.id} value={liaison.id}>
@@ -55,7 +63,7 @@ export function MarketingFilters({
             ))
           ) : (
             <div className="p-2 text-sm text-muted-foreground">
-              No liaisons available
+              No team members available
             </div>
           )}
         </SelectContent>

@@ -1,11 +1,10 @@
 import type { Prisma, PrismaClient, TaskPriority } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
-import { TASK_DESCRIPTIONS, TASK_LISTS, TASK_NAMES } from "./catalog";
+import { TASK_DESCRIPTIONS, TASK_LISTS, TASK_NAMES } from "./catalog/tasks";
 import type { DemoContext } from "./context";
 import { between, daysAgo, pick, random } from "./random";
 
 const PROJECT_NAME = "Territory Operations";
-const TASKS_PER_LIST = 12;
 
 const PRIORITIES: TaskPriority[] = ["URGENT", "HIGH", "NORMAL", "LOW"];
 
@@ -13,7 +12,7 @@ export async function seedTasks(
   prisma: PrismaClient,
   ctx: DemoContext
 ): Promise<number> {
-  const { organizationId } = ctx;
+  const { organizationId, profile } = ctx;
 
   const statuses = await prisma.taskStatus.findMany({
     where: { organizationId },
@@ -49,7 +48,7 @@ export async function seedTasks(
   let taskNumber = 0;
 
   for (const list of lists) {
-    for (let index = 0; index < TASKS_PER_LIST; index += 1) {
+    for (let index = 0; index < profile.tasksPerList; index += 1) {
       const id = uuidv4();
       const member = pick(ctx.assignable);
       const createdAt = daysAgo(between(1, 90));

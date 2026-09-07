@@ -120,6 +120,10 @@ const LiaisonPerformancePage = () => {
     (sum, row) => sum + row.totalInteractions,
     0
   );
+  const peakInteractions = rows.reduce(
+    (peak, row) => Math.max(peak, row.totalInteractions),
+    0
+  );
   const totalReferrals = data?.totals?.referrals ?? 0;
   const totalAdmissions = data?.totals?.admissions ?? 0;
 
@@ -213,13 +217,18 @@ const LiaisonPerformancePage = () => {
                   Liaison Performance Overview
                 </h2>
                 <span className="ml-auto rounded-full bg-brand/5 px-3 py-1 text-sm text-muted-foreground">
-                  {rows.length} {rows.length === 1 ? "Liaison" : "Liaisons"}
+                  {rows.length}{" "}
+                  {rows.length === 1 ? "Team member" : "Team members"}
                 </span>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {rows.map((liaison) => (
-                  <LiaisonAnalyticsCard key={liaison.memberId} data={liaison} />
+                  <LiaisonAnalyticsCard
+                    key={liaison.memberId}
+                    data={liaison}
+                    interactionTarget={peakInteractions}
+                  />
                 ))}
               </div>
             </div>

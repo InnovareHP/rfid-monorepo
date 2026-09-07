@@ -30,7 +30,6 @@ import { ConversionGauge } from "./charts/conversion-gauge";
 import { EmergingSourcesCard } from "./charts/emerging-sources-card";
 import { KpiStatTile } from "./charts/kpi-stat-tile";
 import { RankedBar } from "./charts/ranked-bar";
-import { ScorecardCard } from "./charts/scorecard-card";
 import { StatusBreakdownCard } from "./charts/status-breakdown-card";
 import { TrendLine } from "./charts/trend-line";
 import { TrendPill } from "./charts/trend-pill";
@@ -310,13 +309,6 @@ export default function ReferralAnalyticsDashboard() {
             />
           </ChartCard>
 
-          <ChartCard title="Referral Source Type Breakdown">
-            <CategoryPie
-              data={charts.sources}
-              emptyMessage="No source data available"
-            />
-          </ChartCard>
-
           <ChartCard title="Type of Assessment">
             <CategoryPie
               data={charts.assessmentTypes}
@@ -326,7 +318,6 @@ export default function ReferralAnalyticsDashboard() {
 
           <EmergingSourcesCard sources={charts.emergingSources} />
 
-          <ScorecardCard sources={charts.scorecard} />
         </div>
 
         {/* COUNTY HEAT MAP */}
