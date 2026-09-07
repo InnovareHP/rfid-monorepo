@@ -214,6 +214,7 @@ export function OrganizationListPage() {
 
         <ReusableTable
           data={data?.organizations ?? []}
+          rowKey={(row) => row.id}
           columns={columns}
           isLoading={isLoading}
           emptyMessage="No organizations found"

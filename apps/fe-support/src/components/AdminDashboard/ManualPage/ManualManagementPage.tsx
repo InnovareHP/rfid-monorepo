@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "../../Reusable/ConfirmDeleteDialog";
 import { CategoryDialog } from "./CategoryDialog";
 import { ManualArticleForm } from "./ManualArticleForm";
 
@@ -51,6 +52,10 @@ export function ManualManagementPage() {
   const [editingArticle, setEditingArticle] = useState<ManualArticle | null>(
     null
   );
+  const [deleteCategoryTarget, setDeleteCategoryTarget] =
+    useState<ManualCategory | null>(null);
+  const [deleteArticleTarget, setDeleteArticleTarget] =
+    useState<ManualArticle | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [articleFilterMeta, setArticleFilterMeta] = useState({
     page: 1,
@@ -77,6 +82,7 @@ export function ManualManagementPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manual-categories"] });
       queryClient.invalidateQueries({ queryKey: ["manual-articles"] });
+      setDeleteCategoryTarget(null);
       toast.success("Category deleted");
     },
     onError: () => toast.error("Failed to delete category"),
@@ -86,6 +92,7 @@ export function ManualManagementPage() {
     mutationFn: deleteArticle,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manual-articles"] });
+      setDeleteArticleTarget(null);
       toast.success("Article deleted");
     },
     onError: () => toast.error("Failed to delete article"),
@@ -194,7 +201,7 @@ export function ManualManagementPage() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive"
-                    onClick={() => deleteCategoryMutation.mutate(cat.id)}
+                    onClick={() => setDeleteCategoryTarget(cat)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -342,7 +349,7 @@ export function ManualManagementPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive"
-                      onClick={() => deleteArticleMutation.mutate(article.id)}
+                      onClick={() => setDeleteArticleTarget(article)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -400,7 +407,32 @@ export function ManualManagementPage() {
         </CardContent>
       </Card>
 
+      <ConfirmDeleteDialog
+        open={!!deleteCategoryTarget}
+        onOpenChange={(open) => !open && setDeleteCategoryTarget(null)}
+        title="Delete category?"
+        description={`This permanently deletes "${deleteCategoryTarget?.name}". Articles filed under it lose their category.`}
+        isPending={deleteCategoryMutation.isPending}
+        onConfirm={() =>
+          deleteCategoryTarget &&
+          deleteCategoryMutation.mutate(deleteCategoryTarget.id)
+        }
+      />
+
+      <ConfirmDeleteDialog
+        open={!!deleteArticleTarget}
+        onOpenChange={(open) => !open && setDeleteArticleTarget(null)}
+        title="Delete article?"
+        description={`This permanently deletes "${deleteArticleTarget?.title}" and its steps.`}
+        isPending={deleteArticleMutation.isPending}
+        onConfirm={() =>
+          deleteArticleTarget &&
+          deleteArticleMutation.mutate(deleteArticleTarget.id)
+        }
+      />
+
       <CategoryDialog
+        key={`category-${categoryDialogOpen}-${editingCategory?.id ?? "new"}`}
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
         category={editingCategory}

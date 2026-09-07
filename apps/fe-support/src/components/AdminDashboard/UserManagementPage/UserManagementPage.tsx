@@ -16,16 +16,6 @@ import {
 } from "@/services/admin/admin-service";
 import { formatDate } from "@dashboard/shared";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@dashboard/ui/components/alert-dialog";
-import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -67,6 +57,7 @@ import { FilterSelect } from "../../Reusable/FilterSelect";
 import { RoleBadge, StatusBadge } from "../../Reusable/StatusBadges";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
 import { BanUserDialog } from "./BanUserDialog";
+import { ConfirmDeleteDialog } from "../../Reusable/ConfirmDeleteDialog";
 import { CreateUserDialog } from "./CreateUserDialog";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { ImpersonateUserDialog } from "./ImpersonateUserDialog";
@@ -343,12 +334,7 @@ export function UserManagementPage() {
       render: (row: AdminUser) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8">
               <MoreHorizontal className="h-4 w-4" />
               <span className="sr-only">Actions</span>
             </Button>
@@ -515,6 +501,7 @@ export function UserManagementPage() {
 
         <ReusableTable
           data={data?.users ?? []}
+          rowKey={(row) => row.id}
           columns={columns}
           isLoading={isLoading}
           emptyMessage="No users found"
@@ -591,32 +578,22 @@ export function UserManagementPage() {
         }
       />
 
-      {/* Remove confirmation dialog */}
-      <AlertDialog
+      <ConfirmDeleteDialog
         open={!!removeTarget}
         onOpenChange={(open) => !open && setRemoveTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove user?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete <strong>{removeTarget?.name}</strong>{" "}
-              ({removeTarget?.email}). This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                removeTarget && removeMutation.mutate(removeTarget.id)
-              }
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {removeMutation.isPending ? "Removing..." : "Remove user"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Remove user?"
+        description={
+          <>
+            This will permanently delete <strong>{removeTarget?.name}</strong> (
+            {removeTarget?.email}). This action cannot be undone.
+          </>
+        }
+        confirmLabel="Remove user"
+        pendingLabel="Removing..."
+        isPending={removeMutation.isPending}
+        onConfirm={() => removeTarget && removeMutation.mutate(removeTarget.id)}
+      />
+
     </div>
   );
 }

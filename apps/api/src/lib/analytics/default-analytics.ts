@@ -372,6 +372,12 @@ const DEFAULT_CHARTS: Record<string, DefaultChart[]> = {
 // signal worth a nav row of their own.
 const NO_DEFAULT_MODULES = new Set(["CONTACT", "COMPANY"]);
 
+// Leads and referrals can be expressed generically and resolveDefaultCharts
+// still does so, but they keep hand-built pages whose numbers are the ones
+// people act on, and a generic copy listed beside those only ever disagreed.
+// Policy rather than capability, so it gates seeding, not resolution.
+const HAND_BUILT_PAGE_MODULES = new Set(["LEAD", "REFERRAL"]);
+
 // A custom module has no known field names, so its breakdown is whichever
 // field can actually be grouped - a status first, then any dropdown.
 const customModuleCharts = (fields: SeedField[]): DefaultChart[] => {
@@ -611,6 +617,7 @@ export const seedDefaultAnalytics = async (
   ]);
 
   if (!module || existing) return existing ?? null;
+  if (HAND_BUILT_PAGE_MODULES.has(module.key)) return null;
 
   const context = await buildContext(moduleId, organizationId);
   const charts = resolveDefaultCharts(module.key, context);
@@ -655,6 +662,7 @@ export const addMissingDefaultCharts = async (
   ]);
 
   if (!module || !dashboard) return 0;
+  if (HAND_BUILT_PAGE_MODULES.has(module.key)) return 0;
 
   const context = await buildContext(moduleId, organizationId);
   const present = new Set(dashboard.analytics.map((chart) => chart.name));

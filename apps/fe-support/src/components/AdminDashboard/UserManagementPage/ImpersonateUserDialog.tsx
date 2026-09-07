@@ -1,6 +1,5 @@
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -33,13 +32,13 @@ export function ImpersonateUserDialog({
   const [reason, setReason] = useState("");
   const tooShort = reason.trim().length < MIN_REASON_LENGTH;
 
-  const handleConfirm = () => {
-    onConfirm(reason.trim());
-    setReason("");
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setReason("");
+    onOpenChange(next);
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Impersonate user?</AlertDialogTitle>
@@ -65,12 +64,13 @@ export function ImpersonateUserDialog({
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button disabled={isPending || tooShort} onClick={handleConfirm}>
-              {isPending ? "Starting..." : "Impersonate"}
-            </Button>
-          </AlertDialogAction>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <Button
+            disabled={isPending || tooShort}
+            onClick={() => onConfirm(reason.trim())}
+          >
+            {isPending ? "Starting..." : "Impersonate"}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

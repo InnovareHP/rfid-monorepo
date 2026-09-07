@@ -13,6 +13,7 @@ import type { MasterListAnalyticsResponse } from "@dashboard/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
 import { lazy, Suspense, useMemo, useState } from "react";
+import { TopNFilter } from "./charts/top-n-filter";
 import { toast } from "sonner";
 
 import { AiSummaryCard } from "./ai-summary-card";
@@ -34,6 +35,8 @@ import { DormantFacilitiesTable } from "./dormant-facilities-table";
 const CountyHeatMap = lazy(() => import("./county-heat-map"));
 
 export default function MasterListAnalyticsPage() {
+  // Null leaves each ranked card on the count its own title claims.
+  const [topN, setTopN] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<AnalyticsDateRange>({
     start: null,
     end: null,
@@ -144,6 +147,8 @@ export default function MasterListAnalyticsPage() {
           <div className="flex items-center gap-2">
             <AnalyticsDateFilter onChange={setDateRange} />
 
+            <TopNFilter value={topN} onChange={setTopN} />
+
             <ExportPdfButton
               disabled={!analytics}
               onExport={() => downloadMasterListAnalyticsPdf(start, end)}
@@ -243,17 +248,17 @@ export default function MasterListAnalyticsPage() {
 
         {/* SOURCES + COUNTIES + OWNERSHIP */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <ChartCard title="Top 10 Referring Facilities">
+          <ChartCard title={`Top ${topN ?? 10} Referring Facilities`}>
             <RankedBar
-              data={charts.topReferringFacilities}
+              data={charts.topReferringFacilities.slice(0, topN ?? 10)}
               layout="horizontal"
               emptyMessage="No referral data available"
             />
           </ChartCard>
 
-          <ChartCard title="Top 10 Counties Covered">
+          <ChartCard title={`Top ${topN ?? 10} Counties Covered`}>
             <RankedBar
-              data={charts.counties}
+              data={charts.counties.slice(0, topN ?? 10)}
               layout="horizontal"
               metricLabel="Facilities"
               emptyMessage="No county data available"

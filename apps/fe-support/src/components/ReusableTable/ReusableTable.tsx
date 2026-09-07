@@ -1,5 +1,4 @@
 import { Button } from "@dashboard/ui/components/button";
-import { ScrollArea, ScrollBar } from "@dashboard/ui/components/scroll-area";
 import {
   Table,
   TableBody,
@@ -18,8 +17,17 @@ interface Column<T> {
   className?: string;
 }
 
+// A row click must not fire when the click landed on a control inside the row,
+// otherwise every action button navigates to the detail page instead of acting.
+const INTERACTIVE_SELECTOR = "a, button, input, select, textarea, [role='menuitem'], [data-slot='dropdown-menu-trigger']";
+
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest(INTERACTIVE_SELECTOR));
+}
+
 interface ReusableTableProps<T> {
   data: T[];
+  rowKey: (row: T) => string;
   columns: Column<T>[];
   currentPage?: number;
   itemsPerPage?: number;
@@ -32,6 +40,7 @@ interface ReusableTableProps<T> {
 
 export function ReusableTable<T>({
   data,
+  rowKey,
   columns,
   currentPage = 1,
   itemsPerPage = 10,
@@ -75,13 +84,13 @@ export function ReusableTable<T>({
 
   return (
     <div className="w-full border-2 border-border rounded-lg overflow-hidden bg-card shadow-sm">
-      <ScrollArea>
+      <div className="overflow-x-auto">
         <Table className="border-0">
           <TableHeader>
             <TableRow className="border-b-2 border-border bg-primary/10 hover:bg-primary/10">
-              {columns.map((col, idx) => (
+              {columns.map((col) => (
                 <TableHead
-                  key={idx}
+                  key={String(col.key)}
                   className={cn(
                     "text-primary font-semibold text-sm border-r border-border last:border-r-0 py-4",
                     col.className
@@ -143,17 +152,20 @@ export function ReusableTable<T>({
             ) : (
               data.map((row, rowIndex) => (
                 <TableRow
-                  key={rowIndex}
+                  key={rowKey(row)}
                   className={cn(
                     "border-b border-border hover:bg-primary/10 transition-colors",
                     rowIndex % 2 === 0 ? "bg-card" : "bg-muted",
                     onRowClick && "cursor-pointer"
                   )}
-                  onClick={() => onRowClick?.(row)}
+                  onClick={(event) => {
+                    if (isInteractiveTarget(event.target)) return;
+                    onRowClick?.(row);
+                  }}
                 >
-                  {columns.map((col, colIndex) => (
+                  {columns.map((col) => (
                     <TableCell
-                      key={colIndex}
+                      key={String(col.key)}
                       className={cn(
                         "border-r border-border last:border-r-0 py-3 px-4 text-sm",
                         col.className
@@ -173,8 +185,7 @@ export function ReusableTable<T>({
             )}
           </TableBody>
         </Table>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
 
       {/* Pagination */}
       {onPageChange && totalPages > 1 && !isLoading && (

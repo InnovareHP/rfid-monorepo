@@ -24,7 +24,6 @@ import { Input } from "@dashboard/ui/components/input";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -52,24 +51,16 @@ export function CategoryDialog({
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: "", slug: "", description: "", icon: "", order: 0 },
+    defaultValues: category
+      ? {
+          name: category.name,
+          slug: category.slug,
+          description: category.description ?? "",
+          icon: category.icon ?? "",
+          order: category.order,
+        }
+      : { name: "", slug: "", description: "", icon: "", order: 0 },
   });
-
-  useEffect(() => {
-    if (open) {
-      form.reset(
-        category
-          ? {
-              name: category.name,
-              slug: category.slug,
-              description: category.description ?? "",
-              icon: category.icon ?? "",
-              order: category.order,
-            }
-          : { name: "", slug: "", description: "", icon: "", order: 0 }
-      );
-    }
-  }, [category, open, form]);
 
   const mutation = useMutation({
     mutationFn: (values: CategoryFormValues) => {

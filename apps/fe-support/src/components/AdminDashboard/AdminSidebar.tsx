@@ -44,6 +44,7 @@ import {
   Users,
 } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 const QUEUE_BOARD_URL = "/api/queues";
 
@@ -164,8 +165,8 @@ export function AdminSidebar() {
       await authClient.signOut();
       queryClient.clear();
       router.navigate({ to: "/" });
-    } catch (error) {
-      console.error("Logout failed:", error);
+    } catch {
+      toast.error("Sign out failed. Try again.");
     }
   }, [queryClient, router]);
 

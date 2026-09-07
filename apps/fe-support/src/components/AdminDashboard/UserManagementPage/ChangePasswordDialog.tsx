@@ -1,6 +1,5 @@
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -58,7 +57,6 @@ export function ChangePasswordDialog({
   const handleConfirm = () => {
     if (!canSubmit) return;
     onConfirm(newPassword);
-    reset();
   };
 
   return (
@@ -122,12 +120,10 @@ export function ChangePasswordDialog({
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button disabled={!canSubmit} onClick={handleConfirm}>
-              {isPending ? "Saving..." : "Change password"}
-            </Button>
-          </AlertDialogAction>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <Button disabled={!canSubmit} onClick={handleConfirm}>
+            {isPending ? "Saving..." : "Change password"}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

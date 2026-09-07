@@ -18,7 +18,8 @@ import { GripVertical } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CustomAnalyticTileMenu } from "./custom-analytic-tile-menu";
-import { supportsTopN, TopNFilter } from "./top-n-filter";
+import { TopNFilter } from "@/components/analytics/charts/top-n-filter";
+import { supportsTopN } from "./top-n-support";
 
 type CustomAnalyticDashboardChartTileProps = {
   chart: CustomAnalyticDashboardRun["charts"][number];
@@ -87,7 +88,13 @@ export function CustomAnalyticDashboardChartTile({
 
         {(rankable || draggable || actions) && (
           <CardAction className="flex items-center gap-1">
-            {rankable && <TopNFilter value={topN} onChange={setTopN} />}
+            {rankable && (
+              <TopNFilter
+                value={topN}
+                onChange={setTopN}
+                className="h-7 w-24 text-xs"
+              />
+            )}
 
             {/* Listeners bind only to the grip so a TABLE tile's pagination
                 controls and recharts tooltips keep working. */}

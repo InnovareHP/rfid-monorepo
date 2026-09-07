@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useRouteContext } from "@tanstack/react-router";
 import { lazy, Suspense, useMemo, useState } from "react";
+import { TopNFilter } from "./charts/top-n-filter";
 
 import {
   getAnalytics,
@@ -39,6 +40,9 @@ import { DenialReasonsTable } from "./denial-reasons-table";
 const CountyHeatMap = lazy(() => import("./county-heat-map"));
 
 export default function ReferralAnalyticsDashboard() {
+  // Null leaves each ranked card on the count its own title claims: ten for
+  // most, five for denial reasons.
+  const [topN, setTopN] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<AnalyticsDateRange>({
     start: null,
     end: null,
@@ -111,10 +115,7 @@ export default function ReferralAnalyticsDashboard() {
   // Memoised for referential stability, not for the cost of the transform:
   // recharts replays a series' whole animation when its data identity changes,
   // so a fresh array on every render re-swept every chart on the page.
-  const charts = useMemo(
-    () => buildAnalyticsChartData(analytics),
-    [analytics]
-  );
+  const charts = useMemo(() => buildAnalyticsChartData(analytics), [analytics]);
 
   if (!canUseAdvancedAnalytics) {
     return (
@@ -168,6 +169,8 @@ export default function ReferralAnalyticsDashboard() {
               }}
             />
 
+            <TopNFilter value={topN} onChange={setTopN} />
+
             <ExportPdfButton
               disabled={!analytics}
               onExport={() =>
@@ -182,18 +185,18 @@ export default function ReferralAnalyticsDashboard() {
 
         {/* AI SUMMARY CARD — the endpoint is gated on the ai feature */}
         {canUseAi && (
-        <AiSummaryCard
-          isLoading={isLoadingSummary || regenerateSummaryMutation.isPending}
-          preview={analyticsSummary?.executive_summary}
-          sections={insightSections}
-          fallbackPreview="Referral insights will appear here once enough activity is recorded."
-          error={
-            isErrorSummary
-              ? getApiErrorMessage(summaryError, "Failed to load insights")
-              : null
-          }
-          onRegenerate={() => regenerateSummaryMutation.mutate()}
-        />
+          <AiSummaryCard
+            isLoading={isLoadingSummary || regenerateSummaryMutation.isPending}
+            preview={analyticsSummary?.executive_summary}
+            sections={insightSections}
+            fallbackPreview="Referral insights will appear here once enough activity is recorded."
+            error={
+              isErrorSummary
+                ? getApiErrorMessage(summaryError, "Failed to load insights")
+                : null
+            }
+            onRegenerate={() => regenerateSummaryMutation.mutate()}
+          />
         )}
 
         {/* KPI TILES */}
@@ -278,32 +281,35 @@ export default function ReferralAnalyticsDashboard() {
         {/* COUNTIES + DENIAL REASONS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ChartCard
-            title="Top 10 Counties Generating Referrals"
+            title={`Top ${topN ?? 10} Counties Generating Referrals`}
             className="md:col-span-2"
           >
             <RankedBar
-              data={charts.counties}
+              data={charts.counties.slice(0, topN ?? 10)}
               emptyMessage="No county data available"
             />
           </ChartCard>
 
-          <ChartCard title="Top 5 Denial Reasons">
-            <DenialReasonsTable reasons={charts.denialReasons} />
+          <ChartCard title={`Top ${topN ?? 5} Denial Reasons`}>
+            <DenialReasonsTable
+              reasons={charts.denialReasons}
+              limit={topN ?? 5}
+            />
           </ChartCard>
         </div>
         {/* SOURCES + TYPES */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <ChartCard title="Top 10 Referring Facilities">
+          <ChartCard title={`Top ${topN ?? 10} Referring Facilities`}>
             <RankedBar
-              data={charts.facilities}
+              data={charts.facilities.slice(0, topN ?? 10)}
               layout="horizontal"
               emptyMessage="No facility data available"
             />
           </ChartCard>
 
-          <ChartCard title="Top 10 Referring Clinicians">
+          <ChartCard title={`Top ${topN ?? 10} Referring Clinicians`}>
             <RankedBar
-              data={charts.clinicians}
+              data={charts.clinicians.slice(0, topN ?? 10)}
               layout="horizontal"
               emptyMessage="No clinician data available"
             />
@@ -317,7 +323,6 @@ export default function ReferralAnalyticsDashboard() {
           </ChartCard>
 
           <EmergingSourcesCard sources={charts.emergingSources} />
-
         </div>
 
         {/* COUNTY HEAT MAP */}

@@ -28,6 +28,17 @@ export function RatingDialog({ ticketId, existingRating }: RatingDialogProps) {
   const [selected, setSelected] = useState(existingRating?.rating ?? 0);
   const [comment, setComment] = useState(existingRating?.comment ?? "");
 
+  // Reading the rating at open time, not at mount, so a ticket rated after the
+  // page loaded still opens on its own stars.
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      setSelected(existingRating?.rating ?? 0);
+      setComment(existingRating?.comment ?? "");
+    }
+    setHovered(0);
+    setOpen(next);
+  };
+
   const mutation = useMutation({
     mutationFn: () => rateTicket(ticketId, selected, comment || undefined),
     onSuccess: () => {
@@ -43,7 +54,7 @@ export function RatingDialog({ ticketId, existingRating }: RatingDialogProps) {
   const displayed = hovered || selected;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5 w-full">
           <Star className="h-4 w-4" />
@@ -94,7 +105,7 @@ export function RatingDialog({ ticketId, existingRating }: RatingDialogProps) {
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => setOpen(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={mutation.isPending}
           >
             Cancel

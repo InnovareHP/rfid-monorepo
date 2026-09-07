@@ -16,11 +16,13 @@ const TOP_LIMIT = 5;
 type DenialReasonsTableProps = {
   reasons: DenialReasonRow[];
   emptyMessage?: string;
+  limit?: number;
 };
 
 export function DenialReasonsTable({
   reasons,
   emptyMessage = "No denial data available",
+  limit = TOP_LIMIT,
 }: DenialReasonsTableProps) {
   const [categoryOrder, setCategoryOrder] = useState<"asc" | "desc" | null>(
     null
@@ -34,7 +36,7 @@ export function DenialReasonsTable({
     );
   }
 
-  const rows = reasons.slice(0, TOP_LIMIT);
+  const rows = reasons.slice(0, limit);
   const sorted = categoryOrder
     ? [...rows].sort((a, b) =>
         categoryOrder === "asc"
@@ -68,10 +70,7 @@ export function DenialReasonsTable({
         <TableBody>
           {sorted.map((reason) => (
             <TableRow key={reason.name}>
-              <TableCell
-                className="max-w-0 truncate py-4"
-                title={reason.name}
-              >
+              <TableCell className="max-w-0 truncate py-4" title={reason.name}>
                 {reason.name}
               </TableCell>
               <TableCell className="py-4 text-right">

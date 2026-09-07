@@ -16,16 +16,6 @@ import {
 } from "@/services/admin/admin-service";
 import { formatDate } from "@dashboard/shared";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@dashboard/ui/components/alert-dialog";
-import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -79,6 +69,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "../../Reusable/ConfirmDeleteDialog";
 import { BanUserDialog } from "./BanUserDialog";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { ImpersonateUserDialog } from "./ImpersonateUserDialog";
@@ -464,27 +455,22 @@ export function UserDetailPage({ userId }: { userId: string }) {
         onConfirm={(newPassword) => passwordMutation.mutate(newPassword)}
       />
 
-      {/* Remove confirmation dialog */}
-      <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove user?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete <strong>{user.name}</strong> (
-              {user.email}). This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => removeMutation.mutate()}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {removeMutation.isPending ? "Removing..." : "Remove user"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={removeOpen}
+        onOpenChange={setRemoveOpen}
+        title="Remove user?"
+        description={
+          <>
+            This will permanently delete <strong>{user.name}</strong> (
+            {user.email}). This action cannot be undone.
+          </>
+        }
+        confirmLabel="Remove user"
+        pendingLabel="Removing..."
+        isPending={removeMutation.isPending}
+        onConfirm={() => removeMutation.mutate()}
+      />
+
     </div>
   );
 }

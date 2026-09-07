@@ -25,6 +25,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  History,
   Loader2,
   MessageSquare,
   Paperclip,
@@ -33,7 +34,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MessageItem } from "../Reusable/MessageItem";
 import { MetaRow } from "../Reusable/MetaRow";
@@ -45,6 +46,17 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
   const queryClient = useQueryClient();
   const [replyText, setReplyText] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
+
+  // Object URLs are minted once per file and revoked, not remade every render.
+  const attachmentPreviews = useMemo(
+    () => attachments.map((file) => URL.createObjectURL(file)),
+    [attachments]
+  );
+
+  useEffect(() => {
+    return () => attachmentPreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [attachmentPreviews]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: ticket, isLoading } = useQuery<TicketDetail>({
@@ -118,7 +130,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex min-h-[60dvh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -126,7 +138,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
 
   if (!ticket) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+      <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Ticket not found</p>
         <Button variant="outline" onClick={() => navigate({ to: "/" })}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -172,7 +184,7 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
                   Conversation
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-1.5">
-                  <span className="h-3.5 w-3.5 text-xs">🕐</span>
+                  <History className="h-3.5 w-3.5" />
                   Audit log
                 </TabsTrigger>
               </TabsList>
@@ -210,11 +222,11 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
                     <div className="mt-3 flex flex-wrap gap-2">
                       {attachments.map((file, i) => (
                         <div
-                          key={i}
+                          key={`${file.name}-${file.lastModified}`}
                           className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border"
                         >
                           <img
-                            src={URL.createObjectURL(file)}
+                            src={attachmentPreviews[i]}
                             alt={`Attachment ${i + 1}`}
                             className="h-full w-full object-cover"
                           />
@@ -223,6 +235,10 @@ export function TicketDetailPage({ ticketId }: { ticketId: string }) {
                             onClick={() => removeAttachment(i)}
                             className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
                           >
+                            {/* Scrim sits on the uploaded image, not on themed
+                                UI, so its foreground is fixed white in both
+                                themes rather than a token that would invert. */}
+                            {/* eslint-disable-next-line no-restricted-syntax */}
                             <X className="h-4 w-4 text-white" />
                           </Button>
                         </div>

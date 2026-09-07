@@ -468,9 +468,19 @@ export class CustomAnalyticsService {
     }
   }
 
+  // The seeded lead and referral pages are hidden here: both modules keep a
+  // hand-built analytics page, and listing the generic copy beside it invited
+  // a comparison whose two sides count different things. Existing rows stay so
+  // a direct link still resolves.
   async getDashboards(organizationId: string) {
     return prisma.customAnalyticDashboard.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        NOT: {
+          isDefault: true,
+          module: { key: { in: ["LEAD", "REFERRAL"] } },
+        },
+      },
       orderBy: { createdAt: "desc" },
       include: {
         analytics: {

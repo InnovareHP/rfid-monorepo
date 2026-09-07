@@ -19,16 +19,6 @@ import {
   type TicketRow,
 } from "@dashboard/shared";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@dashboard/ui/components/alert-dialog";
-import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -53,12 +43,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@dashboard/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -75,6 +59,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "../../Reusable/ConfirmDeleteDialog";
 import { PriorityBadge, StatusBadge } from "../../Reusable/StatusBadges";
 import { ReusableTable } from "../../ReusableTable/ReusableTable";
 
@@ -99,7 +84,7 @@ export function SupportDashboardTickets() {
     search: "",
     status: "ALL",
     category: null,
-    priority: Priority.MEDIUM,
+    priority: "ALL",
   });
 
   const { data: { tickets = [], total = 0 } = {}, isLoading } = useQuery({
@@ -277,12 +262,7 @@ export function SupportDashboardTickets() {
       render: (row: TicketRow) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8">
               <MoreHorizontal className="h-4 w-4" />
               <span className="sr-only">Actions</span>
             </Button>
@@ -468,63 +448,34 @@ export function SupportDashboardTickets() {
           </Button>
         </div>
 
-        <Tabs defaultValue="all-tickets" className="w-full">
-          <TabsList className="bg-transparent p-0 h-auto gap-1 border-0 rounded-none">
-            <TabsTrigger
-              value="all-tickets"
-              className="rounded-full px-4 py-1.5 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
-            >
-              All tickets
-              {total > 0 && (
-                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-xs">
-                  {total}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all-tickets" className="mt-4">
-            <ReusableTable
-              data={tickets}
-              columns={columns}
-              isLoading={isLoading}
-              emptyMessage="No tickets found"
-              totalCount={total}
-              currentPage={filterMeta.page}
-              itemsPerPage={filterMeta.take}
-              onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-            />
-          </TabsContent>
-        </Tabs>
+        <ReusableTable
+          data={tickets}
+          rowKey={(row) => row.id}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="No tickets found"
+          totalCount={total}
+          currentPage={filterMeta.page}
+          itemsPerPage={filterMeta.take}
+          onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
+        />
       </div>
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog
+      <ConfirmDeleteDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete ticket?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete ticket{" "}
-              <strong>#{deleteTarget?.ticketNumber}</strong>. This action cannot
-              be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                deleteTarget && deleteMutation.mutate(deleteTarget.id)
-              }
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete ticket?"
+        description={
+          <>
+            This will permanently delete ticket{" "}
+            <strong>#{deleteTarget?.ticketNumber}</strong>. This action cannot be
+            undone.
+          </>
+        }
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+      />
+
     </div>
   );
 }

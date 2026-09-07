@@ -78,6 +78,9 @@ export function ImageDropper({ value, onChange, max = 5 }: ImageDropperProps) {
                 onClick={() => removeImage(i)}
                 className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
               >
+                {/* Scrim sits on the uploaded image, not on themed UI, so its
+                    foreground is fixed white in both themes. */}
+                {/* eslint-disable-next-line no-restricted-syntax */}
                 <X className="size-4 text-white" />
               </button>
             </div>

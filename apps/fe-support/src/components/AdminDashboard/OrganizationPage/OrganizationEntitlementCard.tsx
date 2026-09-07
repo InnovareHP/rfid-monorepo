@@ -127,6 +127,7 @@ export function OrganizationEntitlementCard({
       </CardContent>
 
       <OrganizationEntitlementDialog
+        key={`entitlement-${editOpen}`}
         open={editOpen}
         onOpenChange={setEditOpen}
         orgId={org.id}

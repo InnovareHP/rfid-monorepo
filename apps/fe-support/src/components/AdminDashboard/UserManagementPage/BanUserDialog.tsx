@@ -1,6 +1,5 @@
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -46,15 +45,21 @@ export function BanUserDialog({
   const [reason, setReason] = useState("");
   const [duration, setDuration] = useState("permanent");
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setReason("");
+      setDuration("permanent");
+    }
+    onOpenChange(next);
+  };
+
   const handleConfirm = () => {
     const expiresIn = duration === "permanent" ? undefined : Number(duration);
     onConfirm(reason, expiresIn);
-    setReason("");
-    setDuration("permanent");
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Ban user?</AlertDialogTitle>
@@ -93,16 +98,14 @@ export function BanUserDialog({
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button
-              variant="destructive"
-              disabled={isPending}
-              onClick={handleConfirm}
-            >
-              {isPending ? "Banning..." : "Ban user"}
-            </Button>
-          </AlertDialogAction>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <Button
+            variant="destructive"
+            disabled={isPending}
+            onClick={handleConfirm}
+          >
+            {isPending ? "Banning..." : "Ban user"}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

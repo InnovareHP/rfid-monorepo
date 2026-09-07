@@ -2,13 +2,62 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log("🌱 Seeding User Manual...");
+// The manual carries no organizationId: one help centre serves every tenant, so
+// clearing it clears it for all of them.
+//
+//   pnpm --filter api prisma:seed-manual        rebuild from this file
+//   pnpm --filter api wipe:manual               count what a wipe would remove
+//   pnpm --filter api wipe:manual -- --apply    remove it
+//
+// Seeding rebuilds what it deletes. wipe:manual does not, which is why it needs
+// --apply and the seed does not.
+const wipeOnly = process.argv.includes("--wipe-only");
+const apply = process.argv.includes("--apply");
 
-  // Clear old manual data
+// Steps cascade from articles and articles from categories, but each is deleted
+// explicitly so the counts reported are the rows actually removed.
+async function clearManual() {
   await prisma.manualStep.deleteMany();
   await prisma.manualArticle.deleteMany();
   await prisma.manualCategory.deleteMany();
+}
+
+async function wipe() {
+  const [categories, articles, steps] = await Promise.all([
+    prisma.manualCategory.count(),
+    prisma.manualArticle.count(),
+    prisma.manualStep.count(),
+  ]);
+
+  console.log(
+    `${categories} categories, ${articles} articles, ${steps} steps across every organization`
+  );
+
+  if (!categories && !articles && !steps) {
+    console.log("Nothing to wipe.");
+    return;
+  }
+
+  if (!apply) {
+    console.log("Dry run. Pass --apply to delete them.");
+    return;
+  }
+
+  await clearManual();
+
+  console.log("Manual cleared. Run prisma:seed-manual to rebuild it.");
+}
+
+async function main() {
+  if (wipeOnly) {
+    await wipe();
+    return;
+  }
+
+  console.log("🌱 Seeding User Manual...");
+
+  // Clear old manual data
+  await clearManual();
 
   // ── Categories ──────────────────────────────────────────────
 
@@ -87,8 +136,7 @@ async function main() {
       data: {
         name: "County Configuration",
         slug: "county-configuration",
-        description:
-          "Add counties and assign liaison personnel to each one.",
+        description: "Add counties and assign liaison personnel to each one.",
         icon: "MapPin",
         order: 7,
       },
@@ -203,10 +251,13 @@ async function main() {
   });
 
   // Fallback to any user if no admin/support exists
-  const fallbackUser = author ?? (await prisma.user.findFirst({ select: { id: true } }));
+  const fallbackUser =
+    author ?? (await prisma.user.findFirst({ select: { id: true } }));
 
   if (!fallbackUser) {
-    console.log("⚠️  No users found. Seeding categories only (articles need a createdBy user).");
+    console.log(
+      "⚠️  No users found. Seeding categories only (articles need a createdBy user)."
+    );
     console.log("✅ Seeded", categories.length, "categories.");
     return;
   }
@@ -246,7 +297,7 @@ async function main() {
           {
             title: "Upload your team logo",
             content:
-              'Navigate to the Team page from the sidebar. Click the camera icon on the organization avatar at the top of the page. Select an image file to upload. The logo will appear in the sidebar and team pages for all members.',
+              "Navigate to the Team page from the sidebar. Click the camera icon on the organization avatar at the top of the page. Select an image file to upload. The logo will appear in the sidebar and team pages for all members.",
             order: 2,
           },
           {
@@ -342,7 +393,7 @@ async function main() {
           {
             title: "Create dropdown options on the fly",
             content:
-              'When editing a dropdown cell, you can type a new value that does not exist yet and press Enter or click the create option. The new option is added to the list for all leads in your organization.',
+              "When editing a dropdown cell, you can type a new value that does not exist yet and press Enter or click the create option. The new option is added to the list for all leads in your organization.",
             order: 3,
           },
         ],
@@ -509,11 +560,11 @@ async function main() {
       title: "Using Master List Analytics",
       slug: "using-master-list-analytics",
       summary:
-        "View aggregated marketing analytics, filter by date and liaison, and export as PDF.",
+        "View aggregated marketing analytics, filter by date and liaison, trim the ranked charts, and export as PDF.",
       categoryId: masterList.id,
       published: true,
       featured: false,
-      readMinutes: 2,
+      readMinutes: 3,
       order: 5,
       createdBy: userId,
       steps: {
@@ -531,10 +582,16 @@ async function main() {
             order: 1,
           },
           {
+            title: "Show fewer rows on the ranked charts",
+            content:
+              'Use the "Top" dropdown beside the date filter to show the top 3, 5 or 10 entries instead of the full ten. It applies to the ranked cards whose titles begin with "Top" - Top Referring Facilities and Top Counties Covered - and their headings update to match the number you pick. Leave it unset to keep each card on its usual count. The choice affects only your current view: nothing is saved, and other people see the charts unchanged.',
+            order: 2,
+          },
+          {
             title: "Export as PDF",
             content:
-              'Click the "Export PDF" button to download the current analytics view as a PDF document. The file includes a timestamp in the filename.',
-            order: 2,
+              'Click the "Export PDF" button to download the current analytics view as a PDF document. The file includes a timestamp in the filename. The PDF always contains the full ranked lists, not the shortened view.',
+            order: 3,
           },
         ],
       },
@@ -636,11 +693,11 @@ async function main() {
       title: "Referral Analytics",
       slug: "referral-analytics",
       summary:
-        "View referral metrics, filter by date and liaison, and export analytics as PDF.",
+        "View referral metrics, filter by date and liaison, trim the ranked charts, and export analytics as PDF.",
       categoryId: referralList.id,
       published: true,
       featured: false,
-      readMinutes: 2,
+      readMinutes: 3,
       order: 2,
       createdBy: userId,
       steps: {
@@ -658,10 +715,22 @@ async function main() {
             order: 1,
           },
           {
+            title: "Show fewer rows on the ranked charts",
+            content:
+              'Use the "Top" dropdown beside the date filter to show the top 3, 5 or 10 entries instead of the full list. It applies to the cards whose titles begin with "Top" - Top Counties Generating Referrals, Top Denial Reasons, Top Referring Facilities and Top Referring Clinicians - and each heading updates to the number you pick. Leave it unset to keep every card on its usual count. The choice affects only your current view and is not saved.',
+            order: 2,
+          },
+          {
+            title: "Read the referral source charts",
+            content:
+              "Top Referring Facilities counts referrals through their linked facility. Top Referring Clinicians reads the Assessor column, so a referral with that column left blank does not appear. Top Denial Reasons counts only referrals whose Admission Status is Denied, and reads the Reason column - denials logged without a reason are counted in the totals but cannot be broken down here.",
+            order: 3,
+          },
+          {
             title: "Export as PDF",
             content:
-              'Click "Export PDF" to download the referral analytics dashboard as a PDF document.',
-            order: 2,
+              'Click "Export PDF" to download the referral analytics dashboard as a PDF document. The PDF always contains the full ranked lists, not the shortened view.',
+            order: 4,
           },
         ],
       },
@@ -756,7 +825,7 @@ async function main() {
           {
             title: "Verify on the Calendar page",
             content:
-              'Navigate to the Calendar page (calendar icon in the primary sidebar). Your events should appear color-coded: Google events in red, Outlook events in blue.',
+              "Navigate to the Calendar page (calendar icon in the primary sidebar). Your events should appear color-coded: Google events in red, Outlook events in blue.",
             order: 3,
           },
         ],
@@ -998,7 +1067,7 @@ async function main() {
           {
             title: "Navigate to Reports",
             content:
-              'Under the Reports section in the sidebar, click Mileage Report, Marketing Report, or Expense Report. These pages are only visible to Owners and Admission Managers.',
+              "Under the Reports section in the sidebar, click Mileage Report, Marketing Report, or Expense Report. These pages are only visible to Owners and Admission Managers.",
             order: 0,
           },
           {
@@ -1222,8 +1291,7 @@ async function main() {
     data: {
       title: "Deleting Leads",
       slug: "deleting-leads",
-      summary:
-        "Select and remove one or multiple leads from your Master List.",
+      summary: "Select and remove one or multiple leads from your Master List.",
       categoryId: masterList.id,
       published: true,
       featured: false,
@@ -1349,8 +1417,7 @@ async function main() {
         create: [
           {
             title: "Go to the Team page",
-            content:
-              'Click "Team" under the Settings section in the sidebar.',
+            content: 'Click "Team" under the Settings section in the sidebar.',
             order: 0,
           },
           {
@@ -1526,13 +1593,13 @@ async function main() {
           {
             title: "Add a county with an assignee",
             content:
-              "When adding a new county, fill in both the County Name and the Assigned To field with the liaison's name. The county will be created with a green \"Assigned\" status badge.",
+              'When adding a new county, fill in both the County Name and the Assigned To field with the liaison\'s name. The county will be created with a green "Assigned" status badge.',
             order: 1,
           },
           {
             title: "Track unassigned counties",
             content:
-              "Counties without an Assigned To value show an orange \"Unassigned\" badge. The summary at the top of the page shows how many counties are assigned vs total (e.g., 3/5 Assigned), making it easy to spot gaps in coverage.",
+              'Counties without an Assigned To value show an orange "Unassigned" badge. The summary at the top of the page shows how many counties are assigned vs total (e.g., 3/5 Assigned), making it easy to spot gaps in coverage.',
             order: 2,
           },
           {
@@ -1768,7 +1835,7 @@ async function main() {
           {
             title: "Open the Plans page",
             content:
-              'Navigate to the Plans page from the sidebar or Settings. You will see a list of available subscription tiers with their pricing, included features, and member limits.',
+              "Navigate to the Plans page from the sidebar or Settings. You will see a list of available subscription tiers with their pricing, included features, and member limits.",
             order: 0,
           },
           {
@@ -1805,7 +1872,7 @@ async function main() {
           {
             title: "Open Billing Settings",
             content:
-              'Go to Settings > Billing from the sidebar. This page shows your current subscription plan, billing cycle, and payment status.',
+              "Go to Settings > Billing from the sidebar. This page shows your current subscription plan, billing cycle, and payment status.",
             order: 0,
           },
           {
@@ -1895,7 +1962,7 @@ async function main() {
           {
             title: "Open a lead's timeline",
             content:
-              'In the Master List, find the lead you want to inspect. Click on the lead row or click the timeline icon/button. This navigates you to the Lead Timeline page showing all activity for that specific lead.',
+              "In the Master List, find the lead you want to inspect. Click on the lead row or click the timeline icon/button. This navigates you to the Lead Timeline page showing all activity for that specific lead.",
             order: 0,
           },
           {
@@ -1979,7 +2046,7 @@ async function main() {
           {
             title: "Open the Referral Import page",
             content:
-              'Navigate to the Referral Import page from the sidebar. You will see a file upload area and instructions for preparing your CSV file.',
+              "Navigate to the Referral Import page from the sidebar. You will see a file upload area and instructions for preparing your CSV file.",
             order: 0,
           },
           {
@@ -2486,6 +2553,55 @@ async function main() {
             content:
               "The PDF will download automatically to your browser's downloads folder. You can share this file with stakeholders, attach it to emails, or print it for physical records.",
             order: 2,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.manualArticle.create({
+    data: {
+      title: "Building Custom Analytics Dashboards",
+      slug: "building-custom-analytics-dashboards",
+      summary:
+        "Group saved charts onto a dashboard, filter them together, and trim any ranked chart on the spot.",
+      categoryId: logsReports.id,
+      published: true,
+      featured: false,
+      readMinutes: 3,
+      order: 7,
+      createdBy: userId,
+      steps: {
+        create: [
+          {
+            title: "Open Custom Analytics",
+            content:
+              'Click "Custom Analytics" under Reports in the sidebar. The page lists the dashboards your organization has built. This feature is part of the Scale plan.',
+            order: 0,
+          },
+          {
+            title: "Create a dashboard and add charts",
+            content:
+              'Click "New Dashboard", give it a name, then use "New Chart" to build one in place or "Add Existing" to pull in a chart that already exists. Drag the tiles by the grip handle to reorder them, and use the menu on each tile to change its width, duplicate it, or remove it.',
+            order: 1,
+          },
+          {
+            title: "Filter the whole dashboard by date",
+            content:
+              "The date filter at the top applies to every chart at once, overriding whatever range each chart was saved with. Charts recalculate together so the dashboard always reads one period.",
+            order: 2,
+          },
+          {
+            title: "Trim a ranked chart with the Top dropdown",
+            content:
+              'A chart whose title begins with "Top" and is drawn as a bar or pie carries a "Top" dropdown in its header. Pick 3, 5 or 10 to show fewer groups. Only that chart reloads, the rest of the dashboard is untouched, and nothing is saved - reopen the page and the chart is back to the number it was built with. To change the count permanently, edit the chart and set its group limit.',
+            order: 3,
+          },
+          {
+            title: "Where the lead and referral pages live",
+            content:
+              'Master List and Referral have their own analytics pages under Overview in the sidebar, and those are the numbers to work from. They are not listed as custom dashboards, because the two pages count some things differently - the custom engine counts records and adds an "Unknown" group for blanks, while the built-in pages count only filled-in values, and only the built-in pages honour the liaison filter.',
+            order: 4,
           },
         ],
       },
@@ -3100,7 +3216,7 @@ async function main() {
 
 main()
   .then(() => {
-    console.log("🎉 Manual seed complete!");
+    if (!wipeOnly) console.log("🎉 Manual seed complete!");
   })
   .catch((e) => {
     console.error("❌ Manual seed error:", e);

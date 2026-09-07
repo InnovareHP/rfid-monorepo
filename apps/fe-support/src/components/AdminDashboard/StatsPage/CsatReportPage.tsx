@@ -224,6 +224,7 @@ export function CsatReportPage() {
         {/* Table */}
         <ReusableTable
           data={ratings}
+          rowKey={(row) => row.id}
           columns={columns}
           isLoading={isLoading}
           emptyMessage="No ratings yet"

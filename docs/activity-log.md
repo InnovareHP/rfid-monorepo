@@ -1790,3 +1790,45 @@ Verified: `tsc --noEmit` clean across `apps/api` with `prisma/scripts` included
 (the app tsconfig covers `scripts`, not `prisma/scripts`, so neither
 `nest build` nor `pnpm --filter api lint` reaches these files). `pnpm build:api`
 clean. Not run against a database.
+
+## 2026-09-08 — fe-support bug and design pass
+
+Swept `apps/fe-support` for the bug classes behind the reported modal and table
+problems, then fixed them everywhere they occurred.
+
+Row click vs actions: `ReusableTable` fired `onRowClick` for any click in the
+row, so an action control navigated to the detail page instead of acting. Each
+column patched around it with its own `e.stopPropagation()`. The table now
+ignores clicks that land on an interactive element and every call site passes a
+`rowKey`, replacing array-index keys. The horizontal `ScrollArea` became native
+`overflow-x-auto`, since `type="hover"` renders no scrollbar on touch.
+
+Broken navigation: `RequestsPage` linked to a template string holding a literal
+`$lang`, hidden behind `as any`; `authorization.ts` and `routes/index.tsx`
+redirected the same way. All now pass `params`. The guards are typed instead of
+taking `context: any`.
+
+Confirm dialogs: `AlertDialogAction` closes on click, so every pending label
+("Deleting…", "Banning…", "Removing…") was dead code. Replaced with a plain
+`Button` that closes in `onSuccess`, extracted as `Reusable/ConfirmDeleteDialog`
+and reused across tickets, users and the manual. Article and category deletes
+had no confirmation at all.
+
+Modal state: `BanUserDialog`, `ImpersonateUserDialog` and `SignInLinkDialog`
+reset only on confirm, so a cancel left the last typed reason for the next user.
+`RatingDialog` read the existing rating once at mount. `CategoryDialog` and
+`ManualArticleForm` copied props into the form through an effect; both now take
+defaults at mount, the article form gated on its fetch and split into
+`ManualArticleFormFields` (491 lines was over the refactor line) using the
+shared `variant="shell"` modal instead of `max-h-[90vh]`.
+
+Also: blob URLs minted every render in both ticket detail pages now mint once
+and revoke; `CannedResponses` scrolled nothing (`max-h` on a `ScrollArea` root);
+both ticket lists defaulted the priority filter to MEDIUM, silently hiding every
+other ticket; `AccountPage` never checked the `error` field better-auth resolves
+with, so a rejected password change reported success. Deleted: `TicketFilters`
+(unimported), the unreferenced second impersonation banner, the CC'd tab with no
+query behind it, two single-trigger `Tabs`, and a commented-out dropdown.
+
+Verified: `tsc --noEmit`, `pnpm --filter fe-support lint` (0 warnings) and
+`pnpm --filter fe-support build` all clean. No browser pass.

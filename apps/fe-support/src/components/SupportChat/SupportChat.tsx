@@ -137,7 +137,7 @@ export function SupportChat() {
           aria-label="AI Assistant (enlarged)"
         >
           <div
-            className={`w-full md:max-w-2xl h-[90dvh] md:h-[85vh] flex flex-col bg-background rounded-t-2xl md:rounded-xl overflow-hidden shadow-xl transition-transform duration-300 ease-out ${
+            className={`w-full md:max-w-2xl h-[90dvh] md:h-[85dvh] flex flex-col bg-background rounded-t-2xl md:rounded-xl overflow-hidden shadow-xl transition-transform duration-300 ease-out ${
               isOverlayClosing || isOverlayOpening
                 ? "translate-y-full md:translate-y-0 md:scale-95"
                 : "translate-y-0 md:scale-100"

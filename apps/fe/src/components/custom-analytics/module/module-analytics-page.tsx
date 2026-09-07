@@ -45,6 +45,9 @@ export default function ModuleAnalyticsPage() {
     queryKey: ["module-default-dashboard", moduleKey],
     queryFn: () => getDefaultDashboard(moduleKey),
     retry: false,
+    // Lead and referral render their own page below and seed no dashboard, so
+    // asking for one is a guaranteed 404 on every visit.
+    enabled: !LegacyPage,
   });
 
   if (LegacyPage) {

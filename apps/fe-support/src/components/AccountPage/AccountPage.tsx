@@ -66,7 +66,6 @@ export function AccountPage({
   };
 
   const [isUploading, setIsUploading] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -81,45 +80,32 @@ export function AccountPage({
 
   const updateUserMutation = useMutation({
     mutationFn: async (data: { image?: string; name?: string }) => {
-      return authClient.updateUser(data);
+      const { error } = await authClient.updateUser(data);
+      if (error) throw new Error(error.message ?? "Failed to update profile");
     },
     onSuccess: async () => {
       await refreshSessionCache();
       await router.invalidate();
       toast.success("Profile updated successfully!");
     },
-    onError: (error: unknown) => {
-      const message =
-        (error as { error?: { message?: string } })?.error?.message ??
-        "Failed to update profile";
-      toast.error(message);
-    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const changePasswordMutation = useMutation({
-    mutationFn: async (values: PasswordFormValues) =>
-      authClient.changePassword(
-        {
-          currentPassword: values.currentPassword,
-          newPassword: values.newPassword,
-        },
-        {}
-      ),
+    mutationFn: async (values: PasswordFormValues) => {
+      const { error } = await authClient.changePassword({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+      });
+      if (error) throw new Error(error.message ?? "Failed to change password");
+    },
     onSuccess: () => {
       toast.success("Password changed successfully!");
       passwordForm.reset();
       setShowPasswordForm(false);
       router.invalidate();
     },
-    onError: (error: unknown) => {
-      const message =
-        (error as { error?: { message?: string } })?.error?.message ??
-        "Failed to change password";
-      toast.error(message);
-    },
-    onSettled: () => {
-      setIsChangingPassword(false);
-    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const handleAvatarClick = () => {
@@ -147,15 +133,6 @@ export function AccountPage({
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-    }
-  };
-
-  const handlePasswordSubmit = (values: PasswordFormValues) => {
-    try {
-      setIsChangingPassword(true);
-      changePasswordMutation.mutate(values);
-    } catch {
-      setIsChangingPassword(false);
     }
   };
 
@@ -261,10 +238,14 @@ export function AccountPage({
                       )}
                     </Avatar>
                     <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                      {/* Scrim sits on the avatar image, not on themed UI, so
+                          its foreground is fixed white in both themes. */}
+                      {/* eslint-disable-next-line no-restricted-syntax */}
                       <Camera className="h-7 w-7 sm:h-8 sm:w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     {isUploading && (
                       <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                        {/* eslint-disable-next-line no-restricted-syntax */}
                         <Loader2 className="h-7 w-7 sm:h-8 sm:w-8 text-white animate-spin" />
                       </div>
                     )}
@@ -382,9 +363,7 @@ export function AccountPage({
                 variant="outline"
                 className="w-full justify-start border-primary/20 hover:bg-primary/10"
                 onClick={() => setShowPasswordForm((prev) => !prev)}
-                disabled={
-                  isChangingPassword || changePasswordMutation.isPending
-                }
+                disabled={changePasswordMutation.isPending}
               >
                 <Shield className="w-4 h-4 mr-2" />
                 {showPasswordForm ? "Cancel" : "Change Password"}
@@ -393,7 +372,9 @@ export function AccountPage({
               {showPasswordForm && (
                 <Form {...passwordForm}>
                   <form
-                    onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+                    onSubmit={passwordForm.handleSubmit((values) =>
+                      changePasswordMutation.mutate(values)
+                    )}
                     className="space-y-4 border-2 border-primary/20 rounded-lg p-4 bg-primary/10"
                   >
                     <FormField
@@ -439,12 +420,9 @@ export function AccountPage({
                     <Button
                       className="w-full bg-primary hover:bg-primary"
                       type="submit"
-                      disabled={
-                        isChangingPassword || changePasswordMutation.isPending
-                      }
+                      disabled={changePasswordMutation.isPending}
                     >
-                      {isChangingPassword ||
-                      changePasswordMutation.isPending ? (
+                      {changePasswordMutation.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Updating...

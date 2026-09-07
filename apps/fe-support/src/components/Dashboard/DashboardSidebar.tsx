@@ -38,6 +38,7 @@ import {
   SquareTerminal,
 } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 const LOGO_WORDMARK_PATH = "/branding/Wordmark/refidly-wordmark-colored.png";
 const LOGO_ICON_PATH = "/branding/Icon/refidly-icon-colored.png";
 
@@ -62,8 +63,8 @@ export function DashboardSidebar() {
       await authClient.signOut();
       queryClient.clear();
       router.navigate({ to: "/" });
-    } catch (error) {
-      console.error("Logout failed:", error);
+    } catch {
+      toast.error("Sign out failed. Try again.");
     }
   }, [queryClient, router]);
 

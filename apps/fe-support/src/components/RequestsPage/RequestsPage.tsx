@@ -3,7 +3,6 @@ import {
   formatCapitalize,
   formatDateTime,
   getStatusLabel,
-  Priority,
   priorityConfig,
   statusConfig,
   TicketStatus,
@@ -30,14 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@dashboard/ui/components/tabs";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   Calendar,
   Eye,
@@ -70,6 +63,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 export function RequestsPage() {
   const navigate = useNavigate();
+  const { lang } = useParams({ from: "/_lang/$lang/request/" });
   const [filterMeta, setFilterMeta] = useState<{
     page: number;
     take: number;
@@ -83,7 +77,7 @@ export function RequestsPage() {
     search: "",
     status: "ALL",
     category: null,
-    priority: Priority.MEDIUM,
+    priority: "ALL",
   });
 
   const { data: { tickets = [], total = 0 } = {}, isLoading } = useQuery({
@@ -94,7 +88,7 @@ export function RequestsPage() {
   const handleView = (row: TicketRow) => {
     navigate({
       to: "/$lang/request/$ticketNumber",
-      params: { ticketNumber: row.ticketNumber, lang: "en" },
+      params: { ticketNumber: row.ticketNumber, lang },
     });
   };
 
@@ -104,7 +98,8 @@ export function RequestsPage() {
       header: "Ticket",
       render: (row: TicketRow) => (
         <Link
-          to={`/$lang/request/${row.ticketNumber}` as any}
+          to="/$lang/request/$ticketNumber"
+          params={{ lang, ticketNumber: row.ticketNumber }}
           className="flex items-center gap-2"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -179,12 +174,7 @@ export function RequestsPage() {
       render: (row: TicketRow) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8">
               <MoreHorizontal className="h-4 w-4" />
               <span className="sr-only">Actions</span>
             </Button>
@@ -194,34 +184,6 @@ export function RequestsPage() {
               <Eye className="mr-2 h-4 w-4" />
               View details
             </DropdownMenuItem>
-            {/* <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Update status
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {Object.values(TicketStatus).map((s) => (
-                  <DropdownMenuItem
-                    key={s}
-                    disabled={row.status === s}
-                    onClick={() => handleStatusChange(row, s)}
-                  >
-                    <span
-                      className={`mr-2 inline-block h-2 w-2 rounded-full ${statusConfig[s]?.dot ?? "bg-muted-foreground"}`}
-                    />
-                    {getStatusLabel(s)}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => handleDelete(row)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -277,48 +239,17 @@ export function RequestsPage() {
           </Select>
         </div>
 
-        <Tabs defaultValue="my-requests" className="w-full">
-          <TabsList className="bg-transparent p-0 h-auto gap-1 border-0 rounded-none">
-            <TabsTrigger
-              value="my-requests"
-              className="rounded-full px-4 py-1.5 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
-            >
-              My requests
-              {total > 0 && (
-                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-xs">
-                  {total}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger
-              value="cced"
-              className="rounded-full px-4 py-1.5 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
-            >
-              CC'd on
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="my-requests" className="mt-4">
-            <ReusableTable
-              data={tickets}
-              columns={columns}
-              isLoading={isLoading}
-              emptyMessage="No requests found"
-              totalCount={total}
-              currentPage={filterMeta.page}
-              itemsPerPage={filterMeta.take}
-              onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-            />
-          </TabsContent>
-
-          <TabsContent value="cced" className="mt-4">
-            <ReusableTable
-              data={[]}
-              columns={columns}
-              emptyMessage="No CC'd requests"
-            />
-          </TabsContent>
-        </Tabs>
+        <ReusableTable
+          data={tickets}
+          rowKey={(row) => row.id}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="No requests found"
+          totalCount={total}
+          currentPage={filterMeta.page}
+          itemsPerPage={filterMeta.take}
+          onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
+        />
       </div>
     </div>
   );

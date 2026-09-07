@@ -203,6 +203,7 @@ export function DemoRequestsPage() {
 
       <ReusableTable
         data={data?.data ?? []}
+        rowKey={(row) => row.id}
         columns={columns}
         currentPage={page}
         itemsPerPage={PAGE_SIZE}

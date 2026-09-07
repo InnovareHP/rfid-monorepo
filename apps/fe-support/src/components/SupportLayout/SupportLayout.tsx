@@ -34,6 +34,7 @@ import {
   Menu,
   User,
 } from "lucide-react";
+import { toast } from "sonner";
 
 type SupportLayoutProps = {
   children: React.ReactNode;
@@ -62,8 +63,8 @@ export function SupportLayout({ children }: SupportLayoutProps) {
       await authClient.signOut();
       queryClient.clear();
       router.invalidate();
-    } catch (error) {
-      console.error("Logout failed:", error);
+    } catch {
+      toast.error("Sign out failed. Try again.");
     }
   };
   return (

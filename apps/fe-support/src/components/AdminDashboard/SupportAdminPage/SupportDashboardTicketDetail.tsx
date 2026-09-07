@@ -22,17 +22,6 @@ import {
   type TicketDetail,
 } from "@dashboard/shared";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@dashboard/ui/components/alert-dialog";
-import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -61,6 +50,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   CircleCheck,
+  History,
   Loader2,
   MessageSquare,
   Paperclip,
@@ -70,11 +60,12 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CannedResponses } from "../../Reusable/CannedResponses";
 import { MessageItem } from "../../Reusable/MessageItem";
 import { MetaRow } from "../../Reusable/MetaRow";
+import { ConfirmDeleteDialog } from "../../Reusable/ConfirmDeleteDialog";
 import { TicketHistoryPanel } from "../../Reusable/TicketHistoryPanel";
 
 export function SupportDashboardTicketDetail({
@@ -86,6 +77,18 @@ export function SupportDashboardTicketDetail({
   const queryClient = useQueryClient();
   const [replyText, setReplyText] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // Object URLs are minted once per file and revoked, not remade every render.
+  const attachmentPreviews = useMemo(
+    () => attachments.map((file) => URL.createObjectURL(file)),
+    [attachments]
+  );
+
+  useEffect(() => {
+    return () => attachmentPreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [attachmentPreviews]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: ticket, isLoading } = useQuery<TicketDetail>({
@@ -219,7 +222,7 @@ export function SupportDashboardTicketDetail({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex min-h-[60dvh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -227,7 +230,7 @@ export function SupportDashboardTicketDetail({
 
   if (!ticket) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+      <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Ticket not found</p>
         <Button variant="outline" onClick={handleBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -270,7 +273,7 @@ export function SupportDashboardTicketDetail({
                   Conversation
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-1.5">
-                  <span className="h-3.5 w-3.5 text-xs">🕐</span>
+                  <History className="h-3.5 w-3.5" />
                   Audit log
                 </TabsTrigger>
               </TabsList>
@@ -306,11 +309,11 @@ export function SupportDashboardTicketDetail({
                     <div className="mt-3 flex flex-wrap gap-2">
                       {attachments.map((file, i) => (
                         <div
-                          key={i}
+                          key={`${file.name}-${file.lastModified}`}
                           className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border"
                         >
                           <img
-                            src={URL.createObjectURL(file)}
+                            src={attachmentPreviews[i]}
                             alt={`Attachment ${i + 1}`}
                             className="h-full w-full object-cover"
                           />
@@ -609,37 +612,30 @@ export function SupportDashboardTicketDetail({
                 <Separator />
 
                 {/* Delete */}
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full gap-1.5"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete ticket
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete ticket?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete ticket{" "}
-                        <strong>#{ticket.ticketNumber}</strong>. This action
-                        cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => deleteMutation.mutate()}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {deleteMutation.isPending ? "Deleting..." : "Delete"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full gap-1.5"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete ticket
+                </Button>
+
+                <ConfirmDeleteDialog
+                  open={deleteOpen}
+                  onOpenChange={setDeleteOpen}
+                  title="Delete ticket?"
+                  description={
+                    <>
+                      This will permanently delete ticket{" "}
+                      <strong>#{ticket.ticketNumber}</strong>. This action cannot
+                      be undone.
+                    </>
+                  }
+                  isPending={deleteMutation.isPending}
+                  onConfirm={() => deleteMutation.mutate()}
+                />
               </div>
             </div>
           </div>

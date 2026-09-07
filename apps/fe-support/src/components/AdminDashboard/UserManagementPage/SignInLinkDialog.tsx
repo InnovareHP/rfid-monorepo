@@ -37,6 +37,11 @@ export function SignInLinkDialog({
   const [reason, setReason] = useState("");
   const tooShort = reason.trim().length < MIN_REASON_LENGTH;
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setReason("");
+    onOpenChange(next);
+  };
+
   const copy = async () => {
     if (!link) return;
     await navigator.clipboard.writeText(link.url);
@@ -44,7 +49,7 @@ export function SignInLinkDialog({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Generate a sign-in link?</AlertDialogTitle>
@@ -83,7 +88,9 @@ export function SignInLinkDialog({
         )}
 
         <AlertDialogFooter>
-          <AlertDialogCancel>{link ? "Done" : "Cancel"}</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPending}>
+            {link ? "Done" : "Cancel"}
+          </AlertDialogCancel>
           {link ? (
             <Button onClick={copy}>Copy link</Button>
           ) : (

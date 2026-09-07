@@ -274,6 +274,7 @@ export function ActivityLogPage() {
 
         <ReusableTable
           data={data?.logs ?? []}
+          rowKey={(row) => row.id}
           columns={columns}
           isLoading={isLoading}
           emptyMessage="No activity log entries"

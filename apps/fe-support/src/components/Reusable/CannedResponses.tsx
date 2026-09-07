@@ -5,7 +5,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@dashboard/ui/components/popover";
-import { ScrollArea } from "@dashboard/ui/components/scroll-area";
 import { Zap } from "lucide-react";
 import { useState } from "react";
 
@@ -30,7 +29,7 @@ export function CannedResponses({ onSelect }: CannedResponsesProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 overflow-y-scroll p-0"
+        className="w-80 p-0"
         align="start"
         side="top"
         sideOffset={8}
@@ -41,8 +40,7 @@ export function CannedResponses({ onSelect }: CannedResponsesProps) {
             Click to insert into reply box
           </p>
         </div>
-        <ScrollArea className="max-h-72">
-          <div className="p-1.5 space-y-0.5">
+        <div className="max-h-72 overflow-y-auto p-1.5 space-y-0.5">
             {CANNED_RESPONSES.map((r) => (
               <button
                 key={r.id}
@@ -56,8 +54,7 @@ export function CannedResponses({ onSelect }: CannedResponsesProps) {
                 </p>
               </button>
             ))}
-          </div>
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
