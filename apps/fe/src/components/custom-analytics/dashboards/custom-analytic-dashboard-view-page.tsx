@@ -74,7 +74,8 @@ export default function CustomAnalyticDashboardViewPage({
     "member-data",
     activeOrganizationId,
   ]);
-  const canManage = editable && can(memberData?.role, { analytics: ["manage"] });
+  const canManage =
+    editable && can(memberData?.role, { analytics: ["manage"] });
 
   const RUN_PREFIX = ["custom-analytic-dashboard-run", dashboardId];
   const DETAIL_KEY = ["custom-analytic-dashboard", dashboardId];
@@ -98,9 +99,10 @@ export default function CustomAnalyticDashboardViewPage({
       await queryClient.cancelQueries({ queryKey: RUN_PREFIX });
       await queryClient.cancelQueries({ queryKey: DETAIL_KEY });
 
-      const runSnapshots = queryClient.getQueriesData<CustomAnalyticDashboardRun>(
-        { queryKey: RUN_PREFIX }
-      );
+      const runSnapshots =
+        queryClient.getQueriesData<CustomAnalyticDashboardRun>({
+          queryKey: RUN_PREFIX,
+        });
       const detailSnapshot =
         queryClient.getQueryData<CustomAnalyticDashboardDetail>(DETAIL_KEY);
 
@@ -262,6 +264,7 @@ export default function CustomAnalyticDashboardViewPage({
         <CustomAnalyticDashboardChartGrid
           charts={result.charts}
           canManage={canManage}
+          dateWindow={dateWindow}
           onReorder={(ids) => reorderMutation.mutate(ids)}
           onRemove={
             isFixed

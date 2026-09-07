@@ -303,8 +303,15 @@ const withDateRangeRules = <T extends { startDate?: string; endDate?: string }>(
       { message: "startDate must not be after endDate", path: ["startDate"] }
     );
 
+// How many groups a ranked chart keeps. Named topN rather than limit because
+// limit already means how many charts a dashboard run renders. Only BAR and
+// PIE consult it; every other chart type ignores it.
+const topNShape = {
+  topN: z.coerce.number().int().min(1).max(10).optional(),
+};
+
 export const RunCustomAnalyticQuerySchema = withDateRangeRules(
-  z.object(runDateRangeShape)
+  z.object({ ...runDateRangeShape, ...topNShape })
 );
 
 // Dashboard runs additionally accept a hard-capped chart limit so the

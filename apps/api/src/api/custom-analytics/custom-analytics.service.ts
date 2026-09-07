@@ -895,13 +895,14 @@ export class CustomAnalyticsService {
     kind: "chart" | "dashboard",
     id: string,
     dateWindow: DateWindow,
-    limit: number | null = null
+    limit: number | null = null,
+    topN: number | null = null
   ) {
     const window = dateWindow
       ? `${dateWindow.start.toISOString()}:${dateWindow.end.toISOString()}`
       : "all";
 
-    return `${CACHE_PREFIX.CUSTOM_ANALYTICS}:${organizationId}:${kind}:${id}:${window}:${limit ?? "all"}`;
+    return `${CACHE_PREFIX.CUSTOM_ANALYTICS}:${organizationId}:${kind}:${id}:${window}:${limit ?? "all"}:${topN ?? "saved"}`;
   }
 
   // Any edit to a chart or a dashboard can change every cached run in the
@@ -973,16 +974,28 @@ export class CustomAnalyticsService {
   async runAnalytic(
     id: string,
     organizationId: string,
-    dateWindow: DateWindow = null
+    dateWindow: DateWindow = null,
+    topN: number | null = null
   ) {
-    const cacheKey = this.runCacheKey(organizationId, "chart", id, dateWindow);
+    const cacheKey = this.runCacheKey(
+      organizationId,
+      "chart",
+      id,
+      dateWindow,
+      null,
+      topN
+    );
     const cached = await getData(cacheKey);
     if (cached) return cached;
 
     const analytic = await this.getAnalytic(id, organizationId);
 
     const result = await this.computeAggregation(
-      { ...this.analyticToConfig(analytic), dateWindow },
+      {
+        ...this.analyticToConfig(analytic),
+        dateWindow,
+        ...(topN && { groupLimit: topN }),
+      },
       organizationId
     );
 

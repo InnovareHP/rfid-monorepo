@@ -1,6 +1,9 @@
 import { CustomAnalyticsPreview } from "@/components/custom-analytics/custom-analytics-preview";
 import type { CustomAnalyticDashboardRun } from "@/services/custom-analytics/custom-analytic-dashboard-service";
-import type { CustomAnalyticTileSpan } from "@/services/custom-analytics/custom-analytics-service";
+import {
+  runCustomAnalytic,
+  type CustomAnalyticTileSpan,
+} from "@/services/custom-analytics/custom-analytics-service";
 import {
   Card,
   CardAction,
@@ -12,11 +15,17 @@ import { cn } from "@dashboard/ui/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CustomAnalyticTileMenu } from "./custom-analytic-tile-menu";
+import { supportsTopN, TopNFilter } from "./top-n-filter";
 
 type CustomAnalyticDashboardChartTileProps = {
   chart: CustomAnalyticDashboardRun["charts"][number];
   draggable: boolean;
+  // The dashboard's window, so a re-ranked chart reads the same rows the rest
+  // of the grid does.
+  dateWindow: { start: Date; end: Date } | null;
   // Grid width, owned by the caller since only the grid knows its columns.
   className?: string;
   // Absent for a viewer, who cannot change what the dashboard holds.
@@ -34,9 +43,26 @@ export function CustomAnalyticDashboardChartTile({
   chart,
   draggable,
   className,
+  dateWindow,
   onRemove,
   actions,
 }: CustomAnalyticDashboardChartTileProps) {
+  const [topN, setTopN] = useState<number | null>(null);
+  const rankable = supportsTopN(chart.name, chart.chartType);
+
+  // Only this tile re-runs. The dashboard's own query keeps its shared board
+  // scan rather than recomputing twelve charts to re-rank one.
+  const { data: reranked } = useQuery({
+    queryKey: [
+      "custom-analytic-run",
+      chart.id,
+      dateWindow?.start.toISOString() ?? null,
+      dateWindow?.end.toISOString() ?? null,
+      topN,
+    ],
+    queryFn: () => runCustomAnalytic(chart.id, dateWindow, topN),
+    enabled: rankable && topN !== null,
+  });
   const {
     attributes,
     listeners,
@@ -59,8 +85,10 @@ export function CustomAnalyticDashboardChartTile({
       <CardHeader className="px-4">
         <CardTitle className="text-sm">{chart.name}</CardTitle>
 
-        {(draggable || actions) && (
+        {(rankable || draggable || actions) && (
           <CardAction className="flex items-center gap-1">
+            {rankable && <TopNFilter value={topN} onChange={setTopN} />}
+
             {/* Listeners bind only to the grip so a TABLE tile's pagination
                 controls and recharts tooltips keep working. */}
             {draggable && (
@@ -93,7 +121,7 @@ export function CustomAnalyticDashboardChartTile({
 
       <CardContent className="px-4">
         <CustomAnalyticsPreview
-          result={chart.result}
+          result={reranked ?? chart.result}
           name={chart.name}
           metricLabel={chart.name}
         />

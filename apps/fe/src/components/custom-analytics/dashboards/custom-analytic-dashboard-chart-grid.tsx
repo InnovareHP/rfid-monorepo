@@ -27,6 +27,7 @@ const SPAN_CLASS: Record<CustomAnalyticTileSpan, string> = {
 type CustomAnalyticDashboardChartGridProps = {
   charts: CustomAnalyticDashboardRun["charts"];
   canManage: boolean;
+  dateWindow: { start: Date; end: Date } | null;
   onReorder: (analyticIds: string[]) => void;
   // Absent when membership is fixed, as it is on a module's seeded page.
   onRemove?: (analyticId: string) => void;
@@ -39,6 +40,7 @@ type CustomAnalyticDashboardChartGridProps = {
 export function CustomAnalyticDashboardChartGrid({
   charts,
   canManage,
+  dateWindow,
   onReorder,
   onRemove,
   onEdit,
@@ -81,6 +83,7 @@ export function CustomAnalyticDashboardChartGrid({
               chart={chart}
               className={SPAN_CLASS[chart.tileSpan]}
               draggable={draggable}
+              dateWindow={dateWindow}
               onRemove={
                 canManage && onRemove ? () => onRemove(chart.id) : undefined
               }

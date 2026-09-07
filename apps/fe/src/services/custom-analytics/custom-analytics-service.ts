@@ -140,15 +140,17 @@ export const getCustomAnalytic = async (id: string) => {
 
 export const runCustomAnalytic = async (
   id: string,
-  dateWindow?: { start: Date; end: Date } | null
+  dateWindow?: { start: Date; end: Date } | null,
+  topN?: number | null
 ) => {
   const response = await axiosClient.get(`/api/custom-analytics/${id}/run`, {
-    ...(dateWindow && {
-      params: {
+    params: {
+      ...(dateWindow && {
         startDate: dateWindow.start.toISOString(),
         endDate: dateWindow.end.toISOString(),
-      },
-    }),
+      }),
+      ...(topN ? { topN } : {}),
+    },
   });
 
   return response.data as CustomAnalyticResult;

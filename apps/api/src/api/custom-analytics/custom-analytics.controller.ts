@@ -84,7 +84,8 @@ export class CustomAnalyticsController {
       return await this.customAnalyticsService.runAnalytic(
         id,
         session.session.activeOrganizationId,
-        toDateWindow(query)
+        toDateWindow(query),
+        query.topN ?? null
       );
     } catch (error) {
       throw new BadRequestException(error.message);
