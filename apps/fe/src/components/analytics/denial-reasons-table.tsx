@@ -1,4 +1,7 @@
-import type { DenialReasonRow } from "@/lib/helper/analytics-chart-data";
+import {
+  DEFAULT_RANK_LIMIT,
+  type DenialReasonRow,
+} from "@/lib/helper/analytics-chart-data";
 import { Badge } from "@dashboard/ui/components/badge";
 import {
   Table,
@@ -11,8 +14,6 @@ import {
 import { ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 
-const TOP_LIMIT = 5;
-
 type DenialReasonsTableProps = {
   reasons: DenialReasonRow[];
   emptyMessage?: string;
@@ -22,7 +23,7 @@ type DenialReasonsTableProps = {
 export function DenialReasonsTable({
   reasons,
   emptyMessage = "No denial data available",
-  limit = TOP_LIMIT,
+  limit = DEFAULT_RANK_LIMIT,
 }: DenialReasonsTableProps) {
   const [categoryOrder, setCategoryOrder] = useState<"asc" | "desc" | null>(
     null

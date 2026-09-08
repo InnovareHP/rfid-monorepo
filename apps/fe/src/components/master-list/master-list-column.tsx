@@ -6,7 +6,6 @@ import type { User } from "better-auth";
 import { HistoryIcon, SearchIcon } from "lucide-react";
 import { UnreadDot } from "@/components/reusable-table/unread-dot";
 import { ColumnHeader } from "../reusable-table/column-header";
-import { CreateColumnModal } from "../reusable-table/create-column";
 
 type ColumnType = {
   id: string;
@@ -155,19 +154,5 @@ export function generateLeadColumns(
     ),
   };
 
-  const createNewColumn: ColumnDef<LeadRow> = {
-    header: () => <CreateColumnModal />,
-    id: "create_column",
-    accessorKey: "create_column",
-    enableResizing: false,
-    size: 200,
-  };
-
-  return [
-    selectColumn,
-    OrganizerColumn,
-    AssignedToColumn,
-    ...dynamicColumns,
-    createNewColumn,
-  ];
+  return [selectColumn, OrganizerColumn, AssignedToColumn, ...dynamicColumns];
 }

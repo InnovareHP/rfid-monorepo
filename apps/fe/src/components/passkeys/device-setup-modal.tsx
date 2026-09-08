@@ -126,7 +126,7 @@ export function DeviceSetupModal({
             <button
               type="button"
               onClick={() => setStep("paste")}
-              className="flex items-center gap-4 rounded-xl border-2 border-gray-200 p-4 text-left transition-all hover:border-primary hover:bg-primary/10"
+              className="flex items-center gap-4 rounded-xl border-2 border-border p-4 text-left transition-all hover:border-primary hover:bg-primary/10"
             >
               <KeyRound className="h-5 w-5 shrink-0 text-primary" />
               <div>
@@ -140,7 +140,7 @@ export function DeviceSetupModal({
             <button
               type="button"
               onClick={() => setStep("email")}
-              className="flex items-center gap-4 rounded-xl border-2 border-gray-200 p-4 text-left transition-all hover:border-primary hover:bg-primary/10"
+              className="flex items-center gap-4 rounded-xl border-2 border-border p-4 text-left transition-all hover:border-primary hover:bg-primary/10"
             >
               <Mail className="h-5 w-5 shrink-0 text-primary" />
               <div>

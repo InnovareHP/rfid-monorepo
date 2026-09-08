@@ -1,13 +1,13 @@
 import type { NavItem } from "@/components/side-bar/nav-main";
-import { useDashboards } from "@/hooks/use-dashboards";
 import { useEntitlement } from "@/hooks/use-entitlement";
-import { useModules } from "@/hooks/use-modules";
+import { useNavData } from "@/hooks/use-nav-data";
 import { moduleIcon } from "@/lib/helper/module-icons";
 import { moduleParam, modulePath } from "@/lib/helper/module-route";
 import { can } from "@/lib/permissions";
 import type { CustomAnalyticDashboard } from "@/services/custom-analytics/custom-analytic-dashboard-service";
 import type { Member } from "better-auth/plugins/organization";
 import {
+  CalendarClock,
   ChartSpline,
   CircuitBoard,
   ClipboardList,
@@ -15,6 +15,8 @@ import {
   DollarSign,
   FileBarChart,
   FileText,
+  Folder,
+  FolderPlus,
   HistoryIcon,
   LayoutTemplate,
   MailCheck,
@@ -37,20 +39,28 @@ const NAV_DASHBOARD_LIMIT = 5;
 // sidebar and the global search cannot drift apart.
 export function useNavItems(
   activeOrganizationId: string,
-  memberData: Member
+  memberData: Member,
+  // The sidebar passes this so New Group opens in place; global search does not,
+  // and the row is simply absent there since it is not a destination.
+  onNewGroup?: () => void
 ): NavItem[] {
   const entitlement = useEntitlement(activeOrganizationId);
   const canExport = entitlement.has("export");
   const canUseCustomReporting = entitlement.has("custom_reporting");
   const canUseAdvancedAnalytics = entitlement.has("advanced_analytics");
 
-  const { data: modules = [] } = useModules();
-  const { data: dashboards = [] } = useDashboards({
-    enabled: canUseCustomReporting,
-  });
+  // One request feeds both lists; the API already withholds dashboards from an
+  // organization without the entitlement.
+  const { data: navData } = useNavData();
   const canManageAnalytics = can(memberData?.role, { analytics: ["manage"] });
 
   const data = React.useMemo(() => {
+    const modules = (navData?.modules ?? []).filter(
+      (module) => !module.isArchived
+    );
+    const groups = navData?.groups ?? [];
+    const dashboards = navData?.dashboards ?? [];
+
     // A module's seeded page always shows; hand-built dashboards fill what is
     // left, so adding a sixth never pushes the analytics pages out of the nav.
     const moduleKeyById = new Map(modules.map((m) => [m.id, m.key]));
@@ -71,6 +81,51 @@ export function useNavItems(
         : `/${activeOrganizationId}/analytics/custom/dashboards/${dashboard.id}`;
     };
 
+    const moduleLeaf = (module: (typeof modules)[number]) => ({
+      title: module.label,
+      url: `/${activeOrganizationId}/${modulePath(module.key)}`,
+      icon: moduleIcon(module.icon),
+    });
+
+    const ungroupedModules = modules
+      .filter((module) => !module.groupId)
+      .map(moduleLeaf);
+
+    // A folder is a label with no page of its own; the sidebar renders it as a
+    // row that expands. Folders come from their own rows, so one that has been
+    // emptied still draws and still offers somewhere to create a module.
+    const moduleFolders = groups.map((group) => ({
+      title: group.name,
+      icon: Folder,
+      items: [
+        ...modules
+          .filter((module) => module.groupId === group.id)
+          .map(moduleLeaf),
+        {
+          title: "New module",
+          url: `/${activeOrganizationId}/records/new?group=${group.id}`,
+          icon: Plus,
+        },
+      ],
+    }));
+
+    // LEAD and REFERRAL are hand-built pages with no dashboard row of their
+    // own, so Overview lists them explicitly or a Scale org loses both.
+    const handBuiltPages = canUseAdvancedAnalytics
+      ? [
+          {
+            title: "Referral Analytics",
+            url: `/${activeOrganizationId}`,
+            icon: FileText,
+          },
+          {
+            title: "Master Marketing List Analytics",
+            url: `/${activeOrganizationId}/master-list-analytics`,
+            icon: Users,
+          },
+        ]
+      : [];
+
     return {
       navMain: [
         {
@@ -87,8 +142,7 @@ export function useNavItems(
                   url: dashboardUrl(dashboard),
                   icon: dashboard.isDefault ? ChartSpline : LayoutTemplate,
                 })),
-                // A hand-built report with no dashboard row of its own, so it
-                // is listed explicitly or it has no way in.
+                ...handBuiltPages,
                 {
                   title: "Liaison Performance",
                   url: `/${activeOrganizationId}/liaison-performance`,
@@ -108,16 +162,7 @@ export function useNavItems(
               // built-in pages its plan does entitle it to.
               canUseAdvancedAnalytics
               ? [
-                  {
-                    title: "Referral Analytics",
-                    url: `/${activeOrganizationId}`,
-                    icon: FileText,
-                  },
-                  {
-                    title: "Master Marketing List Analytics",
-                    url: `/${activeOrganizationId}/master-list-analytics`,
-                    icon: Users,
-                  },
+                  ...handBuiltPages,
                   {
                     title: "Liaison Performance",
                     url: `/${activeOrganizationId}/liaison-performance`,
@@ -129,19 +174,21 @@ export function useNavItems(
         {
           title: "CRM",
           icon: Contact,
-          // New Module sits last so the group reads as the modules you have,
-          // then the way to add one.
+          // Ungrouped modules first, then folders in the order their first
+          // member sits in, then the two ways to change the list.
           items: [
-            ...modules.map((module) => ({
-              title: module.label,
-              url: `/${activeOrganizationId}/${modulePath(module.key)}`,
-              icon: moduleIcon(module.icon),
-            })),
-            {
-              title: "New Module",
-              url: `/${activeOrganizationId}/records/new`,
-              icon: Plus,
-            },
+            ...ungroupedModules,
+            ...moduleFolders,
+            // {
+            //   title: "New Module",
+            //   url: `/${activeOrganizationId}/records/new`,
+            //   icon: Plus,
+            // },
+            // Naming a folder is one short field, so it opens over the page
+            // rather than sending anyone to settings and back.
+            ...(onNewGroup
+              ? [{ title: "New Group", onSelect: onNewGroup, icon: FolderPlus }]
+              : []),
           ],
         },
         {
@@ -149,6 +196,15 @@ export function useNavItems(
           url: `/${activeOrganizationId}/tasks`,
           icon: ClipboardList,
         },
+        ...(can(memberData?.role, { log: ["read"] })
+          ? [
+              {
+                title: "Follow-ups",
+                url: `/${activeOrganizationId}/follow-ups`,
+                icon: CalendarClock,
+              },
+            ]
+          : []),
         {
           title: "Marketing Hub",
           icon: MailPlus,
@@ -286,14 +342,14 @@ export function useNavItems(
       ],
     };
   }, [
-      activeOrganizationId,
-      memberData?.role,
-        canExport,
-      canUseCustomReporting,
-      canUseAdvancedAnalytics,
-      canManageAnalytics,
-      modules,
-      dashboards,
+    activeOrganizationId,
+    memberData?.role,
+    canExport,
+    canUseCustomReporting,
+    canUseAdvancedAnalytics,
+    canManageAnalytics,
+    onNewGroup,
+    navData,
   ]);
 
   return data.navMain;

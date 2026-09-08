@@ -73,8 +73,8 @@ export function EventDetailDialog({
             <Badge
               className={
                 event.provider === "google"
-                  ? "text-xs bg-[#ea4335] text-white hover:bg-[#d33426]"
-                  : "text-xs bg-[#0078d4] text-white hover:bg-[#006cbe]"
+                  ? "text-xs bg-google text-white hover:bg-google/90"
+                  : "text-xs bg-outlook text-white hover:bg-outlook/90"
               }
             >
               {event.provider === "google" ? "Google" : "Outlook"}

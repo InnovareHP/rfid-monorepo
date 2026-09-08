@@ -18,6 +18,7 @@ import { LiaisonModule } from "./liaison/liaison.module";
 import { ManualModule } from "./manual/manual.module";
 import { MarketingModule } from "./marketing/marketing.module";
 import { ModulesModule } from "./module/module.module";
+import { NavModule } from "./nav/nav.module";
 import { ReportModule } from "./report/report.module";
 import { NotificationModule } from "./notification/notification.module";
 import { OptionsModule } from "./options/options.module";
@@ -61,6 +62,7 @@ import { UserModule } from "./user/user.module";
     TeamModule,
     MarketingModule,
     ModulesModule,
+    NavModule,
     ReportModule,
     CustomAnalyticsModule,
     NotificationModule,

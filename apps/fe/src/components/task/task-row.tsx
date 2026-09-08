@@ -52,7 +52,7 @@ export const TaskRow = ({
         opacity: isDragging ? 0.5 : 1,
       }}
       className={cn(
-        "border-b border-gray-100 bg-white transition-colors hover:bg-gray-50",
+        "border-b border-border bg-card transition-colors hover:bg-muted",
         task.isArchived && "opacity-60"
       )}
       onClick={() => onOpen(task)}
@@ -61,7 +61,7 @@ export const TaskRow = ({
         {draggable && (
           <button
             type="button"
-            className="cursor-grab text-gray-300 hover:text-gray-500 active:cursor-grabbing"
+            className="cursor-grab text-muted-foreground hover:text-muted-foreground active:cursor-grabbing"
             aria-label="Drag to reorder"
             onClick={(event) => event.stopPropagation()}
             {...attributes}
@@ -84,8 +84,8 @@ export const TaskRow = ({
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "truncate text-sm font-medium text-gray-900",
-              isCompleted && "text-gray-400 line-through"
+              "truncate text-sm font-medium text-foreground",
+              isCompleted && "text-muted-foreground line-through"
             )}
           >
             {task.name}
@@ -101,16 +101,16 @@ export const TaskRow = ({
             </Badge>
           ))}
           {task.isArchived && (
-            <Badge variant="outline" className="shrink-0 text-xs text-gray-500">
+            <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
               Archived
             </Badge>
           )}
         </div>
 
-        <div className="mt-1 flex items-center gap-3 text-xs text-gray-400 empty:mt-0">
+        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground empty:mt-0">
           {task.blockedByCount > 0 && (
             <span
-              className="flex items-center gap-1 text-amber-600"
+              className="flex items-center gap-1 text-warning"
               title="Blocked by other tasks"
             >
               <Lock className="h-3.5 w-3.5" />
@@ -147,7 +147,7 @@ export const TaskRow = ({
         </div>
       </td>
 
-      <td className="px-3 py-2.5 text-sm text-gray-600">
+      <td className="px-3 py-2.5 text-sm text-muted-foreground">
         {assignee ? (
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
@@ -158,20 +158,20 @@ export const TaskRow = ({
             </Avatar>
             <span className="truncate">{assignee.name}</span>
             {task.assignees.length > 1 && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 +{task.assignees.length - 1}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-gray-400">Unassigned</span>
+          <span className="text-muted-foreground">Unassigned</span>
         )}
       </td>
 
       <td
         className={cn(
-          "px-3 py-2.5 text-sm whitespace-nowrap text-gray-600",
-          isOverdue && "font-medium text-red-600"
+          "px-3 py-2.5 text-sm whitespace-nowrap text-muted-foreground",
+          isOverdue && "font-medium text-destructive"
         )}
       >
         {task.dueDate ? format(new Date(task.dueDate), "MMMM d, yyyy") : "-"}
@@ -190,7 +190,7 @@ export const TaskRow = ({
       </td>
 
       <td className="px-3 py-2.5">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-foreground">
           <span
             className="size-2 rounded-full"
             style={{ backgroundColor: task.status.color }}

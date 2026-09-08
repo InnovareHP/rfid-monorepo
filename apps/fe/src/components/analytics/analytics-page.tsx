@@ -14,6 +14,7 @@ import {
 import type { AnalyticsResponse } from "@dashboard/shared";
 
 import {
+  DEFAULT_RANK_LIMIT,
   buildAnalyticsChartData,
   formatDays,
 } from "@/lib/helper/analytics-chart-data";
@@ -281,35 +282,37 @@ export default function ReferralAnalyticsDashboard() {
         {/* COUNTIES + DENIAL REASONS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ChartCard
-            title={`Top ${topN ?? 10} Counties Generating Referrals`}
+            title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Counties Generating Referrals`}
             className="md:col-span-2"
           >
             <RankedBar
-              data={charts.counties.slice(0, topN ?? 10)}
+              data={charts.counties.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               emptyMessage="No county data available"
             />
           </ChartCard>
 
-          <ChartCard title={`Top ${topN ?? 5} Denial Reasons`}>
+          <ChartCard
+            title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Denial Reasons`}
+          >
             <DenialReasonsTable
               reasons={charts.denialReasons}
-              limit={topN ?? 5}
+              limit={topN ?? DEFAULT_RANK_LIMIT}
             />
           </ChartCard>
         </div>
         {/* SOURCES + TYPES */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <ChartCard title={`Top ${topN ?? 10} Referring Facilities`}>
+          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Facilities`}>
             <RankedBar
-              data={charts.facilities.slice(0, topN ?? 10)}
+              data={charts.facilities.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"
               emptyMessage="No facility data available"
             />
           </ChartCard>
 
-          <ChartCard title={`Top ${topN ?? 10} Referring Clinicians`}>
+          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Clinicians`}>
             <RankedBar
-              data={charts.clinicians.slice(0, topN ?? 10)}
+              data={charts.clinicians.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"
               emptyMessage="No clinician data available"
             />
@@ -322,7 +325,10 @@ export default function ReferralAnalyticsDashboard() {
             />
           </ChartCard>
 
-          <EmergingSourcesCard sources={charts.emergingSources} />
+          <EmergingSourcesCard
+            sources={charts.emergingSources}
+            limit={topN ?? DEFAULT_RANK_LIMIT}
+          />
         </div>
 
         {/* COUNTY HEAT MAP */}

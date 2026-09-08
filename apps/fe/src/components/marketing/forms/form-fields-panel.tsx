@@ -2,6 +2,7 @@ import type { FormBuilderValues } from "@/components/marketing/forms/form-builde
 import { FormFieldItem } from "@/components/marketing/forms/form-field-item";
 import { FormFieldPicker } from "@/components/marketing/forms/form-field-picker";
 import type { BoardField } from "@/services/marketing/form-service";
+import { FORM_RECORD_NAME_FIELD_ID } from "@dashboard/shared";
 import { FormField, FormItem, FormMessage } from "@dashboard/ui/components/form";
 import {
   closestCenter,
@@ -63,11 +64,11 @@ export const FormFieldsPanel = ({ form, fields }: FormFieldsPanelProps) => {
             />
 
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-foreground">
                 Mapped fields
               </h3>
               {mappings.length === 0 ? (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Add fields above to build this form.
                 </p>
               ) : (
@@ -90,6 +91,7 @@ export const FormFieldsPanel = ({ form, fields }: FormFieldsPanelProps) => {
                               (boardField) => boardField.id === mapping.fieldId
                             )?.fieldType ?? "TEXT"
                           }
+                          locked={mapping.fieldId === FORM_RECORD_NAME_FIELD_ID}
                           onLabelChange={(fieldId, label) =>
                             field.onChange(
                               mappings.map((m) =>

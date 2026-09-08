@@ -135,7 +135,7 @@ export const MarketingLandingPagesListPage = () => {
         <WriteGate>
           <Button
             onClick={() => setCreateOpen(true)}
-            className="bg-brand text-white hover:bg-brand/90"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
           >
             <Plus className="h-4 w-4" />
             New Page
@@ -168,7 +168,7 @@ export const MarketingLandingPagesListPage = () => {
           setSearch(event.target.value);
           setPage(1);
         }}
-        className="w-full bg-white sm:w-80"
+        className="w-full bg-card sm:w-80"
       />
 
       <LandingPageListTable
@@ -221,7 +221,7 @@ export const MarketingLandingPagesListPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Landing Page Name <span className="text-red-500">*</span>
+                        Landing Page Name <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input {...field} />
@@ -243,7 +243,7 @@ export const MarketingLandingPagesListPage = () => {
                 <Button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="bg-brand text-white hover:bg-brand/90"
+                  className="bg-brand text-brand-foreground hover:bg-brand/90"
                 >
                   {createMutation.isPending ? (
                     <Loader2 className="size-4 animate-spin" />

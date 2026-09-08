@@ -95,7 +95,7 @@ export const MarketingSendersPage = () => {
         <WriteGate>
           <Button
             onClick={() => setSetupOpen(true)}
-            className="bg-brand text-white hover:bg-brand/90"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
           >
             <Plus className="h-4 w-4" />
             Add Sender
@@ -106,7 +106,7 @@ export const MarketingSendersPage = () => {
       {isLoading && <Skeleton className="h-40 w-full" />}
 
       {!isLoading && senders.length === 0 && (
-        <p className="rounded-lg border border-gray-200 p-8 text-center text-muted-foreground">
+        <p className="rounded-lg border border-border p-8 text-center text-muted-foreground">
           No senders yet. Add one to send campaign email as your organization.
         </p>
       )}
@@ -117,14 +117,14 @@ export const MarketingSendersPage = () => {
         return (
           <section
             key={sender.id}
-            className="space-y-4 rounded-xl border border-gray-200 bg-white p-6"
+            className="space-y-4 rounded-xl border border-border bg-card p-6"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-start gap-3">
-                <Icon className="mt-0.5 size-5 text-gray-400" />
+                <Icon className="mt-0.5 size-5 text-muted-foreground" />
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-foreground">
                       {sender.label}
                     </h3>
                     <StatusPill
@@ -144,7 +144,7 @@ export const MarketingSendersPage = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-400 hover:text-red-600"
+                className="text-muted-foreground hover:text-destructive"
                 aria-label="Remove sender"
                 onClick={() => deleteMutation.mutate(sender)}
               >

@@ -1,5 +1,49 @@
 # Activity Log
 
+## 2026-09-09 - Module groups are rows, not a label on each module
+
+A sidebar folder was `Module.groupName`, a free-text string. An empty folder
+could not exist, so a group could not be made before its first module,
+renaming one meant retyping it on every member, and a typo split a group in
+two.
+
+- `prisma/models/board.prisma`: new `ModuleGroup` (name, groupOrder,
+  organizationId, unique on organization+name) and `Module.groupId` with
+  `onDelete: SetNull`, so deleting a folder returns its modules to the top
+  level. `groupName` stays as a column until the backfill has run everywhere.
+- `prisma/migrations/backfill_module_groups/migration.sql` (apply manually,
+  after the generated migration adds the table and column): one group per
+  distinct name per organization, ordered by where its first member sits, then
+  links every module. Idempotent.
+- `lib/module/system-modules.ts`: seeds Pipeline and Directory as rows first,
+  then points the four built-in modules at them by id.
+- `api/module/module-group.{controller,service}.ts` and
+  `dto/module-group.{schema,dto}.ts`: list, create, rename, delete, reorder,
+  all organization-scoped, capped at 12 groups, behind `field: ["configure"]`
+  like module creation. Prefix is `/api/module-group` rather than
+  `/api/module/group`, or `group` would be read as a module id by
+  `PATCH /module/:id`.
+- `api/module/module.service.ts`: module create and update take `groupId` and
+  reject one from another tenant; `getModules` returns `groupId` plus the
+  folder name for labels.
+- `api/nav/nav.controller.ts`: the nav payload carries `groups`, since an empty
+  folder has no module to infer it from.
+- `hooks/use-nav-items.ts`: CRM folders come from the groups list, each folder
+  gets a "New module here" entry that lands on the setup wizard with the folder
+  chosen, and CRM gets "New Group" which opens the settings page with the name
+  field ready.
+- `components/module-setup/`: the group step is a picker of existing folders
+  instead of free text, prefilled from `?group=`.
+- `components/module-manage/`: the settings page is now a drop target per
+  folder. Dragging a module between folders refiles it, dragging inside one
+  reorders the list, the folder name is editable in place, and a folder can be
+  created or deleted there. Split into `module-group-section.tsx` and
+  `module-group-create.tsx`.
+
+Not done: dropping `Module.groupName` needs its own migration once the backfill
+has run on every environment. Group order is stored and honoured but is not
+draggable yet.
+
 ## 2026-08-27 — Audit trail is actually append-only
 
 `HIPAA-PHI-PLAN.md` claimed an append-only trigger lived in
@@ -1832,3 +1876,251 @@ query behind it, two single-trigger `Tabs`, and a commented-out dropdown.
 
 Verified: `tsc --noEmit`, `pnpm --filter fe-support lint` (0 warnings) and
 `pnpm --filter fe-support build` all clean. No browser pass.
+
+## 2026-09-08 - CRM list search/filter, public form record name
+
+Custom modules (and Phonebook/Companies, which share `CrmListPage`) had no
+search and no advanced filter: the page rendered `PageHeader` straight into
+`ReusableTable`. `MasterListFilters` now sits between them, with two new
+optional props (`searchPlaceholder`, `nameFilterLabel`) so the bar reads in the
+module's own words instead of "Search organization..." / "Facility". Search and
+filter apply now reset `page` to 1, which also fixes applying either from page 2
+on the lead and referral boards. No API work: `getAllBoards` already takes
+`search`, `filter`, `boardDateFrom/To` and `sortBy` scoped by `moduleType`.
+
+Public marketing forms created at most one record per form and then went silent.
+`submitPublicForm` passed `recordName: form.name`, so every submission after the
+first hit the unique-name guard in `insertBoardRecord` (exact hash clash, or the
+"too similar" refusal), the transaction rolled back, and `public-form-page.tsx`
+swallowed the 409 into a generic toast. Only REFERRAL-module forms worked, since
+REFERRAL is exempt from that guard.
+
+A form now captures the record name. `recordName` is a `Board` column and not a
+`Field` row, so it rides `fieldMappings` under the sentinel
+`FORM_RECORD_NAME_FIELD_ID` ("record_name", in
+`packages/shared/src/lib/constant.ts`; unrelated to the FE-only
+`RECORD_NAME_FIELD`, which keys the internal create form).
+`withRecordNameMapping` pins it first and forces `required: true` on create,
+update, builder read, public read and submit, so already-published forms pick it
+up with no data migration. The label defaults to the module's `labelSingular`
+("Facility Name", "Contact Name", whatever a custom module calls its records) and
+stays editable; the builder locks its remove button and required checkbox.
+
+Still open: a submission whose name clashes with an existing record (exact or
+merely similar) is refused with a 409 the public page reports as "Something went
+wrong". Deciding between attaching the submission to the existing record and
+surfacing a real message was deferred.
+
+Verified: `pnpm build:api` and `pnpm build:shared` clean, `tsc --noEmit` clean
+for fe, `pnpm --filter fe lint` 0 errors (643 pre-existing `any`/unused-var
+warnings), layout checks clean. No browser pass, no submission run against a
+live form.
+
+## 2026-09-09 - Follow-up card and queue
+
+Every date in the requested card already existed; nothing joined them. Added a
+read model over `Activity` rather than new columns: a follow-up is a PENDING
+activity carrying a `dueDate`, last contacted is the newest COMPLETED activity's
+`completedAt`, referral received is the linked REFERRAL record's `createdAt`
+through `BoardRelation`, and the assignee is `Board.assignedTo`. All four are
+plaintext columns, unlike `recordName` and `FieldValue`, so the grouping runs in
+Postgres instead of an in-memory decrypt pass.
+
+API: `getFollowUpDigest` groups pending activities by record (`_min.dueDate`,
+earliest first) so a record chased twice appears once, then `buildFollowUpRows`
+fills the four dates in four set-based queries. `getRecordFollowUp` reuses the
+same builder for one record. Routes `GET /boards/follow-ups` (declared above
+`/:recordId` so the literal is not read as an id) and
+`GET /boards/:recordId/follow-up`, both `@RequirePermission({ log: ["read"] })`.
+The digest count is the number of groups, which Postgres will not return with
+them, so the page is sliced in the service - noted in a comment there.
+
+FE: `FollowUpCard` renders the four rows plus Mark done (`completeActivity`) and
+Open record; `RecordFollowUpSummary` puts it at the top of the record drawer's
+details tab; `/$team/follow-ups` groups Overdue / Today / This week with module
+and assignee filters. The week window is computed in the browser
+(`follow-up-date.ts`) because only it knows where the local day ends. Nav entry
+sits under Tasks, gated on `log: ["read"]`.
+
+Open record links to the board with `?q=<record name>`, which `master-list-page`
+and `crm-list-page` already adopted - but no route declared `q`, so a typed Link
+would not compile. Added `validateRecordSearch` to the five list routes and gave
+`referral-list-page` the same adoption block the other two had, since it was the
+one board that ignored the param.
+
+Verified: `pnpm build:api` clean, `tsc --noEmit` clean for fe, `vite build`
+clean, `pnpm --filter fe lint` 0 errors (643 pre-existing warnings), layout
+checks clean. No browser pass and no run against real data: the digest has not
+been exercised against a database, so the groupBy shapes are compile-checked
+only.
+
+## 2026-09-09 - Module groups, module editing, one nav request
+
+Three things in one pass.
+
+**Groups.** `Module.groupName` (nullable, plus an index on
+`[organizationId, groupName, moduleOrder]`) is a sidebar folder and nothing
+else: it scopes no records, fields or permissions, so existing rows need no
+backfill - null means ungrouped, which is how the sidebar already renders. The
+create wizard asks for it (free text with the existing names offered through a
+datalist, so one typo cannot split a group in two). Rejected the alternative of
+a project or workspace entity: that is a second tenancy axis next to
+`organizationId`, it would fork every board, field, form and analytics query,
+and cross-module links like CONTACT_LINK have no sensible cross-project rule.
+The ceiling is 14 modules (`MAX_CUSTOM_MODULES` 10 plus 4 system), so this was
+always a display problem.
+
+`NavSubItem.url` is now optional, because a folder row has no page behind it.
+`nav-main.tsx` renders such a row as its own collapsible trigger; a row that
+does have a url keeps its link and the chevron beside it, which is what
+Marketing Hub > Campaigns relies on. `collectUrls` and `flattenNavItems` skip
+urlless rows, so global search indexes the modules and not the folder names.
+
+**Editing.** Modules could be created and never touched again: the controller
+had only GET and POST, so nothing could rename, refile, reorder or archive one.
+Added `PATCH /module/:id` (label, labelSingular, icon, groupName, isArchived)
+and `PATCH /module/reorder`, which takes the whole visible order in one request
+because a drag renumbers every row after it. A system module can be renamed and
+refiled but not archived - the seeded routes, analytics pages and link field
+types assume it exists. The key stays frozen: it is in urls, query keys and
+saved links. New page at `/$team/records/manage`, gated on `field: ["configure"]`
+in both the nav row and the API.
+
+**One nav request.** `GET /api/nav` returns modules and dashboards together;
+the sidebar was firing two that also raced. `useNavData` writes both payloads
+back under `["modules"]` and `DASHBOARDS_KEY`, the keys those features already
+own, so every existing invalidation still works and a module picker mounting
+soon after reuses the rows instead of refetching - both hooks got a 5 minute
+staleTime so the seeded data is actually considered fresh. Dashboards are
+Scale-only, so the endpoint checks the entitlement off `request.entitlement` and
+returns an empty list rather than 403-ing the whole nav.
+
+Migration `add_module_group_name` is written but NOT applied - it is additive
+(ADD COLUMN IF NOT EXISTS plus an index) and needs to run before the API is
+deployed.
+
+Verified: `pnpm build:api` clean, fe `tsc --noEmit` clean, `vite build` clean,
+`pnpm --filter fe lint` 0 errors (643 pre-existing warnings), layout checks
+clean. No browser pass: the folder rendering, the drag reorder and the nav
+request have not been exercised against a running app or a real database.
+
+## 2026-09-09 - System module groups backfilled, Modules page moved
+
+`SYSTEM_MODULES` now seeds a group: LEAD and REFERRAL under Pipeline, CONTACT
+and COMPANY under Directory - the two boards you work through, then the two
+lists of who you work with. New organizations get it from the seed;
+`backfill_system_module_groups` files the built-ins for every organization
+seeded before the column existed. It only touches rows where `groupName IS
+NULL`, so an organization that already filed a built-in keeps its choice, and
+since the column is a display label the worst case of a wrong guess is a folder
+someone renames on the Modules page.
+
+Manage Modules left the CRM group. It is organization configuration, not a
+place records live, and the CRM group is the one list that grows - putting the
+admin row in it defeats the grouping. It is now Settings > Organization >
+Modules at `/$team/settings/modules`, which the existing `/settings` prefix in
+`settings-nav.ts` already claims, so the rail swaps to the settings tree and the
+row lights up with no change to that helper. Still gated on
+`field: ["configure"]` in the nav and on the API.
+
+Both migrations are written and NOT applied: `add_module_group_name` first
+(ADD COLUMN plus index), then `backfill_system_module_groups`.
+
+Verified: `pnpm build:api` clean, fe `tsc --noEmit` clean, `vite build` clean,
+`pnpm --filter fe lint` 0 errors, layout checks clean. No browser pass, and
+neither migration has been run.
+
+## 2026-09-09 - History page reads the module list
+
+The answer to "will custom modules show up in the history tabs" was no, and
+that was a bug rather than a scaling question: `HISTORY_MODULES` was a hardcoded
+four-entry const, so a custom module's history had no way to be reached at all.
+The API never had this problem - `getAllRecordHistory` resolves whatever
+moduleType it is given through `resolveModuleId`.
+
+The list now comes from `useModules({ includeArchived: true })`; archived
+modules keep their records, so their history stays reachable. The page holds the
+selected key rather than a module object and derives the row during render, so
+nothing has to sync when the list loads.
+
+The tab strip is gone. Fourteen tabs wrap into three rows, or scroll their later
+entries somewhere nobody looks. `HistoryModulePicker` is a Select grouped by the
+same sidebar folders, sitting in the filter row with the date range and the user
+and field pickers, which is what it always was - a filter. Switching modules now
+also clears the filters: field options are per module, so a column carried over
+from the last one matched nothing and read as an empty history.
+
+Verified: `tsc --noEmit` clean, `pnpm --filter fe lint` 0 errors (642 warnings,
+one fewer than before), layout checks clean. No browser pass; the picker has not
+been rendered against an org with custom modules.
+
+## 2026-09-09 - Follow-up queue at scale
+
+The digest ran an unbounded `groupBy` over every pending activity in the
+organization, sorted it, then sliced page one in JS, and the page asked for a
+hundred rows and rendered them all with an "N more not shown" note. Fine at a
+few hundred follow-ups, a full sort and a hundred cards at twenty thousand.
+
+Four changes, no data model touched:
+
+1. `Activity` gains `[organizationId, status, dueDate]`. It carried
+   `organizationId` and `dueDate` as separate indexes, so Postgres could use one
+   and filter the rest by hand. Migration `add_activity_follow_up_index`.
+2. The groupBy is paged in Postgres (`skip`/`take: limit + 1`), so memory is
+   O(page) rather than O(organization). The extra row answers "is there another
+   page" without a second count, which is why `pagination.count` became
+   `pagination.hasMore`.
+3. Section headers need totals a single page cannot know, so
+   `followUpBucketCounts` computes them in one raw aggregate over each record's
+   earliest pending due date - the same row the queue shows, so a record chased
+   twice lands in one bucket rather than two. `$queryRaw` bypasses the tenant
+   extension, so the organization is named in the WHERE rather than injected.
+   The browser sends its local day boundaries, since only it knows where the
+   viewer's day ends; without them the endpoint returns null buckets.
+4. The page is an infinite query at 25 a page with Load more, and Mark done
+   removes the card optimistically instead of refetching every page loaded so
+   far. It also defaults to the signed-in user's own follow-ups; "Everyone" is
+   there but is a deliberate widening.
+
+Not done, in order of when it would matter: a Redis cache on the digest with a
+short TTL purged on activity writes (the pattern `getAllBoards` already uses),
+and denormalizing `nextFollowUpAt` onto `Board` so the queue becomes a plain
+indexed read with no grouping. The second is a column to keep in sync and should
+wait until the read path is measurably the bottleneck.
+
+Verified: `pnpm build:api` clean, fe `tsc --noEmit` clean, lint 0 errors, layout
+checks clean. The raw bucket SQL and the paged groupBy were both executed
+against the development database (9 records in window: 7 overdue, 2 upcoming,
+out of 37 pending activities - the grouping collapses correctly). No browser
+pass: both dev servers were down by then.
+
+Migration `add_activity_follow_up_index` is written and NOT applied. It is a
+plain CREATE INDEX IF NOT EXISTS, so it is safe to run at any time.
+
+## 2026-09-09 - New group opens in place
+
+"New Group" in the CRM sidebar was a link to
+`/settings/modules?newGroup=true` - naming a folder is one short field, and it
+was sending people to a settings page and back for it. It now opens a dialog
+over whatever they were looking at.
+
+`ModuleGroupDialog` owns the form, the mutation and the invalidations, because
+both callers want the same three keys refreshed. The popover version written
+earlier the same day is gone: the modules settings page uses this dialog too, so
+there is one way to make a group rather than two that drift. Dialog over
+popover for the nav specifically - a popover anchored to a sidebar row has
+nowhere to sit when the rail is collapsed to icons.
+
+`NavSubItem` gains an optional `onSelect`. A row with one renders as a button in
+both the expanded sidebar and the collapsed dropdown, carries no url, and is
+therefore skipped by `collectUrls` and `flattenNavItems` already - correct,
+since it is an action rather than a destination. `useNavItems` takes the handler
+as an optional third argument: the sidebar passes it, global search does not,
+and the row is simply absent from search results.
+
+The `?newGroup=true` param still opens the dialog on the settings page, so an
+existing link keeps working.
+
+Verified: `tsc --noEmit` clean, lint 0 errors, layout checks clean. No browser
+pass - dev servers were down, so neither the dialog nor the collapsed-rail
+dropdown row has been seen rendering.

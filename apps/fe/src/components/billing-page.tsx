@@ -164,7 +164,7 @@ export function BillingPage({
     } catch (error) {
       toast.error("Failed to logout");
     }
-  }, [navigate]);
+  }, [navigate, queryClient]);
 
   const standalone = propContext === "/billing";
 

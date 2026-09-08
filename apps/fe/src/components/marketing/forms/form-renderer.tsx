@@ -88,6 +88,7 @@ type FieldControlProps = {
   mapping: PublicFormField;
   value: string;
   onChange: (value: string) => void;
+  orgSlug: string;
   slug: string;
   disabled: boolean;
 };
@@ -97,6 +98,7 @@ const FieldControl = ({
   mapping,
   value,
   onChange,
+  orgSlug,
   slug,
   disabled,
 }: FieldControlProps) => {
@@ -112,7 +114,7 @@ const FieldControl = ({
   }
 
   if (mapping.fieldType === "LOCATION") {
-    const endpoints = publicFormPlacesEndpoints(slug);
+    const endpoints = publicFormPlacesEndpoints(orgSlug, slug);
 
     return (
       <LocationCell
@@ -184,6 +186,7 @@ const FieldControl = ({
 
 type FormRendererProps = {
   form: PublicForm;
+  orgSlug: string;
   slug: string;
   onSubmit: (values: Record<string, string>) => void | Promise<void>;
   submitted: boolean;
@@ -194,6 +197,7 @@ type FormRendererProps = {
 // a FORM_EMBED section on a landing page, and the builder preview canvas.
 export const FormRenderer = ({
   form,
+  orgSlug,
   slug,
   onSubmit,
   submitted,
@@ -210,7 +214,7 @@ export const FormRenderer = ({
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <CircleCheckBig className="size-10 text-[#005cb1]" />
-        <h1 className="text-xl font-semibold text-[#0d3185]">Thank you</h1>
+        <h1 className="text-xl font-semibold text-brand">Thank you</h1>
         <p className="text-sm text-muted-foreground">
           Your submission has been received.
         </p>
@@ -221,7 +225,7 @@ export const FormRenderer = ({
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold text-[#0d3185] sm:text-3xl">
+        <h1 className="text-2xl font-semibold text-brand sm:text-3xl">
           {form.name}
         </h1>
         {hasRequired && (
@@ -266,6 +270,7 @@ export const FormRenderer = ({
                           mapping={mapping}
                           value={field.value}
                           onChange={field.onChange}
+                          orgSlug={orgSlug}
                           slug={slug}
                           disabled={preview}
                         />
@@ -282,7 +287,7 @@ export const FormRenderer = ({
             <Button
               type="submit"
               size="lg"
-              className="w-full bg-[#0d3185] px-8 text-white hover:bg-[#0d3185]/90 sm:w-auto"
+              className="w-full bg-brand px-8 text-brand-foreground hover:bg-brand/90 sm:w-auto"
               disabled={preview || rhForm.formState.isSubmitting}
             >
               {rhForm.formState.isSubmitting && (

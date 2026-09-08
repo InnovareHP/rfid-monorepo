@@ -42,6 +42,7 @@ import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { RestoreHistoryModal } from "../history-report/restore-history-modal";
 import { EditableCell } from "../reusable-table/editable-cell";
+import { RecordFollowUpSummary } from "@/components/follow-up/record-follow-up-summary";
 import { ActivityTab } from "./activity-tab";
 import { FollowUpSuggestions } from "./follow-up-suggestions";
 import { groupHistory, HistoryTimelineItem } from "./history-timeline-item";
@@ -316,6 +317,9 @@ export function MasterListView({
               >
                 <div className="min-h-0 flex-1 overflow-y-auto">
                   <div className="px-6 py-4">
+                    <div className="mb-4">
+                      <RecordFollowUpSummary recordId={leadId} />
+                    </div>
                     <div className="divide-y rounded-lg border bg-card">
                       {detailColumns.map((col) => (
                         <div

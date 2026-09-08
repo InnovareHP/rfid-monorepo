@@ -26,7 +26,7 @@ type ReportTableProps<T> = {
 };
 
 export const ReportChip = ({ children }: { children: ReactNode }) => (
-  <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700">
+  <span className="inline-flex items-center rounded-md border border-border bg-card px-2.5 py-1 text-xs text-foreground">
     {children}
   </span>
 );
@@ -50,18 +50,18 @@ export function ReportTable<T>({
   );
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="overflow-x-auto">
         <table
           className={cn("w-full border-collapse text-left", tableClassName)}
         >
           <thead>
-            <tr className="border-b border-gray-200 bg-table-header">
+            <tr className="border-b border-border bg-table-header">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={cn(
-                    "px-4 py-3 text-sm font-semibold whitespace-nowrap text-gray-900",
+                    "px-4 py-3 text-sm font-semibold whitespace-nowrap text-foreground",
                     column.className
                   )}
                 >
@@ -87,7 +87,7 @@ export function ReportTable<T>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-16 text-center text-sm text-gray-500"
+                  className="px-4 py-16 text-center text-sm text-muted-foreground"
                 >
                   {emptyMessage}
                 </td>
@@ -96,13 +96,13 @@ export function ReportTable<T>({
               rows.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
-                  className="border-b border-gray-100 transition-colors last:border-b-0 hover:bg-gray-50"
+                  className="border-b border-border transition-colors last:border-b-0 hover:bg-muted"
                 >
                   {columns.map((column) => (
                     <td
                       key={column.key}
                       className={cn(
-                        "px-4 py-4 text-sm text-gray-700",
+                        "px-4 py-4 text-sm text-foreground",
                         column.className
                       )}
                     >

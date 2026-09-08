@@ -73,7 +73,7 @@ export function ChangePasswordCard() {
           onSubmit={passwordForm.handleSubmit((values) =>
             changePasswordMutation.mutate(values)
           )}
-          className="space-y-4 border-t border-gray-200 pt-4"
+          className="space-y-4 border-t border-border pt-4"
         >
           <FormField
             control={passwordForm.control}
@@ -81,7 +81,7 @@ export function ChangePasswordCard() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Current Password <span className="text-red-500">*</span>
+                  Current Password <span className="text-destructive">*</span>
                 </FormLabel>
                 <FormControl>
                   <PasswordInput {...field} />
@@ -98,7 +98,7 @@ export function ChangePasswordCard() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    New Password <span className="text-red-500">*</span>
+                    New Password <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
                     <PasswordInput {...field} />
@@ -114,7 +114,7 @@ export function ChangePasswordCard() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Confirm Password <span className="text-red-500">*</span>
+                    Confirm Password <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
                     <PasswordInput {...field} />
@@ -154,7 +154,7 @@ export function ChangePasswordCard() {
             <Button
               type="submit"
               disabled={changePasswordMutation.isPending}
-              className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
+              className="w-full bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto"
             >
               {changePasswordMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />

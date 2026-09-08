@@ -6,9 +6,9 @@ export const CtaSection = ({ section }: CtaSectionProps) => {
   const { heading, buttonLabel, href } = section.props;
 
   return (
-    <section className="py-12 px-6 text-center space-y-4 bg-gray-50">
+    <section className="py-12 px-6 text-center space-y-4 bg-muted">
       {heading && (
-        <h2 className="text-2xl font-semibold text-gray-900">{heading}</h2>
+        <h2 className="text-2xl font-semibold text-foreground">{heading}</h2>
       )}
       <a
         href={href}

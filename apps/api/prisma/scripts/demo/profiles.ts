@@ -8,6 +8,10 @@ export type DemoProfile = {
   contactsPerCompany: number;
   referrals: number;
   visits: number;
+  // Logged activities beyond the ones mirrored from visits.
+  activities: number;
+  // Open follow-ups; a third land overdue.
+  followUps: number;
   expenses: number;
   mileage: number;
   tasksPerList: number;
@@ -26,6 +30,8 @@ const PROFILES: Record<string, DemoProfile> = {
     contactsPerCompany: 3,
     referrals: 60,
     visits: 40,
+    activities: 50,
+    followUps: 12,
     expenses: 18,
     mileage: 20,
     tasksPerList: 5,
@@ -39,6 +45,8 @@ const PROFILES: Record<string, DemoProfile> = {
     contactsPerCompany: 3,
     referrals: 320,
     visits: 180,
+    activities: 220,
+    followUps: 40,
     expenses: 60,
     mileage: 70,
     tasksPerList: 12,
@@ -52,6 +60,8 @@ const PROFILES: Record<string, DemoProfile> = {
     contactsPerCompany: 6,
     referrals: 1200,
     visits: 520,
+    activities: 700,
+    followUps: 120,
     expenses: 200,
     mileage: 240,
     tasksPerList: 25,

@@ -4,6 +4,7 @@ import { can } from "@/lib/permissions";
 import type { Member } from "better-auth/plugins/organization";
 import {
   Bell,
+  Boxes,
   CalendarClock,
   CreditCard,
   ShieldCheck,
@@ -57,6 +58,17 @@ export function useSettingsNavItems(
             url: `/${activeOrganizationId}/settings/booking`,
             icon: CalendarClock,
           },
+          // Renaming, grouping, reordering and archiving all shape the schema,
+          // so the row is hidden from anyone whose actions there are refused.
+          ...(can(memberData?.role, { field: ["configure"] })
+            ? [
+                {
+                  title: "Modules",
+                  url: `/${activeOrganizationId}/settings/modules`,
+                  icon: Boxes,
+                },
+              ]
+            : []),
           ...(canUseHipaa && can(memberData?.role, { compliance: ["read"] })
             ? [
                 {

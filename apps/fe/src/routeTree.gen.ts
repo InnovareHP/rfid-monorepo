@@ -17,9 +17,7 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UTokenRouteImport } from './routes/u/$token'
 import { Route as STokenRouteImport } from './routes/s/$token'
-import { Route as LSlugRouteImport } from './routes/l/$slug'
 import { Route as InvitationActionRouteImport } from './routes/invitation.$action'
-import { Route as FSlugRouteImport } from './routes/f/$slug'
 import { Route as BookingBookingIdRouteImport } from './routes/booking.$bookingId'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AuthTwoFactorRouteImport } from './routes/_auth/two-factor'
@@ -29,6 +27,8 @@ import { Route as AuthOtpRouteImport } from './routes/_auth/otp'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as TeamTeamIndexRouteImport } from './routes/_team/$team/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/_auth/reset-password/index'
+import { Route as LOrgSlugSlugRouteImport } from './routes/l/$orgSlug/$slug'
+import { Route as FOrgSlugSlugRouteImport } from './routes/f/$orgSlug/$slug'
 import { Route as EmbedBookSlugRouteImport } from './routes/embed.book.$slug'
 import { Route as TeamTeamTeamRouteImport } from './routes/_team/$team/team'
 import { Route as TeamTeamSuccessRouteImport } from './routes/_team/$team/success'
@@ -40,6 +40,7 @@ import { Route as TeamTeamNotificationsRouteImport } from './routes/_team/$team/
 import { Route as TeamTeamMasterListAnalyticsRouteImport } from './routes/_team/$team/master-list-analytics'
 import { Route as TeamTeamLiaisonPerformanceRouteImport } from './routes/_team/$team/liaison-performance'
 import { Route as TeamTeamIntegrationsRouteImport } from './routes/_team/$team/integrations'
+import { Route as TeamTeamFollowUpsRouteImport } from './routes/_team/$team/follow-ups'
 import { Route as TeamTeamCalendarRouteImport } from './routes/_team/$team/calendar'
 import { Route as AuthResetPasswordVerifyRouteImport } from './routes/_auth/reset-password/verify'
 import { Route as AuthEmailVerificationRouteImport } from './routes/_auth/email.verification'
@@ -52,6 +53,7 @@ import { Route as TeamTeamHelpIndexRouteImport } from './routes/_team/$team/help
 import { Route as TeamTeamContactsIndexRouteImport } from './routes/_team/$team/contacts/index'
 import { Route as TeamTeamCompaniesIndexRouteImport } from './routes/_team/$team/companies/index'
 import { Route as TeamTeamTasksTaskRouteImport } from './routes/_team/$team/tasks/$task'
+import { Route as TeamTeamSettingsModulesRouteImport } from './routes/_team/$team/settings/modules'
 import { Route as TeamTeamSettingsComplianceRouteImport } from './routes/_team/$team/settings/compliance'
 import { Route as TeamTeamSettingsBookingRouteImport } from './routes/_team/$team/settings/booking'
 import { Route as TeamTeamSettingsBillingRouteImport } from './routes/_team/$team/settings/billing'
@@ -130,19 +132,9 @@ const STokenRoute = STokenRouteImport.update({
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LSlugRoute = LSlugRouteImport.update({
-  id: '/l/$slug',
-  path: '/l/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const InvitationActionRoute = InvitationActionRouteImport.update({
   id: '/invitation/$action',
   path: '/invitation/$action',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FSlugRoute = FSlugRouteImport.update({
-  id: '/f/$slug',
-  path: '/f/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookingBookingIdRoute = BookingBookingIdRouteImport.update({
@@ -189,6 +181,16 @@ const AuthResetPasswordIndexRoute = AuthResetPasswordIndexRouteImport.update({
   id: '/reset-password/',
   path: '/reset-password/',
   getParentRoute: () => AuthRoute,
+} as any)
+const LOrgSlugSlugRoute = LOrgSlugSlugRouteImport.update({
+  id: '/l/$orgSlug/$slug',
+  path: '/l/$orgSlug/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FOrgSlugSlugRoute = FOrgSlugSlugRouteImport.update({
+  id: '/f/$orgSlug/$slug',
+  path: '/f/$orgSlug/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EmbedBookSlugRoute = EmbedBookSlugRouteImport.update({
   id: '/embed/book/$slug',
@@ -246,6 +248,11 @@ const TeamTeamLiaisonPerformanceRoute =
 const TeamTeamIntegrationsRoute = TeamTeamIntegrationsRouteImport.update({
   id: '/$team/integrations',
   path: '/$team/integrations',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamFollowUpsRoute = TeamTeamFollowUpsRouteImport.update({
+  id: '/$team/follow-ups',
+  path: '/$team/follow-ups',
   getParentRoute: () => TeamRoute,
 } as any)
 const TeamTeamCalendarRoute = TeamTeamCalendarRouteImport.update({
@@ -308,6 +315,11 @@ const TeamTeamTasksTaskRoute = TeamTeamTasksTaskRouteImport.update({
   id: '/$team/tasks/$task',
   path: '/$team/tasks/$task',
   getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamSettingsModulesRoute = TeamTeamSettingsModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => TeamTeamSettingsRoute,
 } as any)
 const TeamTeamSettingsComplianceRoute =
   TeamTeamSettingsComplianceRouteImport.update({
@@ -549,14 +561,13 @@ export interface FileRoutesByFullPath {
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
-  '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
-  '/l/$slug': typeof LSlugRoute
   '/s/$token': typeof STokenRoute
   '/u/$token': typeof UTokenRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
+  '/$team/follow-ups': typeof TeamTeamFollowUpsRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/liaison-performance': typeof TeamTeamLiaisonPerformanceRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
@@ -568,6 +579,8 @@ export interface FileRoutesByFullPath {
   '/$team/success': typeof TeamTeamSuccessRoute
   '/$team/team': typeof TeamTeamTeamRoute
   '/embed/book/$slug': typeof EmbedBookSlugRoute
+  '/f/$orgSlug/$slug': typeof FOrgSlugSlugRoute
+  '/l/$orgSlug/$slug': typeof LOrgSlugSlugRoute
   '/reset-password/': typeof AuthResetPasswordIndexRoute
   '/$team/': typeof TeamTeamIndexRoute
   '/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
@@ -579,6 +592,7 @@ export interface FileRoutesByFullPath {
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
   '/$team/settings/compliance': typeof TeamTeamSettingsComplianceRoute
+  '/$team/settings/modules': typeof TeamTeamSettingsModulesRoute
   '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/companies/': typeof TeamTeamCompaniesIndexRoute
   '/$team/contacts/': typeof TeamTeamContactsIndexRoute
@@ -631,14 +645,13 @@ export interface FileRoutesByTo {
   '/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
-  '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
-  '/l/$slug': typeof LSlugRoute
   '/s/$token': typeof STokenRoute
   '/u/$token': typeof UTokenRoute
   '/email/verification': typeof AuthEmailVerificationRoute
   '/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/$team/calendar': typeof TeamTeamCalendarRoute
+  '/$team/follow-ups': typeof TeamTeamFollowUpsRoute
   '/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/$team/liaison-performance': typeof TeamTeamLiaisonPerformanceRoute
   '/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
@@ -650,6 +663,8 @@ export interface FileRoutesByTo {
   '/$team/success': typeof TeamTeamSuccessRoute
   '/$team/team': typeof TeamTeamTeamRoute
   '/embed/book/$slug': typeof EmbedBookSlugRoute
+  '/f/$orgSlug/$slug': typeof FOrgSlugSlugRoute
+  '/l/$orgSlug/$slug': typeof LOrgSlugSlugRoute
   '/reset-password': typeof AuthResetPasswordIndexRoute
   '/$team': typeof TeamTeamIndexRoute
   '/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
@@ -661,6 +676,7 @@ export interface FileRoutesByTo {
   '/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
   '/$team/settings/compliance': typeof TeamTeamSettingsComplianceRoute
+  '/$team/settings/modules': typeof TeamTeamSettingsModulesRoute
   '/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/$team/companies': typeof TeamTeamCompaniesIndexRoute
   '/$team/contacts': typeof TeamTeamContactsIndexRoute
@@ -716,14 +732,13 @@ export interface FileRoutesById {
   '/_auth/two-factor': typeof AuthTwoFactorRoute
   '/book/$slug': typeof BookSlugRoute
   '/booking/$bookingId': typeof BookingBookingIdRoute
-  '/f/$slug': typeof FSlugRoute
   '/invitation/$action': typeof InvitationActionRoute
-  '/l/$slug': typeof LSlugRoute
   '/s/$token': typeof STokenRoute
   '/u/$token': typeof UTokenRoute
   '/_auth/email/verification': typeof AuthEmailVerificationRoute
   '/_auth/reset-password/verify': typeof AuthResetPasswordVerifyRoute
   '/_team/$team/calendar': typeof TeamTeamCalendarRoute
+  '/_team/$team/follow-ups': typeof TeamTeamFollowUpsRoute
   '/_team/$team/integrations': typeof TeamTeamIntegrationsRoute
   '/_team/$team/liaison-performance': typeof TeamTeamLiaisonPerformanceRoute
   '/_team/$team/master-list-analytics': typeof TeamTeamMasterListAnalyticsRoute
@@ -735,6 +750,8 @@ export interface FileRoutesById {
   '/_team/$team/success': typeof TeamTeamSuccessRoute
   '/_team/$team/team': typeof TeamTeamTeamRoute
   '/embed/book/$slug': typeof EmbedBookSlugRoute
+  '/f/$orgSlug/$slug': typeof FOrgSlugSlugRoute
+  '/l/$orgSlug/$slug': typeof LOrgSlugSlugRoute
   '/_auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/_team/$team/': typeof TeamTeamIndexRoute
   '/_team/$team/companies/create': typeof TeamTeamCompaniesCreateRoute
@@ -746,6 +763,7 @@ export interface FileRoutesById {
   '/_team/$team/settings/billing': typeof TeamTeamSettingsBillingRoute
   '/_team/$team/settings/booking': typeof TeamTeamSettingsBookingRoute
   '/_team/$team/settings/compliance': typeof TeamTeamSettingsComplianceRoute
+  '/_team/$team/settings/modules': typeof TeamTeamSettingsModulesRoute
   '/_team/$team/tasks/$task': typeof TeamTeamTasksTaskRoute
   '/_team/$team/companies/': typeof TeamTeamCompaniesIndexRoute
   '/_team/$team/contacts/': typeof TeamTeamContactsIndexRoute
@@ -800,14 +818,13 @@ export interface FileRouteTypes {
     | '/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
-    | '/f/$slug'
     | '/invitation/$action'
-    | '/l/$slug'
     | '/s/$token'
     | '/u/$token'
     | '/email/verification'
     | '/reset-password/verify'
     | '/$team/calendar'
+    | '/$team/follow-ups'
     | '/$team/integrations'
     | '/$team/liaison-performance'
     | '/$team/master-list-analytics'
@@ -819,6 +836,8 @@ export interface FileRouteTypes {
     | '/$team/success'
     | '/$team/team'
     | '/embed/book/$slug'
+    | '/f/$orgSlug/$slug'
+    | '/l/$orgSlug/$slug'
     | '/reset-password/'
     | '/$team/'
     | '/$team/companies/create'
@@ -830,6 +849,7 @@ export interface FileRouteTypes {
     | '/$team/settings/billing'
     | '/$team/settings/booking'
     | '/$team/settings/compliance'
+    | '/$team/settings/modules'
     | '/$team/tasks/$task'
     | '/$team/companies/'
     | '/$team/contacts/'
@@ -882,14 +902,13 @@ export interface FileRouteTypes {
     | '/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
-    | '/f/$slug'
     | '/invitation/$action'
-    | '/l/$slug'
     | '/s/$token'
     | '/u/$token'
     | '/email/verification'
     | '/reset-password/verify'
     | '/$team/calendar'
+    | '/$team/follow-ups'
     | '/$team/integrations'
     | '/$team/liaison-performance'
     | '/$team/master-list-analytics'
@@ -901,6 +920,8 @@ export interface FileRouteTypes {
     | '/$team/success'
     | '/$team/team'
     | '/embed/book/$slug'
+    | '/f/$orgSlug/$slug'
+    | '/l/$orgSlug/$slug'
     | '/reset-password'
     | '/$team'
     | '/$team/companies/create'
@@ -912,6 +933,7 @@ export interface FileRouteTypes {
     | '/$team/settings/billing'
     | '/$team/settings/booking'
     | '/$team/settings/compliance'
+    | '/$team/settings/modules'
     | '/$team/tasks/$task'
     | '/$team/companies'
     | '/$team/contacts'
@@ -966,14 +988,13 @@ export interface FileRouteTypes {
     | '/_auth/two-factor'
     | '/book/$slug'
     | '/booking/$bookingId'
-    | '/f/$slug'
     | '/invitation/$action'
-    | '/l/$slug'
     | '/s/$token'
     | '/u/$token'
     | '/_auth/email/verification'
     | '/_auth/reset-password/verify'
     | '/_team/$team/calendar'
+    | '/_team/$team/follow-ups'
     | '/_team/$team/integrations'
     | '/_team/$team/liaison-performance'
     | '/_team/$team/master-list-analytics'
@@ -985,6 +1006,8 @@ export interface FileRouteTypes {
     | '/_team/$team/success'
     | '/_team/$team/team'
     | '/embed/book/$slug'
+    | '/f/$orgSlug/$slug'
+    | '/l/$orgSlug/$slug'
     | '/_auth/reset-password/'
     | '/_team/$team/'
     | '/_team/$team/companies/create'
@@ -996,6 +1019,7 @@ export interface FileRouteTypes {
     | '/_team/$team/settings/billing'
     | '/_team/$team/settings/booking'
     | '/_team/$team/settings/compliance'
+    | '/_team/$team/settings/modules'
     | '/_team/$team/tasks/$task'
     | '/_team/$team/companies/'
     | '/_team/$team/contacts/'
@@ -1046,12 +1070,12 @@ export interface RootRouteChildren {
   PasskeySetupRoute: typeof PasskeySetupRoute
   BookSlugRoute: typeof BookSlugRoute
   BookingBookingIdRoute: typeof BookingBookingIdRoute
-  FSlugRoute: typeof FSlugRoute
   InvitationActionRoute: typeof InvitationActionRoute
-  LSlugRoute: typeof LSlugRoute
   STokenRoute: typeof STokenRoute
   UTokenRoute: typeof UTokenRoute
   EmbedBookSlugRoute: typeof EmbedBookSlugRoute
+  FOrgSlugSlugRoute: typeof FOrgSlugSlugRoute
+  LOrgSlugSlugRoute: typeof LOrgSlugSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1112,25 +1136,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/l/$slug': {
-      id: '/l/$slug'
-      path: '/l/$slug'
-      fullPath: '/l/$slug'
-      preLoaderRoute: typeof LSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/invitation/$action': {
       id: '/invitation/$action'
       path: '/invitation/$action'
       fullPath: '/invitation/$action'
       preLoaderRoute: typeof InvitationActionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/f/$slug': {
-      id: '/f/$slug'
-      path: '/f/$slug'
-      fullPath: '/f/$slug'
-      preLoaderRoute: typeof FSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/booking/$bookingId': {
@@ -1195,6 +1205,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password/'
       preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/l/$orgSlug/$slug': {
+      id: '/l/$orgSlug/$slug'
+      path: '/l/$orgSlug/$slug'
+      fullPath: '/l/$orgSlug/$slug'
+      preLoaderRoute: typeof LOrgSlugSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$orgSlug/$slug': {
+      id: '/f/$orgSlug/$slug'
+      path: '/f/$orgSlug/$slug'
+      fullPath: '/f/$orgSlug/$slug'
+      preLoaderRoute: typeof FOrgSlugSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/embed/book/$slug': {
       id: '/embed/book/$slug'
@@ -1271,6 +1295,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/integrations'
       fullPath: '/$team/integrations'
       preLoaderRoute: typeof TeamTeamIntegrationsRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/follow-ups': {
+      id: '/_team/$team/follow-ups'
+      path: '/$team/follow-ups'
+      fullPath: '/$team/follow-ups'
+      preLoaderRoute: typeof TeamTeamFollowUpsRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/calendar': {
@@ -1356,6 +1387,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$team/tasks/$task'
       preLoaderRoute: typeof TeamTeamTasksTaskRouteImport
       parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/settings/modules': {
+      id: '/_team/$team/settings/modules'
+      path: '/modules'
+      fullPath: '/$team/settings/modules'
+      preLoaderRoute: typeof TeamTeamSettingsModulesRouteImport
+      parentRoute: typeof TeamTeamSettingsRoute
     }
     '/_team/$team/settings/compliance': {
       id: '/_team/$team/settings/compliance'
@@ -1661,12 +1699,14 @@ interface TeamTeamSettingsRouteChildren {
   TeamTeamSettingsBillingRoute: typeof TeamTeamSettingsBillingRoute
   TeamTeamSettingsBookingRoute: typeof TeamTeamSettingsBookingRoute
   TeamTeamSettingsComplianceRoute: typeof TeamTeamSettingsComplianceRoute
+  TeamTeamSettingsModulesRoute: typeof TeamTeamSettingsModulesRoute
 }
 
 const TeamTeamSettingsRouteChildren: TeamTeamSettingsRouteChildren = {
   TeamTeamSettingsBillingRoute: TeamTeamSettingsBillingRoute,
   TeamTeamSettingsBookingRoute: TeamTeamSettingsBookingRoute,
   TeamTeamSettingsComplianceRoute: TeamTeamSettingsComplianceRoute,
+  TeamTeamSettingsModulesRoute: TeamTeamSettingsModulesRoute,
 }
 
 const TeamTeamSettingsRouteWithChildren =
@@ -1674,6 +1714,7 @@ const TeamTeamSettingsRouteWithChildren =
 
 interface TeamRouteChildren {
   TeamTeamCalendarRoute: typeof TeamTeamCalendarRoute
+  TeamTeamFollowUpsRoute: typeof TeamTeamFollowUpsRoute
   TeamTeamIntegrationsRoute: typeof TeamTeamIntegrationsRoute
   TeamTeamLiaisonPerformanceRoute: typeof TeamTeamLiaisonPerformanceRoute
   TeamTeamMasterListAnalyticsRoute: typeof TeamTeamMasterListAnalyticsRoute
@@ -1734,6 +1775,7 @@ interface TeamRouteChildren {
 
 const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamCalendarRoute: TeamTeamCalendarRoute,
+  TeamTeamFollowUpsRoute: TeamTeamFollowUpsRoute,
   TeamTeamIntegrationsRoute: TeamTeamIntegrationsRoute,
   TeamTeamLiaisonPerformanceRoute: TeamTeamLiaisonPerformanceRoute,
   TeamTeamMasterListAnalyticsRoute: TeamTeamMasterListAnalyticsRoute,
@@ -1816,12 +1858,12 @@ const rootRouteChildren: RootRouteChildren = {
   PasskeySetupRoute: PasskeySetupRoute,
   BookSlugRoute: BookSlugRoute,
   BookingBookingIdRoute: BookingBookingIdRoute,
-  FSlugRoute: FSlugRoute,
   InvitationActionRoute: InvitationActionRoute,
-  LSlugRoute: LSlugRoute,
   STokenRoute: STokenRoute,
   UTokenRoute: UTokenRoute,
   EmbedBookSlugRoute: EmbedBookSlugRoute,
+  FOrgSlugSlugRoute: FOrgSlugSlugRoute,
+  LOrgSlugSlugRoute: LOrgSlugSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

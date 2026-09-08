@@ -2,6 +2,13 @@ import { NotFoundException } from "@nestjs/common";
 import { ModuleType } from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
 
+// The two folders the seeded modules ship in: what you work through, and who
+// you work with. An organization can rename or empty them like any other group.
+export const SYSTEM_MODULE_GROUPS = {
+  PIPELINE: "Pipeline",
+  DIRECTORY: "Directory",
+} as const;
+
 // The record types every organization starts with. Labels match the sidebar
 // text so the data-driven sidebar renders the same words it does today.
 export const SYSTEM_MODULES = [
@@ -11,6 +18,7 @@ export const SYSTEM_MODULES = [
     labelSingular: "Facility",
     icon: "FileText",
     moduleOrder: 0,
+    groupName: SYSTEM_MODULE_GROUPS.PIPELINE,
   },
   {
     key: "REFERRAL",
@@ -18,6 +26,7 @@ export const SYSTEM_MODULES = [
     labelSingular: "Referrer",
     icon: "Users",
     moduleOrder: 1,
+    groupName: SYSTEM_MODULE_GROUPS.PIPELINE,
   },
   {
     key: "CONTACT",
@@ -25,6 +34,7 @@ export const SYSTEM_MODULES = [
     labelSingular: "Contact",
     icon: "Contact",
     moduleOrder: 2,
+    groupName: SYSTEM_MODULE_GROUPS.DIRECTORY,
   },
   {
     key: "COMPANY",
@@ -32,18 +42,39 @@ export const SYSTEM_MODULES = [
     labelSingular: "Company",
     icon: "Building2",
     moduleOrder: 3,
+    groupName: SYSTEM_MODULE_GROUPS.DIRECTORY,
   },
 ] as const;
 
-export const seedSystemModules = (organizationId: string) =>
-  prisma.module.createMany({
-    data: SYSTEM_MODULES.map((systemModule) => ({
+// The groups come first so the modules can point at rows that exist; the two
+// seeded folders are ordered the way the sidebar lists them.
+export const seedSystemModules = async (organizationId: string) => {
+  await prisma.moduleGroup.createMany({
+    data: Object.values(SYSTEM_MODULE_GROUPS).map((name, index) => ({
+      name,
+      groupOrder: index,
+      organizationId,
+    })),
+    skipDuplicates: true,
+  });
+
+  const groups = await prisma.moduleGroup.findMany({
+    where: { organizationId },
+    select: { id: true, name: true },
+  });
+
+  const groupIdByName = new Map(groups.map((group) => [group.name, group.id]));
+
+  return prisma.module.createMany({
+    data: SYSTEM_MODULES.map(({ groupName, ...systemModule }) => ({
       ...systemModule,
+      groupId: groupIdByName.get(groupName) ?? null,
       isSystem: true,
       organizationId,
     })),
     skipDuplicates: true,
   });
+};
 
 // Every row written during the dual-write window needs its module, so a missing
 // one means the seed did not run and should fail loudly rather than write null.

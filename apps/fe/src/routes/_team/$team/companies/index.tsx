@@ -1,7 +1,9 @@
 import CrmListPage from "@/components/crm-list/crm-list-page";
+import { validateRecordSearch } from "@/lib/helper/record-search";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_team/$team/companies/")({
+  validateSearch: validateRecordSearch,
   component: RouteComponent,
 });
 

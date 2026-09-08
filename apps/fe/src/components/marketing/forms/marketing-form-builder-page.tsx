@@ -1,4 +1,3 @@
-import { BuilderPageSkeleton } from "@/components/skeletons/builder-page-skeleton";
 import {
   formBuilderSchema,
   type FormBuilderValues,
@@ -6,6 +5,7 @@ import {
 import { FormFieldsPanel } from "@/components/marketing/forms/form-fields-panel";
 import { FormRenderer } from "@/components/marketing/forms/form-renderer";
 import { FormSettingsPanel } from "@/components/marketing/forms/form-settings-panel";
+import { BuilderPageSkeleton } from "@/components/skeletons/builder-page-skeleton";
 import {
   getForm,
   getFormFields,
@@ -73,7 +73,10 @@ export const MarketingFormBuilderPage = () => {
     control: form.control,
     name: "submitButtonText",
   });
-  const fieldMappings = useWatch({ control: form.control, name: "fieldMappings" });
+  const fieldMappings = useWatch({
+    control: form.control,
+    name: "fieldMappings",
+  });
 
   const saveMutation = useMutation({
     mutationFn: (values: FormBuilderValues) =>
@@ -105,7 +108,7 @@ export const MarketingFormBuilderPage = () => {
     return <BuilderPageSkeleton />;
   }
 
-  const publicUrl = `${window.location.origin}/f/${marketingForm.slug}`;
+  const publicUrl = `${window.location.origin}/f/${marketingForm.orgSlug}/${marketingForm.slug}`;
 
   const previewForm: PublicForm = {
     id: marketingForm.id,
@@ -126,8 +129,8 @@ export const MarketingFormBuilderPage = () => {
 
   return (
     <Form {...form}>
-      <div className="flex min-h-full flex-col bg-gray-50">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-white px-6 py-4">
+      <div className="flex min-h-full flex-col bg-muted">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-card px-6 py-4">
           <div className="flex items-center gap-3">
             <Button
               type="button"
@@ -142,7 +145,7 @@ export const MarketingFormBuilderPage = () => {
             <h1 className="page-title text-3xl font-semibold tracking-tight sm:text-4xl">
               {name}
             </h1>
-            <Badge variant="outline" className="gap-1 text-gray-500">
+            <Badge variant="outline" className="gap-1 text-muted-foreground">
               <PencilLine className="h-3 w-3" />
               {marketingForm.status === "PUBLISHED" ? "Published" : "Draft"}
             </Badge>
@@ -152,7 +155,9 @@ export const MarketingFormBuilderPage = () => {
               type="button"
               variant="outline"
               disabled={saveMutation.isPending}
-              onClick={form.handleSubmit((values) => saveMutation.mutate(values))}
+              onClick={form.handleSubmit((values) =>
+                saveMutation.mutate(values)
+              )}
             >
               {saveMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -161,7 +166,7 @@ export const MarketingFormBuilderPage = () => {
             </Button>
             <Button
               type="button"
-              className="bg-brand text-white hover:bg-brand/90"
+              className="bg-brand text-brand-foreground hover:bg-brand/90"
               disabled={publishMutation.isPending}
               onClick={() => publishMutation.mutate()}
             >
@@ -173,14 +178,15 @@ export const MarketingFormBuilderPage = () => {
 
         <div className="flex flex-1 flex-col lg:flex-row">
           <div className="flex-1 bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,rgba(0,0,0,0.02)_6px,rgba(0,0,0,0.02)_12px)] p-8">
-            <div className="mx-auto w-full max-w-2xl rounded-xl bg-white px-7 py-12 shadow-sm">
+            <div className="mx-auto w-full max-w-2xl rounded-xl bg-card px-7 py-12 shadow-sm">
               {previewForm.fieldMappings.length === 0 ? (
-                <p className="text-center text-sm text-gray-400">
+                <p className="text-center text-sm text-muted-foreground">
                   Add a field from the right panel to build this form.
                 </p>
               ) : (
                 <FormRenderer
                   form={previewForm}
+                  orgSlug={marketingForm.orgSlug}
                   slug={marketingForm.slug}
                   onSubmit={() => undefined}
                   submitted={false}
@@ -190,18 +196,18 @@ export const MarketingFormBuilderPage = () => {
             </div>
           </div>
 
-          <aside className="w-full shrink-0 border-l border-gray-200 bg-white p-4 lg:w-80">
+          <aside className="w-full shrink-0 border-l border-border bg-card p-4 lg:w-86">
             <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="grid w-full grid-cols-2 bg-blue-50">
+              <TabsList className="grid w-full grid-cols-2 bg-info/10">
                 <TabsTrigger
                   value="fields"
-                  className="data-[state=active]:bg-brand data-[state=active]:text-white"
+                  className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
                 >
                   Fields
                 </TabsTrigger>
                 <TabsTrigger
                   value="settings"
-                  className="data-[state=active]:bg-brand data-[state=active]:text-white"
+                  className="data-[state=active]:bg-brand data-[state=active]:text-brand-foreground"
                 >
                   Form Settings
                 </TabsTrigger>

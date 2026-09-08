@@ -25,6 +25,8 @@ export function MasterListFilters({
   refetch,
   isExpense = false,
   actions,
+  searchPlaceholder,
+  nameFilterLabel,
 }: {
   columns: { id: string; name: string; type: string }[];
   filterMeta: any;
@@ -35,6 +37,8 @@ export function MasterListFilters({
   refetch: () => void;
   isExpense?: boolean;
   actions?: ReactNode;
+  searchPlaceholder?: string;
+  nameFilterLabel?: string;
 }) {
   const [searchValue, setSearchValue] = useState("");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -79,6 +83,7 @@ export function MasterListFilters({
     setFilterMeta((prev: any) => ({
       ...prev,
       search: searchValue.trim(),
+      page: 1,
     }));
     toast.success("Search applied");
   };
@@ -88,6 +93,7 @@ export function MasterListFilters({
     try {
       const newFilters: any = {
         ...filterMeta,
+        page: 1,
         filter: {
           ...filterMeta.filter,
           ...pendingFilters.filter,
@@ -240,7 +246,7 @@ export function MasterListFilters({
             </SheetHeader>
 
             <div className="mt-6 space-y-2">
-              <label className="text-sm font-medium text-gray-900">
+              <label className="text-sm font-medium text-foreground">
                 Date range
               </label>
               <DateRangeFilter
@@ -291,7 +297,8 @@ export function MasterListFilters({
           <ButtonGroup className="w-full sm:w-auto">
             <Input
               placeholder={
-                isReferral ? "Search referrals..." : "Search organization..."
+                searchPlaceholder ??
+                (isReferral ? "Search referrals..." : "Search organization...")
               }
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
@@ -301,7 +308,7 @@ export function MasterListFilters({
                   handleSearch();
                 }
               }}
-              className="w-full bg-white sm:min-w-[240px]"
+              className="w-full bg-card sm:min-w-[240px]"
             />
             <Button
               variant="outline"
@@ -388,11 +395,11 @@ export function MasterListFilters({
 
             <div className="mt-6 space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-900">
-                  {isReferral ? "Referrer" : "Facility"}
+                <label className="text-sm font-medium text-foreground">
+                  {nameFilterLabel ?? (isReferral ? "Referrer" : "Facility")}
                 </label>
                 <Input
-                  placeholder={`Filter by ${isReferral ? "referral liaison" : "facility"}`}
+                  placeholder={`Filter by ${nameFilterLabel ?? (isReferral ? "referral liaison" : "facility")}`}
                   value={pendingFilters.recordName ?? ""}
                   onChange={(e) =>
                     setPendingFilters((prev: any) => ({
@@ -411,7 +418,7 @@ export function MasterListFilters({
                   )
                   .map((col) => (
                     <div key={col.id || col.name} className="space-y-2">
-                      <label className="text-sm font-medium text-gray-900">
+                      <label className="text-sm font-medium text-foreground">
                         {col.name}
                       </label>
                       <FilterComponent
@@ -422,7 +429,7 @@ export function MasterListFilters({
                     </div>
                   ))
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   No filterable columns available
                 </p>
               )}

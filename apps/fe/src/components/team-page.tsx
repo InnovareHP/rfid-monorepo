@@ -36,13 +36,13 @@ import {
 
 // Count bubble shown next to each tab label.
 const TabCount = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-brand group-data-[state=inactive]:bg-blue-100 group-data-[state=inactive]:text-gray-500">
+  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-card px-1.5 text-xs font-semibold text-brand group-data-[state=inactive]:bg-info/10 group-data-[state=inactive]:text-muted-foreground">
     {children}
   </span>
 );
 
 const tabTriggerClass =
-  "group flex-none gap-2 rounded-md px-4 py-2 text-sm font-medium data-[state=active]:bg-brand data-[state=active]:text-white data-[state=inactive]:text-muted-foreground";
+  "group flex-none gap-2 rounded-md px-4 py-2 text-sm font-medium data-[state=active]:bg-brand data-[state=active]:text-brand-foreground data-[state=inactive]:text-muted-foreground";
 
 const TeamPage = () => {
   const { data: organizationData } = authClient.useActiveOrganization();
@@ -297,7 +297,7 @@ const TeamPage = () => {
 
             {canManageTeam && (
               <div className="relative w-full sm:w-auto">
-                <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search"
                   defaultValue={memberTableField.search}

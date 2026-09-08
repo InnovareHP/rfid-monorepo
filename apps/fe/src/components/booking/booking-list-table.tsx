@@ -45,9 +45,9 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 const STATUS_STYLES = {
-  Completed: "bg-emerald-50 text-emerald-700 before:bg-emerald-600",
-  Canceled: "bg-red-50 text-red-700 before:bg-red-600",
-  Upcoming: "bg-blue-50 text-[#005cb1] before:bg-[#005cb1]",
+  Completed: "bg-success/10 text-success before:bg-emerald-600",
+  Canceled: "bg-destructive/10 text-destructive before:bg-destructive",
+  Upcoming: "bg-info/10 text-[#005cb1] before:bg-[#005cb1]",
 } as const;
 
 // Derived rather than stored: the row only knows CONFIRMED or CANCELLED, and

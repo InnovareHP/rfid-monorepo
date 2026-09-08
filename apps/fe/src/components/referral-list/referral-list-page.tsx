@@ -1,29 +1,30 @@
-import { useColumnOrder } from "@/hooks/use-column-order";
-import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   ExportCsvButton,
   type ExportRange,
 } from "@/components/export-csv-button";
+import { KanbanSettingsDialog } from "@/components/kanban/kanban-settings-dialog";
+import KanbanView from "@/components/kanban/kanban-view";
+import { PageHeader } from "@/components/page-header";
+import { CreateColumnModal } from "@/components/reusable-table/create-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
+import { useColumnOrder } from "@/hooks/use-column-order";
 import { downloadCSVBlob } from "@/lib/fe-helpers";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { can } from "@/lib/permissions";
 import { exportBoardCsv } from "@/services/lead/lead-service";
 import {
   deleteReferral,
   getReferral,
 } from "@/services/referral/referral-service";
 import type { LeadRow, ReferralRow } from "@dashboard/shared";
-import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useRouteContext } from "@tanstack/react-router";
+import { Link, useRouteContext, useSearch } from "@tanstack/react-router";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import type { Member } from "better-auth/plugins/organization";
 import { KanbanSquare, Plus, Settings, TableProperties } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import KanbanView from "@/components/kanban/kanban-view";
-import { KanbanSettingsDialog } from "@/components/kanban/kanban-settings-dialog";
-import { can } from "@/lib/permissions";
-import type { Member } from "better-auth/plugins/organization";
 import ColumnFilter from "../master-list/column-filter";
 import { MasterListFilters } from "../master-list/master-list-filter";
 import { MasterListView } from "../master-list/master-list-view";
@@ -48,6 +49,8 @@ export default function ReferralListPage() {
     activeOrganizationId,
   ]);
   const canConfigureKanban = can(memberData?.role, { field: ["configure"] });
+  const routeSearch = useSearch({ strict: false }) as { q?: string };
+
   const [filterMeta, setFilterMeta] = useState<{
     boardDateFrom: null | Date;
     boardDateTo: null | Date;
@@ -55,12 +58,23 @@ export default function ReferralListPage() {
     limit: number;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
+    search?: string;
   }>({
     boardDateFrom: null,
     boardDateTo: null,
     filter: {},
     limit: 10,
+    // Seeded from the route so a ?q= link filters on first paint.
+    search: routeSearch.q,
   });
+
+  const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);
+
+  // Adopt a new route query during render instead of in an effect
+  if (routeSearch.q && routeSearch.q !== syncedQuery) {
+    setSyncedQuery(routeSearch.q);
+    setFilterMeta((prev) => ({ ...prev, search: routeSearch.q }));
+  }
 
   const { data, refetch, isFetching } = useQuery({
     queryKey: [...boardQueryKey("REFERRAL"), filterMeta],
@@ -162,14 +176,21 @@ export default function ReferralListPage() {
     mutationFn: deleteReferral,
     onMutate: async (columnIds: string[]) => {
       await queryClient.cancelQueries({ queryKey: boardQueryKey("REFERRAL") });
-      const previous = queryClient.getQueriesData({ queryKey: boardQueryKey("REFERRAL") });
-      queryClient.setQueriesData({ queryKey: boardQueryKey("REFERRAL") }, (old: any) => {
-        if (!old?.data) return old;
-        return {
-          ...old,
-          data: old.data.filter((r: ReferralRow) => !columnIds.includes(r.id)),
-        };
+      const previous = queryClient.getQueriesData({
+        queryKey: boardQueryKey("REFERRAL"),
       });
+      queryClient.setQueriesData(
+        { queryKey: boardQueryKey("REFERRAL") },
+        (old: any) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.filter(
+              (r: ReferralRow) => !columnIds.includes(r.id)
+            ),
+          };
+        }
+      );
       return { previous };
     },
     onError: (_err, _ids, context: any) => {
@@ -289,6 +310,8 @@ export default function ReferralListPage() {
           {view === "table" && (
             <ColumnFilter tableColumns={tableColumns as any} />
           )}
+
+          <CreateColumnModal isReferral={true} />
           <ExportCsvButton
             onExport={handleExportCSV}
             className="flex items-center gap-2"
@@ -328,30 +351,32 @@ export default function ReferralListPage() {
             }}
           />
         ) : (
-        <ReusableTable
-          table={table}
-          columns={columns}
-          isFetchingList={isFetching}
-          onLoadMore={() => {}}
-          hasMore={false}
-          setActivePage={() => {}}
-          onDelete={handleDeleteReferrals}
-          onRowOpen={(recordId) => {
-            setSelectedRecordId(recordId);
-            setOpenMasterListView(true);
-          }}
-          totalCount={data?.pagination.count ?? 0}
-          isReferral={true}
-          totalPages={totalPages}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          pageSize={filterMeta.limit}
-          onPageSizeChange={(size) =>
-            setFilterMeta((prev) => ({ ...prev, limit: size, page: 1 }) as any)
-          }
-          enableColumnReorder
-          onColumnOrderChange={onColumnOrderChange}
-        />
+          <ReusableTable
+            table={table}
+            columns={columns}
+            isFetchingList={isFetching}
+            onLoadMore={() => {}}
+            hasMore={false}
+            setActivePage={() => {}}
+            onDelete={handleDeleteReferrals}
+            onRowOpen={(recordId) => {
+              setSelectedRecordId(recordId);
+              setOpenMasterListView(true);
+            }}
+            totalCount={data?.pagination.count ?? 0}
+            isReferral={true}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            pageSize={filterMeta.limit}
+            onPageSizeChange={(size) =>
+              setFilterMeta(
+                (prev) => ({ ...prev, limit: size, page: 1 }) as any
+              )
+            }
+            enableColumnReorder
+            onColumnOrderChange={onColumnOrderChange}
+          />
         )}
       </div>
     </div>

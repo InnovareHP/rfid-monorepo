@@ -5,6 +5,10 @@ import type {
 } from "@dashboard/shared";
 import { format, parseISO } from "date-fns";
 
+// Every ranked card and table shows ten rows unless the Top N filter trims
+// it further. One constant so a card cannot drift to its own default.
+export const DEFAULT_RANK_LIMIT = 10;
+
 export type CategoryRow = {
   name: string;
   value: number;

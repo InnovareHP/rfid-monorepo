@@ -10,4 +10,5 @@ export const useDashboards = ({ enabled = true } = {}) =>
     queryKey: DASHBOARDS_KEY,
     queryFn: getDashboards,
     enabled,
+    staleTime: 1000 * 60 * 5,
   });

@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { seedActivities } from "./demo/activities";
 import { loadContext, resolveOrganization } from "./demo/context";
 import { seedCrm } from "./demo/crm";
 import { seedFacilities } from "./demo/facilities";
@@ -69,6 +70,9 @@ async function main() {
   const facilities = await seedFacilities(prisma, ctx, contacts);
   const referrals = await seedReferrals(prisma, ctx, facilities);
   const logs = await seedLiaisonLogs(prisma, ctx, facilities);
+  // After the visit logs on purpose: every one of them gets the activity the
+  // app would have mirrored, so this step has to see them already written.
+  const activities = await seedActivities(prisma, ctx, facilities, contacts);
   const tasks = await seedTasks(prisma, ctx);
 
   console.log(`\n${profile.key} demo data ready.`);
@@ -79,6 +83,10 @@ async function main() {
   console.log(`  Visit logs        ${logs.visits}`);
   console.log(`  Expenses          ${logs.expenses}`);
   console.log(`  Mileage entries   ${logs.trips}`);
+  console.log(`  Activities        ${activities.mirrored + activities.logged}`);
+  console.log(`  Open follow-ups   ${activities.followUps}`);
+  console.log(`  Overdue of those  ${activities.overdue}`);
+  console.log(`  Email opens       ${activities.opens}`);
   console.log(`  Tasks             ${tasks}`);
   console.log(`  Assigned across   ${ctx.assignable.length} member(s)`);
 }

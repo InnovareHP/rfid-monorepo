@@ -11,13 +11,16 @@ import { toast } from "sonner";
 import { FormRenderer } from "./form-renderer";
 
 const FormCard = ({ children }: { children: React.ReactNode }) => (
-  <div className="w-full max-w-2xl rounded-[10px] bg-white px-6 py-10 shadow-lg sm:px-10 sm:py-12">
+  <div className="w-full max-w-2xl rounded-[10px] bg-card px-6 py-10 shadow-lg sm:px-10 sm:py-12">
     {children}
   </div>
 );
 
 export const PublicFormPage = () => {
-  const { slug } = useParams({ strict: false }) as { slug: string };
+  const { orgSlug, slug } = useParams({ strict: false }) as {
+    orgSlug: string;
+    slug: string;
+  };
   const [submitted, setSubmitted] = useState(false);
 
   const {
@@ -25,13 +28,13 @@ export const PublicFormPage = () => {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["public-form", slug],
-    queryFn: () => getPublicForm(slug),
+    queryKey: ["public-form", orgSlug, slug],
+    queryFn: () => getPublicForm(orgSlug, slug),
   });
 
   const onSubmit = async (values: Record<string, string>) => {
     try {
-      const result = await submitPublicForm(slug, values);
+      const result = await submitPublicForm(orgSlug, slug, values);
       if (result.redirectUrl && /^https?:\/\//i.test(result.redirectUrl)) {
         window.location.href = result.redirectUrl;
         return;
@@ -82,6 +85,7 @@ export const PublicFormPage = () => {
       <FormCard>
         <FormRenderer
           form={form}
+          orgSlug={orgSlug}
           slug={slug}
           onSubmit={onSubmit}
           submitted={submitted}

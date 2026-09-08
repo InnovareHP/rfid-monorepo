@@ -1,13 +1,15 @@
-import { useColumnOrder } from "@/hooks/use-column-order";
-import { boardQueryKey } from "@/lib/helper/board-query-key";
-import { generateLeadColumns } from "@/components/master-list/master-list-column";
 import {
   ExportCsvButton,
   type ExportRange,
 } from "@/components/export-csv-button";
+import { generateLeadColumns } from "@/components/master-list/master-list-column";
+import { PageHeader } from "@/components/page-header";
+import { CreateColumnModal } from "@/components/reusable-table/create-column";
 import ReusableTable from "@/components/reusable-table/reusable-table";
-import { downloadCSVBlob } from "@/lib/fe-helpers";
+import { useColumnOrder } from "@/hooks/use-column-order";
 import { useEntitlement } from "@/hooks/use-entitlement";
+import { downloadCSVBlob } from "@/lib/fe-helpers";
+import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { can } from "@/lib/permissions";
 import {
   deleteLead,
@@ -15,40 +17,32 @@ import {
   getLeads,
 } from "@/services/lead/lead-service";
 import { type LeadRow } from "@dashboard/shared";
-import type { Member } from "better-auth/plugins/organization";
-import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouteContext, useSearch } from "@tanstack/react-router";
 import {
   getCoreRowModel,
   useReactTable,
   type Header,
 } from "@tanstack/react-table";
-import {
-  KanbanSquare,
-  ScanLine,
-  Settings,
-  TableProperties,
-} from "lucide-react";
+import type { Member } from "better-auth/plugins/organization";
+import { KanbanSquare, Settings, TableProperties } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { useRouteContext, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 
-import { AnalyzeLeadDialog } from "./analyze-cell";
-import ColumnFilter from "./column-filter";
-import KanbanView from "@/components/kanban/kanban-view";
-import { MasterListFilters } from "./master-list-filter";
 import { KanbanSettingsDialog } from "@/components/kanban/kanban-settings-dialog";
-import { BoardStatsStrip } from "./board-stats-strip";
-import { MasterListView } from "./master-list-view";
-import { SmartScanDialog } from "./smart-scan-dialog";
+import KanbanView from "@/components/kanban/kanban-view";
 import AddRow from "../reusable-table/add-row";
+import { AnalyzeLeadDialog } from "./analyze-cell";
+import { BoardStatsStrip } from "./board-stats-strip";
+import ColumnFilter from "./column-filter";
+import { MasterListFilters } from "./master-list-filter";
+import { MasterListView } from "./master-list-view";
 
 export default function MasterListPage() {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [openAnalyzeDialog, setOpenAnalyzeDialog] = useState(false);
   const [openMasterListView, setOpenMasterListView] = useState(false);
-  const [openSmartScan, setOpenSmartScan] = useState(false);
   const [view, setView] = useState<"table" | "kanban">("table");
   const [openKanbanSettings, setOpenKanbanSettings] = useState(false);
   const queryClient = useQueryClient();
@@ -83,7 +77,8 @@ export default function MasterListPage() {
     boardDateTo: null,
     filter: {},
     limit: 10,
-    search: undefined,
+    // Seeded from the route so a ?q= link filters on first paint.
+    search: routeSearch.q,
   });
 
   const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);
@@ -197,14 +192,19 @@ export default function MasterListPage() {
     mutationFn: (data: any) => deleteLead(data, "LEAD"),
     onMutate: async (ids: string[]) => {
       await queryClient.cancelQueries({ queryKey: boardQueryKey("LEAD") });
-      const previous = queryClient.getQueriesData({ queryKey: boardQueryKey("LEAD") });
-      queryClient.setQueriesData({ queryKey: boardQueryKey("LEAD") }, (old: any) => {
-        if (!old?.data) return old;
-        return {
-          ...old,
-          data: old.data.filter((r: LeadRow) => !ids.includes(r.id)),
-        };
+      const previous = queryClient.getQueriesData({
+        queryKey: boardQueryKey("LEAD"),
       });
+      queryClient.setQueriesData(
+        { queryKey: boardQueryKey("LEAD") },
+        (old: any) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.filter((r: LeadRow) => !ids.includes(r.id)),
+          };
+        }
+      );
       return { previous };
     },
     onError: (_err, _ids, context: any) => {
@@ -302,14 +302,11 @@ export default function MasterListPage() {
       <div className="space-y-6">
         {/* Header Section */}
         {canUseAi && (
-          <>
-            <AnalyzeLeadDialog
-              recordId={selectedRecordId}
-              open={openAnalyzeDialog}
-              setOpen={setOpenAnalyzeDialog}
-            />
-            <SmartScanDialog open={openSmartScan} setOpen={setOpenSmartScan} />
-          </>
+          <AnalyzeLeadDialog
+            recordId={selectedRecordId}
+            open={openAnalyzeDialog}
+            setOpen={setOpenAnalyzeDialog}
+          />
         )}
 
         <KanbanSettingsDialog
@@ -359,19 +356,11 @@ export default function MasterListPage() {
 
           <ColumnFilter tableColumns={tableColumns as any} />
 
+          <CreateColumnModal />
           <ExportCsvButton
             onExport={handleExportCSV}
             className="flex items-center gap-2"
           />
-          {canUseAi && (
-            <Button
-              onClick={() => setOpenSmartScan(true)}
-              className="flex items-center gap-2"
-            >
-              <ScanLine className="h-4 w-4" />
-              Smart Scan
-            </Button>
-          )}
         </PageHeader>
 
         {view === "table" && <BoardStatsStrip />}

@@ -21,7 +21,9 @@ import {
   ActivityType,
   Board,
   BoardFieldType,
+  ModuleType,
   Prisma,
+  RelationType,
 } from "@prisma/client";
 import { Queue, QueueEvents } from "bullmq";
 import { randomUUID } from "node:crypto";
@@ -485,6 +487,295 @@ export class BoardService {
     await cacheData(cacheKey, stats, 60 * 10);
 
     return stats;
+  }
+
+  // A follow-up is a PENDING activity carrying a due date. The queue lists one
+  // row per record, earliest due first, so a record chased twice appears once.
+  async getFollowUpDigest(
+    organizationId: string,
+    params: {
+      moduleType?: string;
+      assignedTo?: string;
+      dueBefore?: string;
+      // Local day boundaries: only the browser knows where the viewer's day
+      // ends, and the bucket totals have to agree with the sections it renders.
+      dayStart?: string;
+      dayEnd?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const {
+      moduleType,
+      assignedTo,
+      dueBefore,
+      dayStart,
+      dayEnd,
+      page = 1,
+      limit = 25,
+    } = params;
+    const scopedModuleId = moduleType
+      ? await resolveModuleId(moduleType, organizationId)
+      : undefined;
+
+    const pendingWhere: Prisma.ActivityWhereInput = {
+      organizationId,
+      status: ActivityStatus.PENDING,
+      dueDate: { not: null, ...(dueBefore && { lt: new Date(dueBefore) }) },
+      record: {
+        organizationId,
+        isDeleted: false,
+        ...(scopedModuleId && { moduleId: scopedModuleId }),
+        ...(assignedTo && { assignedTo }),
+      },
+    };
+
+    // Due dates are plaintext columns, unlike recordName, so the grouping runs
+    // in Postgres, paged there too: an organization deep in follow-ups would
+    // otherwise materialize every group to hand back twenty-five of them.
+    const offset = (page - 1) * limit;
+    const due = await prisma.activity.groupBy({
+      by: ["recordId"],
+      where: pendingWhere,
+      _min: { dueDate: true },
+      orderBy: { _min: { dueDate: "asc" } },
+      skip: offset,
+      // One extra row answers "is there another page" without a second count.
+      take: limit + 1,
+    });
+
+    const pageRows = due.slice(0, limit);
+
+    return {
+      data: await this.buildFollowUpRows(
+        pageRows.map((row) => row.recordId),
+        organizationId
+      ),
+      pagination: { page, limit, hasMore: due.length > limit },
+      buckets: await this.followUpBucketCounts(organizationId, {
+        scopedModuleId,
+        assignedTo,
+        dueBefore,
+        dayStart,
+        dayEnd,
+      }),
+    };
+  }
+
+  // Section headers need totals the current page cannot know. Counting runs on
+  // each record's earliest pending due date, which is the row the queue shows,
+  // so a record chased twice lands in one bucket rather than two.
+  private async followUpBucketCounts(
+    organizationId: string,
+    params: {
+      scopedModuleId?: string;
+      assignedTo?: string;
+      dueBefore?: string;
+      dayStart?: string;
+      dayEnd?: string;
+    }
+  ) {
+    const { scopedModuleId, assignedTo, dueBefore, dayStart, dayEnd } = params;
+
+    if (!dayStart || !dayEnd) return null;
+
+    const [counts] = await prisma.$queryRaw<
+      { overdue: bigint; today: bigint; upcoming: bigint; total: bigint }[]
+    >`
+      SELECT
+        count(*) FILTER (WHERE earliest < ${new Date(dayStart)}) AS overdue,
+        count(*) FILTER (
+          WHERE earliest >= ${new Date(dayStart)}
+            AND earliest < ${new Date(dayEnd)}
+        ) AS today,
+        count(*) FILTER (WHERE earliest >= ${new Date(dayEnd)}) AS upcoming,
+        count(*) AS total
+      FROM (
+        SELECT a."recordId", min(a."dueDate") AS earliest
+        FROM board_schema."Activity" a
+        JOIN board_schema."Board" b ON b."id" = a."recordId"
+        WHERE a."organizationId" = ${organizationId}
+          AND a."status" = 'PENDING'
+          AND a."dueDate" IS NOT NULL
+          AND b."isDeleted" = false
+          ${
+            dueBefore
+              ? Prisma.sql`AND a."dueDate" < ${new Date(dueBefore)}`
+              : Prisma.empty
+          }
+          ${
+            scopedModuleId
+              ? Prisma.sql`AND b."moduleId" = ${scopedModuleId}`
+              : Prisma.empty
+          }
+          ${
+            assignedTo
+              ? Prisma.sql`AND b."assignedTo" = ${assignedTo}`
+              : Prisma.empty
+          }
+        GROUP BY a."recordId"
+      ) per_record
+    `;
+
+    // $queryRaw bypasses the tenant extension, so the organization is named in
+    // the WHERE above rather than injected. Postgres counts come back as
+    // bigint, which does not survive JSON.
+    return {
+      overdue: Number(counts?.overdue ?? 0),
+      today: Number(counts?.today ?? 0),
+      upcoming: Number(counts?.upcoming ?? 0),
+      total: Number(counts?.total ?? 0),
+    };
+  }
+
+  async getRecordFollowUp(recordId: string, organizationId: string) {
+    await prisma.board.findFirstOrThrow({
+      where: { id: recordId, organizationId, isDeleted: false },
+      select: { id: true },
+    });
+
+    const [row] = await this.buildFollowUpRows([recordId], organizationId);
+
+    return row ?? null;
+  }
+
+  // Four dates per record, each already stored somewhere: the last completed
+  // activity, the linked referral, the next open follow-up, and the assignee.
+  private async buildFollowUpRows(
+    recordIds: string[],
+    organizationId: string
+  ) {
+    if (recordIds.length === 0) return [];
+
+    const [records, lastContacted, pending, relations] = await Promise.all([
+      prisma.board.findMany({
+        where: { id: { in: recordIds }, organizationId },
+        select: {
+          id: true,
+          recordName: true,
+          createdAt: true,
+          moduleType: true,
+          module: { select: { key: true, labelSingular: true } },
+          assignedTo: true,
+          assignedUser: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.activity.groupBy({
+        by: ["recordId"],
+        where: {
+          organizationId,
+          recordId: { in: recordIds },
+          status: ActivityStatus.COMPLETED,
+        },
+        _max: { completedAt: true },
+      }),
+      prisma.activity.findMany({
+        where: {
+          organizationId,
+          recordId: { in: recordIds },
+          status: ActivityStatus.PENDING,
+          dueDate: { not: null },
+        },
+        orderBy: { dueDate: "asc" },
+        select: {
+          id: true,
+          recordId: true,
+          title: true,
+          activityType: true,
+          dueDate: true,
+        },
+      }),
+      prisma.boardRelation.findMany({
+        where: {
+          relationType: RelationType.REFERRAL_LINK,
+          OR: [
+            { sourceId: { in: recordIds } },
+            { targetId: { in: recordIds } },
+          ],
+        },
+        select: {
+          source: {
+            select: {
+              id: true,
+              createdAt: true,
+              moduleType: true,
+              organizationId: true,
+            },
+          },
+          target: {
+            select: {
+              id: true,
+              createdAt: true,
+              moduleType: true,
+              organizationId: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const recordById = new Map(records.map((r) => [r.id, r]));
+    const lastContactedById = new Map(
+      lastContacted.map((r) => [r.recordId, r._max.completedAt])
+    );
+
+    const nextDueById = new Map<string, (typeof pending)[number]>();
+    for (const activity of pending) {
+      if (!nextDueById.has(activity.recordId)) {
+        nextDueById.set(activity.recordId, activity);
+      }
+    }
+
+    // A referral reaches a record through the link, so the date that matters is
+    // when the referral itself was created, not when someone linked it.
+    const referralById = new Map<string, Date>();
+    for (const relation of relations) {
+      for (const [side, counterpart] of [
+        [relation.source, relation.target],
+        [relation.target, relation.source],
+      ] as const) {
+        if (!recordById.has(side.id)) continue;
+        if (counterpart.organizationId !== organizationId) continue;
+        if (counterpart.moduleType !== ModuleType.REFERRAL) continue;
+
+        const current = referralById.get(side.id);
+        if (!current || counterpart.createdAt > current) {
+          referralById.set(side.id, counterpart.createdAt);
+        }
+      }
+    }
+
+    return recordIds.flatMap((recordId) => {
+      const record = recordById.get(recordId);
+      if (!record) return [];
+
+      const followUp = nextDueById.get(recordId);
+      const isReferral = record.moduleType === ModuleType.REFERRAL;
+
+      return [
+        {
+          recordId: record.id,
+          recordName: record.recordName,
+          moduleType: record.module?.key ?? record.moduleType,
+          moduleLabel: record.module?.labelSingular ?? "Record",
+          assignedTo: record.assignedUser
+            ? { id: record.assignedUser.id, name: record.assignedUser.name }
+            : null,
+          lastContactedAt: lastContactedById.get(recordId) ?? null,
+          referralReceivedAt: isReferral
+            ? record.createdAt
+            : (referralById.get(recordId) ?? null),
+          followUp: followUp
+            ? {
+                activityId: followUp.id,
+                title: followUp.title,
+                activityType: followUp.activityType,
+                dueDate: followUp.dueDate,
+              }
+            : null,
+        },
+      ];
+    });
   }
 
   async getRecords(
@@ -2439,44 +2730,6 @@ export class BoardService {
 
     const indexes = recordNameIndexes(recordName);
 
-    // REFERRAL is exempt on purpose, matching the unique index: the same
-    // patient can genuinely be referred more than once, so a repeated name
-    // there is data rather than a mistake.
-    const enforcesUniqueName = moduleType !== "REFERRAL";
-
-    if (enforcesUniqueName && indexes.recordNameHash) {
-      const clash = await tx.board.findFirst({
-        where: {
-          organizationId,
-          moduleId: scopedModuleId,
-          isDeleted: false,
-          recordNameHash: indexes.recordNameHash,
-        },
-        select: { id: true },
-      });
-
-      if (clash) {
-        throw new ConflictException(
-          `A record named "${recordName}" already exists on this module.`
-        );
-      }
-
-      // Refused on the same terms as a rename: a name that only looks like an
-      // existing record is how two rows quietly become one facility under two
-      // spellings, and there is no override for it.
-      const [similar] = await this.findSimilarRecordNames(
-        organizationId,
-        scopedModuleId,
-        recordName
-      );
-
-      if (similar) {
-        throw new ConflictException(
-          `"${recordName}" is too similar to the existing record "${similar.recordName}". Use that one, or rename it first.`
-        );
-      }
-    }
-
     const board = await tx.board.create({
       data: {
         recordName: recordName ?? "",
@@ -2609,6 +2862,12 @@ export class BoardService {
       address?: string;
     }
   ) {
+    await this.assertNewRecordNameAvailable(
+      organizationId,
+      moduleType,
+      recordName
+    );
+
     const record = await prisma.$transaction(async (tx) => {
       return this.insertBoardRecord(tx, {
         recordName,
@@ -3507,6 +3766,56 @@ export class BoardService {
       undefined,
       organizationId
     );
+  }
+
+  // Same reason as the rename guard below, and the same scan: creating a
+  // record ran this inside the transaction and spent the whole 5s window on
+  // it, so the first write failed on an expired transaction.
+  async assertNewRecordNameAvailable(
+    organizationId: string,
+    moduleType: string,
+    recordName: string
+  ) {
+    // REFERRAL is exempt on purpose, matching the unique index: the same
+    // patient can genuinely be referred more than once, so a repeated name
+    // there is data rather than a mistake.
+    if (moduleType === "REFERRAL") return;
+
+    const { recordNameHash } = recordNameIndexes(sanitizeUserText(recordName));
+    if (!recordNameHash) return;
+
+    const scopedModuleId = await resolveModuleId(moduleType, organizationId);
+
+    const clash = await prisma.board.findFirst({
+      where: {
+        organizationId,
+        moduleId: scopedModuleId,
+        isDeleted: false,
+        recordNameHash,
+      },
+      select: { id: true },
+    });
+
+    if (clash) {
+      throw new ConflictException(
+        `A record named "${recordName}" already exists on this module.`
+      );
+    }
+
+    // Refused on the same terms as a rename: a name that only looks like an
+    // existing record is how two rows quietly become one facility under two
+    // spellings, and there is no override for it.
+    const [similar] = await this.findSimilarRecordNames(
+      organizationId,
+      scopedModuleId,
+      recordName
+    );
+
+    if (similar) {
+      throw new ConflictException(
+        `"${recordName}" is too similar to the existing record "${similar.recordName}". Use that one, or rename it first.`
+      );
+    }
   }
 
   // Runs before the transaction opens: the similarity scan decrypts up to

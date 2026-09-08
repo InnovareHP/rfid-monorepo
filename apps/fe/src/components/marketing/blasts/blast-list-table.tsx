@@ -68,7 +68,7 @@ export const BlastListTable = ({
         header: "Campaign Title",
         className: "w-[22%]",
         render: (row: MarketingBlast) => (
-          <span className="font-medium text-gray-900">{row.name}</span>
+          <span className="font-medium text-foreground">{row.name}</span>
         ),
       },
       {
@@ -85,10 +85,10 @@ export const BlastListTable = ({
       {
         key: "audience",
         header: "Audience",
-        className: "w-[19%] text-gray-600",
+        className: "w-[19%] text-muted-foreground",
         render: (row: MarketingBlast) => (
           <span className="flex items-center gap-1.5 text-sm">
-            <Users className="size-4 text-gray-400" />
+            <Users className="size-4 text-muted-foreground" />
             {(row._count?.recipients ?? 0).toLocaleString()} recipients
           </span>
         ),
@@ -96,13 +96,13 @@ export const BlastListTable = ({
       {
         key: "createdAt",
         header: "Created",
-        className: "w-[16%] text-gray-600",
+        className: "w-[16%] text-muted-foreground",
         render: (row: MarketingBlast) => formatDateTime(row.createdAt),
       },
       {
         key: "updatedAt",
         header: "Last Updated",
-        className: "w-[16%] text-gray-600",
+        className: "w-[16%] text-muted-foreground",
         render: (row: MarketingBlast) => formatDateTime(row.updatedAt),
       },
       {
@@ -115,7 +115,7 @@ export const BlastListTable = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-400 hover:text-primary"
+                className="text-muted-foreground hover:text-primary"
                 aria-label="Send blast"
                 onClick={() => onSend(row)}
               >
@@ -125,7 +125,7 @@ export const BlastListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-primary"
+              className="text-muted-foreground hover:text-primary"
               aria-label="Edit blast"
               onClick={() => onEdit(row)}
             >
@@ -135,7 +135,7 @@ export const BlastListTable = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-400 hover:text-red-600"
+                className="text-muted-foreground hover:text-destructive"
                 aria-label="Delete blast"
                 onClick={() => onDelete(row)}
               >

@@ -68,12 +68,12 @@ function renderAIContent(content: any): React.ReactNode {
       );
 
   if (typeof content === "string") {
-    return <p className="text-sm text-gray-700 leading-relaxed">{content}</p>;
+    return <p className="text-sm text-foreground leading-relaxed">{content}</p>;
   }
 
   if (Array.isArray(content)) {
     return (
-      <ul className="list-disc ml-5 text-sm text-gray-700 space-y-2">
+      <ul className="list-disc ml-5 text-sm text-foreground space-y-2">
         {content.map((item, i) => (
           <li key={i} className="leading-relaxed">{renderAIContent(item)}</li>
         ))}
@@ -85,7 +85,7 @@ function renderAIContent(content: any): React.ReactNode {
     return (
       <div className="ml-2 space-y-4">
         {Object.entries(content).map(([key, value]) => (
-          <div key={key} className="bg-white/50 rounded-lg p-3 border border-primary/15">
+          <div key={key} className="bg-card/50 rounded-lg p-3 border border-primary/15">
             <h4 className="font-bold text-sm text-foreground mb-2">{formatKey(key)}</h4>
             <div className="ml-2">{renderAIContent(value)}</div>
           </div>
@@ -94,7 +94,7 @@ function renderAIContent(content: any): React.ReactNode {
     );
   }
 
-  return <p className="text-sm text-gray-700">{String(content)}</p>;
+  return <p className="text-sm text-foreground">{String(content)}</p>;
 }
 
 export default function AiSummary({
@@ -133,7 +133,7 @@ export default function AiSummary({
             <div className="p-2 rounded-lg bg-primary">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <CardTitle className="text-xl font-bold text-gray-900">
+            <CardTitle className="text-xl font-bold text-foreground">
               AI-Powered Insights
             </CardTitle>
           </div>
@@ -167,8 +167,8 @@ export default function AiSummary({
         {/* Error */}
         {!isLoadingSummary && error && (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-red-400" />
-            <p className="text-sm text-red-600 font-medium">{error}</p>
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+            <p className="text-sm text-destructive font-medium">{error}</p>
             {onRegenerate && (
               <Button variant="outline" size="sm" onClick={onRegenerate}>
                 Try again

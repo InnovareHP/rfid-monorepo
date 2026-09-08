@@ -135,7 +135,7 @@ const LiaisonPerformancePage = () => {
     : [];
 
   return (
-    <div className="min-h-full bg-white p-4 sm:p-8">
+    <div className="min-h-full bg-card p-4 sm:p-8">
       <div className="space-y-6">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -211,7 +211,7 @@ const LiaisonPerformancePage = () => {
           <AnalyticsEmpty />
         ) : (
           <div className="space-y-6">
-            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border bg-card p-6 shadow-sm">
               <div className="mb-6 flex items-center gap-2">
                 <h2 className="text-base font-medium text-foreground">
                   Liaison Performance Overview

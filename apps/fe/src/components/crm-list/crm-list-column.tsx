@@ -1,10 +1,8 @@
 import { EditableCell } from "@/components/reusable-table/editable-cell";
 import type { CrmModuleType } from "@/services/board/board-module-service";
-import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { createSelectColumn } from "../reusable-table/select-column";
 import { type ColumnDef } from "@tanstack/react-table";
 import { ColumnHeader } from "../reusable-table/column-header";
-import { CreateColumnModal } from "../reusable-table/create-column";
 import { RelatedRecords } from "./related-records";
 
 type ColumnType = {
@@ -106,17 +104,6 @@ export function generateCrmColumns(
     ),
   };
 
-  const createNewColumn: ColumnDef<CrmRow> = {
-    header: () => (
-      <CreateColumnModal
-        moduleType={moduleType}
-        queryKey={boardQueryKey(moduleType)}
-      />
-    ),
-    accessorKey: "create_column",
-    enableResizing: false,
-    size: 200,
-  };
 
-  return [selectColumn, nameColumn, ...dynamicColumns, createNewColumn];
+  return [selectColumn, nameColumn, ...dynamicColumns];
 }

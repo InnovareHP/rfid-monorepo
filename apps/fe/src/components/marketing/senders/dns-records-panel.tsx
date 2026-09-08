@@ -15,13 +15,13 @@ function CopyCell({ value }: { value: string }) {
 
   return (
     <div className="flex items-start gap-2">
-      <code className="min-w-0 flex-1 break-all font-mono text-xs text-gray-900">
+      <code className="min-w-0 flex-1 break-all font-mono text-xs text-foreground">
         {value}
       </code>
       <button
         type="button"
         aria-label="Copy value"
-        className="shrink-0 text-gray-400 hover:text-primary"
+        className="shrink-0 text-muted-foreground hover:text-primary"
         onClick={async () => {
           await navigator.clipboard.writeText(value);
           setCopied(true);
@@ -30,7 +30,7 @@ function CopyCell({ value }: { value: string }) {
         }}
       >
         {copied ? (
-          <Check className="size-3.5 text-emerald-600" />
+          <Check className="size-3.5 text-success" />
         ) : (
           <Copy className="size-3.5" />
         )}
@@ -50,16 +50,16 @@ export function DnsRecordsPanel({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-blue-200 bg-[#F4F9FF] p-4 text-sm text-gray-700">
+      <div className="rounded-lg border border-info/30 bg-table-header p-4 text-sm text-foreground">
         Add these {records.length} CNAME records to the DNS for{" "}
         <strong className="font-semibold">{sender.domain}</strong>, then check
         verification. Nothing else is required. Propagation usually takes
         minutes but can take up to 72 hours.
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[640px] text-sm">
-          <thead className="bg-table-header text-left text-xs font-semibold text-gray-600 uppercase">
+          <thead className="bg-table-header text-left text-xs font-semibold text-muted-foreground uppercase">
             <tr>
               <th className="px-4 py-2">Type</th>
               <th className="px-4 py-2">Name</th>
@@ -67,10 +67,10 @@ export function DnsRecordsPanel({
               <th className="px-4 py-2">Purpose</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {records.map((record) => (
               <tr key={`${record.type}-${record.name}`} className="align-top">
-                <td className="px-4 py-2 font-medium text-gray-900">
+                <td className="px-4 py-2 font-medium text-foreground">
                   {record.type}
                 </td>
                 <td className="max-w-[220px] px-4 py-2">
@@ -79,7 +79,7 @@ export function DnsRecordsPanel({
                 <td className="max-w-[260px] px-4 py-2">
                   <CopyCell value={record.value} />
                 </td>
-                <td className="px-4 py-2 text-gray-600">{record.purpose}</td>
+                <td className="px-4 py-2 text-muted-foreground">{record.purpose}</td>
               </tr>
             ))}
           </tbody>

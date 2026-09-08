@@ -63,7 +63,7 @@ export const LandingPageListTable = ({
         header: "Page",
         className: "w-[26%]",
         render: (row: MarketingLandingPage) => (
-          <span className="font-medium text-gray-900">{row.name}</span>
+          <span className="font-medium text-foreground">{row.name}</span>
         ),
       },
       {
@@ -80,20 +80,20 @@ export const LandingPageListTable = ({
       {
         key: "sections",
         header: "Section",
-        className: "w-[15%] text-gray-600",
+        className: "w-[15%] text-muted-foreground",
         render: (row: MarketingLandingPage) =>
           `${row.sections.length} sections`,
       },
       {
         key: "createdAt",
         header: "Created",
-        className: "w-[16%] text-gray-600",
+        className: "w-[16%] text-muted-foreground",
         render: (row: MarketingLandingPage) => formatDateTime(row.createdAt),
       },
       {
         key: "updatedAt",
         header: "Last Updated",
-        className: "w-[16%] text-gray-600",
+        className: "w-[16%] text-muted-foreground",
         render: (row: MarketingLandingPage) => formatDateTime(row.updatedAt),
       },
       {
@@ -105,7 +105,7 @@ export const LandingPageListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-primary"
+              className="text-muted-foreground hover:text-primary"
               aria-label="Edit landing page"
               onClick={() => onEdit(row)}
             >
@@ -114,7 +114,7 @@ export const LandingPageListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-red-600"
+              className="text-muted-foreground hover:text-destructive"
               aria-label="Delete landing page"
               onClick={() => onDelete(row)}
             >

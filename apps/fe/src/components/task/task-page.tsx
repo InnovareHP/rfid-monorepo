@@ -92,8 +92,8 @@ const TaskPage = () => {
   const { createProjectMutation, updateProjectMutation, createListMutation } =
     useTaskProjectMutations();
 
-  const lists = listsQuery.data ?? [];
-  const statuses = statusesQuery.data ?? [];
+  const lists = useMemo(() => listsQuery.data ?? [], [listsQuery.data]);
+  const statuses = useMemo(() => statusesQuery.data ?? [], [statusesQuery.data]);
   const tasks = useMemo(() => tasksQuery.data?.data ?? [], [tasksQuery.data]);
 
   const sensors = useSensors(
@@ -253,7 +253,7 @@ const TaskPage = () => {
           />
 
           <div className="relative max-w-sm min-w-48 flex-1">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -268,7 +268,7 @@ const TaskPage = () => {
               checked={includeArchived}
               onCheckedChange={setIncludeArchived}
             />
-            <Label htmlFor="show-archived" className="text-sm text-gray-600">
+            <Label htmlFor="show-archived" className="text-sm text-muted-foreground">
               Show archived
             </Label>
           </div>
@@ -276,7 +276,7 @@ const TaskPage = () => {
           <div className="flex items-center gap-3 sm:ml-auto">
             <WriteGate>
               <Button
-                className="bg-brand text-white hover:bg-brand/90"
+                className="bg-brand text-brand-foreground hover:bg-brand/90"
                 onClick={() => setCreateOpen(true)}
                 disabled={!activeProjectId}
               >
@@ -287,7 +287,7 @@ const TaskPage = () => {
 
             <WriteGate>
               <Button
-                className="bg-brand text-white hover:bg-brand/90"
+                className="bg-brand text-brand-foreground hover:bg-brand/90"
                 onClick={() => setListDialogOpen(true)}
                 disabled={!activeProjectId}
               >
