@@ -11,9 +11,13 @@ import type { UseFormReturn } from "react-hook-form";
 
 type PageSettingsPanelProps = {
   form: UseFormReturn<LandingPageFormValues>;
+  orgSlug: string;
 };
 
-export const PageSettingsPanel = ({ form }: PageSettingsPanelProps) => (
+export const PageSettingsPanel = ({
+  form,
+  orgSlug,
+}: PageSettingsPanelProps) => (
   <div className="space-y-4">
     <FormField
       control={form.control}
@@ -36,7 +40,7 @@ export const PageSettingsPanel = ({ form }: PageSettingsPanelProps) => (
           <FormLabel>URL Slug</FormLabel>
           <div className="flex items-center gap-1">
             <span className="shrink-0 text-xs text-gray-400">
-              {`${window.location.origin}/l/`}
+              {`${window.location.origin}/l/${orgSlug}/`}
             </span>
             <FormControl>
               <Input {...field} />

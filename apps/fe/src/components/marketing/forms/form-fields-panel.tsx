@@ -2,6 +2,7 @@ import type { FormBuilderValues } from "@/components/marketing/forms/form-builde
 import { FormFieldItem } from "@/components/marketing/forms/form-field-item";
 import { FormFieldPicker } from "@/components/marketing/forms/form-field-picker";
 import type { BoardField } from "@/services/marketing/form-service";
+import { FORM_RECORD_NAME_FIELD_ID } from "@dashboard/shared";
 import { FormField, FormItem, FormMessage } from "@dashboard/ui/components/form";
 import {
   closestCenter,
@@ -90,6 +91,7 @@ export const FormFieldsPanel = ({ form, fields }: FormFieldsPanelProps) => {
                               (boardField) => boardField.id === mapping.fieldId
                             )?.fieldType ?? "TEXT"
                           }
+                          locked={mapping.fieldId === FORM_RECORD_NAME_FIELD_ID}
                           onLabelChange={(fieldId, label) =>
                             field.onChange(
                               mappings.map((m) =>

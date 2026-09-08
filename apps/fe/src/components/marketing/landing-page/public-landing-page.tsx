@@ -6,15 +6,18 @@ import { useParams } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 export const PublicLandingPage = () => {
-  const { slug } = useParams({ strict: false }) as { slug: string };
+  const { orgSlug, slug } = useParams({ strict: false }) as {
+    orgSlug: string;
+    slug: string;
+  };
 
   const {
     data: page,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["public-landing-page", slug],
-    queryFn: () => getPublicLandingPage(slug),
+    queryKey: ["public-landing-page", orgSlug, slug],
+    queryFn: () => getPublicLandingPage(orgSlug, slug),
   });
 
   useEffect(() => {

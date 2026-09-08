@@ -12,6 +12,7 @@ export type MarketingForm = {
   campaignId: string | null;
   name: string;
   slug: string;
+  orgSlug: string;
   status: "DRAFT" | "PUBLISHED";
   moduleType: string;
   fieldMappings: FormFieldMapping[];
@@ -108,24 +109,28 @@ export const deleteForm = async (id: string) => {
   return response.data;
 };
 
-export const getPublicForm = async (slug: string): Promise<PublicForm> => {
+export const getPublicForm = async (
+  orgSlug: string,
+  slug: string
+): Promise<PublicForm> => {
   const response = await axiosClient.get(
-    `/api/marketing/public/forms/${slug}`
+    `/api/marketing/public/forms/${orgSlug}/${slug}`
   );
   return response.data;
 };
 
-export const publicFormPlacesEndpoints = (slug: string) => ({
-  autocompleteUrl: `/api/marketing/public/forms/${slug}/places/autocomplete`,
-  detailsUrl: `/api/marketing/public/forms/${slug}/places/details`,
+export const publicFormPlacesEndpoints = (orgSlug: string, slug: string) => ({
+  autocompleteUrl: `/api/marketing/public/forms/${orgSlug}/${slug}/places/autocomplete`,
+  detailsUrl: `/api/marketing/public/forms/${orgSlug}/${slug}/places/details`,
 });
 
 export const submitPublicForm = async (
+  orgSlug: string,
   slug: string,
   values: Record<string, string | null>
 ): Promise<PublicFormSubmitResult> => {
   const response = await axiosClient.post(
-    `/api/marketing/public/forms/${slug}/submit`,
+    `/api/marketing/public/forms/${orgSlug}/${slug}/submit`,
     { values }
   );
   return response.data;

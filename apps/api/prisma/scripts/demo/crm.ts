@@ -23,7 +23,12 @@ import { anyAddress } from "./address";
 import { between, daysAgo, pick, random } from "./random";
 
 export type DemoCompany = { id: string; name: string };
-export type DemoContact = { id: string; name: string; title: string };
+export type DemoContact = {
+  id: string;
+  name: string;
+  title: string;
+  email: string;
+};
 
 const phone = () => `(217) ${between(200, 899)}-${between(1000, 9999)}`;
 
@@ -135,6 +140,9 @@ export async function seedCrm(
 
       const id = uuidv4();
       const title = pick(CONTACT_TITLES);
+      const email = `${name.toLowerCase().replace(/[^a-z]+/g, ".")}@${slug(
+        company.name
+      )}.example`;
       const owner = pick(ctx.assignable);
       const createdAt = daysAgo(
         between(
@@ -143,7 +151,7 @@ export async function seedCrm(
         )
       );
 
-      contacts.push({ id, name, title });
+      contacts.push({ id, name, title, email });
       contactRows.push(
         boardRow({
           id,
@@ -161,12 +169,7 @@ export async function seedCrm(
         contactFields,
         [
           ["Title", title],
-          [
-            "Email",
-            `${name.toLowerCase().replace(/[^a-z]+/g, ".")}@${slug(
-              company.name
-            )}.example`,
-          ],
+          ["Email", email],
           ["Phone", phone()],
           // A link field stores the id of the record it points at.
           ["Company", company.id],

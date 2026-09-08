@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   UseGuards,
   UsePipes,
@@ -15,7 +17,11 @@ import {
   RequirePermission,
 } from "../../guard/permission/permission.guard";
 import { SubscriptionGuard } from "../../guard/subscription/subscription.guard";
-import { CreateModuleDto } from "./dto/module.dto";
+import {
+  CreateModuleDto,
+  ReorderModulesDto,
+  UpdateModuleDto,
+} from "./dto/module.dto";
 import { ModuleService } from "./module.service";
 
 @Controller("module")
@@ -50,6 +56,43 @@ export class ModuleController {
     try {
       const organizationId = session.session.activeOrganizationId;
       return await this.moduleService.createModule(dto, organizationId);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  // Declared above /:id so "reorder" is not read as a module id.
+  @RequirePermission({ field: ["configure"] })
+  @Patch("/reorder")
+  async reorderModules(
+    @Body() dto: ReorderModulesDto,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.moduleService.reorderModules(
+        dto.moduleIds,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ field: ["configure"] })
+  @Patch("/:id")
+  async updateModule(
+    @Param("id") id: string,
+    @Body() dto: UpdateModuleDto,
+    @Session()
+    session: AuthenticatedSession
+  ) {
+    try {
+      return await this.moduleService.updateModule(
+        id,
+        dto,
+        session.session.activeOrganizationId
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

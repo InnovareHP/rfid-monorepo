@@ -1,4 +1,4 @@
-import { toSlug } from "@dashboard/shared";
+import { FORM_RECORD_NAME_FIELD_ID, toSlug } from "@dashboard/shared";
 import {
   BadRequestException,
   Injectable,
@@ -20,6 +20,39 @@ type FieldMapping = {
   label: string;
   required: boolean;
 };
+
+// The record name question is pinned first and always required: without it
+// every submission would fall back to the form name and collide on the
+// unique-name guard, so only the first one would ever create a record.
+const withRecordNameMapping = (
+  fieldMappings: FieldMapping[],
+  label: string
+): FieldMapping[] => {
+  const existing = fieldMappings.find(
+    (mapping) => mapping.fieldId === FORM_RECORD_NAME_FIELD_ID
+  );
+
+  return [
+    { fieldId: FORM_RECORD_NAME_FIELD_ID, label, ...existing, required: true },
+    ...fieldMappings.filter(
+      (mapping) => mapping.fieldId !== FORM_RECORD_NAME_FIELD_ID
+    ),
+  ];
+};
+
+// Slugs are unique per organization, so the organization slug is half the key
+// a public URL needs and the lookup is meaningless without it.
+const publishedFormWhere = (orgSlug: string, slug: string) => ({
+  slug,
+  status: PageStatus.PUBLISHED,
+  organization: { slug: orgSlug },
+});
+
+// The builder renders the public URL, and it cannot without the org half.
+const withOrgSlug = <T extends { organization: { slug: string | null } }>({
+  organization,
+  ...row
+}: T) => ({ ...row, orgSlug: organization.slug });
 
 // The wire always carries the module key. The enum column reads CUSTOM for
 // every organization-defined module, so it is internal to writes.
@@ -44,21 +77,44 @@ export class FormService {
       include: {
         _count: { select: { submissions: true } },
         module: { select: { key: true } },
+        organization: { select: { slug: true } },
       },
     });
 
-    return forms.map(withModuleKey);
+    return forms.map(withOrgSlug).map(withModuleKey);
   }
 
   async getForm(id: string, organizationId: string) {
     const form = await prisma.form.findFirst({
       where: { id, organizationId },
-      include: { module: { select: { key: true } } },
+      include: {
+        module: { select: { key: true } },
+        organization: { select: { slug: true } },
+      },
     });
 
     if (!form) throw new NotFoundException("Form not found");
 
-    return withModuleKey(form);
+    return {
+      ...withModuleKey(withOrgSlug(form)),
+      fieldMappings: withRecordNameMapping(
+        form.fieldMappings as FieldMapping[],
+        await this.recordNameLabel(form.moduleId)
+      ),
+    };
+  }
+
+  // Custom modules name their record type, so the default question label
+  // follows the module rather than saying "Record" everywhere.
+  private async recordNameLabel(moduleId: string | null) {
+    const module = moduleId
+      ? await prisma.module.findUnique({
+          where: { id: moduleId },
+          select: { labelSingular: true },
+        })
+      : null;
+
+    return `${module?.labelSingular ?? "Record"} Name`;
   }
 
   async getFormFields(id: string, organizationId: string) {
@@ -91,7 +147,7 @@ export class FormService {
   }
 
   async createForm(dto: CreateFormDto, organizationId: string, userId: string) {
-    const slug = await this.generateUniqueSlug(dto.name);
+    const slug = await this.generateUniqueSlug(dto.name, organizationId);
 
     try {
       return await this.persistForm(dto, organizationId, userId, slug);
@@ -100,13 +156,18 @@ export class FormService {
 
       // Race condition safety net: another request took this slug between
       // our uniqueness check and the create — pick a fresh one and retry once.
-      const retrySlug = await this.generateUniqueSlug(dto.name);
+      const retrySlug = await this.generateUniqueSlug(dto.name, organizationId);
       return await this.persistForm(dto, organizationId, userId, retrySlug);
     }
   }
 
   async updateForm(id: string, dto: UpdateFormDto, organizationId: string) {
-    await this.getForm(id, organizationId);
+    const form = await this.getForm(id, organizationId);
+
+    const moduleId =
+      dto.moduleType !== undefined
+        ? await resolveModuleId(dto.moduleType, organizationId)
+        : form.moduleId;
 
     return prisma.form.update({
       where: { id },
@@ -115,10 +176,13 @@ export class FormService {
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
         ...(dto.moduleType !== undefined && {
           moduleType: toModuleType(dto.moduleType),
-          moduleId: await resolveModuleId(dto.moduleType, organizationId),
+          moduleId,
         }),
         ...(dto.fieldMappings !== undefined && {
-          fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
+          fieldMappings: withRecordNameMapping(
+            dto.fieldMappings,
+            await this.recordNameLabel(moduleId)
+          ) as unknown as Prisma.InputJsonValue,
         }),
         ...(dto.submitButtonText !== undefined && {
           submitButtonText: dto.submitButtonText,
@@ -147,9 +211,9 @@ export class FormService {
     return { message: "Form deleted successfully" };
   }
 
-  async getPublicForm(slug: string) {
-    const form = await prisma.form.findUnique({
-      where: { slug, status: PageStatus.PUBLISHED },
+  async getPublicForm(orgSlug: string, slug: string) {
+    const form = await prisma.form.findFirst({
+      where: publishedFormWhere(orgSlug, slug),
     });
 
     if (!form) throw new NotFoundException("Form not found");
@@ -165,11 +229,17 @@ export class FormService {
   async getPublicFormById(id: string, organizationId: string) {
     const form = await prisma.form.findUnique({
       where: { id, status: PageStatus.PUBLISHED },
+      include: { organization: { select: { slug: true } } },
     });
 
     if (!form || form.organizationId !== organizationId) return null;
 
-    return { ...(await this.buildPublicFormResponse(form)), slug: form.slug };
+    // Both halves of the public key, so the embed can post back on its own.
+    return {
+      ...(await this.buildPublicFormResponse(form)),
+      orgSlug: form.organization.slug,
+      slug: form.slug,
+    };
   }
 
   private async buildPublicFormResponse(form: {
@@ -178,8 +248,12 @@ export class FormService {
     submitButtonText: string;
     fieldMappings: Prisma.JsonValue;
     organizationId: string;
+    moduleId: string | null;
   }) {
-    const fieldMappings = form.fieldMappings as FieldMapping[];
+    const fieldMappings = withRecordNameMapping(
+      form.fieldMappings as FieldMapping[],
+      await this.recordNameLabel(form.moduleId)
+    );
     const fieldIds = fieldMappings.map((m) => m.fieldId);
 
     const fields = fieldIds.length
@@ -216,23 +290,31 @@ export class FormService {
     };
   }
 
-  async autocompletePublicFormPlaces(slug: string, input: string) {
-    await this.assertPublicFormHasLocation(slug);
+  async autocompletePublicFormPlaces(
+    orgSlug: string,
+    slug: string,
+    input: string
+  ) {
+    await this.assertPublicFormHasLocation(orgSlug, slug);
 
     return this.placesService.autocomplete(input);
   }
 
-  async getPublicFormPlaceDetails(slug: string, placeId: string) {
-    await this.assertPublicFormHasLocation(slug);
+  async getPublicFormPlaceDetails(
+    orgSlug: string,
+    slug: string,
+    placeId: string
+  ) {
+    await this.assertPublicFormHasLocation(orgSlug, slug);
 
     return this.placesService.getPlaceDetails(placeId);
   }
 
   // The geocoder is metered, so an anonymous caller only reaches it through a
   // published form that actually renders a LOCATION field.
-  private async assertPublicFormHasLocation(slug: string) {
-    const form = await prisma.form.findUnique({
-      where: { slug, status: PageStatus.PUBLISHED },
+  private async assertPublicFormHasLocation(orgSlug: string, slug: string) {
+    const form = await prisma.form.findFirst({
+      where: publishedFormWhere(orgSlug, slug),
       select: { organizationId: true, fieldMappings: true },
     });
 
@@ -256,12 +338,13 @@ export class FormService {
   }
 
   async submitPublicForm(
+    orgSlug: string,
     slug: string,
     values: Record<string, unknown>,
     meta: { ip?: string; userAgent?: string }
   ) {
-    const form = await prisma.form.findUnique({
-      where: { slug, status: PageStatus.PUBLISHED },
+    const form = await prisma.form.findFirst({
+      where: publishedFormWhere(orgSlug, slug),
       include: { module: { select: { key: true } } },
     });
 
@@ -271,7 +354,10 @@ export class FormService {
     // the key has to come off the relation or the record has no module.
     const { organizationId } = form;
     const moduleType = form.module?.key ?? form.moduleType;
-    const fieldMappings = form.fieldMappings as FieldMapping[];
+    const fieldMappings = withRecordNameMapping(
+      form.fieldMappings as FieldMapping[],
+      await this.recordNameLabel(form.moduleId)
+    );
 
     if (
       typeof values !== "object" ||
@@ -316,9 +402,22 @@ export class FormService {
       );
     }
 
+    // The name question is not a Field, so it names the record instead of
+    // being written as a value.
+    const recordName = filteredValues[FORM_RECORD_NAME_FIELD_ID] ?? "";
+    delete filteredValues[FORM_RECORD_NAME_FIELD_ID];
+
+    // The unique-name guard scans and decrypts the module's record names, so
+    // it runs before the transaction rather than inside its 5s window.
+    await this.boardService.assertNewRecordNameAvailable(
+      organizationId,
+      moduleType,
+      recordName
+    );
+
     const board = await prisma.$transaction(async (tx) => {
       const record = await this.boardService.insertBoardRecord(tx, {
-        recordName: form.name,
+        recordName,
         organizationId,
         memberId: null,
         moduleType,
@@ -370,6 +469,7 @@ export class FormService {
     slug: string
   ) {
     const moduleKey = dto.moduleType ?? "LEAD";
+    const moduleId = await resolveModuleId(moduleKey, organizationId);
 
     return prisma.form.create({
       data: {
@@ -378,8 +478,11 @@ export class FormService {
         organizationId,
         campaignId: dto.campaignId ?? null,
         moduleType: toModuleType(moduleKey),
-        moduleId: await resolveModuleId(moduleKey, organizationId),
-        fieldMappings: dto.fieldMappings as Prisma.InputJsonValue,
+        moduleId,
+        fieldMappings: withRecordNameMapping(
+          dto.fieldMappings,
+          await this.recordNameLabel(moduleId)
+        ) as unknown as Prisma.InputJsonValue,
         submitButtonText: dto.submitButtonText ?? "Submit",
         redirectUrl: dto.redirectUrl ?? null,
         createdBy: userId,
@@ -387,12 +490,20 @@ export class FormService {
     });
   }
 
-  private async generateUniqueSlug(name: string): Promise<string> {
+  private async generateUniqueSlug(
+    name: string,
+    organizationId: string
+  ): Promise<string> {
     const base = toSlug(name) || "form";
     let candidate = base;
     let suffix = 2;
 
-    while (await prisma.form.findUnique({ where: { slug: candidate } })) {
+    while (
+      await prisma.form.findFirst({
+        where: { slug: candidate, organizationId },
+        select: { id: true },
+      })
+    ) {
       candidate = `${base}-${suffix}`;
       suffix += 1;
     }

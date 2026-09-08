@@ -10,6 +10,7 @@ import { fieldTypeLabel } from "./field-type-label";
 type FormFieldItemProps = {
   mapping: FormFieldMapping;
   fieldType: string;
+  locked?: boolean;
   onLabelChange: (fieldId: string, label: string) => void;
   onRequiredChange: (fieldId: string, required: boolean) => void;
   onRemove: (fieldId: string) => void;
@@ -18,6 +19,7 @@ type FormFieldItemProps = {
 export const FormFieldItem = ({
   mapping,
   fieldType,
+  locked = false,
   onLabelChange,
   onRequiredChange,
   onRemove,
@@ -56,20 +58,23 @@ export const FormFieldItem = ({
       <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500">
         <Checkbox
           checked={mapping.required}
+          disabled={locked}
           onCheckedChange={(checked) =>
             onRequiredChange(mapping.fieldId, checked === true)
           }
         />
         Required
       </label>
-      <button
-        type="button"
-        onClick={() => onRemove(mapping.fieldId)}
-        className="text-gray-300 hover:text-red-500 shrink-0"
-        aria-label="Remove field"
-      >
-        <X className="h-4 w-4" />
-      </button>
+      {!locked && (
+        <button
+          type="button"
+          onClick={() => onRemove(mapping.fieldId)}
+          className="text-gray-300 hover:text-red-500 shrink-0"
+          aria-label="Remove field"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 };

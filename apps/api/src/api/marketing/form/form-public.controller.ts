@@ -26,23 +26,28 @@ import { FormService } from "./form.service";
 export class FormPublicController {
   constructor(private readonly formService: FormService) {}
 
-  @Get("/:slug")
-  async getPublicForm(@Param("slug") slug: string) {
+  @Get("/:orgSlug/:slug")
+  async getPublicForm(
+    @Param("orgSlug") orgSlug: string,
+    @Param("slug") slug: string
+  ) {
     try {
-      return await this.formService.getPublicForm(slug);
+      return await this.formService.getPublicForm(orgSlug, slug);
     } catch (error) {
       throw this.toPublicError(error);
     }
   }
 
   @Throttle({ default: { ttl: 60_000, limit: 30 } })
-  @Get("/:slug/places/autocomplete")
+  @Get("/:orgSlug/:slug/places/autocomplete")
   async autocompletePlaces(
+    @Param("orgSlug") orgSlug: string,
     @Param("slug") slug: string,
     @Query() query: AutocompleteQueryDto
   ) {
     try {
       return await this.formService.autocompletePublicFormPlaces(
+        orgSlug,
         slug,
         query.input
       );
@@ -52,13 +57,15 @@ export class FormPublicController {
   }
 
   @Throttle({ default: { ttl: 60_000, limit: 30 } })
-  @Get("/:slug/places/details")
+  @Get("/:orgSlug/:slug/places/details")
   async getPlaceDetails(
+    @Param("orgSlug") orgSlug: string,
     @Param("slug") slug: string,
     @Query() query: PlaceDetailsQueryDto
   ) {
     try {
       return await this.formService.getPublicFormPlaceDetails(
+        orgSlug,
         slug,
         query.placeId
       );
@@ -70,14 +77,15 @@ export class FormPublicController {
   // Anonymous write that creates a lead record, so it gets the same ceiling as
   // the public booking write rather than the global 300/min.
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
-  @Post("/:slug/submit")
+  @Post("/:orgSlug/:slug/submit")
   async submitPublicForm(
+    @Param("orgSlug") orgSlug: string,
     @Param("slug") slug: string,
     @Body() dto: PublicFormSubmitDto,
     @Req() req: Request
   ) {
     try {
-      return await this.formService.submitPublicForm(slug, dto.values, {
+      return await this.formService.submitPublicForm(orgSlug, slug, dto.values, {
         ip: req.ip,
         userAgent: req.headers["user-agent"],
       });

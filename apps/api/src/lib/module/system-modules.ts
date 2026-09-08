@@ -2,6 +2,13 @@ import { NotFoundException } from "@nestjs/common";
 import { ModuleType } from "@prisma/client";
 import { prisma } from "src/lib/prisma/prisma";
 
+// The two folders the seeded modules ship in: what you work through, and who
+// you work with. An organization can rename or empty them like any other group.
+export const SYSTEM_MODULE_GROUPS = {
+  PIPELINE: "Pipeline",
+  DIRECTORY: "Directory",
+} as const;
+
 // The record types every organization starts with. Labels match the sidebar
 // text so the data-driven sidebar renders the same words it does today.
 export const SYSTEM_MODULES = [
@@ -11,6 +18,7 @@ export const SYSTEM_MODULES = [
     labelSingular: "Facility",
     icon: "FileText",
     moduleOrder: 0,
+    groupName: SYSTEM_MODULE_GROUPS.PIPELINE,
   },
   {
     key: "REFERRAL",
@@ -18,6 +26,7 @@ export const SYSTEM_MODULES = [
     labelSingular: "Referrer",
     icon: "Users",
     moduleOrder: 1,
+    groupName: SYSTEM_MODULE_GROUPS.PIPELINE,
   },
   {
     key: "CONTACT",
@@ -25,6 +34,7 @@ export const SYSTEM_MODULES = [
     labelSingular: "Contact",
     icon: "Contact",
     moduleOrder: 2,
+    groupName: SYSTEM_MODULE_GROUPS.DIRECTORY,
   },
   {
     key: "COMPANY",
@@ -32,6 +42,7 @@ export const SYSTEM_MODULES = [
     labelSingular: "Company",
     icon: "Building2",
     moduleOrder: 3,
+    groupName: SYSTEM_MODULE_GROUPS.DIRECTORY,
   },
 ] as const;
 

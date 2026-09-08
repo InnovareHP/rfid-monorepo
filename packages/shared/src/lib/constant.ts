@@ -215,3 +215,8 @@ export const TOUCHPOINT_LABELS: Record<string, string> = {
 
 export const touchpointLabel = (touchpoint: string) =>
   TOUCHPOINT_LABELS[touchpoint] ?? touchpoint.replace(/_/g, " ");
+
+// A public form has to capture the record name, which is a Board column and
+// not a Field row, so it rides Form.fieldMappings under this sentinel id.
+// Unrelated to RECORD_NAME_FIELD in apps/fe, which keys the internal create form.
+export const FORM_RECORD_NAME_FIELD_ID = "record_name";

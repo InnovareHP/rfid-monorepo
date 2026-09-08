@@ -12,6 +12,9 @@ model Module {
   isSystem      Boolean  @default(false)
   isArchived    Boolean  @default(false)
   moduleOrder   Int      @default(0)
+  // Display-only folder in the sidebar; null means the module sits at the top
+  // level. It scopes nothing.
+  groupName     String?
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -26,6 +29,7 @@ model Module {
 
   @@unique([organizationId, key])
   @@index([organizationId, isArchived, moduleOrder])
+  @@index([organizationId, groupName, moduleOrder])
   @@schema("board_schema")
 }
 

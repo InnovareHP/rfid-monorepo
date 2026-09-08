@@ -17,6 +17,20 @@ import {
   LandingSectionSchema,
 } from "./dto/landing-page.schema";
 
+// Slugs are unique per organization, so the organization slug is half the key
+// a public URL needs and the lookup is meaningless without it.
+const publishedPageWhere = (orgSlug: string, slug: string) => ({
+  slug,
+  status: PageStatus.PUBLISHED,
+  organization: { slug: orgSlug },
+});
+
+// The builder renders the public URL, and it cannot without the org half.
+const withOrgSlug = <T extends { organization: { slug: string | null } }>({
+  organization,
+  ...row
+}: T) => ({ ...row, orgSlug: organization.slug });
+
 @Injectable()
 export class LandingPageService {
   private readonly logger = new Logger(LandingPageService.name);
@@ -24,20 +38,24 @@ export class LandingPageService {
   constructor(private readonly formService: FormService) {}
 
   async listLandingPages(organizationId: string) {
-    return prisma.landingPage.findMany({
+    const pages = await prisma.landingPage.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
+      include: { organization: { select: { slug: true } } },
     });
+
+    return pages.map(withOrgSlug);
   }
 
   async getLandingPage(id: string, organizationId: string) {
     const page = await prisma.landingPage.findFirst({
       where: { id, organizationId },
+      include: { organization: { select: { slug: true } } },
     });
 
     if (!page) throw new NotFoundException("Landing page not found");
 
-    return page;
+    return withOrgSlug(page);
   }
 
   async createLandingPage(
@@ -45,7 +63,7 @@ export class LandingPageService {
     organizationId: string,
     userId: string
   ) {
-    const slug = await this.generateUniqueSlug(dto.name);
+    const slug = await this.generateUniqueSlug(dto.name, organizationId);
 
     try {
       return await this.persistLandingPage(dto, organizationId, userId, slug);
@@ -54,7 +72,10 @@ export class LandingPageService {
 
       // Race condition safety net: another request took this slug between
       // our uniqueness check and the create — pick a fresh one and retry once.
-      const retrySlug = await this.generateUniqueSlug(dto.name);
+      const retrySlug = await this.generateUniqueSlug(
+        dto.name,
+        organizationId
+      );
       return await this.persistLandingPage(
         dto,
         organizationId,
@@ -76,10 +97,11 @@ export class LandingPageService {
 
     await this.validateFormReference(sections, formId, organizationId);
 
-    // Slugs are globally unique — changing one also changes the public URL.
+    // Slugs are unique per organization — changing one changes the public URL.
     if (dto.slug !== undefined && dto.slug !== existing.slug) {
-      const taken = await prisma.landingPage.findUnique({
-        where: { slug: dto.slug },
+      const taken = await prisma.landingPage.findFirst({
+        where: { slug: dto.slug, organizationId },
+        select: { id: true },
       });
 
       if (taken)
@@ -127,9 +149,9 @@ export class LandingPageService {
     return { message: "Landing page deleted successfully" };
   }
 
-  async getPublicPage(slug: string) {
-    const page = await prisma.landingPage.findUnique({
-      where: { slug, status: PageStatus.PUBLISHED },
+  async getPublicPage(orgSlug: string, slug: string) {
+    const page = await prisma.landingPage.findFirst({
+      where: publishedPageWhere(orgSlug, slug),
     });
 
     if (!page) throw new NotFoundException("Page not found");
@@ -237,13 +259,19 @@ export class LandingPageService {
     }
   }
 
-  private async generateUniqueSlug(name: string): Promise<string> {
+  private async generateUniqueSlug(
+    name: string,
+    organizationId: string
+  ): Promise<string> {
     const base = toSlug(name) || "page";
     let candidate = base;
     let suffix = 2;
 
     while (
-      await prisma.landingPage.findUnique({ where: { slug: candidate } })
+      await prisma.landingPage.findFirst({
+        where: { slug: candidate, organizationId },
+        select: { id: true },
+      })
     ) {
       candidate = `${base}-${suffix}`;
       suffix += 1;

@@ -66,6 +66,7 @@ export type MarketingLandingPage = {
   campaignId: string | null;
   name: string;
   slug: string;
+  orgSlug: string;
   status: LandingPageStatus;
   sections: LandingSection[];
   seoTitle: string | null;
@@ -77,7 +78,10 @@ export type MarketingLandingPage = {
   updatedAt: string;
 };
 
-export type PublicEmbeddedForm = PublicForm & { slug: string };
+export type PublicEmbeddedForm = PublicForm & {
+  orgSlug: string;
+  slug: string;
+};
 
 export type PublicLandingPage = {
   id: string;
@@ -151,10 +155,11 @@ export const deleteLandingPage = async (id: string) => {
 };
 
 export const getPublicLandingPage = async (
+  orgSlug: string,
   slug: string
 ): Promise<PublicLandingPage> => {
   const response = await axiosClient.get(
-    `/api/marketing/public/pages/${slug}`
+    `/api/marketing/public/pages/${orgSlug}/${slug}`
   );
   return response.data;
 };

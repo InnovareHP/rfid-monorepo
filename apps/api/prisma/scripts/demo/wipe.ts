@@ -57,9 +57,10 @@ export async function wipeDemoData(
     )
     .map((record) => record.id);
 
-  // FieldValue, History and BoardRelation all cascade from Board, so the record
-  // delete is enough for them. Marketing only sets its link null, so its rows
-  // are removed first while the facility ids are still known.
+  // FieldValue, History, BoardRelation and Activity all cascade from Board, so
+  // the record delete is enough for them, and EmailOpenEvent cascades from the
+  // activity in turn. Marketing only sets its link null, so its rows are
+  // removed first while the facility ids are still known.
   await prisma.$transaction([
     prisma.marketing.deleteMany({
       where: { organizationId, facilityRecordId: { in: ids } },

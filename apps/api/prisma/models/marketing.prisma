@@ -279,7 +279,7 @@ model Form {
   createdAt        DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
   name             String
-  slug             String     @unique
+  slug             String
   status           PageStatus @default(DRAFT)
   moduleType       ModuleType @default(LEAD)
   moduleId         String?
@@ -300,6 +300,7 @@ model Form {
   submissions  FormSubmission[]
   landingPages LandingPage[]
 
+  @@unique([organizationId, slug])
   @@index([organizationId, status])
   @@schema("marketing_schema")
 }
@@ -331,7 +332,7 @@ model LandingPage {
   createdAt      DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
   name           String
-  slug           String     @unique
+  slug           String
   status         PageStatus @default(DRAFT)
   sections       Json
   seoTitle       String?
@@ -350,6 +351,7 @@ model LandingPage {
   createdBy String?
   creator   User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
+  @@unique([organizationId, slug])
   @@index([organizationId, status])
   @@schema("marketing_schema")
 }

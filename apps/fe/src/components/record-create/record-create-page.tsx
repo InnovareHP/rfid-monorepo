@@ -193,11 +193,27 @@ function resolveSections(
       required: true,
     }));
 
-  if (leftovers.length === 0) return sections;
+  const withLeftovers =
+    leftovers.length === 0
+      ? sections
+      : sections.map((section, index) =>
+          index === sections.length - 1
+            ? { ...section, fields: [...section.fields, ...leftovers] }
+            : section
+        );
 
-  return sections.map((section, index) =>
-    index === sections.length - 1
-      ? { ...section, fields: [...section.fields, ...leftovers] }
+  if (placed.has(RECORD_NAME_FIELD)) return withLeftovers;
+
+  // The name is required by the schema, so it must render even when unplaced
+  return withLeftovers.map((section, index) =>
+    index === 0
+      ? {
+          ...section,
+          fields: [
+            { name: RECORD_NAME_FIELD, span: "full" as RecordFieldSpan, required: true },
+            ...section.fields,
+          ],
+        }
       : section
   );
 }
@@ -465,9 +481,9 @@ const RecordCreateForm = ({
                         ))
                       ) : (
                         <>
-                          {renderNameField(index)}
-
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>{renderNameField(index)}</div>
+
                             {columns
                               .filter((column) => column.type !== "CHECKBOX")
                               .map((column) => (

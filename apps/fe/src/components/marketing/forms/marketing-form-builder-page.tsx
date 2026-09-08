@@ -1,4 +1,3 @@
-import { BuilderPageSkeleton } from "@/components/skeletons/builder-page-skeleton";
 import {
   formBuilderSchema,
   type FormBuilderValues,
@@ -6,6 +5,7 @@ import {
 import { FormFieldsPanel } from "@/components/marketing/forms/form-fields-panel";
 import { FormRenderer } from "@/components/marketing/forms/form-renderer";
 import { FormSettingsPanel } from "@/components/marketing/forms/form-settings-panel";
+import { BuilderPageSkeleton } from "@/components/skeletons/builder-page-skeleton";
 import {
   getForm,
   getFormFields,
@@ -73,7 +73,10 @@ export const MarketingFormBuilderPage = () => {
     control: form.control,
     name: "submitButtonText",
   });
-  const fieldMappings = useWatch({ control: form.control, name: "fieldMappings" });
+  const fieldMappings = useWatch({
+    control: form.control,
+    name: "fieldMappings",
+  });
 
   const saveMutation = useMutation({
     mutationFn: (values: FormBuilderValues) =>
@@ -105,7 +108,7 @@ export const MarketingFormBuilderPage = () => {
     return <BuilderPageSkeleton />;
   }
 
-  const publicUrl = `${window.location.origin}/f/${marketingForm.slug}`;
+  const publicUrl = `${window.location.origin}/f/${marketingForm.orgSlug}/${marketingForm.slug}`;
 
   const previewForm: PublicForm = {
     id: marketingForm.id,
@@ -152,7 +155,9 @@ export const MarketingFormBuilderPage = () => {
               type="button"
               variant="outline"
               disabled={saveMutation.isPending}
-              onClick={form.handleSubmit((values) => saveMutation.mutate(values))}
+              onClick={form.handleSubmit((values) =>
+                saveMutation.mutate(values)
+              )}
             >
               {saveMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -181,6 +186,7 @@ export const MarketingFormBuilderPage = () => {
               ) : (
                 <FormRenderer
                   form={previewForm}
+                  orgSlug={marketingForm.orgSlug}
                   slug={marketingForm.slug}
                   onSubmit={() => undefined}
                   submitted={false}
@@ -190,7 +196,7 @@ export const MarketingFormBuilderPage = () => {
             </div>
           </div>
 
-          <aside className="w-full shrink-0 border-l border-gray-200 bg-white p-4 lg:w-80">
+          <aside className="w-full shrink-0 border-l border-gray-200 bg-white p-4 lg:w-86">
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="grid w-full grid-cols-2 bg-blue-50">
                 <TabsTrigger

@@ -37,10 +37,12 @@ export function flattenNavItems(items: NavItem[]): NavSearchEntry[] {
     if (item.url) push(item.title, ROOT_SECTION, item.url, item.icon);
 
     for (const subItem of item.items ?? []) {
-      push(subItem.title, item.title, subItem.url, subItem.icon);
+      // A folder row is a label with no page behind it, so only its children
+      // are worth searching for.
+      if (subItem.url) push(subItem.title, item.title, subItem.url, subItem.icon);
 
       for (const child of subItem.items ?? []) {
-        push(child.title, subItem.title, child.url, child.icon);
+        if (child.url) push(child.title, subItem.title, child.url, child.icon);
       }
     }
   }

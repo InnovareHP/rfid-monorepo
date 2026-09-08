@@ -34,7 +34,10 @@ export type NavLeafItem = {
   icon?: LucideIcon;
 };
 
-export type NavSubItem = NavLeafItem & {
+export type NavSubItem = Omit<NavLeafItem, "url"> & {
+  // A folder is a label with no page behind it, so the row itself toggles the
+  // children. Anything with a url keeps its link and the chevron beside it.
+  url?: string;
   // A third level expands in place under its row rather than in a floating
   // panel; the row keeps its own link and the chevron toggles the children.
   items?: NavLeafItem[];
@@ -71,8 +74,11 @@ function collectUrls(items: NavItem[]) {
   return items.flatMap((item) => [
     ...(item.url ? [item.url] : []),
     ...(item.items ?? []).flatMap((subItem) => [
-      subItem.url,
-      ...(subItem.items ?? []).map((child) => child.url),
+      // A folder row has no url of its own.
+      ...(subItem.url ? [subItem.url] : []),
+      ...(subItem.items ?? []).flatMap((child) =>
+        child.url ? [child.url] : []
+      ),
     ]),
   ]);
 }
@@ -157,19 +163,25 @@ export const NavMain = React.memo(function NavMain({
                     <DropdownMenuSeparator />
                     {item.items?.map((subItem) => (
                       <React.Fragment key={subItem.title}>
-                        <DropdownMenuItem
-                          asChild
-                          className={cn(
-                            "border border-transparent transition-all duration-150 ease-out hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground hover:border-border/80",
-                            subItem.url === activeUrl &&
-                              "bg-accent text-accent-foreground border-border/80"
-                          )}
-                        >
-                          <Link preload="intent" to={subItem.url}>
-                            {subItem.icon && <subItem.icon />}
+                        {subItem.url ? (
+                          <DropdownMenuItem
+                            asChild
+                            className={cn(
+                              "border border-transparent transition-all duration-150 ease-out hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground hover:border-border/80",
+                              subItem.url === activeUrl &&
+                                "bg-accent text-accent-foreground border-border/80"
+                            )}
+                          >
+                            <Link preload="intent" to={subItem.url}>
+                              {subItem.icon && <subItem.icon />}
+                              {subItem.title}
+                            </Link>
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuLabel className="text-muted-foreground">
                             {subItem.title}
-                          </Link>
-                        </DropdownMenuItem>
+                          </DropdownMenuLabel>
+                        )}
 
                         {/* Collapsed, there is no row to hang a nested dropdown
                             off, so a third level indents inside this one. */}
@@ -225,63 +237,90 @@ export const NavMain = React.memo(function NavMain({
                     {item.items?.map((subItem) => {
                       const subKey = `${item.title}/${subItem.title}`;
                       const subHasActiveChild =
-                        subItem.items?.some((child) =>
-                          matchesPath(pathname, child.url)
+                        subItem.items?.some(
+                          (child) => child.url && matchesPath(pathname, child.url)
                         ) ?? false;
                       const subOpen =
                         openOverrides[subKey] ?? subHasActiveChild;
 
+                      const children = subItem.items ?? [];
+
+                      const linkRow = subItem.url ? (
+                        <SidebarMenuSubButton
+                          isActive={subItem.url === activeUrl}
+                          className={cn(children.length && "pr-8")}
+                          asChild
+                        >
+                          <Link preload="intent" to={subItem.url}>
+                            {subItem.icon && <subItem.icon />}
+                            <span>{subItem.title}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      ) : null;
+
+                      if (children.length === 0) {
+                        return (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            {linkRow}
+                          </SidebarMenuSubItem>
+                        );
+                      }
+
                       return (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton
-                            isActive={subItem.url === activeUrl}
-                            className={cn(subItem.items?.length && "pr-8")}
-                            asChild
+                          <Collapsible
+                            open={subOpen}
+                            onOpenChange={(next) =>
+                              setOpenOverrides((previous) => ({
+                                ...previous,
+                                [subKey]: next,
+                              }))
+                            }
+                            className="group/sub-collapsible"
                           >
-                            <Link preload="intent" to={subItem.url}>
-                              {subItem.icon && <subItem.icon />}
-                              <span>{subItem.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-
-                          {subItem.items?.length ? (
-                            <Collapsible
-                              open={subOpen}
-                              onOpenChange={(next) =>
-                                setOpenOverrides((previous) => ({
-                                  ...previous,
-                                  [subKey]: next,
-                                }))
-                              }
-                              className="group/sub-collapsible"
-                            >
+                            {/* A folder has nowhere to navigate, so the row is
+                                the toggle; a row with a page keeps its link and
+                                the chevron sits beside it. */}
+                            {subItem.url ? (
+                              <>
+                                {linkRow}
+                                <CollapsibleTrigger asChild>
+                                  <SidebarMenuAction
+                                    aria-label={`Toggle ${subItem.title}`}
+                                  >
+                                    <ChevronRight className="transition-transform duration-200 group-data-[state=open]/sub-collapsible:rotate-90" />
+                                  </SidebarMenuAction>
+                                </CollapsibleTrigger>
+                              </>
+                            ) : (
                               <CollapsibleTrigger asChild>
-                                <SidebarMenuAction
-                                  aria-label={`Toggle ${subItem.title}`}
-                                >
-                                  <ChevronRight className="transition-transform duration-200 group-data-[state=open]/sub-collapsible:rotate-90" />
-                                </SidebarMenuAction>
+                                <SidebarMenuSubButton className="cursor-pointer">
+                                  {subItem.icon && <subItem.icon />}
+                                  <span>{subItem.title}</span>
+                                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/sub-collapsible:rotate-90" />
+                                </SidebarMenuSubButton>
                               </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <SidebarMenuSub>
-                                  {subItem.items.map((child) => (
-                                    <SidebarMenuSubItem key={child.title}>
-                                      <SidebarMenuSubButton
-                                        size="sm"
-                                        isActive={child.url === activeUrl}
-                                        asChild
-                                      >
-                                        <Link preload="intent" to={child.url}>
-                                          {child.icon && <child.icon />}
-                                          <span>{child.title}</span>
-                                        </Link>
-                                      </SidebarMenuSubButton>
-                                    </SidebarMenuSubItem>
-                                  ))}
-                                </SidebarMenuSub>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          ) : null}
+                            )}
+
+                            <CollapsibleContent>
+                              <SidebarMenuSub>
+                                {children.map((child) => (
+                                  <SidebarMenuSubItem key={child.title}>
+                                    <SidebarMenuSubButton
+                                      size="sm"
+                                      isActive={child.url === activeUrl}
+                                      asChild
+                                    >
+                                      <Link preload="intent" to={child.url}>
+                                        {child.icon && <child.icon />}
+                                        <span>{child.title}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </SidebarMenuSubItem>
                       );
                     })}

@@ -88,6 +88,7 @@ type FieldControlProps = {
   mapping: PublicFormField;
   value: string;
   onChange: (value: string) => void;
+  orgSlug: string;
   slug: string;
   disabled: boolean;
 };
@@ -97,6 +98,7 @@ const FieldControl = ({
   mapping,
   value,
   onChange,
+  orgSlug,
   slug,
   disabled,
 }: FieldControlProps) => {
@@ -112,7 +114,7 @@ const FieldControl = ({
   }
 
   if (mapping.fieldType === "LOCATION") {
-    const endpoints = publicFormPlacesEndpoints(slug);
+    const endpoints = publicFormPlacesEndpoints(orgSlug, slug);
 
     return (
       <LocationCell
@@ -184,6 +186,7 @@ const FieldControl = ({
 
 type FormRendererProps = {
   form: PublicForm;
+  orgSlug: string;
   slug: string;
   onSubmit: (values: Record<string, string>) => void | Promise<void>;
   submitted: boolean;
@@ -194,6 +197,7 @@ type FormRendererProps = {
 // a FORM_EMBED section on a landing page, and the builder preview canvas.
 export const FormRenderer = ({
   form,
+  orgSlug,
   slug,
   onSubmit,
   submitted,
@@ -266,6 +270,7 @@ export const FormRenderer = ({
                           mapping={mapping}
                           value={field.value}
                           onChange={field.onChange}
+                          orgSlug={orgSlug}
                           slug={slug}
                           disabled={preview}
                         />

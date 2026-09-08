@@ -331,7 +331,7 @@ export const LandingPageBuilderPage = () => {
                 )}
               </TabsContent>
               <TabsContent value="settings" className="pt-4">
-                <PageSettingsPanel form={form} />
+                <PageSettingsPanel form={form} orgSlug={page.orgSlug} />
               </TabsContent>
             </Tabs>
           </aside>

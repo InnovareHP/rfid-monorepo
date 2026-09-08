@@ -1,4 +1,6 @@
+import { HistoryModulePicker } from "@/components/history-report/history-module-picker";
 import { PageHeader } from "@/components/page-header";
+import { useModules } from "@/hooks/use-modules";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import {
   getLeadHistory,
@@ -15,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dashboard/ui/components/select";
-import { Tabs, TabsList, TabsTrigger } from "@dashboard/ui/components/tabs";
 import { cn } from "@dashboard/ui/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -31,27 +32,6 @@ import { toast } from "sonner";
 import { KpiStatTile } from "../analytics/charts/kpi-stat-tile";
 import { ReportTable, type ReportColumn } from "../reusable-table/report-table";
 import { RestoreHistoryModal } from "./restore-history-modal";
-
-const HISTORY_MODULES = [
-  { value: "LEAD", label: "Marketing List", entity: "Facility" },
-  {
-    value: "REFERRAL",
-    label: "Referrals",
-    entity: "Referral",
-  },
-  {
-    value: "CONTACT",
-    label: "Contacts",
-    entity: "Contact",
-  },
-  {
-    value: "COMPANY",
-    label: "Companies",
-    entity: "Company",
-  },
-] as const;
-
-type HistoryModule = (typeof HISTORY_MODULES)[number];
 
 // Shape returned by getAllRecordHistory for each history row.
 type HistoryRow = {
@@ -148,7 +128,13 @@ function ChangeCell({ row }: { row: HistoryRow }) {
 
 export default function HistoryReportPage() {
   const queryClient = useQueryClient();
-  const [module, setModule] = useState<HistoryModule>(HISTORY_MODULES[0]);
+  // Archived modules keep their records, so their history stays reachable here.
+  const { data: modules = [] } = useModules({ includeArchived: true });
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  const activeModule =
+    modules.find((row) => row.key === selectedKey) ?? modules[0];
+  const moduleKey = activeModule?.key ?? "";
   const [pendingFilters, setPendingFilters] =
     useState<HistoryFilters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] =
@@ -161,7 +147,7 @@ export default function HistoryReportPage() {
   const [isRestoring, setIsRestoring] = useState(false);
 
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ["history-report", module.value, appliedFilters, page, pageSize],
+    queryKey: ["history-report", moduleKey, appliedFilters, page, pageSize],
     queryFn: () =>
       getLeadHistory(
         {
@@ -174,15 +160,17 @@ export default function HistoryReportPage() {
           column:
             appliedFilters.column === "all" ? undefined : appliedFilters.column,
         },
-        module.value
+        moduleKey
       ),
+    enabled: !!moduleKey,
   });
 
   // Stats and dropdown options are org-wide, so they refetch only per module.
   const { data: meta, isFetching: isFetchingMeta } = useQuery({
-    queryKey: ["history-report-meta", module.value],
-    queryFn: () => getLeadHistoryMeta(module.value),
+    queryKey: ["history-report-meta", moduleKey],
+    queryFn: () => getLeadHistoryMeta(moduleKey),
     staleTime: 5 * 60 * 1000,
+    enabled: !!moduleKey,
   });
 
   const rows: HistoryRow[] = data?.data ?? [];
@@ -193,7 +181,7 @@ export default function HistoryReportPage() {
     setSelectedHistoryItem({
       ...row,
       leadId: row.recordId,
-      entityType: module.entity,
+      entityType: activeModule?.labelSingular ?? "Record",
     });
     setRestoreModalOpen(true);
   };
@@ -218,17 +206,19 @@ export default function HistoryReportPage() {
   ) => {
     setIsRestoring(true);
     try {
-      await restoreLeadHistory(recordId, historyId, eventType, module.value);
-      toast.success(`${module.entity} history restored`);
+      await restoreLeadHistory(recordId, historyId, eventType, moduleKey);
+      toast.success(
+        `${activeModule?.labelSingular ?? "Record"} history restored`
+      );
 
       await queryClient.invalidateQueries({
-        queryKey: ["history-report", module.value],
+        queryKey: ["history-report", moduleKey],
       });
       await queryClient.invalidateQueries({
-        queryKey: ["history-report-meta", module.value],
+        queryKey: ["history-report-meta", moduleKey],
       });
       await queryClient.invalidateQueries({
-        queryKey: boardQueryKey(module.value),
+        queryKey: boardQueryKey(moduleKey),
       });
     } catch (error) {
       toast.error("Failed to restore history");
@@ -316,25 +306,20 @@ export default function HistoryReportPage() {
           />
         </div>
 
-        <Tabs
-          value={module.value}
-          onValueChange={(value) => {
-            const next = HISTORY_MODULES.find((m) => m.value === value);
-            if (!next) return;
-            setModule(next);
-            setPage(1);
-          }}
-        >
-          <TabsList>
-            {HISTORY_MODULES.map((m) => (
-              <TabsTrigger key={m.value} value={m.value}>
-                {m.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
         <div className="flex flex-wrap items-center gap-3">
+          <HistoryModulePicker
+            modules={modules}
+            value={moduleKey}
+            onChange={(key) => {
+              setSelectedKey(key);
+              setPage(1);
+              // Field options are per module, so a column filter carried over
+              // from the last one would match nothing.
+              setPendingFilters(EMPTY_FILTERS);
+              setAppliedFilters(EMPTY_FILTERS);
+            }}
+          />
+
           <DateRangeFilter
             from={pendingFilters.from}
             to={pendingFilters.to}
@@ -410,8 +395,8 @@ export default function HistoryReportPage() {
         <ReportTable
           columns={columns}
           rows={rows}
-          isLoading={isFetching}
-          emptyMessage={`No history for ${module.label.toLowerCase()} yet.`}
+          isLoading={isFetching || !moduleKey}
+          emptyMessage={`No history for ${(activeModule?.label ?? "this module").toLowerCase()} yet.`}
           currentPage={page}
           pageSize={pageSize}
           totalCount={data?.total ?? 0}

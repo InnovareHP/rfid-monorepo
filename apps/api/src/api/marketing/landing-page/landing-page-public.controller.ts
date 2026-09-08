@@ -15,10 +15,13 @@ import { LandingPageService } from "./landing-page.service";
 export class LandingPagePublicController {
   constructor(private readonly landingPageService: LandingPageService) {}
 
-  @Get("/:slug")
-  async getPublicPage(@Param("slug") slug: string) {
+  @Get("/:orgSlug/:slug")
+  async getPublicPage(
+    @Param("orgSlug") orgSlug: string,
+    @Param("slug") slug: string
+  ) {
     try {
-      return await this.landingPageService.getPublicPage(slug);
+      return await this.landingPageService.getPublicPage(orgSlug, slug);
     } catch (error) {
       throw this.toPublicError(error);
     }

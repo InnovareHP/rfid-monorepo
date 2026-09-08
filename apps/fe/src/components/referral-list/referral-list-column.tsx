@@ -5,7 +5,6 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { HistoryIcon } from "lucide-react";
 import { UnreadDot } from "@/components/reusable-table/unread-dot";
 import { ColumnHeader } from "../reusable-table/column-header";
-import { CreateColumnModal } from "../reusable-table/create-column";
 
 type ColumnType = {
   id: string;
@@ -116,12 +115,6 @@ export function generateReferralColumns(
     ),
   };
 
-  const createNewColumn: ColumnDef<ReferralRow> = {
-    header: () => <CreateColumnModal isReferral={true} />,
-    accessorKey: "create_column",
-    enableResizing: false,
-    size: 200,
-  };
 
-  return [selectColumn, referralNameColumn, ...dynamicColumns, createNewColumn];
+  return [selectColumn, referralNameColumn, ...dynamicColumns];
 }

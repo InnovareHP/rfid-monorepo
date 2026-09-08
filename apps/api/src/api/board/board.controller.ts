@@ -203,6 +203,33 @@ export class BoardController {
     }
   }
 
+  // Declared above /:recordId so "follow-ups" is not read as a record id.
+  @RequirePermission({ log: ["read"] })
+  @Get("/follow-ups")
+  async getFollowUpDigest(
+    @Session() session: AuthenticatedSession,
+    @Query("moduleType") moduleType?: string,
+    @Query("assignedTo") assignedTo?: string,
+    @Query("dueBefore") dueBefore?: string,
+    @Query("page") page = 1,
+    @Query("limit") limit = 25
+  ) {
+    try {
+      return await this.boardService.getFollowUpDigest(
+        session.session.activeOrganizationId,
+        {
+          moduleType,
+          assignedTo,
+          dueBefore,
+          page: Number(page),
+          limit: Number(limit),
+        }
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getFollowUpDigest");
+    }
+  }
+
   @RequirePermission({ record: ["read"] })
   @Get("/duplicates")
   async findDuplicates(
@@ -422,6 +449,22 @@ export class BoardController {
       );
     } catch (error) {
       throw toSafeError(error, "boards.getRelatedRecords");
+    }
+  }
+
+  @RequirePermission({ log: ["read"] })
+  @Get("/:recordId/follow-up")
+  async getRecordFollowUp(
+    @Param("recordId") recordId: string,
+    @Session() session: AuthenticatedSession
+  ) {
+    try {
+      return await this.boardService.getRecordFollowUp(
+        recordId,
+        session.session.activeOrganizationId
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getRecordFollowUp");
     }
   }
 

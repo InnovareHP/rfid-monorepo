@@ -30,7 +30,11 @@ export const FormEmbedSection = ({
 
   const onSubmit = async (values: Record<string, string>) => {
     try {
-      const result = await submitPublicForm(embeddedForm.slug, values);
+      const result = await submitPublicForm(
+        embeddedForm.orgSlug,
+        embeddedForm.slug,
+        values
+      );
       if (result.redirectUrl && /^https?:\/\//i.test(result.redirectUrl)) {
         window.location.href = result.redirectUrl;
         return;
@@ -52,6 +56,7 @@ export const FormEmbedSection = ({
       )}
       <FormRenderer
         form={embeddedForm}
+        orgSlug={embeddedForm.orgSlug}
         slug={embeddedForm.slug}
         onSubmit={onSubmit}
         submitted={submitted}

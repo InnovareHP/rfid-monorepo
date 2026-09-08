@@ -13,6 +13,7 @@ import { downloadCSVBlob } from "@/lib/fe-helpers";
 import { exportBoardCsv } from "@/services/lead/lead-service";
 import { useColumnOrder } from "@/hooks/use-column-order";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
+import { CreateColumnModal } from "@/components/reusable-table/create-column";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@dashboard/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,7 @@ import { Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ColumnFilter from "../master-list/column-filter";
+import { MasterListFilters } from "../master-list/master-list-filter";
 import { generateCrmColumns, type CrmRow } from "./crm-list-column";
 
 interface RouteContext {
@@ -69,7 +71,7 @@ export default function CrmListPage({
     setFilterMeta((prev) => ({ ...prev, search: routeSearch.q, page: 1 }));
   }
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching, refetch } = useQuery({
     queryKey: [...queryKey, filterMeta],
     queryFn: () => getModuleRecords(moduleType, filterMeta),
     staleTime: 1000 * 60 * 5,
@@ -258,6 +260,7 @@ export default function CrmListPage({
             className="flex items-center gap-2 hover:text-primary transition-colors"
           />
           <ColumnFilter tableColumns={tableColumns as any} />
+          <CreateColumnModal moduleType={moduleType} queryKey={queryKey} />
           <WriteGate>
             <Link to={createPath} params={{ team: activeOrganizationId }}>
               <Button className="flex items-center gap-2 shadow-sm">
@@ -267,6 +270,15 @@ export default function CrmListPage({
             </Link>
           </WriteGate>
         </PageHeader>
+
+        <MasterListFilters
+          columns={data?.columns ?? []}
+          filterMeta={filterMeta}
+          setFilterMeta={setFilterMeta}
+          refetch={refetch}
+          searchPlaceholder={`Search ${title.toLowerCase()}...`}
+          nameFilterLabel={nameLabel}
+        />
 
         <ReusableTable
           table={table}
