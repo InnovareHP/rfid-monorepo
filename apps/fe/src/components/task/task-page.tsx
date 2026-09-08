@@ -92,8 +92,8 @@ const TaskPage = () => {
   const { createProjectMutation, updateProjectMutation, createListMutation } =
     useTaskProjectMutations();
 
-  const lists = listsQuery.data ?? [];
-  const statuses = statusesQuery.data ?? [];
+  const lists = useMemo(() => listsQuery.data ?? [], [listsQuery.data]);
+  const statuses = useMemo(() => statusesQuery.data ?? [], [statusesQuery.data]);
   const tasks = useMemo(() => tasksQuery.data?.data ?? [], [tasksQuery.data]);
 
   const sensors = useSensors(
