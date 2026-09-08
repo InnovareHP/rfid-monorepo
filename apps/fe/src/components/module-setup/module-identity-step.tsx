@@ -8,22 +8,34 @@ import {
   FormMessage,
 } from "@dashboard/ui/components/form";
 import { Input } from "@dashboard/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@dashboard/ui/components/select";
+import type { ModuleGroup } from "@/services/module/module-group-service";
 import { cn } from "@dashboard/ui/lib/utils";
 import type { UseFormReturn } from "react-hook-form";
 import type { ModuleFormValues } from "./module-setup-schema";
 import { previewKey } from "./module-setup-schema";
 import { MODULE_ICON_CHOICES } from "./module-templates";
 
+// The value a "no folder" choice carries, since Radix Select treats an empty
+// string as no selection at all.
+const NO_GROUP = "none";
+
 type ModuleIdentityStepProps = {
   form: UseFormReturn<ModuleFormValues>;
   label: string;
-  groupOptions: string[];
+  groups: ModuleGroup[];
 };
 
 export const ModuleIdentityStep = ({
   form,
   label,
-  groupOptions,
+  groups,
 }: ModuleIdentityStepProps) => (
   <div className="space-y-6">
     <div className="grid gap-4 sm:grid-cols-2">
@@ -64,25 +76,33 @@ export const ModuleIdentityStep = ({
 
     <FormField
       control={form.control}
-      name="groupName"
+      name="groupId"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Sidebar group</FormLabel>
-          <FormControl>
-            {/* Free text with the existing names offered: a group is created by
-                typing one, and reused by picking it. */}
-            <Input
-              list="module-group-options"
-              placeholder="Optional, e.g. Sales"
-              {...field}
-            />
-          </FormControl>
-          <datalist id="module-group-options">
-            {groupOptions.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-
+          <Select
+            value={field.value || NO_GROUP}
+            onValueChange={(value) =>
+              field.onChange(value === NO_GROUP ? "" : value)
+            }
+          >
+            <FormControl>
+              <SelectTrigger>
+                <SelectValue placeholder="No group" />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              <SelectItem value={NO_GROUP}>No group</SelectItem>
+              {groups.map((group) => (
+                <SelectItem key={group.id} value={group.id}>
+                  {group.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormDescription>
+            Folders are made and renamed on the modules settings page.
+          </FormDescription>
           <FormMessage />
         </FormItem>
       )}

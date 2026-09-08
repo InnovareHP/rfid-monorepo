@@ -13,8 +13,11 @@ model Module {
   isArchived    Boolean  @default(false)
   moduleOrder   Int      @default(0)
   // Display-only folder in the sidebar; null means the module sits at the top
-  // level. It scopes nothing.
+  // level. It scopes nothing. groupName is the pre-ModuleGroup column, read by
+  // nothing once backfill_module_groups has run.
   groupName     String?
+  groupId       String?
+  group         ModuleGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -29,7 +32,27 @@ model Module {
 
   @@unique([organizationId, key])
   @@index([organizationId, isArchived, moduleOrder])
-  @@index([organizationId, groupName, moduleOrder])
+  @@index([organizationId, groupId, moduleOrder])
+  @@schema("board_schema")
+}
+
+// A sidebar folder an organization owns: it holds modules but scopes nothing,
+// and it survives being emptied so a folder can be made before its first
+// module.
+model ModuleGroup {
+  id         String   @id @default(uuid())
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+  name       String
+  groupOrder Int      @default(0)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  modules Module[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, groupOrder])
   @@schema("board_schema")
 }
 
@@ -325,6 +348,8 @@ model Activity {
   @@index([recordId])
   @@index([organizationId])
   @@index([dueDate])
+  // The follow-up queue filters on all three and orders by the last one.
+  @@index([organizationId, status, dueDate])
   @@index([threadToken])
   @@index([organizationId, messageId])
   @@schema("board_schema")

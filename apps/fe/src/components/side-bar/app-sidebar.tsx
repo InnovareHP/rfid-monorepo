@@ -1,4 +1,5 @@
 import { PlanChip } from "@/components/billing/plan-chip";
+import { ModuleGroupDialog } from "@/components/module-manage/module-group-dialog";
 import { NavMain } from "@/components/side-bar/nav-main";
 import { NavUser } from "@/components/side-bar/nav-user";
 import { TeamSwitcher } from "@/components/side-bar/team-switcher";
@@ -32,7 +33,10 @@ export function AppSidebar({
   user,
   ...props
 }: AppSidebarProps) {
-  const navMain = useNavItems(activeOrganizationId, memberData);
+  const [newGroupOpen, setNewGroupOpen] = React.useState(false);
+  const navMain = useNavItems(activeOrganizationId, memberData, () =>
+    setNewGroupOpen(true)
+  );
   const settingsNav = useSettingsNavItems(activeOrganizationId, memberData);
   const onSettings = isSettingsPath(
     useLocation().pathname,
@@ -72,6 +76,8 @@ export function AppSidebar({
       <SidebarContent>
         <NavMain items={onSettings ? settingsNav : navMain} />
       </SidebarContent>
+      <ModuleGroupDialog open={newGroupOpen} onOpenChange={setNewGroupOpen} />
+
       <SidebarFooter>
         <PlanChip organizationId={activeOrganizationId} />
 

@@ -34,10 +34,19 @@ export type NavLeafItem = {
   icon?: LucideIcon;
 };
 
+// A row that opens something in place instead of navigating. It carries no url,
+// so it is not a destination and global search leaves it alone.
+export type NavActionItem = {
+  title: string;
+  onSelect: () => void;
+  icon?: LucideIcon;
+};
+
 export type NavSubItem = Omit<NavLeafItem, "url"> & {
   // A folder is a label with no page behind it, so the row itself toggles the
   // children. Anything with a url keeps its link and the chevron beside it.
   url?: string;
+  onSelect?: () => void;
   // A third level expands in place under its row rather than in a floating
   // panel; the row keeps its own link and the chevron toggles the children.
   items?: NavLeafItem[];
@@ -163,7 +172,15 @@ export const NavMain = React.memo(function NavMain({
                     <DropdownMenuSeparator />
                     {item.items?.map((subItem) => (
                       <React.Fragment key={subItem.title}>
-                        {subItem.url ? (
+                        {subItem.onSelect ? (
+                          <DropdownMenuItem
+                            onSelect={subItem.onSelect}
+                            className="border border-transparent transition-all duration-150 ease-out hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground hover:border-border/80"
+                          >
+                            {subItem.icon && <subItem.icon />}
+                            {subItem.title}
+                          </DropdownMenuItem>
+                        ) : subItem.url ? (
                           <DropdownMenuItem
                             asChild
                             className={cn(
@@ -245,7 +262,15 @@ export const NavMain = React.memo(function NavMain({
 
                       const children = subItem.items ?? [];
 
-                      const linkRow = subItem.url ? (
+                      const linkRow = subItem.onSelect ? (
+                        <SidebarMenuSubButton
+                          className="cursor-pointer"
+                          onClick={subItem.onSelect}
+                        >
+                          {subItem.icon && <subItem.icon />}
+                          <span>{subItem.title}</span>
+                        </SidebarMenuSubButton>
+                      ) : subItem.url ? (
                         <SidebarMenuSubButton
                           isActive={subItem.url === activeUrl}
                           className={cn(children.length && "pr-8")}

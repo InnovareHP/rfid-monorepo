@@ -6,7 +6,10 @@ import {
 } from "@/lib/helper/follow-up-date";
 import { modulePath } from "@/lib/helper/module-route";
 import { completeActivity } from "@/services/lead/lead-service";
-import type { FollowUpRow } from "@/services/follow-up/follow-up-service";
+import type {
+  FollowUpDigest,
+  FollowUpRow,
+} from "@/services/follow-up/follow-up-service";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import {
@@ -23,6 +26,11 @@ import { Check } from "lucide-react";
 import { memo } from "react";
 import { toast } from "sonner";
 
+// The queue is an infinite query, so an optimistic edit rewrites every page.
+type InfiniteFollowUps = { pages: FollowUpDigest[]; pageParams: unknown[] };
+
+const FOLLOW_UPS_KEY = ["follow-ups"];
+
 type FollowUpCardProps = {
   row: FollowUpRow;
   team: string;
@@ -37,20 +45,61 @@ export const FollowUpCard = memo(function FollowUpCard({
   const queryClient = useQueryClient();
   const followUp = row.followUp;
   const bucket = followUp ? followUpBucket(followUp.dueDate) : null;
+  const bucketKey = bucket === "week" ? "upcoming" : (bucket ?? "today");
   // A module path is only known at runtime, so the link is a plain string.
   const recordHref: string = `/${team}/${modulePath(row.moduleType)}`;
 
   const completeMutation = useMutation({
     mutationFn: (activityId: string) => completeActivity(activityId),
+    // The card leaves the queue at once rather than after a refetch of every
+    // page loaded so far.
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: FOLLOW_UPS_KEY });
+      const previous = queryClient.getQueriesData({ queryKey: FOLLOW_UPS_KEY });
+
+      queryClient.setQueriesData(
+        { queryKey: FOLLOW_UPS_KEY },
+        (old: InfiniteFollowUps | undefined) =>
+          old
+            ? {
+                ...old,
+                pages: old.pages.map((page) => ({
+                  ...page,
+                  data: page.data.filter(
+                    (entry) => entry.recordId !== row.recordId
+                  ),
+                  buckets: page.buckets && {
+                    ...page.buckets,
+                    [bucketKey]: Math.max(
+                      0,
+                      page.buckets[bucketKey] - 1
+                    ),
+                    total: Math.max(0, page.buckets.total - 1),
+                  },
+                })),
+              }
+            : old
+      );
+
+      return { previous };
+    },
+    onError: (_error, _activityId, context) => {
+      context?.previous?.forEach(([key, data]) =>
+        queryClient.setQueryData(key, data)
+      );
+      toast.error("Could not complete this follow-up.");
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["follow-ups"] });
       queryClient.invalidateQueries({
         queryKey: ["record-follow-up", row.recordId],
       });
       queryClient.invalidateQueries({ queryKey: ["activities", row.recordId] });
       toast.success("Follow-up marked done.");
     },
-    onError: () => toast.error("Could not complete this follow-up."),
+    // The row is gone locally; the totals still come from the server.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: FOLLOW_UPS_KEY });
+    },
   });
 
   return (

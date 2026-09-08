@@ -9,19 +9,15 @@ import { GripVertical } from "lucide-react";
 
 type ModuleManageRowProps = {
   module: CrmModule;
-  groupOptions: string[];
   disabled: boolean;
   onRename: (label: string) => void;
-  onGroupChange: (groupName: string | null) => void;
   onArchivedChange: (isArchived: boolean) => void;
 };
 
 export function ModuleManageRow({
   module,
-  groupOptions,
   disabled,
   onRename,
-  onGroupChange,
   onArchivedChange,
 }: ModuleManageRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -41,7 +37,7 @@ export function ModuleManageRow({
       <button
         type="button"
         className="cursor-grab text-muted-foreground active:cursor-grabbing"
-        aria-label={`Reorder ${module.label}`}
+        aria-label={`Move ${module.label}`}
         {...attributes}
         {...listeners}
       >
@@ -60,25 +56,6 @@ export function ModuleManageRow({
           if (next && next !== module.label) onRename(next);
         }}
       />
-
-      <Input
-        defaultValue={module.groupName ?? ""}
-        disabled={disabled}
-        list="module-manage-groups"
-        placeholder="No group"
-        aria-label="Sidebar group"
-        className="min-w-36 flex-1"
-        onBlur={(event) => {
-          const next = event.target.value.trim();
-          if (next !== (module.groupName ?? "")) onGroupChange(next || null);
-        }}
-      />
-
-      <datalist id="module-manage-groups">
-        {groupOptions.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
 
       {module.isSystem ? (
         <Badge variant="secondary" className="shrink-0 font-normal">

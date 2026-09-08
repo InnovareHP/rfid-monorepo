@@ -46,15 +46,35 @@ export const SYSTEM_MODULES = [
   },
 ] as const;
 
-export const seedSystemModules = (organizationId: string) =>
-  prisma.module.createMany({
-    data: SYSTEM_MODULES.map((systemModule) => ({
+// The groups come first so the modules can point at rows that exist; the two
+// seeded folders are ordered the way the sidebar lists them.
+export const seedSystemModules = async (organizationId: string) => {
+  await prisma.moduleGroup.createMany({
+    data: Object.values(SYSTEM_MODULE_GROUPS).map((name, index) => ({
+      name,
+      groupOrder: index,
+      organizationId,
+    })),
+    skipDuplicates: true,
+  });
+
+  const groups = await prisma.moduleGroup.findMany({
+    where: { organizationId },
+    select: { id: true, name: true },
+  });
+
+  const groupIdByName = new Map(groups.map((group) => [group.name, group.id]));
+
+  return prisma.module.createMany({
+    data: SYSTEM_MODULES.map(({ groupName, ...systemModule }) => ({
       ...systemModule,
+      groupId: groupIdByName.get(groupName) ?? null,
       isSystem: true,
       organizationId,
     })),
     skipDuplicates: true,
   });
+};
 
 // Every row written during the dual-write window needs its module, so a missing
 // one means the seed did not run and should fail loudly rather than write null.

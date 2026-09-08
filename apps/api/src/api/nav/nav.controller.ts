@@ -18,6 +18,7 @@ import {
   type OrganizationEntitlement,
 } from "../../guard/subscription/subscription.guard";
 import { CustomAnalyticsService } from "../custom-analytics/custom-analytics.service";
+import { ModuleGroupService } from "../module/module-group.service";
 import { ModuleService } from "../module/module.service";
 
 // The sidebar needs the module tree and the dashboard rows on every mount. They
@@ -28,6 +29,7 @@ import { ModuleService } from "../module/module.service";
 export class NavController {
   constructor(
     private readonly moduleService: ModuleService,
+    private readonly moduleGroupService: ModuleGroupService,
     private readonly customAnalyticsService: CustomAnalyticsService
   ) {}
 
@@ -50,14 +52,17 @@ export class NavController {
         ? entitlementHasFeature(entitlement, "custom_reporting")
         : false;
 
-      const [modules, dashboards] = await Promise.all([
+      // Groups ride along because an empty folder has no module to infer it
+      // from, and the sidebar still has to draw it.
+      const [modules, groups, dashboards] = await Promise.all([
         this.moduleService.getModules(organizationId),
+        this.moduleGroupService.getGroups(organizationId),
         canUseCustomReporting
           ? this.customAnalyticsService.getDashboards(organizationId)
           : [],
       ]);
 
-      return { modules, dashboards };
+      return { modules, groups, dashboards };
     } catch (error) {
       throw new BadRequestException(error.message);
     }

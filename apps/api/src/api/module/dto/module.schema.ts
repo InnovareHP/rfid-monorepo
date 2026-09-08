@@ -1,15 +1,15 @@
 import { BoardFieldType } from "@prisma/client";
 import { z } from "zod";
 
-// A sidebar folder, not a scope: the name is free text the organization types
-// once and then reuses from a picker.
-const groupName = z.string().trim().min(1).max(40);
+// A sidebar folder the organization owns, picked by id. See
+// module-group.schema.ts for the folder itself.
+const groupId = z.uuid();
 
 export const CreateModuleSchema = z.object({
   label: z.string().trim().min(1).max(40),
   labelSingular: z.string().trim().min(1).max(40),
   icon: z.string().trim().max(40).optional(),
-  groupName: groupName.optional(),
+  groupId: groupId.optional(),
   fields: z
     .array(
       z.object({
@@ -32,7 +32,7 @@ export const UpdateModuleSchema = z
     labelSingular: z.string().trim().min(1).max(40),
     icon: z.string().trim().max(40),
     // Null clears the folder and returns the module to the top level.
-    groupName: groupName.nullable(),
+    groupId: groupId.nullable(),
     isArchived: z.boolean(),
   })
   .partial();

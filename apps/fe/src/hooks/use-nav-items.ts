@@ -16,6 +16,7 @@ import {
   FileBarChart,
   FileText,
   Folder,
+  FolderPlus,
   HistoryIcon,
   LayoutTemplate,
   MailCheck,
@@ -38,7 +39,10 @@ const NAV_DASHBOARD_LIMIT = 5;
 // sidebar and the global search cannot drift apart.
 export function useNavItems(
   activeOrganizationId: string,
-  memberData: Member
+  memberData: Member,
+  // The sidebar passes this so New Group opens in place; global search does not,
+  // and the row is simply absent there since it is not a destination.
+  onNewGroup?: () => void
 ): NavItem[] {
   const entitlement = useEntitlement(activeOrganizationId);
   const canExport = entitlement.has("export");
@@ -54,6 +58,7 @@ export function useNavItems(
     const modules = (navData?.modules ?? []).filter(
       (module) => !module.isArchived
     );
+    const groups = navData?.groups ?? [];
     const dashboards = navData?.dashboards ?? [];
 
     // A module's seeded page always shows; hand-built dashboards fill what is
@@ -83,32 +88,25 @@ export function useNavItems(
     });
 
     const ungroupedModules = modules
-      .filter((module) => !module.groupName)
+      .filter((module) => !module.groupId)
       .map(moduleLeaf);
 
     // A folder is a label with no page of its own; the sidebar renders it as a
-    // row that expands. Order follows the modules, so dragging one reorders the
-    // folders too.
-    const folderOrder: string[] = [];
-    const modulesByFolder = new Map<string, ReturnType<typeof moduleLeaf>[]>();
-
-    for (const module of modules) {
-      if (!module.groupName) continue;
-
-      const existing = modulesByFolder.get(module.groupName);
-      if (existing) {
-        existing.push(moduleLeaf(module));
-        continue;
-      }
-
-      folderOrder.push(module.groupName);
-      modulesByFolder.set(module.groupName, [moduleLeaf(module)]);
-    }
-
-    const moduleFolders = folderOrder.map((name) => ({
-      title: name,
+    // row that expands. Folders come from their own rows, so one that has been
+    // emptied still draws and still offers somewhere to create a module.
+    const moduleFolders = groups.map((group) => ({
+      title: group.name,
       icon: Folder,
-      items: modulesByFolder.get(name) ?? [],
+      items: [
+        ...modules
+          .filter((module) => module.groupId === group.id)
+          .map(moduleLeaf),
+        {
+          title: "New module",
+          url: `/${activeOrganizationId}/records/new?group=${group.id}`,
+          icon: Plus,
+        },
+      ],
     }));
 
     // LEAD and REFERRAL are hand-built pages with no dashboard row of their
@@ -181,11 +179,16 @@ export function useNavItems(
           items: [
             ...ungroupedModules,
             ...moduleFolders,
-            {
-              title: "New Module",
-              url: `/${activeOrganizationId}/records/new`,
-              icon: Plus,
-            },
+            // {
+            //   title: "New Module",
+            //   url: `/${activeOrganizationId}/records/new`,
+            //   icon: Plus,
+            // },
+            // Naming a folder is one short field, so it opens over the page
+            // rather than sending anyone to settings and back.
+            ...(onNewGroup
+              ? [{ title: "New Group", onSelect: onNewGroup, icon: FolderPlus }]
+              : []),
           ],
         },
         {
@@ -345,6 +348,7 @@ export function useNavItems(
     canUseCustomReporting,
     canUseAdvancedAnalytics,
     canManageAnalytics,
+    onNewGroup,
     navData,
   ]);
 

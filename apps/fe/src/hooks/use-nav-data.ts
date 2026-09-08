@@ -1,4 +1,5 @@
 import { DASHBOARDS_KEY } from "@/hooks/use-dashboards";
+import { MODULE_GROUPS_KEY } from "@/hooks/use-module-groups";
 import { MODULES_KEY } from "@/hooks/use-modules";
 import { getNavData } from "@/services/nav/nav-service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ export const useNavData = () => {
       const nav = await getNavData();
 
       queryClient.setQueryData(MODULES_KEY, nav.modules);
+      queryClient.setQueryData(MODULE_GROUPS_KEY, nav.groups);
       queryClient.setQueryData(DASHBOARDS_KEY, nav.dashboards);
 
       return nav;

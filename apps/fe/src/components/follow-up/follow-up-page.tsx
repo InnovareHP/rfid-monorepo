@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { useModules } from "@/hooks/use-modules";
 import {
   followUpBucket,
-  followUpWindowEnd,
+  followUpWindow,
   type FollowUpBucket,
 } from "@/lib/helper/follow-up-date";
 import {
@@ -11,6 +11,7 @@ import {
   type FollowUpRow,
 } from "@/services/follow-up/follow-up-service";
 import { listMembers } from "@/services/team/team-service";
+import { Button } from "@dashboard/ui/components/button";
 import {
   Select,
   SelectContent,
@@ -19,12 +20,12 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { Spinner } from "@dashboard/ui/components/spinner";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
 import { useState } from "react";
 
 const ANY = "__any__";
-const PAGE_LIMIT = 100;
+const PAGE_LIMIT = 25;
 
 const SECTIONS: { bucket: FollowUpBucket; title: string }[] = [
   { bucket: "overdue", title: "Overdue" },
@@ -33,12 +34,13 @@ const SECTIONS: { bucket: FollowUpBucket; title: string }[] = [
 ];
 
 export function FollowUpPage() {
-  const { activeOrganizationId } = useRouteContext({ from: "__root__" }) as {
-    activeOrganizationId: string;
-  };
+  const { activeOrganizationId, user } = useRouteContext({
+    from: "__root__",
+  }) as { activeOrganizationId: string; user: { id: string } | null };
 
   const [moduleType, setModuleType] = useState(ANY);
-  const [assignedTo, setAssignedTo] = useState(ANY);
+  // Yours is the view you act on; the whole team is a deliberate widening.
+  const [assignedTo, setAssignedTo] = useState(user?.id ?? ANY);
 
   const { data: modules = [] } = useModules();
   const { data: memberList } = useQuery({
@@ -47,28 +49,43 @@ export function FollowUpPage() {
     staleTime: 1000 * 60 * 30,
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["follow-ups", moduleType, assignedTo],
-    queryFn: () =>
-      getFollowUpDigest({
-        moduleType: moduleType === ANY ? undefined : moduleType,
-        assignedTo: assignedTo === ANY ? undefined : assignedTo,
-        dueBefore: followUpWindowEnd(),
-        limit: PAGE_LIMIT,
-      }),
-    staleTime: 1000 * 60,
-  });
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ["follow-ups", moduleType, assignedTo],
+      queryFn: ({ pageParam }) =>
+        getFollowUpDigest({
+          ...followUpWindow(),
+          moduleType: moduleType === ANY ? undefined : moduleType,
+          assignedTo: assignedTo === ANY ? undefined : assignedTo,
+          page: pageParam,
+          limit: PAGE_LIMIT,
+        }),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) =>
+        lastPage.pagination.hasMore ? lastPage.pagination.page + 1 : undefined,
+      staleTime: 1000 * 60,
+    });
 
-  const rows = data?.data ?? [];
+  const rows: FollowUpRow[] = data?.pages.flatMap((page) => page.data) ?? [];
+  const buckets = data?.pages[0]?.buckets ?? null;
+
+  // Header totals come from the server; the cards under them are whatever has
+  // been loaded so far, and rows arrive earliest first.
+  const bucketTotal = (bucket: FollowUpBucket) =>
+    bucket === "overdue"
+      ? buckets?.overdue
+      : bucket === "today"
+        ? buckets?.today
+        : buckets?.upcoming;
+
   const grouped = SECTIONS.map((section) => ({
     ...section,
+    total: bucketTotal(section.bucket),
     rows: rows.filter(
-      (row: FollowUpRow) =>
+      (row) =>
         row.followUp && followUpBucket(row.followUp.dueDate) === section.bucket
     ),
   }));
-
-  const hidden = (data?.pagination.count ?? 0) - rows.length;
 
   return (
     <div className="page-style">
@@ -96,10 +113,10 @@ export function FollowUpPage() {
               <SelectValue placeholder="Anyone" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ANY}>Anyone</SelectItem>
+              <SelectItem value={ANY}>Everyone</SelectItem>
               {(memberList?.members ?? []).map((member) => (
                 <SelectItem key={member.user.id} value={member.user.id}>
-                  {member.user.name}
+                  {member.user.id === user?.id ? "Me" : member.user.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -121,7 +138,7 @@ export function FollowUpPage() {
                   <h2 className="text-sm font-semibold text-foreground">
                     {section.title}
                     <span className="ml-2 text-muted-foreground">
-                      {section.rows.length}
+                      {section.total ?? section.rows.length}
                     </span>
                   </h2>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -136,11 +153,17 @@ export function FollowUpPage() {
                 </section>
               ))}
 
-            {hidden > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {hidden} more follow-ups are not shown. Filter by module or
-                assignee to narrow the list.
-              </p>
+            {hasNextPage && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? <Spinner className="h-4 w-4" /> : null}
+                  Load more
+                </Button>
+              </div>
             )}
           </div>
         )}

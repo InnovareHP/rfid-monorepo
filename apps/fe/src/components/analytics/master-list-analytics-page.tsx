@@ -2,7 +2,10 @@ import { FeatureLocked } from "@/components/feature-locked";
 import { ExportPdfButton } from "@/components/analytics/export-pdf-button";
 import { PageHeader } from "@/components/page-header";
 import { useEntitlement } from "@/hooks/use-entitlement";
-import { buildMasterListChartData } from "@/lib/helper/analytics-chart-data";
+import {
+  DEFAULT_RANK_LIMIT,
+  buildMasterListChartData,
+} from "@/lib/helper/analytics-chart-data";
 import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   getMasterListAnalytics,
@@ -242,23 +245,26 @@ export default function MasterListAnalyticsPage() {
           </ChartCard>
 
           <ChartCard title="Facilities Not Yet Referring">
-            <DormantFacilitiesTable facilities={analytics?.dormant ?? []} />
+            <DormantFacilitiesTable
+              facilities={analytics?.dormant ?? []}
+              limit={topN ?? DEFAULT_RANK_LIMIT}
+            />
           </ChartCard>
         </div>
 
         {/* SOURCES + COUNTIES + OWNERSHIP */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <ChartCard title={`Top ${topN ?? 10} Referring Facilities`}>
+          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Facilities`}>
             <RankedBar
-              data={charts.topReferringFacilities.slice(0, topN ?? 10)}
+              data={charts.topReferringFacilities.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"
               emptyMessage="No referral data available"
             />
           </ChartCard>
 
-          <ChartCard title={`Top ${topN ?? 10} Counties Covered`}>
+          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Counties Covered`}>
             <RankedBar
-              data={charts.counties.slice(0, topN ?? 10)}
+              data={charts.counties.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"
               metricLabel="Facilities"
               emptyMessage="No county data available"
@@ -267,7 +273,7 @@ export default function MasterListAnalyticsPage() {
 
           <ChartCard title="Facilities per Liaison">
             <RankedBar
-              data={charts.byLiaison}
+              data={charts.byLiaison.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"
               metricLabel="Facilities"
               emptyMessage="No assigned facilities"

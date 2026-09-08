@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
-import { MODULES_KEY, useModules } from "@/hooks/use-modules";
+import { useModuleGroups } from "@/hooks/use-module-groups";
+import { MODULES_KEY } from "@/hooks/use-modules";
 import { NAV_KEY } from "@/hooks/use-nav-data";
 import { createModule } from "@/services/module/module-service";
 import { Button } from "@dashboard/ui/components/button";
@@ -7,7 +8,7 @@ import { Form } from "@dashboard/ui/components/form";
 import { Spinner } from "@dashboard/ui/components/spinner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ import { ModuleStepRail } from "./module-step-rail";
 
 export default function ModuleSetupPage() {
   const { team } = useParams({ strict: false }) as { team: string };
+  const { group } = useSearch({ from: "/_team/$team/records/new" });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
@@ -35,19 +37,14 @@ export default function ModuleSetupPage() {
       label: "",
       labelSingular: "",
       icon: "Table2",
-      groupName: "",
+      groupId: group ?? "",
       fields: templateFields("CUSTOM"),
     },
   });
 
-  // Existing folder names are offered rather than retyped, so one typo does not
-  // split a group in two.
-  const { data: modules = [] } = useModules({ includeArchived: true });
-  const groupOptions = [
-    ...new Set(
-      modules.flatMap((module) => (module.groupName ? [module.groupName] : []))
-    ),
-  ];
+  // Folders are their own rows now, so the step picks one instead of typing a
+  // name that a typo could split in two.
+  const { data: groups = [] } = useModuleGroups();
 
   const fieldArray = useFieldArray({ control: form.control, name: "fields" });
   const label = form.watch("label");
@@ -64,7 +61,7 @@ export default function ModuleSetupPage() {
 
   const createMutation = useMutation({
     mutationFn: (values: ModuleFormValues) =>
-      createModule({ ...values, groupName: values.groupName || undefined }),
+      createModule({ ...values, groupId: values.groupId || undefined }),
     onSuccess: (created) => {
       toast.success(`${created.label} created`);
       queryClient.invalidateQueries({ queryKey: MODULES_KEY });
@@ -115,11 +112,7 @@ export default function ModuleSetupPage() {
             className="space-y-6"
           >
             {step === 0 && (
-              <ModuleIdentityStep
-                form={form}
-                label={label}
-                groupOptions={groupOptions}
-              />
+              <ModuleIdentityStep form={form} label={label} groups={groups} />
             )}
 
             {step === 1 && (

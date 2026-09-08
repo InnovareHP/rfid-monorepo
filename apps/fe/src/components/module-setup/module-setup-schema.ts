@@ -15,8 +15,9 @@ export const moduleSetupSchema = z
     label: z.string().trim().min(1, "Name is required").max(40),
     labelSingular: z.string().trim().min(1, "Singular name is required").max(40),
     icon: z.string().min(1),
-    // Sidebar folder. Empty means the module sits at the top level.
-    groupName: z.string().trim().max(40),
+    // Sidebar folder, picked by id. Empty means the module sits at the top
+    // level.
+    groupId: z.string(),
     fields: z.array(columnSchema).min(1, "A module needs at least one column"),
   })
   .superRefine((values, ctx) => {

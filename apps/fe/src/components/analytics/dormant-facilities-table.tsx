@@ -1,3 +1,4 @@
+import { DEFAULT_RANK_LIMIT } from "@/lib/helper/analytics-chart-data";
 import {
   Table,
   TableBody,
@@ -15,11 +16,13 @@ type DormantFacility = {
 type DormantFacilitiesTableProps = {
   facilities: DormantFacility[];
   emptyMessage?: string;
+  limit?: number;
 };
 
 export function DormantFacilitiesTable({
   facilities,
   emptyMessage = "Every facility sent a referral in this period",
+  limit = DEFAULT_RANK_LIMIT,
 }: DormantFacilitiesTableProps) {
   if (facilities.length === 0) {
     return (
@@ -29,8 +32,12 @@ export function DormantFacilitiesTable({
     );
   }
 
+  const rows = facilities.slice(0, limit);
+  const hidden = facilities.length - rows.length;
+
   return (
-    <div className="overflow-hidden rounded-xl border">
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-xl border">
       <Table>
         <TableHeader>
           <TableRow className="bg-brand/5 hover:bg-brand/5">
@@ -41,7 +48,7 @@ export function DormantFacilitiesTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {facilities.map((facility) => (
+          {rows.map((facility) => (
             <TableRow key={facility.name}>
               <TableCell className="max-w-0 truncate py-4" title={facility.name}>
                 {facility.name}
@@ -52,7 +59,15 @@ export function DormantFacilitiesTable({
             </TableRow>
           ))}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
+
+      {/* A capped table that says nothing reads as the whole list. */}
+      {hidden > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Showing {rows.length} of {facilities.length}
+        </p>
+      )}
     </div>
   );
 }

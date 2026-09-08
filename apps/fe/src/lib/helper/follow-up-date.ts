@@ -17,10 +17,17 @@ export const followUpBucket = (iso: string): FollowUpBucket => {
   return days === 0 ? "today" : "week";
 };
 
-// The queue only ever looks a week out, and the browser knows where the local
-// day ends, so the window is computed here rather than in the API.
-export const followUpWindowEnd = () =>
-  new Date(startOfDay(new Date()).getTime() + DAY_MS * 8).toISOString();
+// The queue only ever looks a week out, and only the browser knows where the
+// local day ends, so the whole window is computed here and sent to the API.
+export const followUpWindow = () => {
+  const today = startOfDay(new Date());
+
+  return {
+    dayStart: today.toISOString(),
+    dayEnd: new Date(today.getTime() + DAY_MS).toISOString(),
+    dueBefore: new Date(today.getTime() + DAY_MS * 8).toISOString(),
+  };
+};
 
 // Inside a week a weekday reads the way a liaison says it: "follow up Thursday".
 export const formatFollowUpDate = (iso: string | null) => {

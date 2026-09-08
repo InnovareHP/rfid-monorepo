@@ -1,5 +1,49 @@
 # Activity Log
 
+## 2026-09-09 - Module groups are rows, not a label on each module
+
+A sidebar folder was `Module.groupName`, a free-text string. An empty folder
+could not exist, so a group could not be made before its first module,
+renaming one meant retyping it on every member, and a typo split a group in
+two.
+
+- `prisma/models/board.prisma`: new `ModuleGroup` (name, groupOrder,
+  organizationId, unique on organization+name) and `Module.groupId` with
+  `onDelete: SetNull`, so deleting a folder returns its modules to the top
+  level. `groupName` stays as a column until the backfill has run everywhere.
+- `prisma/migrations/backfill_module_groups/migration.sql` (apply manually,
+  after the generated migration adds the table and column): one group per
+  distinct name per organization, ordered by where its first member sits, then
+  links every module. Idempotent.
+- `lib/module/system-modules.ts`: seeds Pipeline and Directory as rows first,
+  then points the four built-in modules at them by id.
+- `api/module/module-group.{controller,service}.ts` and
+  `dto/module-group.{schema,dto}.ts`: list, create, rename, delete, reorder,
+  all organization-scoped, capped at 12 groups, behind `field: ["configure"]`
+  like module creation. Prefix is `/api/module-group` rather than
+  `/api/module/group`, or `group` would be read as a module id by
+  `PATCH /module/:id`.
+- `api/module/module.service.ts`: module create and update take `groupId` and
+  reject one from another tenant; `getModules` returns `groupId` plus the
+  folder name for labels.
+- `api/nav/nav.controller.ts`: the nav payload carries `groups`, since an empty
+  folder has no module to infer it from.
+- `hooks/use-nav-items.ts`: CRM folders come from the groups list, each folder
+  gets a "New module here" entry that lands on the setup wizard with the folder
+  chosen, and CRM gets "New Group" which opens the settings page with the name
+  field ready.
+- `components/module-setup/`: the group step is a picker of existing folders
+  instead of free text, prefilled from `?group=`.
+- `components/module-manage/`: the settings page is now a drop target per
+  folder. Dragging a module between folders refiles it, dragging inside one
+  reorders the list, the folder name is editable in place, and a folder can be
+  created or deleted there. Split into `module-group-section.tsx` and
+  `module-group-create.tsx`.
+
+Not done: dropping `Module.groupName` needs its own migration once the backfill
+has run on every environment. Group order is stored and honoured but is not
+draggable yet.
+
 ## 2026-08-27 — Audit trail is actually append-only
 
 `HIPAA-PHI-PLAN.md` claimed an append-only trigger lived in
@@ -2009,3 +2053,74 @@ from the last one matched nothing and read as an empty history.
 Verified: `tsc --noEmit` clean, `pnpm --filter fe lint` 0 errors (642 warnings,
 one fewer than before), layout checks clean. No browser pass; the picker has not
 been rendered against an org with custom modules.
+
+## 2026-09-09 - Follow-up queue at scale
+
+The digest ran an unbounded `groupBy` over every pending activity in the
+organization, sorted it, then sliced page one in JS, and the page asked for a
+hundred rows and rendered them all with an "N more not shown" note. Fine at a
+few hundred follow-ups, a full sort and a hundred cards at twenty thousand.
+
+Four changes, no data model touched:
+
+1. `Activity` gains `[organizationId, status, dueDate]`. It carried
+   `organizationId` and `dueDate` as separate indexes, so Postgres could use one
+   and filter the rest by hand. Migration `add_activity_follow_up_index`.
+2. The groupBy is paged in Postgres (`skip`/`take: limit + 1`), so memory is
+   O(page) rather than O(organization). The extra row answers "is there another
+   page" without a second count, which is why `pagination.count` became
+   `pagination.hasMore`.
+3. Section headers need totals a single page cannot know, so
+   `followUpBucketCounts` computes them in one raw aggregate over each record's
+   earliest pending due date - the same row the queue shows, so a record chased
+   twice lands in one bucket rather than two. `$queryRaw` bypasses the tenant
+   extension, so the organization is named in the WHERE rather than injected.
+   The browser sends its local day boundaries, since only it knows where the
+   viewer's day ends; without them the endpoint returns null buckets.
+4. The page is an infinite query at 25 a page with Load more, and Mark done
+   removes the card optimistically instead of refetching every page loaded so
+   far. It also defaults to the signed-in user's own follow-ups; "Everyone" is
+   there but is a deliberate widening.
+
+Not done, in order of when it would matter: a Redis cache on the digest with a
+short TTL purged on activity writes (the pattern `getAllBoards` already uses),
+and denormalizing `nextFollowUpAt` onto `Board` so the queue becomes a plain
+indexed read with no grouping. The second is a column to keep in sync and should
+wait until the read path is measurably the bottleneck.
+
+Verified: `pnpm build:api` clean, fe `tsc --noEmit` clean, lint 0 errors, layout
+checks clean. The raw bucket SQL and the paged groupBy were both executed
+against the development database (9 records in window: 7 overdue, 2 upcoming,
+out of 37 pending activities - the grouping collapses correctly). No browser
+pass: both dev servers were down by then.
+
+Migration `add_activity_follow_up_index` is written and NOT applied. It is a
+plain CREATE INDEX IF NOT EXISTS, so it is safe to run at any time.
+
+## 2026-09-09 - New group opens in place
+
+"New Group" in the CRM sidebar was a link to
+`/settings/modules?newGroup=true` - naming a folder is one short field, and it
+was sending people to a settings page and back for it. It now opens a dialog
+over whatever they were looking at.
+
+`ModuleGroupDialog` owns the form, the mutation and the invalidations, because
+both callers want the same three keys refreshed. The popover version written
+earlier the same day is gone: the modules settings page uses this dialog too, so
+there is one way to make a group rather than two that drift. Dialog over
+popover for the nav specifically - a popover anchored to a sidebar row has
+nowhere to sit when the rail is collapsed to icons.
+
+`NavSubItem` gains an optional `onSelect`. A row with one renders as a button in
+both the expanded sidebar and the collapsed dropdown, carries no url, and is
+therefore skipped by `collectUrls` and `flattenNavItems` already - correct,
+since it is an action rather than a destination. `useNavItems` takes the handler
+as an optional third argument: the sidebar passes it, global search does not,
+and the row is simply absent from search results.
+
+The `?newGroup=true` param still opens the dialog on the settings page, so an
+existing link keeps working.
+
+Verified: `tsc --noEmit` clean, lint 0 errors, layout checks clean. No browser
+pass - dev servers were down, so neither the dialog nor the collapsed-rail
+dropdown row has been seen rendering.

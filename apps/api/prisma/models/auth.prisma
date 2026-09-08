@@ -148,6 +148,7 @@ model Organization {
   members                  Member[]
   agreements               ContractAgreement[]
   modules                  Module[]
+  moduleGroups             ModuleGroup[]
   savedReports             SavedReport[]
   customAnalytics          CustomAnalytic[]
   customAnalyticDashboards CustomAnalyticDashboard[]

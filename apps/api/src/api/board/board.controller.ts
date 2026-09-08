@@ -211,6 +211,8 @@ export class BoardController {
     @Query("moduleType") moduleType?: string,
     @Query("assignedTo") assignedTo?: string,
     @Query("dueBefore") dueBefore?: string,
+    @Query("dayStart") dayStart?: string,
+    @Query("dayEnd") dayEnd?: string,
     @Query("page") page = 1,
     @Query("limit") limit = 25
   ) {
@@ -221,6 +223,8 @@ export class BoardController {
           moduleType,
           assignedTo,
           dueBefore,
+          dayStart,
+          dayEnd,
           page: Number(page),
           limit: Number(limit),
         }

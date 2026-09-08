@@ -9,7 +9,9 @@ export type CrmModule = {
   isSystem: boolean;
   isArchived: boolean;
   moduleOrder: number;
-  // Sidebar folder only. Null means the module sits at the top level.
+  // Sidebar folder only. Null means the module sits at the top level; the name
+  // rides along so a picker can label the folder without joining the groups.
+  groupId: string | null;
   groupName: string | null;
 };
 
@@ -23,7 +25,7 @@ export type CreateModuleInput = {
   label: string;
   labelSingular: string;
   icon?: string;
-  groupName?: string;
+  groupId?: string;
   fields: { fieldName: string; fieldType: string; options?: string[] }[];
 };
 
@@ -40,7 +42,7 @@ export type UpdateModuleInput = Partial<{
   label: string;
   labelSingular: string;
   icon: string;
-  groupName: string | null;
+  groupId: string | null;
   isArchived: boolean;
 }>;
 

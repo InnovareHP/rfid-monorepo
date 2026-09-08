@@ -497,11 +497,23 @@ export class BoardService {
       moduleType?: string;
       assignedTo?: string;
       dueBefore?: string;
+      // Local day boundaries: only the browser knows where the viewer's day
+      // ends, and the bucket totals have to agree with the sections it renders.
+      dayStart?: string;
+      dayEnd?: string;
       page?: number;
       limit?: number;
     }
   ) {
-    const { moduleType, assignedTo, dueBefore, page = 1, limit = 25 } = params;
+    const {
+      moduleType,
+      assignedTo,
+      dueBefore,
+      dayStart,
+      dayEnd,
+      page = 1,
+      limit = 25,
+    } = params;
     const scopedModuleId = moduleType
       ? await resolveModuleId(moduleType, organizationId)
       : undefined;
@@ -519,21 +531,100 @@ export class BoardService {
     };
 
     // Due dates are plaintext columns, unlike recordName, so the grouping runs
-    // in Postgres. The page is sliced here because the count is the number of
-    // groups, which Postgres will not return alongside them.
+    // in Postgres, paged there too: an organization deep in follow-ups would
+    // otherwise materialize every group to hand back twenty-five of them.
+    const offset = (page - 1) * limit;
     const due = await prisma.activity.groupBy({
       by: ["recordId"],
       where: pendingWhere,
       _min: { dueDate: true },
       orderBy: { _min: { dueDate: "asc" } },
+      skip: offset,
+      // One extra row answers "is there another page" without a second count.
+      take: limit + 1,
     });
 
-    const offset = (page - 1) * limit;
-    const recordIds = due.slice(offset, offset + limit).map((r) => r.recordId);
+    const pageRows = due.slice(0, limit);
 
     return {
-      data: await this.buildFollowUpRows(recordIds, organizationId),
-      pagination: { page, limit, count: due.length },
+      data: await this.buildFollowUpRows(
+        pageRows.map((row) => row.recordId),
+        organizationId
+      ),
+      pagination: { page, limit, hasMore: due.length > limit },
+      buckets: await this.followUpBucketCounts(organizationId, {
+        scopedModuleId,
+        assignedTo,
+        dueBefore,
+        dayStart,
+        dayEnd,
+      }),
+    };
+  }
+
+  // Section headers need totals the current page cannot know. Counting runs on
+  // each record's earliest pending due date, which is the row the queue shows,
+  // so a record chased twice lands in one bucket rather than two.
+  private async followUpBucketCounts(
+    organizationId: string,
+    params: {
+      scopedModuleId?: string;
+      assignedTo?: string;
+      dueBefore?: string;
+      dayStart?: string;
+      dayEnd?: string;
+    }
+  ) {
+    const { scopedModuleId, assignedTo, dueBefore, dayStart, dayEnd } = params;
+
+    if (!dayStart || !dayEnd) return null;
+
+    const [counts] = await prisma.$queryRaw<
+      { overdue: bigint; today: bigint; upcoming: bigint; total: bigint }[]
+    >`
+      SELECT
+        count(*) FILTER (WHERE earliest < ${new Date(dayStart)}) AS overdue,
+        count(*) FILTER (
+          WHERE earliest >= ${new Date(dayStart)}
+            AND earliest < ${new Date(dayEnd)}
+        ) AS today,
+        count(*) FILTER (WHERE earliest >= ${new Date(dayEnd)}) AS upcoming,
+        count(*) AS total
+      FROM (
+        SELECT a."recordId", min(a."dueDate") AS earliest
+        FROM board_schema."Activity" a
+        JOIN board_schema."Board" b ON b."id" = a."recordId"
+        WHERE a."organizationId" = ${organizationId}
+          AND a."status" = 'PENDING'
+          AND a."dueDate" IS NOT NULL
+          AND b."isDeleted" = false
+          ${
+            dueBefore
+              ? Prisma.sql`AND a."dueDate" < ${new Date(dueBefore)}`
+              : Prisma.empty
+          }
+          ${
+            scopedModuleId
+              ? Prisma.sql`AND b."moduleId" = ${scopedModuleId}`
+              : Prisma.empty
+          }
+          ${
+            assignedTo
+              ? Prisma.sql`AND b."assignedTo" = ${assignedTo}`
+              : Prisma.empty
+          }
+        GROUP BY a."recordId"
+      ) per_record
+    `;
+
+    // $queryRaw bypasses the tenant extension, so the organization is named in
+    // the WHERE above rather than injected. Postgres counts come back as
+    // bigint, which does not survive JSON.
+    return {
+      overdue: Number(counts?.overdue ?? 0),
+      today: Number(counts?.today ?? 0),
+      upcoming: Number(counts?.upcoming ?? 0),
+      total: Number(counts?.total ?? 0),
     };
   }
 

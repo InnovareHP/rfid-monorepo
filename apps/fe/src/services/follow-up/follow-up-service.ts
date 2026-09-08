@@ -17,15 +17,27 @@ export type FollowUpRow = {
   } | null;
 };
 
+// Totals for the section headers, which a single page cannot know. Null when
+// the caller did not send its local day boundaries.
+export type FollowUpBuckets = {
+  overdue: number;
+  today: number;
+  upcoming: number;
+  total: number;
+} | null;
+
 export type FollowUpDigest = {
   data: FollowUpRow[];
-  pagination: { page: number; limit: number; count: number };
+  pagination: { page: number; limit: number; hasMore: boolean };
+  buckets: FollowUpBuckets;
 };
 
 export const getFollowUpDigest = async (params: {
   moduleType?: string;
   assignedTo?: string;
   dueBefore?: string;
+  dayStart?: string;
+  dayEnd?: string;
   page?: number;
   limit?: number;
 }) => {
