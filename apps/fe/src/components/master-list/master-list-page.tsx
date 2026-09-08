@@ -77,7 +77,8 @@ export default function MasterListPage() {
     boardDateTo: null,
     filter: {},
     limit: 10,
-    search: undefined,
+    // Seeded from the route so a ?q= link filters on first paint.
+    search: routeSearch.q,
   });
 
   const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);

@@ -54,6 +54,8 @@ export default function CrmListPage({
 
   const routeSearch = useSearch({ strict: false }) as { q?: string };
 
+  // search is seeded from the route so a ?q= link filters on first paint; the
+  // guard below only ever sees a query that changed after mount.
   const [filterMeta, setFilterMeta] = useState<{
     filter: Record<string, string>;
     limit: number;
@@ -61,7 +63,7 @@ export default function CrmListPage({
     search?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
-  }>({ filter: {}, limit: 10, page: 1, search: undefined });
+  }>({ filter: {}, limit: 10, page: 1, search: routeSearch.q });
 
   const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);
 

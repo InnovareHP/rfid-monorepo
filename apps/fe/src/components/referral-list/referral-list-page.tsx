@@ -49,6 +49,8 @@ export default function ReferralListPage() {
     activeOrganizationId,
   ]);
   const canConfigureKanban = can(memberData?.role, { field: ["configure"] });
+  const routeSearch = useSearch({ strict: false }) as { q?: string };
+
   const [filterMeta, setFilterMeta] = useState<{
     boardDateFrom: null | Date;
     boardDateTo: null | Date;
@@ -62,9 +64,10 @@ export default function ReferralListPage() {
     boardDateTo: null,
     filter: {},
     limit: 10,
+    // Seeded from the route so a ?q= link filters on first paint.
+    search: routeSearch.q,
   });
 
-  const routeSearch = useSearch({ strict: false }) as { q?: string };
   const [syncedQuery, setSyncedQuery] = useState(routeSearch.q);
 
   // Adopt a new route query during render instead of in an effect
