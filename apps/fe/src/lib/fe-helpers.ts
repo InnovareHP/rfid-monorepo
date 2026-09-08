@@ -1,5 +1,4 @@
 import { FileTerminal } from "lucide-react";
-import Papa from "papaparse";
 
 // Excel and Sheets evaluate a cell that opens with one of these, so an exported
 // record name would run as a formula. Same guard as the server export.
@@ -17,7 +16,7 @@ export const FILETYPE = {
 // Rows keyed by the column names given. Board modules do not come through here
 // any more - they export server side, which is the only path that can resolve
 // the assignee and reach past the page the client is holding.
-export function exportToCSV(
+export async function exportToCSV(
   data: Record<string, unknown>[],
   columns: string[],
   filename: string
@@ -34,6 +33,8 @@ export function exportToCSV(
     return formattedRow;
   });
 
+  // papaparse is only reached on an export, so it stays out of the helper chunk.
+  const { default: Papa } = await import("papaparse");
   const csv = Papa.unparse(csvData, { header: true });
 
   // Download Logic
@@ -72,8 +73,9 @@ export function downloadCSVBlob(blob: Blob, filename: string) {
 }
 
 // Downloads a header-only CSV used as an import template.
-export function downloadCSVTemplate(headers: string[], filename: string) {
+export async function downloadCSVTemplate(headers: string[], filename: string) {
   const BOM = "﻿";
+  const { default: Papa } = await import("papaparse");
   const csv = Papa.unparse([headers]);
   const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
