@@ -460,7 +460,7 @@ export const EditableCell = memo(function EditableCell({
                     {format(date, "PPP")}
                     {date && (
                       <XCircle
-                        className="ml-auto h-4 w-4 text-gray-400 hover:text-red-500 cursor-pointer"
+                        className="ml-auto h-4 w-4 text-muted-foreground hover:text-destructive cursor-pointer"
                         onClick={handleClearDate}
                       />
                     )}
@@ -523,7 +523,7 @@ export const EditableCell = memo(function EditableCell({
           {isLoadingAssignedTo ? (
             <div className="flex items-center justify-center p-4">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-gray-500">Loading users...</span>
+              <span className="text-sm text-muted-foreground">Loading users...</span>
             </div>
           ) : assignedToOptionsData && assignedToOptionsData.length > 0 ? (
             assignedToOptionsData.map((opt: OptionsResponse) => (
@@ -533,8 +533,8 @@ export const EditableCell = memo(function EditableCell({
             ))
           ) : (
             <div className="flex items-center justify-center p-4">
-              <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-500">No users available</span>
+              <AlertCircle className="h-4 w-4 text-muted-foreground mr-2" />
+              <span className="text-sm text-muted-foreground">No users available</span>
             </div>
           )}
         </SelectContent>
@@ -557,7 +557,7 @@ export const EditableCell = memo(function EditableCell({
           disabled={isUpdating}
         />
         {isUpdating && (
-          <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
         )}
       </div>
     );
@@ -598,7 +598,7 @@ export const EditableCell = memo(function EditableCell({
             {isLoadingOptions ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-muted-foreground">
                   Loading options...
                 </span>
               </div>
@@ -631,15 +631,15 @@ export const EditableCell = memo(function EditableCell({
                     ))
                   ) : searchQuery ? (
                     <div className="flex items-center justify-center p-4">
-                      <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-500">
+                      <AlertCircle className="h-4 w-4 text-muted-foreground mr-2" />
+                      <span className="text-sm text-muted-foreground">
                         No matches found
                       </span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center p-4">
-                      <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-500">
+                      <AlertCircle className="h-4 w-4 text-muted-foreground mr-2" />
+                      <span className="text-sm text-muted-foreground">
                         No options available
                       </span>
                     </div>
@@ -658,7 +658,7 @@ export const EditableCell = memo(function EditableCell({
                 <div className="border-t mt-1">
                   {val && (
                     <div
-                      className="flex items-center gap-2 px-2 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-2 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleUpdate("");
@@ -803,7 +803,7 @@ export const EditableCell = memo(function EditableCell({
             {isLoadingRecords ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-muted-foreground">
                   Loading options...
                 </span>
               </div>
@@ -860,7 +860,7 @@ export const EditableCell = memo(function EditableCell({
                 <div className="border-t mt-1">
                   {val && (
                     <div
-                      className="flex items-center gap-2 px-2 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-2 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleUpdate("", undefined, undefined, val);
@@ -880,7 +880,7 @@ export const EditableCell = memo(function EditableCell({
             to={linkRoute as any}
             search={{ q: val } as any}
             onClick={(e) => e.stopPropagation()}
-            className="shrink-0 text-gray-400 hover:text-primary"
+            className="shrink-0 text-muted-foreground hover:text-primary"
             title={`Open ${val}`}
           >
             <ExternalLink className="h-3.5 w-3.5" />
@@ -998,15 +998,15 @@ export const EditableCell = memo(function EditableCell({
         <PopoverContent className="w-[250px] p-0" align="start">
           {/* Header with clear all */}
           {selectedValues.length > 0 && (
-            <div className="flex items-center justify-between p-2 border-b bg-gray-50">
-              <span className="text-xs font-semibold text-gray-700">
+            <div className="flex items-center justify-between p-2 border-b bg-muted">
+              <span className="text-xs font-semibold text-foreground">
                 {selectedValues.length} selected
               </span>
               <div className="flex gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-xs text-red-600 hover:text-red-700"
+                  className="h-6 text-xs text-destructive hover:text-destructive"
                   onClick={handleClearAll}
                 >
                   Clear All
@@ -1029,7 +1029,7 @@ export const EditableCell = memo(function EditableCell({
           {isLoadingOptions ? (
             <div className="flex items-center justify-center p-4">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-gray-500">Loading options...</span>
+              <span className="text-sm text-muted-foreground">Loading options...</span>
             </div>
           ) : (
             <div className="max-h-[250px] overflow-y-auto p-2 space-y-1">
@@ -1052,8 +1052,8 @@ export const EditableCell = memo(function EditableCell({
                 ))
               ) : (
                 <div className="flex items-center justify-center p-4">
-                  <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-                  <span className="text-sm text-gray-500">
+                  <AlertCircle className="h-4 w-4 text-muted-foreground mr-2" />
+                  <span className="text-sm text-muted-foreground">
                     No options available
                   </span>
                 </div>
@@ -1139,16 +1139,16 @@ export const EditableCell = memo(function EditableCell({
           onKeyDown={handleKeyDown}
           className={cn(
             "h-8 text-sm pr-8",
-            validationError && "border-red-500 focus-visible:ring-red-500"
+            validationError && "border-destructive focus-visible:ring-destructive"
           )}
           autoFocus
           disabled={isUpdating}
         />
         {isUpdating && (
-          <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-gray-400" />
+          <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-muted-foreground" />
         )}
         {validationError && (
-          <p className="text-xs text-red-500 mt-1">{validationError}</p>
+          <p className="text-xs text-destructive mt-1">{validationError}</p>
         )}
       </div>
     ) : (
@@ -1160,7 +1160,7 @@ export const EditableCell = memo(function EditableCell({
           {val || <span className="text-muted-foreground">—</span>}
         </span>
         {isUpdating && (
-          <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
         )}
       </div>
     );
@@ -1180,17 +1180,17 @@ export const EditableCell = memo(function EditableCell({
           onKeyDown={handleKeyDown}
           className={cn(
             "h-8 text-sm pr-8",
-            validationError && "border-red-500 focus-visible:ring-red-500"
+            validationError && "border-destructive focus-visible:ring-destructive"
           )}
           placeholder="example@email.com"
           autoFocus
           disabled={isUpdating}
         />
         {isUpdating && (
-          <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-gray-400" />
+          <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-muted-foreground" />
         )}
         {validationError && (
-          <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             {validationError}
           </p>
@@ -1205,7 +1205,7 @@ export const EditableCell = memo(function EditableCell({
           {val || <span className="text-muted-foreground">—</span>}
         </span>
         {isUpdating && (
-          <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
         )}
       </div>
     );
@@ -1240,17 +1240,17 @@ export const EditableCell = memo(function EditableCell({
           onKeyDown={handleKeyDown}
           className={cn(
             "h-8 text-sm pr-8",
-            validationError && "border-red-500 focus-visible:ring-red-500"
+            validationError && "border-destructive focus-visible:ring-destructive"
           )}
           placeholder="(555) 123-4567"
           autoFocus
           disabled={isUpdating}
         />
         {isUpdating && (
-          <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-gray-400" />
+          <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-muted-foreground" />
         )}
         {validationError && (
-          <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             {validationError}
           </p>
@@ -1269,7 +1269,7 @@ export const EditableCell = memo(function EditableCell({
           )}
         </span>
         {isUpdating && (
-          <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
         )}
       </div>
     );
@@ -1288,17 +1288,17 @@ export const EditableCell = memo(function EditableCell({
         onKeyDown={handleKeyDown}
         className={cn(
           "h-8 text-sm w-auto pr-8",
-          validationError && "border-red-500 focus-visible:ring-red-500"
+          validationError && "border-destructive focus-visible:ring-destructive"
         )}
         autoFocus
         disabled={isUpdating}
         maxLength={500}
       />
       {isUpdating && (
-        <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-gray-400" />
+        <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-muted-foreground" />
       )}
       {validationError && (
-        <p className="text-xs text-red-500 mt-1">{validationError}</p>
+        <p className="text-xs text-destructive mt-1">{validationError}</p>
       )}
     </div>
   ) : (
@@ -1317,7 +1317,7 @@ export const EditableCell = memo(function EditableCell({
       >
         {val || <span className="text-muted-foreground">—</span>}
       </span>
-      {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
+      {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
     </div>
   );
 });

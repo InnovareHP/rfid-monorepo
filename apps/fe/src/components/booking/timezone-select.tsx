@@ -56,7 +56,7 @@ export const TimezoneSelect = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between bg-white font-normal"
+          className="w-full justify-between bg-card font-normal"
         >
           <span className="truncate">{value || "Select a timezone"}</span>
           <span className="flex items-center gap-2 text-muted-foreground">

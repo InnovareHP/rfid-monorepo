@@ -63,9 +63,9 @@ export const GroupListTable = ({
           <button
             type="button"
             onClick={() => onOpen(row)}
-            className="flex items-center gap-2 text-left font-medium text-gray-900 hover:text-primary"
+            className="flex items-center gap-2 text-left font-medium text-foreground hover:text-primary"
           >
-            <Users className="size-4 shrink-0 text-gray-400" />
+            <Users className="size-4 shrink-0 text-muted-foreground" />
             <span className="truncate">{row.name}</span>
           </button>
         ),
@@ -73,22 +73,22 @@ export const GroupListTable = ({
       {
         key: "moduleType",
         header: "Module",
-        className: "w-[12%] text-gray-600",
+        className: "w-[12%] text-muted-foreground",
         render: (row: RecipientGroup) => row.moduleType,
       },
       {
         key: "criteria",
         header: "Criteria",
-        className: "w-[24%] text-gray-600",
+        className: "w-[24%] text-muted-foreground",
         render: (row: RecipientGroup) => criteriaSummary(row),
       },
       {
         key: "blasts",
         header: "Used By",
-        className: "w-[13%] text-gray-600",
+        className: "w-[13%] text-muted-foreground",
         render: (row: RecipientGroup) => (
           <span className="flex items-center gap-1.5">
-            <Mail className="size-4 text-gray-400" />
+            <Mail className="size-4 text-muted-foreground" />
             {row._count?.blasts ?? 0} Blasts
           </span>
         ),
@@ -96,7 +96,7 @@ export const GroupListTable = ({
       {
         key: "updatedAt",
         header: "Last Updated",
-        className: "w-[15%] text-gray-600",
+        className: "w-[15%] text-muted-foreground",
         render: (row: RecipientGroup) => formatDateTime(row.updatedAt),
       },
       {
@@ -108,7 +108,7 @@ export const GroupListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-primary"
+              className="text-muted-foreground hover:text-primary"
               aria-label="Edit group"
               onClick={() => onEdit(row)}
             >
@@ -117,7 +117,7 @@ export const GroupListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-red-600"
+              className="text-muted-foreground hover:text-destructive"
               aria-label="Delete group"
               onClick={() => onDelete(row)}
             >

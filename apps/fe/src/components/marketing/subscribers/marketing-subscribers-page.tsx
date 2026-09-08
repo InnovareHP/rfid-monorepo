@@ -83,7 +83,7 @@ export const MarketingSubscribersPage = () => {
         {canEdit && (
           <Button
             onClick={() => setCreateOpen(true)}
-            className="bg-brand text-white hover:bg-brand/90"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
           >
             <Plus className="size-4" />
             Add Subscriber

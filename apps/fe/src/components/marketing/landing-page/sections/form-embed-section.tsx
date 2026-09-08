@@ -22,7 +22,7 @@ export const FormEmbedSection = ({
   // published) — degrade gracefully instead of a blank space or a crash.
   if (!embeddedForm) {
     return (
-      <section className="py-10 px-6 text-center text-sm text-gray-400">
+      <section className="py-10 px-6 text-center text-sm text-muted-foreground">
         This form is no longer available.
       </section>
     );
@@ -50,7 +50,7 @@ export const FormEmbedSection = ({
   return (
     <section className="py-10 px-6 max-w-md mx-auto space-y-4">
       {section.props.heading && (
-        <h2 className="text-xl font-semibold text-gray-900 text-center">
+        <h2 className="text-xl font-semibold text-foreground text-center">
           {section.props.heading}
         </h2>
       )}

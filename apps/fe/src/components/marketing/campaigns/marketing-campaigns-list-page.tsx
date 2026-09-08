@@ -253,7 +253,7 @@ export const MarketingCampaignsListPage = () => {
         <WriteGate>
           <Button
             onClick={() => setCreateOpen(true)}
-            className="bg-brand text-white hover:bg-brand/90"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
           >
             <Plus className="h-4 w-4" />
             New Campaign
@@ -286,7 +286,7 @@ export const MarketingCampaignsListPage = () => {
           setSearch(event.target.value);
           setPage(1);
         }}
-        className="w-full bg-white sm:w-80"
+        className="w-full bg-card sm:w-80"
       />
 
       <CampaignListTable
@@ -327,7 +327,7 @@ export const MarketingCampaignsListPage = () => {
           <DialogFormBody className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="campaign-name">
-                Campaign Name <span className="text-red-500">*</span>
+                Campaign Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="campaign-name"
@@ -376,7 +376,7 @@ export const MarketingCampaignsListPage = () => {
                 createMutation.mutate(payload);
               }}
               disabled={!name.trim() || isSaving}
-              className="bg-brand text-white hover:bg-brand/90"
+              className="bg-brand text-brand-foreground hover:bg-brand/90"
             >
               {isSaving ? (
                 <Loader2 className="size-4 animate-spin" />

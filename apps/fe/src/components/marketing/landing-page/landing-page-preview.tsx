@@ -20,12 +20,12 @@ type PlaceholderProps = {
 const Placeholder = ({ icon: Icon, title, hint, dashed }: PlaceholderProps) => (
   <div
     className={`m-6 flex flex-col items-center justify-center gap-1 rounded-lg py-12 text-center ${
-      dashed ? "border border-dashed border-blue-200 bg-blue-50/50" : ""
+      dashed ? "border border-dashed border-info/30 bg-info/10/50" : ""
     }`}
   >
-    <Icon className="h-8 w-8 text-gray-400" />
-    <p className="text-sm text-gray-600">{title}</p>
-    <p className="text-xs text-gray-400">{hint}</p>
+    <Icon className="h-8 w-8 text-muted-foreground" />
+    <p className="text-sm text-muted-foreground">{title}</p>
+    <p className="text-xs text-muted-foreground">{hint}</p>
   </div>
 );
 
@@ -84,7 +84,7 @@ export const LandingPagePreview = ({
   };
 
   return (
-    <div className="bg-white">
+    <div className="bg-card">
       {sections.map((section) => {
         const node = renderSection(section);
         return (

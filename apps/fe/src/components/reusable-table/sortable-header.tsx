@@ -13,10 +13,10 @@ export function SortableHeader({ label, onToggle }: SortableHeaderProps) {
     <button
       type="button"
       onClick={onToggle}
-      className="inline-flex items-center gap-1.5 font-semibold text-gray-900"
+      className="inline-flex items-center gap-1.5 font-semibold text-foreground"
     >
       {label}
-      <ChevronsUpDown className="size-3.5 text-gray-500" />
+      <ChevronsUpDown className="size-3.5 text-muted-foreground" />
     </button>
   );
 }

@@ -38,7 +38,7 @@ export function RelatedRecords({ recordId }: { recordId: string }) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 gap-1 text-xs text-gray-500"
+          className="h-7 gap-1 text-xs text-muted-foreground"
           onClick={(e) => e.stopPropagation()}
         >
           <Link2 className="h-3.5 w-3.5" />
@@ -53,7 +53,7 @@ export function RelatedRecords({ recordId }: { recordId: string }) {
             <Skeleton className="h-8 w-2/3" />
           </div>
         ) : related.length === 0 ? (
-          <p className="p-3 text-sm text-gray-500">No related records</p>
+          <p className="p-3 text-sm text-muted-foreground">No related records</p>
         ) : (
           <div className="max-h-64 overflow-y-auto space-y-1">
             {related.map((record: RelatedRecord) => (
@@ -68,7 +68,7 @@ export function RelatedRecords({ recordId }: { recordId: string }) {
                 className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent"
               >
                 <span className="truncate">{record.recordName}</span>
-                <span className="ml-2 flex shrink-0 items-center gap-1 text-xs text-gray-400">
+                <span className="ml-2 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                   {moduleLabel(record.moduleType)}
                   <ExternalLink className="h-3 w-3" />
                 </span>

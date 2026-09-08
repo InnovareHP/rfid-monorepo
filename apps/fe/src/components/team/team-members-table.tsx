@@ -55,13 +55,13 @@ export function TeamMembersTable({
           header: "Name",
           className: TEAM_COLUMN_WIDTHS.name,
           render: (row: TeamMemberRow) => (
-            <span className="font-medium text-gray-900">{row.user.name}</span>
+            <span className="font-medium text-foreground">{row.user.name}</span>
           ),
         },
         {
           key: "user_email",
           header: "Email",
-          className: cn("text-gray-600", TEAM_COLUMN_WIDTHS.email),
+          className: cn("text-muted-foreground", TEAM_COLUMN_WIDTHS.email),
           render: (row: TeamMemberRow) => row.user.email,
         },
         {
@@ -73,7 +73,7 @@ export function TeamMembersTable({
         {
           key: "member_created_at",
           header: "Joined",
-          className: cn("text-gray-600", TEAM_COLUMN_WIDTHS.date),
+          className: cn("text-muted-foreground", TEAM_COLUMN_WIDTHS.date),
           render: (row: TeamMemberRow) =>
             row.createdAt
               ? formatDateTime(new Date(row.createdAt).toISOString())

@@ -39,7 +39,7 @@ export const PageSettingsPanel = ({
         <FormItem>
           <FormLabel>URL Slug</FormLabel>
           <div className="flex items-center gap-1">
-            <span className="shrink-0 text-xs text-gray-400">
+            <span className="shrink-0 text-xs text-muted-foreground">
               {`${window.location.origin}/l/${orgSlug}/`}
             </span>
             <FormControl>

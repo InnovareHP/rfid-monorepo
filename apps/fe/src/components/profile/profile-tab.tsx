@@ -128,7 +128,7 @@ export function ProfileTab({
                 onClick={handleAvatarClick}
                 disabled={isUploading}
                 aria-label="Change profile photo"
-                className="absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-primary"
+                className="absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:text-primary"
               >
                 {isUploading ? (
                   <Loader2 className="size-3 animate-spin" />
@@ -182,13 +182,13 @@ export function ProfileTab({
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-foreground">
                     {name || "No name set"}
                   </h2>
                   <Button
                     size="icon"
                     variant="outline"
-                    className="size-8 text-gray-500"
+                    className="size-8 text-muted-foreground"
                     onClick={() => setIsEditingName(true)}
                     aria-label="Edit name"
                   >
@@ -202,7 +202,7 @@ export function ProfileTab({
 
           {memberSince ? (
             <div className="text-right">
-              <p className="text-xs font-medium tracking-wide text-gray-400 uppercase">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 Member Since
               </p>
               <p className="page-title text-2xl font-bold">
@@ -219,8 +219,8 @@ export function ProfileTab({
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
               emailVerified
-                ? "border-green-500 text-green-600"
-                : "border-amber-500 text-amber-600"
+                ? "border-success text-success"
+                : "border-warning text-warning"
             )}
           >
             <CheckCircle2 className="size-3.5" />
@@ -233,8 +233,8 @@ export function ProfileTab({
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
               twoFactorEnabled
-                ? "border-green-500 text-green-600"
-                : "border-gray-300 text-gray-500"
+                ? "border-success text-success"
+                : "border-border text-muted-foreground"
             )}
           >
             <ShieldCheck className="size-3.5" />

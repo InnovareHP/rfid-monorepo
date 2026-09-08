@@ -101,7 +101,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
       <DialogContent variant="shell" className="max-w-5xl">
         <DialogHeader className="shrink-0 px-4 pt-5 pb-4 from-primary/10 to-purple-50 sm:px-6 sm:pt-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold text-gray-900">
+            <DialogTitle className="text-2xl font-bold text-foreground">
               Referral Details
             </DialogTitle>
 
@@ -117,18 +117,18 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-16 w-full rounded-xl border bg-gray-100 animate-pulse"
+                  className="h-16 w-full rounded-xl border bg-muted animate-pulse"
                 />
               ))}
             </div>
           </div>
         ) : isError ? (
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
-            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm">
-              <div className="font-semibold text-red-900 mb-2">
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-6 text-sm">
+              <div className="font-semibold text-destructive mb-2">
                 Failed to load referral
               </div>
-              <div className="text-red-700">
+              <div className="text-destructive">
                 {(error as Error)?.message || "Something went wrong."}
               </div>
             </div>
@@ -175,7 +175,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                         key={key}
                         className="group rounded-xl border p-4 hover:shadow-md transition-all"
                       >
-                        <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                           {key}
                         </div>
 
@@ -204,7 +204,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                     {Array.from({ length: 5 }).map((_, i) => (
                       <div
                         key={i}
-                        className="h-14 w-full rounded-md bg-gray-100 animate-pulse"
+                        className="h-14 w-full rounded-md bg-muted animate-pulse"
                       />
                     ))}
                   </div>
@@ -212,14 +212,14 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
 
                 {historyData &&
                   historyData.pages.flatMap((p) => p.data).length === 0 && (
-                    <div className="text-center text-gray-500 py-10">
+                    <div className="text-center text-muted-foreground py-10">
                       No history found
                     </div>
                   )}
 
                 {historyData && historyData.pages.length > 0 && (
                   <div className="relative">
-                    <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                    <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-muted"></div>
 
                     <div className="space-y-6">
                       {historyData.pages
@@ -233,10 +233,10 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                                 <Icon className="h-5 w-5 text-white" />
                               </div>
 
-                              <div className="bg-white rounded-xl border p-4">
+                              <div className="bg-card rounded-xl border p-4">
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
+                                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
                                       {item.createdBy
                                         .split(" ")
                                         .map((n: string) => n[0])
@@ -247,14 +247,14 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
                                       <p className="text-sm font-semibold">
                                         {item.createdBy}
                                       </p>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-xs text-muted-foreground">
                                         {item.action.charAt(0).toUpperCase() +
                                           item.action.slice(1)}
                                       </p>
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                     <Clock className="h-3 w-3" />
                                     {formatDateTime(item.createdAt)}
                                   </div>
@@ -262,7 +262,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
 
                                 {item.oldValue && item.newValue && (
                                   <div className="mt-3 pt-3 border-t">
-                                    <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-2.5">
+                                    <p className="text-sm text-foreground bg-muted rounded-lg p-2.5">
                                       {item.oldValue} → {item.newValue}
                                     </p>
                                   </div>
@@ -279,7 +279,7 @@ export function ReferralCellView({ referralId }: { referralId: string }) {
           </Tabs>
         )}
 
-        <DialogFooter className="px-6 py-4 bg-gray-50 border-t">
+        <DialogFooter className="px-6 py-4 bg-muted border-t">
           <Button variant="outline" onClick={() => setOpen(false)}>
             Close
           </Button>

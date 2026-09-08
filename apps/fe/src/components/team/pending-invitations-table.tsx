@@ -37,7 +37,7 @@ export function PendingInvitationsTable({
           header: "Name",
           className: TEAM_COLUMN_WIDTHS.name,
           render: (row: InvitationRow) => (
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-foreground">
               {nameFromEmail(row.email)}
             </span>
           ),
@@ -45,7 +45,7 @@ export function PendingInvitationsTable({
         {
           key: "email",
           header: "Email",
-          className: cn("text-gray-600", TEAM_COLUMN_WIDTHS.email),
+          className: cn("text-muted-foreground", TEAM_COLUMN_WIDTHS.email),
           render: (row: InvitationRow) => row.email,
         },
         {
@@ -57,7 +57,7 @@ export function PendingInvitationsTable({
         {
           key: "createdAt",
           header: "Date Sent",
-          className: cn("text-gray-600", TEAM_COLUMN_WIDTHS.date),
+          className: cn("text-muted-foreground", TEAM_COLUMN_WIDTHS.date),
           render: (row: InvitationRow) =>
             row.createdAt
               ? formatDateTime(new Date(row.createdAt).toISOString())
@@ -79,7 +79,7 @@ export function PendingInvitationsTable({
               <button
                 type="button"
                 onClick={() => onRevoke(row.id)}
-                className="text-sm font-medium text-red-600 hover:underline"
+                className="text-sm font-medium text-destructive hover:underline"
               >
                 Revoke
               </button>

@@ -103,7 +103,7 @@ export function CompliancePage() {
   };
 
   const baaBadge = baa.signed ? (
-    <Badge className="bg-emerald-100 text-emerald-800">Signed</Badge>
+    <Badge className="bg-success/10 text-success">Signed</Badge>
   ) : baa.stale ? (
     <Badge variant="destructive">Update required</Badge>
   ) : (

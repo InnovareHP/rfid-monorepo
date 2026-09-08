@@ -178,7 +178,7 @@ export const MarketingFormsListPage = () => {
         <WriteGate>
           <Button
             onClick={() => setCreateOpen(true)}
-            className="bg-brand text-white hover:bg-brand/90"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
           >
             <Plus className="h-4 w-4" />
             New Form
@@ -211,7 +211,7 @@ export const MarketingFormsListPage = () => {
           setSearch(event.target.value);
           setPage(1);
         }}
-        className="w-full bg-white sm:w-80"
+        className="w-full bg-card sm:w-80"
       />
 
       <FormListTable
@@ -264,7 +264,7 @@ export const MarketingFormsListPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Form Name <span className="text-red-500">*</span>
+                        Form Name <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input {...field} />
@@ -311,7 +311,7 @@ export const MarketingFormsListPage = () => {
                   render={() => (
                     <FormItem>
                       <FormLabel>Fields</FormLabel>
-                      <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-gray-200 p-2">
+                      <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-border p-2">
                         {boardFields.map((boardField) => (
                           <label
                             key={boardField.id}
@@ -342,7 +342,7 @@ export const MarketingFormsListPage = () => {
                 <Button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="bg-brand text-white hover:bg-brand/90"
+                  className="bg-brand text-brand-foreground hover:bg-brand/90"
                 >
                   {createMutation.isPending ? (
                     <Loader2 className="size-4 animate-spin" />

@@ -66,8 +66,8 @@ export const SectionEditorPanel = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Icon className="h-5 w-5 text-gray-700" />
-        <h3 className="text-lg font-medium text-gray-900">{label}</h3>
+        <Icon className="h-5 w-5 text-foreground" />
+        <h3 className="text-lg font-medium text-foreground">{label}</h3>
       </div>
 
       {section.type === "HERO" && <HeroFields form={form} index={index} />}
@@ -82,7 +82,7 @@ export const SectionEditorPanel = ({
       )}
       {section.type === "CTA" && <CtaFields form={form} index={index} />}
 
-      <div className="flex gap-2 border-t border-gray-100 pt-4">
+      <div className="flex gap-2 border-t border-border pt-4">
         <Button
           type="button"
           variant="outline"
@@ -377,7 +377,7 @@ const FormEmbedFields = ({
               </SelectContent>
             </Select>
             {publishedForms.length === 0 && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted-foreground">
                 No published forms yet. Publish a form first.
               </p>
             )}

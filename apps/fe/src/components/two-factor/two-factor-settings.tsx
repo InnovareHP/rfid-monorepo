@@ -247,7 +247,7 @@ export function TwoFactorSettings({
               to render here too or it exists only in a toast that fades. */}
           <FormError message={passwordForm.formState.errors.root?.message} />
           <Button
-            className="w-full bg-brand text-white hover:bg-brand/90 sm:w-auto"
+            className="w-full bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto"
             onClick={enabled ? startDisable : startEnable}
           >
             {enabled ? (

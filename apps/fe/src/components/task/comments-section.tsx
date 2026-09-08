@@ -59,7 +59,7 @@ export const CommentsSection = ({
   return (
     <div className="space-y-4">
       {comments.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-4">
+        <p className="text-sm text-muted-foreground text-center py-4">
           No comments yet
         </p>
       )}
@@ -77,10 +77,10 @@ export const CommentsSection = ({
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-foreground">
                   {comment.author.name}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {formatDateTime(comment.createdAt)}
                 </span>
                 {isOwn && editingId !== comment.id && (
@@ -88,7 +88,7 @@ export const CommentsSection = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-gray-400"
+                      className="h-6 w-6 p-0 text-muted-foreground"
                       onClick={() => {
                         setEditingId(comment.id);
                         setEditBody(comment.body);
@@ -100,7 +100,7 @@ export const CommentsSection = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                       onClick={() => setDeletingId(comment.id)}
                       aria-label="Delete comment"
                     >
@@ -130,7 +130,7 @@ export const CommentsSection = ({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap mt-0.5">
+                <p className="text-sm text-foreground whitespace-pre-wrap mt-0.5">
                   {comment.body}
                 </p>
               )}
@@ -139,7 +139,7 @@ export const CommentsSection = ({
         );
       })}
 
-      <div className="flex items-end gap-2 pt-2 border-t border-gray-100">
+      <div className="flex items-end gap-2 pt-2 border-t border-border">
         <Textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}

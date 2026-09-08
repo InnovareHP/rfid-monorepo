@@ -13,7 +13,7 @@ export const ImageSection = ({ section }: ImageSectionProps) => {
         className="w-full rounded-lg object-cover"
         decoding="async"
       />
-      {caption && <p className="text-xs text-gray-400">{caption}</p>}
+      {caption && <p className="text-xs text-muted-foreground">{caption}</p>}
       {ctaLabel && ctaHref && (
         <a
           href={ctaHref}

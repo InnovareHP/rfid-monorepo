@@ -35,11 +35,11 @@ export const FormFieldItem = ({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2"
+      className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card px-3 py-2"
     >
       <button
         type="button"
-        className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing"
+        className="text-muted-foreground hover:text-muted-foreground cursor-grab active:cursor-grabbing"
         aria-label="Drag to reorder"
         {...attributes}
         {...listeners}
@@ -55,7 +55,7 @@ export const FormFieldItem = ({
       <Badge variant="secondary" className="shrink-0 font-normal">
         {fieldTypeLabel(fieldType)}
       </Badge>
-      <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500">
+      <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
         <Checkbox
           checked={mapping.required}
           disabled={locked}
@@ -69,7 +69,7 @@ export const FormFieldItem = ({
         <button
           type="button"
           onClick={() => onRemove(mapping.fieldId)}
-          className="text-gray-300 hover:text-red-500 shrink-0"
+          className="text-muted-foreground hover:text-destructive shrink-0"
           aria-label="Remove field"
         >
           <X className="h-4 w-4" />
