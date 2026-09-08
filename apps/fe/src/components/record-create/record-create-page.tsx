@@ -171,7 +171,7 @@ const FIELD_ITEM_CLASS = "flex h-full flex-col";
 
 // Autocomplete carries the long lists, so a picker only needs a first page
 const PICKER_LIMIT = 10;
-const LABEL_CLASS = "flex-wrap gap-x-2 text-sm font-semibold text-gray-700";
+const LABEL_CLASS = "flex-wrap gap-x-2 text-sm font-semibold text-foreground";
 
 function isOptionBacked(columnType: string) {
   return columnType === "DROPDOWN" || columnType === "STATUS";
@@ -325,7 +325,7 @@ const RecordCreateForm = ({
       render={({ field }) => (
         <FormItem className={FIELD_ITEM_CLASS}>
           <FormLabel className={LABEL_CLASS}>
-            {nameLabel} <span className="text-red-500">*</span>
+            {nameLabel} <span className="text-destructive">*</span>
           </FormLabel>
           {layout?.helperText && (
             <p className="text-xs text-muted-foreground">{layout.helperText}</p>
@@ -368,7 +368,7 @@ const RecordCreateForm = ({
             variant="outline"
             size="icon"
             onClick={onBack}
-            className="shrink-0 border-gray-300 hover:bg-white"
+            className="shrink-0 border-border hover:bg-card"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -376,7 +376,7 @@ const RecordCreateForm = ({
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight page-title">
               {title}
             </h1>
-            <p className="text-sm sm:text-base text-gray-500 mt-1">
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               {description}
             </p>
           </div>
@@ -396,7 +396,7 @@ const RecordCreateForm = ({
                   key={field.id}
                   className="border shadow-sm gap-0 overflow-hidden py-0"
                 >
-                  <div className="flex items-center justify-between gap-2 bg-blue-50 px-4 py-3 sm:px-6 sm:py-4">
+                  <div className="flex items-center justify-between gap-2 bg-info/10 px-4 py-3 sm:px-6 sm:py-4">
                     <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                       <h2 className="text-base sm:text-lg font-semibold text-brand whitespace-nowrap">
                         {entityLabel} No. {index + 1}
@@ -404,7 +404,7 @@ const RecordCreateForm = ({
                       {!isExpanded && recordName ? (
                         <Badge
                           variant="outline"
-                          className="bg-white font-normal truncate max-w-[10rem] sm:max-w-xs"
+                          className="bg-card font-normal truncate max-w-[10rem] sm:max-w-xs"
                         >
                           {recordName}
                         </Badge>
@@ -418,7 +418,7 @@ const RecordCreateForm = ({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemove(index)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-100"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           Remove
                         </Button>
@@ -431,7 +431,7 @@ const RecordCreateForm = ({
                         onClick={() =>
                           setExpandedIndex(isExpanded ? -1 : index)
                         }
-                        className="hover:bg-blue-100"
+                        className="hover:bg-info/10"
                       >
                         <ChevronRight
                           className={cn(
@@ -448,7 +448,7 @@ const RecordCreateForm = ({
                       {resolvedSections ? (
                         resolvedSections.map((section) => (
                           <section key={section.title} className="space-y-4">
-                            <h3 className="border-b pb-2 text-base font-semibold text-gray-900">
+                            <h3 className="border-b pb-2 text-base font-semibold text-foreground">
                               {section.title}
                             </h3>
                             <div className="grid grid-cols-1 items-stretch gap-x-6 gap-y-4 md:grid-cols-6">
@@ -518,7 +518,7 @@ const RecordCreateForm = ({
               type="button"
               variant="outline"
               onClick={handleAppend}
-              className="w-full border-dashed bg-white text-brand hover:text-brand"
+              className="w-full border-dashed bg-card text-brand hover:text-brand"
             >
               <Plus className="h-4 w-4" />
               Add Another {entityLabel}
@@ -536,7 +536,7 @@ const RecordCreateForm = ({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto sm:min-w-[120px] bg-brand text-white hover:bg-brand/90"
+                className="w-full sm:w-auto sm:min-w-[120px] bg-brand text-brand-foreground hover:bg-brand/90"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
@@ -664,7 +664,7 @@ const RecordField = ({
     <FormLabel className={LABEL_CLASS}>
       {column.name}
       {layout?.required && column.type !== "CHECKBOX" && (
-        <span className="text-red-500"> *</span>
+        <span className="text-destructive"> *</span>
       )}
       {optionsWarning}
     </FormLabel>
@@ -754,7 +754,7 @@ const RecordField = ({
                         !field.value && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                      <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       {field.value ? (
                         format(new Date(field.value), "PPP")
                       ) : (

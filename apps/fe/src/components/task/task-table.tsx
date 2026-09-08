@@ -70,11 +70,11 @@ export const TaskTable = ({
   onToggleComplete,
   onOpenTask,
 }: TaskTableProps) => (
-  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+  <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
     <div className="overflow-x-auto">
       <table className="w-full min-w-3xl border-collapse text-left">
         <thead>
-          <tr className="border-b border-gray-200 bg-brand/5">
+          <tr className="border-b border-border bg-brand/5">
             <th className="w-8 px-2 py-3" />
             <th className="w-10 px-2 py-3" />
             {COLUMNS.map((column) => (

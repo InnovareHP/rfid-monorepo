@@ -8,7 +8,7 @@ const AddRow = () => {
 
   return (
     <Button
-      className="flex gap-2 bg-brand hover:bg-brand/90 text-white"
+      className="flex gap-2 bg-brand hover:bg-brand/90 text-brand-foreground"
       onClick={() =>
         navigate({ to: "/$team/master-list/create", params: { team } })
       }

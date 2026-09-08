@@ -150,7 +150,7 @@ export default function CountyHeatMap({
 
   if (!counties?.length) {
     return (
-      <div className="flex h-[450px] items-center justify-center text-gray-400">
+      <div className="flex h-[450px] items-center justify-center text-muted-foreground">
         No county data available
       </div>
     );
@@ -218,7 +218,7 @@ export default function CountyHeatMap({
           >
             <div className="px-1 py-0.5 text-sm">
               <p className="font-semibold">{hoveredPoint.name}</p>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 {hoveredPoint.count} referral
                 {hoveredPoint.count !== 1 ? "s" : ""}
               </p>

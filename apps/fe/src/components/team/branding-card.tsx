@@ -62,7 +62,7 @@ export function BrandingCard({ organizationId, metadata }: BrandingCardProps) {
       <CardContent>
         <div className="flex flex-wrap items-center gap-6">
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">
+            <Label className="text-sm font-medium text-foreground">
               Brand Color
             </Label>
             <div className="flex items-center gap-3">
@@ -70,7 +70,7 @@ export function BrandingCard({ organizationId, metadata }: BrandingCardProps) {
                 type="color"
                 value={brandColor}
                 onChange={(e) => handleBrandColorChange(e.target.value)}
-                className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
+                className="w-10 h-10 rounded-lg border-2 border-border cursor-pointer"
               />
               <Input
                 value={brandColor}
@@ -81,7 +81,7 @@ export function BrandingCard({ organizationId, metadata }: BrandingCardProps) {
             </div>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            <Label className="text-sm font-medium text-foreground mb-2 block">
               Preview
             </Label>
             <div className="flex items-center gap-3">

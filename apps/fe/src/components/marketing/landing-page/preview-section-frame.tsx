@@ -33,8 +33,8 @@ export const PreviewSectionFrame = ({
         opacity: isDragging ? 0.5 : 1,
       }}
       onClick={() => onSelect(id)}
-      className={`cursor-pointer border-b border-dashed border-gray-200 last:border-b-0 ${
-        selected ? "ring-2 ring-inset ring-primary" : "hover:bg-gray-50/50"
+      className={`cursor-pointer border-b border-dashed border-border last:border-b-0 ${
+        selected ? "ring-2 ring-inset ring-primary" : "hover:bg-muted/50"
       }`}
       {...attributes}
       {...listeners}

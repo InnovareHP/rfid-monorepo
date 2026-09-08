@@ -38,6 +38,21 @@ export default defineConfig(({ mode }) => {
       },
     },
 
+    build: {
+      rollupOptions: {
+        output: {
+          // Vendor code the entry needs on first paint anyway, split out so an
+          // app deploy does not invalidate it in the browser cache.
+          manualChunks: (id) => {
+            if (!id.includes("/node_modules/")) return;
+            if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id))
+              return "react-vendor";
+            if (id.includes("/node_modules/@tanstack/")) return "tanstack-vendor";
+          },
+        },
+      },
+    },
+
     optimizeDeps: {
       exclude: ["@dashboard/ui"],
     },

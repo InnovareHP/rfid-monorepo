@@ -1,6 +1,6 @@
 // Shared required/optional affordances so every form marks fields the same way.
 export const RequiredMark = () => (
-  <span className="text-red-500" aria-hidden>
+  <span className="text-destructive" aria-hidden>
     *
   </span>
 );

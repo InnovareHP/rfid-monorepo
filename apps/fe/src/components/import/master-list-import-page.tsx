@@ -83,13 +83,16 @@ export default function MasterListImportPage() {
     [allColumns]
   );
 
-  const sheets = workbook?.sheets ?? [];
-  const activeSheet =
-    sheets.find((sheet) => sheet.name === sheetOverride) ??
-    (sheets.length ? pickDefaultSheet(sheets) : undefined);
+  const sheets = useMemo(() => workbook?.sheets ?? [], [workbook]);
+  const activeSheet = useMemo(
+    () =>
+      sheets.find((sheet) => sheet.name === sheetOverride) ??
+      (sheets.length ? pickDefaultSheet(sheets) : undefined),
+    [sheets, sheetOverride]
+  );
 
-  const headers = activeSheet?.headers ?? [];
-  const rows = activeSheet?.rows ?? [];
+  const headers = useMemo(() => activeSheet?.headers ?? [], [activeSheet]);
+  const rows = useMemo(() => activeSheet?.rows ?? [], [activeSheet]);
 
   const columnMap = useMemo(() => {
     const merged = autoMatchColumns(headers, importableColumns);
@@ -245,7 +248,7 @@ export default function MasterListImportPage() {
     removeFile();
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
     const templateHeaders = importableColumns.map((column) => column.name);
 
     if (!templateHeaders.length) {
@@ -253,7 +256,7 @@ export default function MasterListImportPage() {
       return;
     }
 
-    downloadCSVTemplate(
+    await downloadCSVTemplate(
       templateHeaders,
       `${recordLabel.replace(/\s+/g, "_")}_Template`
     );

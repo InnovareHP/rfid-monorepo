@@ -78,7 +78,7 @@ export function OrganizationCard({
               <div
                 onClick={handleLogoClick}
                 className={cn(
-                  "relative flex size-16 items-center justify-center overflow-hidden rounded-xl border-2 border-primary/40 bg-white",
+                  "relative flex size-16 items-center justify-center overflow-hidden rounded-xl border-2 border-primary/40 bg-card",
                   canEdit &&
                     "cursor-pointer transition-all hover:border-primary"
                 )}
@@ -114,18 +114,18 @@ export function OrganizationCard({
               />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-foreground">
                 {name?.replaceAll("-", " ")}
               </h2>
               {canEdit && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Click the icon to change/upload a logo - PNG or SVG, up to 2MB
                 </p>
               )}
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs font-medium tracking-wide text-gray-400 uppercase">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Founded
             </p>
             <p className="page-title text-2xl font-bold">

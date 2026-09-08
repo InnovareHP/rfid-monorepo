@@ -70,8 +70,8 @@ export const TaskQuickActions = ({ task }: TaskQuickActionsProps) => {
         className={cn(
           "h-7 w-7 p-0",
           isTimerRunning
-            ? "text-red-600 hover:text-red-700"
-            : "text-gray-400 hover:text-gray-600"
+            ? "text-destructive hover:text-destructive"
+            : "text-muted-foreground hover:text-muted-foreground"
         )}
         onClick={handleToggleTimer}
         aria-label={isTimerRunning ? "Stop timer" : "Start timer"}
@@ -89,7 +89,7 @@ export const TaskQuickActions = ({ task }: TaskQuickActionsProps) => {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-muted-foreground"
             aria-label="Task actions"
           >
             <MoreHorizontal className="h-4 w-4" />
@@ -158,7 +158,7 @@ export const TaskQuickActions = ({ task }: TaskQuickActionsProps) => {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            className="text-red-600 focus:text-red-600"
+            className="text-destructive focus:text-destructive"
             onClick={() => setConfirmDelete(true)}
           >
             <Trash2 className="h-3.5 w-3.5 mr-2" />

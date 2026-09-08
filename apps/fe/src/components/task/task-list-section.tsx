@@ -57,7 +57,7 @@ export const TaskListSection = ({
       className={cn(isOver && "outline outline-2 -outline-offset-2 outline-primary/40")}
     >
       {showHeader && (
-        <tr className="border-b border-gray-200 bg-gray-50/80">
+        <tr className="border-b border-border bg-muted/80">
           <td colSpan={COLUMN_COUNT} className="px-3 py-2">
             <button
               type="button"
@@ -66,11 +66,11 @@ export const TaskListSection = ({
               aria-expanded={!collapsed}
             >
               {collapsed ? (
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-gray-400" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               )}
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-sm font-semibold text-foreground">
                 {list.name}
               </span>
               <Badge variant="outline" className="text-xs">
@@ -87,10 +87,10 @@ export const TaskListSection = ({
           strategy={verticalListSortingStrategy}
         >
           {tasks.length === 0 ? (
-            <tr className="border-b border-gray-100">
+            <tr className="border-b border-border">
               <td
                 colSpan={COLUMN_COUNT}
-                className="px-4 py-6 text-center text-sm text-gray-400"
+                className="px-4 py-6 text-center text-sm text-muted-foreground"
               >
                 No tasks in this list
               </td>

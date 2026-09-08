@@ -150,7 +150,7 @@ export default function MarketingReportPage() {
 
           <ExportCsvButton
             onExport={handleExportCSV}
-            className="bg-brand text-white hover:bg-brand/90"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
           />
         </div>
 

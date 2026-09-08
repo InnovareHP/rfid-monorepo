@@ -64,11 +64,11 @@ export const FormFieldsPanel = ({ form, fields }: FormFieldsPanelProps) => {
             />
 
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-foreground">
                 Mapped fields
               </h3>
               {mappings.length === 0 ? (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Add fields above to build this form.
                 </p>
               ) : (

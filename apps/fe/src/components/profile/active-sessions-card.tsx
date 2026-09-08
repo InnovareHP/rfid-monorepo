@@ -92,7 +92,7 @@ export function ActiveSessionsCard({
         <Button
           variant="outline"
           size="sm"
-          className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-600"
+          className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
           disabled={revokeOthersMutation.isPending || sessions.length <= 1}
           onClick={() => revokeOthersMutation.mutate()}
         >
@@ -106,7 +106,7 @@ export function ActiveSessionsCard({
       }
     >
       {isLoading ? (
-        <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
+        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
           Loading sessions...
         </div>
@@ -117,7 +117,7 @@ export function ActiveSessionsCard({
             return (
               <div
                 key={session.id}
-                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 p-4"
+                className="flex items-center justify-between gap-4 rounded-lg border border-border p-4"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#2C86D9] text-white">
@@ -125,16 +125,16 @@ export function ActiveSessionsCard({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-medium text-gray-900">
+                      <p className="truncate font-medium text-foreground">
                         {describeUserAgent(session.userAgent)}
                       </p>
                       {isCurrent && (
-                        <span className="rounded-full border border-green-500 px-2 py-0.5 text-xs font-medium text-green-600">
+                        <span className="rounded-full border border-success px-2 py-0.5 text-xs font-medium text-success">
                           This Device
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-sm text-gray-500">
+                    <p className="truncate text-sm text-muted-foreground">
                       {session.ipAddress || "Unknown IP"} · Signed in{" "}
                       {formatDate(session.createdAt)}
                     </p>
@@ -144,7 +144,7 @@ export function ActiveSessionsCard({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="shrink-0 text-gray-600 hover:bg-red-50 hover:text-red-600"
+                    className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     disabled={revokeSessionMutation.isPending}
                     onClick={() => revokeSessionMutation.mutate(session.token)}
                   >
@@ -155,17 +155,17 @@ export function ActiveSessionsCard({
             );
           })}
           {sessions.length === 0 && (
-            <p className="py-4 text-sm text-gray-500">
+            <p className="py-4 text-sm text-muted-foreground">
               No active sessions found.
             </p>
           )}
         </div>
       )}
 
-      <div className="flex justify-end border-t border-gray-200 pt-4">
+      <div className="flex justify-end border-t border-border pt-4">
         <Button
           variant="outline"
-          className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-600"
+          className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={onSignOut}
         >
           <LogOut className="mr-2 size-4" />

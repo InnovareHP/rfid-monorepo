@@ -283,7 +283,7 @@ export function BookingSettingsPage() {
           <Card key={tile.label}>
             <CardContent className="space-y-1.5">
               <p className="text-sm text-muted-foreground">{tile.label}</p>
-              <p className="text-2xl font-semibold text-[#0d3185]">
+              <p className="text-2xl font-semibold text-brand">
                 {tile.value}
               </p>
             </CardContent>

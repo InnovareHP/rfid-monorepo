@@ -214,7 +214,7 @@ export const FormRenderer = ({
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <CircleCheckBig className="size-10 text-[#005cb1]" />
-        <h1 className="text-xl font-semibold text-[#0d3185]">Thank you</h1>
+        <h1 className="text-xl font-semibold text-brand">Thank you</h1>
         <p className="text-sm text-muted-foreground">
           Your submission has been received.
         </p>
@@ -225,7 +225,7 @@ export const FormRenderer = ({
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold text-[#0d3185] sm:text-3xl">
+        <h1 className="text-2xl font-semibold text-brand sm:text-3xl">
           {form.name}
         </h1>
         {hasRequired && (
@@ -287,7 +287,7 @@ export const FormRenderer = ({
             <Button
               type="submit"
               size="lg"
-              className="w-full bg-[#0d3185] px-8 text-white hover:bg-[#0d3185]/90 sm:w-auto"
+              className="w-full bg-brand px-8 text-brand-foreground hover:bg-brand/90 sm:w-auto"
               disabled={preview || rhForm.formState.isSubmitting}
             >
               {rhForm.formState.isSubmitting && (

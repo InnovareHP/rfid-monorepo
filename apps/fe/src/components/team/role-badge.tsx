@@ -12,14 +12,14 @@ export const TEAM_COLUMN_WIDTHS = {
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  [ROLES.OWNER]: "bg-[#0D3185]",
+  [ROLES.OWNER]: "bg-brand",
   [ROLES.ADMIN]: "bg-[#1B5FBF]",
   [ROLES.MEMBER]: "bg-[#64D1F4]",
   [ROLES.LIAISON]: "bg-[#2C86D9]",
 };
 
 export function RoleBadge({ role }: { role?: string | null }) {
-  if (!role) return <span className="text-gray-400">-</span>;
+  if (!role) return <span className="text-muted-foreground">-</span>;
 
   return (
     <Badge

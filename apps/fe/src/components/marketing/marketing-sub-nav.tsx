@@ -11,7 +11,7 @@ export function MarketingSubNav({ active }: { active: "blasts" | "groups" | "sub
   const { team } = useParams({ strict: false }) as { team: string };
 
   return (
-    <nav className="flex gap-1 border-b border-gray-200">
+    <nav className="flex gap-1 border-b border-border">
       {TABS.map((tab) => {
         const isActive = tab.label.toLowerCase() === active;
 
@@ -24,7 +24,7 @@ export function MarketingSubNav({ active }: { active: "blasts" | "groups" | "sub
               "-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors",
               isActive
                 ? "border-brand text-brand"
-                : "border-transparent text-muted-foreground hover:text-gray-900"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {tab.label}

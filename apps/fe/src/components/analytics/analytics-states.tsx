@@ -15,16 +15,16 @@ export function AnalyticsLoading() {
 
 export function AnalyticsError({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-white p-4 text-center sm:p-8">
+    <div className="rounded-2xl border border-destructive/30 bg-card p-4 text-center sm:p-8">
       <div className="flex flex-col items-center gap-3">
-        <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
-          <AlertCircle className="size-8 text-red-600" />
+        <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
+          <AlertCircle className="size-8 text-destructive" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-red-900">
+          <h3 className="text-lg font-semibold text-destructive">
             Failed to Load Data
           </h3>
-          <p className="mt-1 text-red-700">{message}</p>
+          <p className="mt-1 text-destructive">{message}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             Please try again or contact support if the problem persists.
           </p>
@@ -32,7 +32,7 @@ export function AnalyticsError({ message }: { message: string }) {
         <Button
           onClick={() => window.location.reload()}
           variant="outline"
-          className="mt-4 rounded-lg border-red-300 hover:bg-red-50"
+          className="mt-4 rounded-lg border-destructive/30 hover:bg-destructive/10"
         >
           <RefreshCcw className="size-4" aria-hidden="true" />
           Retry
@@ -44,7 +44,7 @@ export function AnalyticsError({ message }: { message: string }) {
 
 export function AnalyticsEmpty() {
   return (
-    <div className="rounded-2xl border bg-white p-6 text-center sm:p-12">
+    <div className="rounded-2xl border bg-card p-6 text-center sm:p-12">
       <div className="flex flex-col items-center gap-3">
         <div className="flex size-20 items-center justify-center rounded-full bg-brand/5">
           <BarChart3 className="size-10 text-brand" />

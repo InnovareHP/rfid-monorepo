@@ -246,7 +246,7 @@ export function MasterListFilters({
             </SheetHeader>
 
             <div className="mt-6 space-y-2">
-              <label className="text-sm font-medium text-gray-900">
+              <label className="text-sm font-medium text-foreground">
                 Date range
               </label>
               <DateRangeFilter
@@ -308,7 +308,7 @@ export function MasterListFilters({
                   handleSearch();
                 }
               }}
-              className="w-full bg-white sm:min-w-[240px]"
+              className="w-full bg-card sm:min-w-[240px]"
             />
             <Button
               variant="outline"
@@ -395,7 +395,7 @@ export function MasterListFilters({
 
             <div className="mt-6 space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-900">
+                <label className="text-sm font-medium text-foreground">
                   {nameFilterLabel ?? (isReferral ? "Referrer" : "Facility")}
                 </label>
                 <Input
@@ -418,7 +418,7 @@ export function MasterListFilters({
                   )
                   .map((col) => (
                     <div key={col.id || col.name} className="space-y-2">
-                      <label className="text-sm font-medium text-gray-900">
+                      <label className="text-sm font-medium text-foreground">
                         {col.name}
                       </label>
                       <FilterComponent
@@ -429,7 +429,7 @@ export function MasterListFilters({
                     </div>
                   ))
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   No filterable columns available
                 </p>
               )}

@@ -11,7 +11,7 @@ type Props = {
 };
 
 const ENGAGEMENT_TONE = {
-  High: "bg-brand text-white",
+  High: "bg-brand text-brand-foreground",
   Medium: "bg-chart-seq-2 text-white",
   Low: "bg-muted-foreground text-white",
 } as const;

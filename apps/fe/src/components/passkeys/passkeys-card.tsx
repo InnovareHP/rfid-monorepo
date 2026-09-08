@@ -85,12 +85,12 @@ export function PasskeysCard() {
 
       <div className="space-y-3">
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading devices...
           </div>
         ) : deviceCount === 0 ? (
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             No passkeys registered on this account yet.
           </p>
         ) : (
@@ -98,13 +98,13 @@ export function PasskeysCard() {
             {passkeys?.map((passkey) => (
               <li
                 key={passkey.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3"
+                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">
                     {passkey.label}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Added{" "}
                     {passkey.createdAt
                       ? new Date(passkey.createdAt).toLocaleDateString()
@@ -125,7 +125,7 @@ export function PasskeysCard() {
                     onClick={() => removeMutation.mutate(passkey.id)}
                     aria-label={`Remove ${passkey.label}`}
                   >
-                    <Trash2 className="h-4 w-4 text-red-600" />
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </li>
@@ -134,13 +134,13 @@ export function PasskeysCard() {
         )}
 
         {enrollmentCode && (
-          <div className="space-y-2 rounded-lg border-2 border-amber-200 bg-amber-50 p-3">
-            <p className="text-xs text-amber-800">
+          <div className="space-y-2 rounded-lg border-2 border-warning/30 bg-warning/10 p-3">
+            <p className="text-xs text-warning">
               Use this code on the other device within 10 minutes. Anyone who
               gets it can register a passkey on your account.
             </p>
             <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded bg-white px-2 py-1 text-xs">
+              <code className="min-w-0 flex-1 truncate rounded bg-card px-2 py-1 text-xs">
                 {enrollmentCode}
               </code>
               <Button

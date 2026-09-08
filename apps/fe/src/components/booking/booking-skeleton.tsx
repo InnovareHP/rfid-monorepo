@@ -50,8 +50,8 @@ export function SlotListSkeleton() {
 // invitee sees an empty gradient and cannot tell the link is working.
 export function BookingPageSkeleton() {
   return (
-    <div className="flex w-full max-w-[1061px] overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
-      <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-6 sm:p-8 lg:w-[396px]">
+    <div className="flex w-full max-w-[1061px] overflow-hidden rounded-[10px] bg-card shadow-lg max-lg:flex-col">
+      <aside className="flex w-full shrink-0 flex-col gap-4 bg-table-header p-6 sm:p-8 lg:w-[396px]">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-3/4" />

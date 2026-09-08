@@ -87,7 +87,7 @@ export function AiSummaryCard({
           </div>
 
           {error ? (
-            <p className="rounded-xl bg-background px-5 py-4 text-sm text-red-600">
+            <p className="rounded-xl bg-background px-5 py-4 text-sm text-destructive">
               {error}
             </p>
           ) : isLoading && !preview ? (
