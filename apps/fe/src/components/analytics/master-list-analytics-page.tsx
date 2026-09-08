@@ -176,19 +176,13 @@ export default function MasterListAnalyticsPage() {
         )}
 
         {/* KPI TILES */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <KpiStatTile
             label="Total Facilities"
             value={(totals?.totalFacilities ?? 0).toLocaleString()}
             seriesLabel="Facilities"
           />
-          <KpiStatTile
-            label={hasPeriodFilter ? "Added This Period" : "Facilities Added"}
-            value={inScope}
-            seriesLabel="Facilities"
-            delta={charts.growthDelta}
-            series={charts.growthTrend}
-          />
+
           <KpiStatTile
             label="Referring Facilities"
             value={referring}
@@ -203,14 +197,22 @@ export default function MasterListAnalyticsPage() {
         </div>
 
         {/* COVERAGE + PIPELINE + TYPE */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <KpiStatTile
+            label={hasPeriodFilter ? "Added This Period" : "Facilities Added"}
+            value={inScope}
+            seriesLabel="Facilities"
+            delta={charts.growthDelta}
+            series={charts.growthTrend}
+          />
           <ChartCard title="Referral Coverage">
             <ConversionGauge
               rate={totals?.coverageRate ?? 0}
               caption={referring + " of " + inScope + " facilities"}
             />
           </ChartCard>
-
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <StatusBreakdownCard
             slices={charts.statusSlices}
             title="Facility Pipeline"
@@ -226,7 +228,6 @@ export default function MasterListAnalyticsPage() {
             />
           </ChartCard>
         </div>
-
         {/* GROWTH + DORMANT */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ChartCard
@@ -254,15 +255,22 @@ export default function MasterListAnalyticsPage() {
 
         {/* SOURCES + COUNTIES + OWNERSHIP */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Facilities`}>
+          <ChartCard
+            title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Facilities`}
+          >
             <RankedBar
-              data={charts.topReferringFacilities.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
+              data={charts.topReferringFacilities.slice(
+                0,
+                topN ?? DEFAULT_RANK_LIMIT
+              )}
               layout="horizontal"
               emptyMessage="No referral data available"
             />
           </ChartCard>
 
-          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Counties Covered`}>
+          <ChartCard
+            title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Counties Covered`}
+          >
             <RankedBar
               data={charts.counties.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"

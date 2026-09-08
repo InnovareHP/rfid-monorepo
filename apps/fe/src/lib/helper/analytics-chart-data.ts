@@ -90,7 +90,10 @@ function toMonthlyPoints(
   }));
 }
 
-// Canonical pipeline statuses always listed, in order, with fixed colors.
+// Canonical pipeline statuses are always listed, in this order, so a stage
+// with no referrals still appears. The colour here is only a fallback: the
+// organization sets a colour on each status option and that is what the board
+// shows, so the donut has to follow it rather than repaint the pipeline blue.
 const CANONICAL_STATUS_COLORS: [string, string][] = [
   ["New", "#64d1f4"],
   ["In Progress", "#2c86d9"],
@@ -118,9 +121,17 @@ export function toStatusSlices(
     counts.set(key, (counts.get(key) ?? 0) + item.count);
   }
 
-  const canonical = CANONICAL_STATUS_COLORS.map(([status, color]) => ({
+  // Keyed the same way as the counts, so a configured colour survives a
+  // casing difference between the option name and the canonical one.
+  const configured = new Map<string, string>();
+  for (const item of items) {
+    const key = (item.status.trim() || "No status").toLowerCase();
+    if (item.color && !configured.has(key)) configured.set(key, item.color);
+  }
+
+  const canonical = CANONICAL_STATUS_COLORS.map(([status, fallback]) => ({
     status,
-    color,
+    color: configured.get(status.toLowerCase()) ?? fallback,
     count: counts.get(status.toLowerCase()) ?? 0,
   }));
 
@@ -137,7 +148,9 @@ export function toStatusSlices(
     ...canonical,
     ...extras.map((status, index) => ({
       status,
-      color: sequentialRampColor(index, extras.length),
+      color:
+        configured.get(status.toLowerCase()) ??
+        sequentialRampColor(index, extras.length),
       count: counts.get(status.toLowerCase()) ?? 0,
     })),
   ].map((row) => ({ ...row, share: (row.count / total) * 100 }));

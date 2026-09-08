@@ -291,9 +291,7 @@ export default function ReferralAnalyticsDashboard() {
             />
           </ChartCard>
 
-          <ChartCard
-            title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Denial Reasons`}
-          >
+          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Denial Reasons`}>
             <DenialReasonsTable
               reasons={charts.denialReasons}
               limit={topN ?? DEFAULT_RANK_LIMIT}
@@ -301,8 +299,10 @@ export default function ReferralAnalyticsDashboard() {
           </ChartCard>
         </div>
         {/* SOURCES + TYPES */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Facilities`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+          <ChartCard
+            title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Facilities`}
+          >
             <RankedBar
               data={charts.facilities.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"
@@ -310,7 +310,9 @@ export default function ReferralAnalyticsDashboard() {
             />
           </ChartCard>
 
-          <ChartCard title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Clinicians`}>
+          <ChartCard
+            title={`Top ${topN ?? DEFAULT_RANK_LIMIT} Referring Clinicians`}
+          >
             <RankedBar
               data={charts.clinicians.slice(0, topN ?? DEFAULT_RANK_LIMIT)}
               layout="horizontal"
