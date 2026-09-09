@@ -28,27 +28,27 @@ export const BlastSendProgress = ({ jobId }: BlastSendProgressProps) => {
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
-    <div className="space-y-2 rounded-lg border border-gray-200 bg-white p-4">
+    <div className="space-y-2 rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between text-sm">
-        <span className="font-medium text-gray-900">
+        <span className="font-medium text-foreground">
           {data.status === "completed"
             ? "Send complete"
             : data.status === "failed"
               ? "Send failed"
               : "Sending..."}
         </span>
-        <span className="text-gray-500">
+        <span className="text-muted-foreground">
           {done}/{total}
         </span>
       </div>
       <Progress value={percent} />
       {data.result && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           {data.result.sent} sent, {data.result.failed} failed
         </p>
       )}
       {data.status === "failed" && data.failedReason && (
-        <p className="text-xs text-red-500">{data.failedReason}</p>
+        <p className="text-xs text-destructive">{data.failedReason}</p>
       )}
     </div>
   );

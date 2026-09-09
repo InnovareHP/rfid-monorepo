@@ -59,7 +59,7 @@ export const FormListTable = ({
         header: "Form",
         className: "w-[20%]",
         render: (row: MarketingForm) => (
-          <span className="font-medium text-gray-900">{row.name}</span>
+          <span className="font-medium text-foreground">{row.name}</span>
         ),
       },
       {
@@ -86,7 +86,7 @@ export const FormListTable = ({
         className: "w-[14%] text-gray-600",
         render: (row: MarketingForm) => (
           <span className="flex items-center gap-1.5 text-sm">
-            <UsersRound className="size-4 text-gray-400" />
+            <UsersRound className="size-4 text-muted-foreground" />
             {row._count?.submissions ?? 0} responses
           </span>
         ),
@@ -112,7 +112,7 @@ export const FormListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-primary"
+              className="text-muted-foreground hover:text-primary"
               aria-label="Edit form"
               onClick={() => onEdit(row)}
             >
@@ -121,7 +121,7 @@ export const FormListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-red-600"
+              className="text-muted-foreground hover:text-destructive"
               aria-label="Delete form"
               onClick={() => onDelete(row)}
             >

@@ -220,14 +220,14 @@ export default function LeadHistoryTimeline() {
                         "{item.oldValue}"
                       </span>{" "}
                       →{" "}
-                      <span className="text-green-500">"{item.newValue}"</span>
+                      <span className="text-success">"{item.newValue}"</span>
                     </p>
                   )}
 
                   {item.action === "create" && (
                     <p className="text-sm text-muted-foreground mt-1">
                       Created with value{" "}
-                      <span className="text-green-500">"{item.newValue}"</span>
+                      <span className="text-success">"{item.newValue}"</span>
                     </p>
                   )}
                 </div>

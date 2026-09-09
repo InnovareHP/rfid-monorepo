@@ -30,14 +30,14 @@ export const PublicLandingPage = () => {
 
   if (isError || !page) {
     return (
-      <div className="min-h-dvh flex items-center justify-center text-gray-500">
+      <div className="min-h-dvh flex items-center justify-center text-muted-foreground">
         This page is not available.
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-white">
+    <div className="min-h-dvh bg-card">
       <LandingPagePreview
         sections={page.sections}
         embeddedForm={page.embeddedForm}

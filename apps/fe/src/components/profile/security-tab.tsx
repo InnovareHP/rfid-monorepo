@@ -37,8 +37,8 @@ export function SecurityTab({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
                 twoFactorEnabled
-                  ? "border-green-500 text-green-600"
-                  : "border-gray-300 text-gray-500"
+                  ? "border-success text-success"
+                  : "border-border text-muted-foreground"
               )}
             >
               <ShieldCheck className="size-3.5" />

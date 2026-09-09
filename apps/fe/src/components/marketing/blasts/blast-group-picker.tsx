@@ -44,7 +44,7 @@ export function BlastGroupPicker({
 
   if (groups.length === 0) {
     return (
-      <div className="rounded-lg border border-blue-200 bg-[#F4F9FF] p-4 text-sm text-gray-700">
+      <div className="rounded-lg border border-info/30 bg-table-header p-4 text-sm text-foreground">
         No recipient groups yet.{" "}
         <Link
           to="/$team/marketing/groups"
@@ -68,7 +68,7 @@ export function BlastGroupPicker({
             key={group.id}
             className={cn(
               "flex items-center gap-3 rounded-lg border p-3 transition-colors",
-              checked ? "border-brand bg-[#F4F9FF]" : "border-gray-200"
+              checked ? "border-brand bg-table-header" : "border-border"
             )}
           >
             <Checkbox
@@ -81,9 +81,9 @@ export function BlastGroupPicker({
               htmlFor={`group-${group.id}`}
               className="flex flex-1 cursor-pointer items-center gap-2"
             >
-              <Users className="size-4 shrink-0 text-gray-400" />
+              <Users className="size-4 shrink-0 text-muted-foreground" />
               <span className="flex-1">
-                <span className="block text-sm font-medium text-gray-900">
+                <span className="block text-sm font-medium text-foreground">
                   {group.name}
                 </span>
                 <span className="block text-xs text-muted-foreground">

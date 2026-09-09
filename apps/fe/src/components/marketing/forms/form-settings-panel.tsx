@@ -83,7 +83,7 @@ export const FormSettingsPanel = ({
             type="button"
             onClick={copyPublicUrl}
             aria-label="Copy form link"
-            className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-gray-400 hover:text-gray-600"
+            className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-muted-foreground"
           >
             <Copy className="h-3.5 w-3.5" />
           </button>

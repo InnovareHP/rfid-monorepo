@@ -31,11 +31,11 @@ export const FormFieldPicker = ({
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-gray-700">
+      <h3 className="text-sm font-semibold text-foreground">
         Available fields
       </h3>
       {available.length === 0 ? (
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-muted-foreground">
           All fields are already on this form.
         </p>
       ) : (
@@ -45,13 +45,13 @@ export const FormFieldPicker = ({
               key={field.id}
               type="button"
               onClick={() => onAdd(field)}
-              className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-200 px-3 py-2 text-left text-sm transition-colors hover:border-brand/40 hover:bg-blue-50/60"
+              className="flex w-full items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-left text-sm transition-colors hover:border-brand/40 hover:bg-info/10/60"
             >
               <span className="min-w-0 flex-1 truncate">{field.fieldName}</span>
               <Badge variant="secondary" className="shrink-0 font-normal">
                 {fieldTypeLabel(field.fieldType)}
               </Badge>
-              <Plus className="h-4 w-4 shrink-0 text-gray-400" />
+              <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
             </button>
           ))}
         </div>

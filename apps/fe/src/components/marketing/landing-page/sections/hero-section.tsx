@@ -14,8 +14,8 @@ export const HeroSection = ({ section }: HeroSectionProps) => {
           className="mx-auto max-h-64 object-contain"
         />
       )}
-      <h1 className="text-3xl font-bold text-gray-900">{heading}</h1>
-      {subheading && <p className="text-lg text-gray-500">{subheading}</p>}
+      <h1 className="text-3xl font-bold text-foreground">{heading}</h1>
+      {subheading && <p className="text-lg text-muted-foreground">{subheading}</p>}
       {ctaLabel && ctaHref && (
         <a
           href={ctaHref}

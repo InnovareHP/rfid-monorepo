@@ -27,7 +27,7 @@ interface RouteContext {
 }
 
 const tabTriggerClass =
-  "flex-none gap-2 rounded-md px-4 py-2 text-sm font-medium data-[state=active]:bg-brand data-[state=active]:text-white data-[state=inactive]:text-muted-foreground";
+  "flex-none gap-2 rounded-md px-4 py-2 text-sm font-medium data-[state=active]:bg-brand data-[state=active]:text-brand-foreground data-[state=inactive]:text-muted-foreground";
 
 export function ProfilePage({
   className,
@@ -63,17 +63,17 @@ export function ProfilePage({
 
   if (!user) {
     return (
-      <div className="flex min-h-full w-full items-center justify-center bg-gray-50 p-4">
-        <div className="max-w-lg rounded-xl border border-red-200 bg-white p-8 text-center">
+      <div className="flex min-h-full w-full items-center justify-center bg-muted p-4">
+        <div className="max-w-lg rounded-xl border border-destructive/30 bg-card p-8 text-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
-              <AlertCircle className="size-8 text-red-600" />
+            <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
+              <AlertCircle className="size-8 text-destructive" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-red-900">
+              <h3 className="text-lg font-semibold text-destructive">
                 Error Loading Profile
               </h3>
-              <p className="mt-1 text-red-700">Could not load user profile.</p>
+              <p className="mt-1 text-destructive">Could not load user profile.</p>
             </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function ProfilePage({
 
   return (
     <div
-      className={cn("min-h-full w-full bg-gray-50 p-4 sm:p-6 md:p-8", className)}
+      className={cn("min-h-full w-full bg-muted p-4 sm:p-6 md:p-8", className)}
       {...props}
     >
       <div className="space-y-6">

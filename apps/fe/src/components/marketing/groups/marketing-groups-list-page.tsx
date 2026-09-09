@@ -83,7 +83,7 @@ export const MarketingGroupsListPage = () => {
               setEditing(null);
               setEditorOpen(true);
             }}
-            className="bg-brand text-white hover:bg-brand/90"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
           >
             <Plus className="h-4 w-4" />
             New Group
@@ -113,7 +113,7 @@ export const MarketingGroupsListPage = () => {
           setSearch(event.target.value);
           setPage(1);
         }}
-        className="w-full bg-white sm:w-80"
+        className="w-full bg-card sm:w-80"
       />
 
       <GroupListTable

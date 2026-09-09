@@ -76,7 +76,7 @@ export const CampaignListTable = ({
         header: "Campaign Title",
         className: "w-[20%]",
         render: (row: MarketingCampaign) => (
-          <span className="font-medium text-gray-900">{row.name}</span>
+          <span className="font-medium text-foreground">{row.name}</span>
         ),
       },
       {
@@ -93,19 +93,19 @@ export const CampaignListTable = ({
       {
         key: "components",
         header: "Components",
-        className: "w-[20%] text-gray-600",
+        className: "w-[20%] text-muted-foreground",
         render: (row: MarketingCampaign) => (
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span className="flex items-center gap-1.5">
-              <SquareStack className="size-4 text-gray-400" />
+              <SquareStack className="size-4 text-muted-foreground" />
               {row._count?.forms ?? 0} Forms
             </span>
             <span className="flex items-center gap-1.5">
-              <Mail className="size-4 text-gray-400" />
+              <Mail className="size-4 text-muted-foreground" />
               {row._count?.blasts ?? 0} Blasts
             </span>
             <span className="flex items-center gap-1.5">
-              <LayoutTemplate className="size-4 text-gray-400" />
+              <LayoutTemplate className="size-4 text-muted-foreground" />
               {row._count?.landingPages ?? 0} Pages
             </span>
           </div>
@@ -114,24 +114,24 @@ export const CampaignListTable = ({
       {
         key: "sender",
         header: "Send From",
-        className: "w-[16%] text-gray-600",
+        className: "w-[16%] text-muted-foreground",
         render: (row: MarketingCampaign) =>
           row.senderIdentity ? (
             <span className="truncate">{row.senderIdentity.fromEmail}</span>
           ) : (
-            <span className="text-gray-400">Default</span>
+            <span className="text-muted-foreground">Default</span>
           ),
       },
       {
         key: "createdAt",
         header: "Created",
-        className: "w-[13%] text-gray-600",
+        className: "w-[13%] text-muted-foreground",
         render: (row: MarketingCampaign) => formatDateTime(row.createdAt),
       },
       {
         key: "updatedAt",
         header: "Last Updated",
-        className: "w-[13%] text-gray-600",
+        className: "w-[13%] text-muted-foreground",
         render: (row: MarketingCampaign) => formatDateTime(row.updatedAt),
       },
       {
@@ -143,7 +143,7 @@ export const CampaignListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-primary"
+              className="text-muted-foreground hover:text-primary"
               aria-label="Edit campaign"
               onClick={() => onEdit(row)}
             >
@@ -153,7 +153,7 @@ export const CampaignListTable = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-400 hover:text-primary"
+                className="text-muted-foreground hover:text-primary"
                 aria-label="Archive campaign"
                 onClick={() => onArchive(row)}
               >
@@ -163,7 +163,7 @@ export const CampaignListTable = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-red-600"
+              className="text-muted-foreground hover:text-destructive"
               aria-label="Delete campaign"
               onClick={() => onDelete(row)}
             >

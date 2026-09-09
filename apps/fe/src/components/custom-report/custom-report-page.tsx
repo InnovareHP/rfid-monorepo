@@ -81,10 +81,10 @@ export default function CustomReportPage() {
     })),
   ];
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!run) return;
 
-    exportToCSV(
+    await exportToCSV(
       run.rows.map((row) => ({
         Name: row.recordName,
         ...Object.fromEntries(

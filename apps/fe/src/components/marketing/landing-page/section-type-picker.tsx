@@ -46,9 +46,9 @@ export const SectionTypePicker = ({
               disabled ? "This page already has a form embed section" : undefined
             }
             onClick={() => onAdd(type)}
-            className="flex flex-col items-center justify-center gap-3 rounded-lg border border-gray-200 px-3 py-6 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border px-3 py-6 text-sm text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
-            <Icon className="h-7 w-7 text-gray-700" />
+            <Icon className="h-7 w-7 text-foreground" />
             <span className="text-center leading-tight">{label}</span>
           </button>
         );

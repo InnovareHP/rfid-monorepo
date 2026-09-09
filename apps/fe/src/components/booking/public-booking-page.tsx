@@ -146,7 +146,7 @@ export function PublicBookingPage({
   if (pageQuery.isError || !pageQuery.data) {
     return (
       <Shell>
-        <p className="rounded-[10px] bg-white px-6 py-4 text-muted-foreground shadow-lg">
+        <p className="rounded-[10px] bg-card px-6 py-4 text-muted-foreground shadow-lg">
           This booking page is not available.
         </p>
       </Shell>
@@ -158,7 +158,7 @@ export function PublicBookingPage({
   if (!page.acceptingBookings) {
     return (
       <Shell>
-        <div className="max-w-md rounded-[10px] bg-white px-6 py-5 text-center shadow-lg">
+        <div className="max-w-md rounded-[10px] bg-card px-6 py-5 text-center shadow-lg">
           <p className="font-semibold text-brand">{page.title}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {page.hostName} is not accepting bookings right now. Please reach
@@ -197,8 +197,8 @@ export function PublicBookingPage({
 
   return (
     <Shell>
-      <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-white shadow-lg max-lg:flex-col">
-        <aside className="flex w-full shrink-0 flex-col gap-4 bg-[#f4f9ff] p-6 sm:p-8 lg:w-[396px]">
+      <div className="flex w-full max-w-6xl overflow-hidden rounded-[10px] bg-card shadow-lg max-lg:flex-col">
+        <aside className="flex w-full shrink-0 flex-col gap-4 bg-table-header p-6 sm:p-8 lg:w-[396px]">
           <div className="flex items-center space-x-4">
             {page.organizationLogo && (
               <img

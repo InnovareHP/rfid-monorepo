@@ -32,7 +32,7 @@ export const ActivityTab = ({ activities, isLoading }: ActivityTabProps) => {
 
   if (activities.length === 0) {
     return (
-      <p className="text-sm text-gray-400 text-center py-4">No activity yet</p>
+      <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
     );
   }
 
@@ -45,13 +45,13 @@ export const ActivityTab = ({ activities, isLoading }: ActivityTabProps) => {
         >
           <span className="h-2 w-2 rounded-full bg-primary/60 mt-1.5 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-gray-800">
+            <p className="text-foreground">
               <span className="font-medium">
                 {activity.actorName ?? "Someone"}
               </span>{" "}
               {describeActivity(activity)}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               {formatDateTime(activity.createdAt)}
             </p>
           </div>

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { FormRenderer } from "./form-renderer";
 
 const FormCard = ({ children }: { children: React.ReactNode }) => (
-  <div className="w-full max-w-2xl rounded-[10px] bg-white px-6 py-10 shadow-lg sm:px-10 sm:py-12">
+  <div className="w-full max-w-2xl rounded-[10px] bg-card px-6 py-10 shadow-lg sm:px-10 sm:py-12">
     {children}
   </div>
 );

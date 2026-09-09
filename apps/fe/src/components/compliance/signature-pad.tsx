@@ -87,7 +87,7 @@ export function SignaturePad({ onChange }: SignaturePadProps) {
         onPointerMove={move}
         onPointerUp={end}
         onPointerLeave={end}
-        className="w-full touch-none rounded-md border border-dashed bg-white"
+        className="w-full touch-none rounded-md border border-dashed bg-card"
       />
       <Button type="button" variant="ghost" size="sm" onClick={clear}>
         Clear signature

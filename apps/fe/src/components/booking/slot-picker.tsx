@@ -36,8 +36,8 @@ export function SlotPicker({
             className={cn(
               "h-9 shrink-0 rounded-md border text-sm font-semibold transition-colors",
               selected === slot
-                ? "border-[#0d3185] bg-[#0d3185] text-white"
-                : "bg-background text-[#202020] hover:border-[#0d3185]"
+                ? "border-brand bg-brand text-brand-foreground"
+                : "bg-background text-[#202020] hover:border-brand"
             )}
           >
             {new Date(slot).toLocaleTimeString("en-GB", {

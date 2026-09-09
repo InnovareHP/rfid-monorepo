@@ -86,9 +86,9 @@ export function ReusableTable<T>({
         >
           <TableHeader>
             <TableRow className="border-b border-border bg-table-header hover:bg-table-header">
-              {columns.map((col, idx) => (
+              {columns.map((col) => (
                 <TableHead
-                  key={idx}
+                  key={String(col.key)}
                   className={cn(
                     "text-left text-sm font-semibold text-foreground px-4 py-3",
                     col.className
@@ -153,9 +153,9 @@ export function ReusableTable<T>({
                   key={rowIndex}
                   className="border-b border-border bg-card hover:bg-muted/50 transition-colors"
                 >
-                  {columns.map((col, colIndex) => (
+                  {columns.map((col) => (
                     <TableCell
-                      key={colIndex}
+                      key={String(col.key)}
                       className={cn(
                         "px-4 py-3 text-sm",
                         col.className

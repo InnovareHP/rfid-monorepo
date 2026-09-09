@@ -4,10 +4,10 @@ import { Check, Pencil, type LucideIcon } from "lucide-react";
 export type StatusTone = "success" | "muted" | "info" | "danger";
 
 const TONE_STYLES: Record<StatusTone, string> = {
-  success: "border-green-500 bg-white text-green-600",
-  muted: "border-gray-300 bg-gray-50 text-gray-500",
-  info: "border-primary bg-white text-primary",
-  danger: "border-red-400 bg-white text-red-600",
+  success: "border-success bg-card text-success",
+  muted: "border-border bg-muted text-muted-foreground",
+  info: "border-primary bg-card text-primary",
+  danger: "border-destructive bg-card text-destructive",
 };
 
 type StatusPillProps = {

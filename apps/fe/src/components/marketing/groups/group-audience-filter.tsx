@@ -16,8 +16,8 @@ type GroupAudienceFilterProps = {
 function GroupHeading({ title }: { title: string }) {
   return (
     <div>
-      <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
-      <div className="mt-2 border-b border-gray-200" />
+      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+      <div className="mt-2 border-b border-border" />
     </div>
   );
 }
@@ -56,7 +56,7 @@ export const GroupAudienceFilter = ({
         <div className="space-y-2">
           <Label htmlFor="group-audience-search">Search</Label>
           <div className="relative">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="group-audience-search"
               placeholder="Search by name or value..."
