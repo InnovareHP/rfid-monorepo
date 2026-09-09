@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import CookieNotice from "../components/layout/CookieNotice.tsx";
 import JsonLd from "../components/seo/JsonLd.astro";
 
 interface Props {
@@ -79,6 +80,7 @@ const canonical = new URL(Astro.url.pathname, base);
   </head>
   <body>
     <slot />
+    <CookieNotice client:only="react" />
     <script>
       import "../scripts/motion";
     </script>
