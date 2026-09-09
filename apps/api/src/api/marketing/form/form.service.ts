@@ -117,6 +117,57 @@ export class FormService {
     return `${module?.labelSingular ?? "Record"} Name`;
   }
 
+  // A mapping pointing at another module's field silently writes nothing: the
+  // record insert only fills fields of its own module, so the submitted value
+  // is dropped on the floor.
+  private async findOrphanMappingFieldIds(
+    fieldMappings: FieldMapping[],
+    moduleId: string | null,
+    organizationId: string
+  ) {
+    const fieldIds = [
+      ...new Set(
+        fieldMappings
+          .map((mapping) => mapping.fieldId)
+          .filter((fieldId) => fieldId !== FORM_RECORD_NAME_FIELD_ID)
+      ),
+    ];
+
+    if (fieldIds.length === 0) return [];
+
+    const onModule = await prisma.field.findMany({
+      where: {
+        id: { in: fieldIds },
+        organizationId,
+        moduleId,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+
+    const onModuleIds = new Set(onModule.map((field) => field.id));
+
+    return fieldIds.filter((fieldId) => !onModuleIds.has(fieldId));
+  }
+
+  private async assertMappingsOnModule(
+    fieldMappings: FieldMapping[],
+    moduleId: string | null,
+    organizationId: string
+  ) {
+    const orphans = await this.findOrphanMappingFieldIds(
+      fieldMappings,
+      moduleId,
+      organizationId
+    );
+
+    if (orphans.length > 0) {
+      throw new BadRequestException(
+        "Every form field must belong to the board this form submits to"
+      );
+    }
+  }
+
   async getFormFields(id: string, organizationId: string) {
     const form = await this.getForm(id, organizationId);
 
@@ -168,6 +219,12 @@ export class FormService {
       dto.moduleType !== undefined
         ? await resolveModuleId(dto.moduleType, organizationId)
         : form.moduleId;
+
+    await this.assertMappingsOnModule(
+      dto.fieldMappings ?? form.fieldMappings,
+      moduleId,
+      organizationId
+    );
 
     return prisma.form.update({
       where: { id },
@@ -367,6 +424,20 @@ export class FormService {
       throw new BadRequestException("Invalid submission payload");
     }
 
+    // Fail loudly rather than create a record with the answers dropped: a
+    // mapping can outlive the field it names, or the board it was drawn from.
+    const orphans = await this.findOrphanMappingFieldIds(
+      fieldMappings,
+      form.moduleId,
+      organizationId
+    );
+
+    if (orphans.length > 0) {
+      throw new BadRequestException(
+        "This form is misconfigured and cannot accept submissions"
+      );
+    }
+
     // Allowlist: only fieldIds present on this form's mapping may be set —
     // an anonymous submitter must never write a value for any other field.
     const filteredValues: Record<string, string | null> = {};
@@ -470,6 +541,12 @@ export class FormService {
   ) {
     const moduleKey = dto.moduleType ?? "LEAD";
     const moduleId = await resolveModuleId(moduleKey, organizationId);
+
+    await this.assertMappingsOnModule(
+      dto.fieldMappings,
+      moduleId,
+      organizationId
+    );
 
     return prisma.form.create({
       data: {

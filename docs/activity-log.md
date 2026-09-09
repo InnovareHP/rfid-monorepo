@@ -2124,3 +2124,54 @@ existing link keeps working.
 Verified: `tsc --noEmit` clean, lint 0 errors, layout checks clean. No browser
 pass - dev servers were down, so neither the dialog nor the collapsed-rail
 dropdown row has been seen rendering.
+
+## 2026-09-09 - Marketing form updates stopped rebinding the board
+
+A form built against Companies was saving its submissions into the Master
+Marketing List, and the builder's "Available fields" panel listed Master
+Marketing List fields on a Company form. One cause behind both.
+
+`UpdateFormSchema` was `CreateFormSchema.partial()`, and `moduleType` carried
+`.default("LEAD")`. Zod keeps a default alive under `.partial()`, so an omitted
+key parses back as `"LEAD"` rather than `undefined`. `updateForm` gates on
+`dto.moduleType !== undefined`, so every PATCH - including the builder's Save
+Draft, which sends no module - resolved the LEAD module and rewrote
+`moduleType` and `moduleId`. Confirmed against the live API on Demo
+Organization 1: a probe form created as COMPANY came back COMPANY, then a
+PATCH carrying only `{name}` came back LEAD. All four forms in that org had
+been flattened to LEAD while still holding COMPANY field mappings.
+
+The submission then wrote nothing but the record name: `insertBoardRecord`
+fills only the fields of the record's own module, so the COMPANY field ids in
+`fieldMappings` matched nothing and every answer was dropped without an error.
+The fields panel reads `GET /marketing/forms/:id/fields`, scoped to the form's
+`moduleId`, so it showed LEAD fields for the same reason.
+
+The three sibling marketing schemas had the same shape and the same
+`!== undefined` gate downstream, each with a worse blast radius: a group's
+saved `filter` reset to `{}`, a blast's `groupIds` reset to `[]` and its update
+runs `groups: { deleteMany: {} }`, a landing page's `sections` reset to `[]`.
+All four now compose their create and update objects from raw fields that carry
+no `.default()`, the way `custom-analytics.schema.ts` already documents.
+
+Two guards so a mapping cannot silently point at the wrong board again.
+`findOrphanMappingFieldIds` asks which mapped field ids do not sit on a given
+module; create and update refuse the write, and the public submit throws
+instead of inserting a record with the answers discarded.
+
+The board a form targets was invisible in the UI, which is why this ran for a
+day - the builder has no module control and the list had no column. Forms list
+gains a Board column, and the builder's Form Settings tab shows the board
+read-only. Module stays a creation-time choice.
+
+Verified: `pnpm build:api` clean, `tsc --noEmit` clean in apps/fe, eslint clean
+on the changed files. Parsing `{name:"x"}` through all four update schemas now
+returns `{name:"x"}` and nothing else. The six prettier errors `pnpm lint`
+reports in `board.service.ts`, `form-public.controller.ts` and
+`landing-page.service.ts` are pre-existing and untouched here.
+
+Left undone: the three live forms in Demo Organization 1 still carry a LEAD
+`moduleId` with COMPANY mappings. They need a PATCH with the right
+`moduleType` once this deploys, and the fix has to be deployed first or the
+next Save Draft undoes it. The test record `QA Test Co 0909a` from the live
+submission is still sitting in the Master Marketing List.

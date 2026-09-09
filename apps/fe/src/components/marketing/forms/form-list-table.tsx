@@ -18,6 +18,7 @@ export const FORM_STATUS_LABELS: Record<MarketingForm["status"], string> = {
 
 type FormListTableProps = {
   forms: MarketingForm[];
+  moduleLabels: Record<string, string>;
   isLoading?: boolean;
   currentPage: number;
   pageSize: number;
@@ -31,6 +32,7 @@ type FormListTableProps = {
 
 export const FormListTable = ({
   forms,
+  moduleLabels,
   isLoading,
   currentPage,
   pageSize,
@@ -55,7 +57,7 @@ export const FormListTable = ({
       {
         key: "name",
         header: "Form",
-        className: "w-[24%]",
+        className: "w-[20%]",
         render: (row: MarketingForm) => (
           <span className="font-medium text-gray-900">{row.name}</span>
         ),
@@ -63,7 +65,7 @@ export const FormListTable = ({
       {
         key: "status",
         header: <SortableHeader label="Status" onToggle={onToggleStatusSort} />,
-        className: "w-[14%]",
+        className: "w-[12%]",
         render: (row: MarketingForm) => (
           <StatusPill
             label={FORM_STATUS_LABELS[row.status]}
@@ -72,9 +74,16 @@ export const FormListTable = ({
         ),
       },
       {
+        key: "moduleType",
+        header: "Board",
+        className: "w-[14%] text-gray-600",
+        render: (row: MarketingForm) =>
+          moduleLabels[row.moduleType] ?? row.moduleType,
+      },
+      {
         key: "submissions",
         header: "Submissions",
-        className: "w-[17%] text-gray-600",
+        className: "w-[14%] text-gray-600",
         render: (row: MarketingForm) => (
           <span className="flex items-center gap-1.5 text-sm">
             <UsersRound className="size-4 text-gray-400" />
@@ -85,19 +94,19 @@ export const FormListTable = ({
       {
         key: "createdAt",
         header: "Created",
-        className: "w-[16%] text-gray-600",
+        className: "w-[14%] text-gray-600",
         render: (row: MarketingForm) => formatDateTime(row.createdAt),
       },
       {
         key: "updatedAt",
         header: "Last Updated",
-        className: "w-[16%] text-gray-600",
+        className: "w-[14%] text-gray-600",
         render: (row: MarketingForm) => formatDateTime(row.updatedAt),
       },
       {
         key: "actions",
         header: "Actions",
-        className: "w-[13%]",
+        className: "w-[12%]",
         render: (row: MarketingForm) => (
           <div className="flex items-center gap-1">
             <Button
