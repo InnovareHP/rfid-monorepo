@@ -92,5 +92,8 @@
       "Bash(sed -i -e 's/toast.error\\(search?.message || \"Failed to connect Gmail\"\\);/toast.error\\(\"Failed to connect Gmail\"\\);/' -e 's/toast.error\\(search?.message || \"Failed to connect Outlook\"\\);/toast.error\\(\"Failed to connect Outlook\"\\);/' -e 's/toast.error\\(search?.message || \"Failed to connect Google Calendar\"\\);/toast.error\\(\"Failed to connect Google Calendar\"\\);/' -e 's/toast.error\\(search?.message || \"Failed to connect Outlook Calendar\"\\);/toast.error\\(\"Failed to connect Outlook Calendar\"\\);/' -e 's/, search?\\\\.message\\\\]\\);/]\\);/' components/integrations/integration-page.tsx)",
       "Read(//c/Users/lhani/OneDrive/Desktop/ivorzero/ivorzero/dashboard/apps/api/src/routes/_team/\\\\$team/**)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "better-auth"
+  ]
 }

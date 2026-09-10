@@ -2175,3 +2175,96 @@ Left undone: the three live forms in Demo Organization 1 still carry a LEAD
 `moduleType` once this deploys, and the fix has to be deployed first or the
 next Save Draft undoes it. The test record `QA Test Co 0909a` from the live
 submission is still sitting in the Master Marketing List.
+
+## 2026-09-10 - In-house free trial abuse guard
+
+Evaluated Better Auth's `sentinel()` first. It is not a local plugin: it ships
+in `@better-auth/infra` and calls `dash.better-auth.com` and
+`kv.better-auth.com` on every sign-in with an API key on a paid plan, which
+makes Better Auth a subprocessor holding member emails, IPs, geo and device
+fingerprints. No BAA covers that, and its free-trial signal is device
+fingerprinting, which our card-at-checkout requirement already largely covers.
+Dropped it. The docs MCP server is wired in `.mcp.json`, nothing else.
+
+The real exposure was ours. The trial is `freeTrial: { days: 14 }` on all three
+plans and the Stripe plugin only rules out a repeat trial for the same
+`referenceId`, which is the organization. Nothing capped organizations per
+owner, so one account could take a 14-day trial per organization it created,
+and gmail aliasing gave it a fresh account whenever it wanted one.
+
+Three guards, no schema change and no new dependency.
+
+`assertOrganizationQuota` in `lib/auth/organization-quota.ts` runs from
+`beforeCreateOrganization`. Three owned organizations is the cap, and it lifts
+entirely once any organization the user owns holds an `active` subscription,
+so a real customer opening a fourth location is never blocked - only an
+account that has trialled three times and paid nothing.
+
+`hasConsumedFreeTrial` in `lib/stripe/trial-eligibility.ts` asks the same
+question about the person rather than the organization: any subscription on an
+organization this user owns carrying a `trialStart` or sitting in `trialing`.
+`getCheckoutSessionParams` in `auth.ts` then passes
+`subscription_data.trial_period_days: undefined`, which wins because the
+plugin spreads our `subscription_data` over its own computed trial.
+
+`canonicalSignupEmail` in `packages/shared/src/lib/email-domain.ts` collapses
+the alias forms a consumer mailbox ignores - `+tag` everywhere in
+`CONSUMER_EMAIL_DOMAINS`, dots on gmail, `googlemail.com` onto `gmail.com` -
+so the existing unique index on `user.email` does the deduplication with no new
+column. Work domains are deliberately untouched: plus addressing is not
+universal there and rewriting a real address would mail the code to a mailbox
+that does not exist. Signup also refuses the 20 throwaway domains in
+`DISPOSABLE_EMAIL_DOMAINS`. Both apply from `sendSignupOtp` onward, so the
+code, the enrollment claim and the user row all key off the same canonical
+address. The migration OTP path is left alone - it looks up accounts that
+already exist under whatever address they registered with.
+
+Verified: `pnpm build:api` clean, `pnpm build:shared` clean, 10 new cases in
+`lib/auth/signup-email.spec.ts` pass. The six prettier errors `pnpm --filter
+api lint` reports in `board.service.ts`, `form-public.controller.ts` and
+`landing-page.service.ts` are the same pre-existing ones, untouched here.
+
+Not verified: no checkout was run against Stripe, so the suppressed trial is
+argued from the plugin's spread order in `dist/index.mjs`, not observed. Worth
+one test-mode checkout by an owner who already trialled before this ships.
+
+Left undone: the free-trial-abuse signals that need a device fingerprint -
+linking two organizations that share no email, no card and no IP - stay
+uncovered. Stripe Radar on `payment_method.card.fingerprint` is the free way to
+catch the card half of that and is not set up.
+
+## 2026-09-10 - Trial guard follow-ups
+
+Checked the onboarding failure path before touching it, and it needed nothing:
+the controller already sends a rejected generator out as a final
+`{type:"error"}` event, `user-service.ts:46` turns that back into a thrown
+Error, and `onboarding.tsx` puts it on `form.setError("root")`. `APIError`
+carries our text because better-call passes `body.message` to `super()`, so
+the cap message reaches the wizard verbatim rather than a dead spinner.
+
+`assertOrganizationQuota` became `hasExhaustedFreeOrganizations`, a predicate
+with no better-auth import, and `beforeCreateOrganization` raises the
+`APIError` itself. Reason is the one `work-email-policy.ts` already documents:
+`better-auth/api` is ESM only, so a guard that imports it cannot be reached by
+the CJS test runner at all. Splitting it bought eleven cases across
+`organization-quota.spec.ts` and `trial-eligibility.spec.ts`, including the
+two that matter - a paying owner is admitted past the cap, and the payment
+check is scoped to organizations this user owns so another tenant's active
+subscription cannot unlock it.
+
+While reading the create path: nothing in either frontend creates a second
+organization. Both `auth.api.createOrganization` calls in `user.service.ts`
+run for a user who owns nothing yet - onboarding at :62, admin-created account
+at :253 - so the cap only bites on a direct call to better-auth's
+`/organization/create`, which any signed-in user can still make. Worth saying
+plainly: the dominant abuse path is a new account per trial, and what stands
+in front of that is the canonical email plus Stripe's card requirement, not
+this cap.
+
+`docs/free-trial-abuse-audit.md` holds four read-only queries for the rows
+that predate all of this. Owners with more than one trialled organization,
+owners already past the cap, gmail aliases that are one mailbox, and the card
+reuse question that only Stripe can answer.
+
+Verified: `pnpm build:api` clean, full `pnpm --filter api test` green at 602
+tests across 46 suites. The audit SQL has not been run against any database.
