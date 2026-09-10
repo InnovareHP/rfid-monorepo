@@ -25,6 +25,10 @@ import { renderEmailHtml } from "../aws/ses";
 import { prisma } from "../prisma/prisma";
 import { emailQueue } from "../queue/email-queue";
 import { OnboardingSeeding } from "./onboarding";
+import {
+  hasExhaustedFreeOrganizations,
+  ORGANIZATION_LIMIT_MESSAGE,
+} from "./organization-quota";
 import { requiresWorkEmail } from "./work-email-policy";
 
 const logger = new Logger("org-hook");
@@ -308,10 +312,15 @@ export const sendMagicLink = async ({
 
 export const beforeCreateOrganization = async ({
   organization,
+  user,
 }: {
   organization: any;
   user: any;
 }) => {
+  if (await hasExhaustedFreeOrganizations(user.id)) {
+    throw new APIError("BAD_REQUEST", { message: ORGANIZATION_LIMIT_MESSAGE });
+  }
+
   return {
     data: {
       ...organization,

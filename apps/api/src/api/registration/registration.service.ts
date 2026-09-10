@@ -14,7 +14,10 @@ import {
 import { consumeSlidingLimit } from "../../lib/auth/sliding-limiter";
 import { renderEmailHtml } from "../../lib/aws/ses";
 import {
+  canonicalSignupEmail,
+  DISPOSABLE_EMAIL_MESSAGE,
   isConsumerEmailDomain,
+  isDisposableEmailDomain,
   WORK_EMAIL_REQUIRED_MESSAGE,
 } from "@dashboard/shared";
 import { requiresWorkEmail } from "../../lib/auth/work-email-policy";
@@ -53,7 +56,14 @@ export class RegistrationService {
     }
   }
 
-  async sendSignupOtp(email: string) {
+  // Canonical from the first step on, so the code, the claim and the user row
+  // all key off the mailbox rather than the alias that was typed.
+  async sendSignupOtp(input: string) {
+    const email = canonicalSignupEmail(input);
+    if (isDisposableEmailDomain(email)) {
+      throw new BadRequestException(DISPOSABLE_EMAIL_MESSAGE);
+    }
+
     await this.limitSendsPerEmail("signup", email);
 
     const existing = await prisma.user.findFirst({
@@ -126,7 +136,8 @@ export class RegistrationService {
     return { created: true, email };
   }
 
-  async verifySignupOtp(email: string, name: string, code: string) {
+  async verifySignupOtp(input: string, name: string, code: string) {
+    const email = canonicalSignupEmail(input);
     const verified = await verifyOtp("signup", email, code);
     if (!verified) {
       throw new BadRequestException("That code is invalid or has expired.");

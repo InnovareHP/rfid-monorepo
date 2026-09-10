@@ -6,6 +6,7 @@ import { betterAuth } from "better-auth/minimal";
 import {
   admin,
   customSession,
+  haveIBeenPwned,
   oneTimeToken,
   openAPI,
   organization,
@@ -19,13 +20,13 @@ import { stripe as stripeClient } from "../stripe/stripe";
 import { StripeHelper } from "../stripe/stripe-events";
 import { TAX_CHECKOUT_BASE } from "../stripe/stripe-tax";
 import { persistSubscriptionPaymentSettings } from "../stripe/subscription-payment-settings";
+import { hasConsumedFreeTrial } from "../stripe/trial-eligibility";
 import {
   auditAdminActions,
   requireImpersonationReason,
 } from "./admin-audit-hook";
 import { SIGN_IN_LINK_VERIFY_PATH } from "./admin-sign-in-link";
 import { adminSignInLink } from "./admin-sign-in-link.plugin";
-import { invalidateSessionContextAfterMembershipChange } from "./session-context-hook";
 import {
   afterAcceptInvitation,
   afterAddMember,
@@ -63,13 +64,14 @@ import {
 } from "./passkey-hooks";
 import {
   ac,
-  member,
   liaison,
+  member,
   admin as orgAdmin,
   owner,
   super_admin,
   support,
 } from "./permission";
+import { invalidateSessionContextAfterMembershipChange } from "./session-context-hook";
 import { blockSessionGrantingEmailPaths } from "./session-path-guard";
 
 // Local dev runs over http, so secure and cross-subdomain cookies must be off.
@@ -386,7 +388,7 @@ export const auth = betterAuth({
       },
     }),
     // Password breach checks have nothing to check once passwords are gone.
-    // haveIBeenPwned(),
+    haveIBeenPwned(),
     openAPI(),
     stripe({
       schema: {
@@ -433,10 +435,15 @@ export const auth = betterAuth({
         enabled: true,
         plans: BETTER_AUTH_PLANS,
         authorizeReference: subscriptionAuthorizeReference,
-        getCheckoutSessionParams: () => ({
+        // The plugin only rules out a repeat trial for the same organization,
+        // so the trial is dropped here when this owner has already had one.
+        getCheckoutSessionParams: async ({ user }) => ({
           params: {
             ...TAX_CHECKOUT_BASE,
             payment_method_types: ["card", "us_bank_account"],
+            ...((await hasConsumedFreeTrial(user.id)) && {
+              subscription_data: { trial_period_days: undefined },
+            }),
           },
         }),
         // Session-level payment_method_types covers only the first charge, and
