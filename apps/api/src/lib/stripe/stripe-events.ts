@@ -8,7 +8,10 @@ import {
 } from "../../react-email/invoice-email";
 import { SubscriptionCanceledEmail } from "../../react-email/subscription-canceled-email";
 import { SubscriptionUpdatedEmail } from "../../react-email/subscription-updated-email";
-import { TrialEndingEmail } from "../../react-email/trial-ending-email";
+import {
+  dayCount,
+  TrialEndingEmail,
+} from "../../react-email/trial-ending-email";
 import { invalidateSubscriptionCache } from "../../guard/subscription/subscription.guard";
 import { invalidateOrganizationSessionContext } from "../auth/session-context";
 import { renderEmailHtml } from "../aws/ses";
@@ -153,6 +156,34 @@ const notifyOwners = async (
       from: `${appConfig.APP_EMAIL}`,
     });
   }
+};
+
+// Shared by the trial_will_end webhook and the final-day sweep.
+export const queueTrialEndingEmail = async (
+  customerId: string,
+  trialEnd: number,
+  planLabel: string | undefined,
+  now: number
+) => {
+  const audience = await resolveAudience(customerId);
+  if (!audience) return;
+
+  const daysRemaining = Math.max(Math.ceil((trialEnd - now) / 86400), 1);
+
+  await queueToOwners(
+    audience,
+    `Your Refidly trial ends in ${dayCount(daysRemaining)}`,
+    (ownerName) =>
+      TrialEndingEmail({
+        recipientName: ownerName,
+        organizationName: audience.organizationName,
+        daysRemaining,
+        planLabel: planLabel ?? "Trial",
+        trialEndDate: formatDate(trialEnd),
+        seats: audience.seats,
+        billingUrl: billingUrl(audience.organizationId),
+      })
+  );
 };
 
 // The ledger row is written at settlement, not on read. Idempotent by invoice id
@@ -352,28 +383,11 @@ const handleEvent = async (event: Stripe.Event) => {
       const subscription = event.data.object;
       if (!subscription.trial_end) return;
 
-      const audience = await resolveAudience(customerIdOf(subscription));
-      if (!audience) return;
-
-      const plan = planFromPriceId(subscription.items.data[0]?.price?.id);
-      const daysRemaining = Math.max(
-        Math.ceil((subscription.trial_end - event.created) / 86400),
-        1
-      );
-
-      await queueToOwners(
-        audience,
-        `Your Refidly trial ends in ${daysRemaining} days`,
-        (ownerName) =>
-          TrialEndingEmail({
-            recipientName: ownerName,
-            organizationName: audience.organizationName,
-            daysRemaining,
-            planLabel: plan?.label ?? "Trial",
-            trialEndDate: formatDate(subscription.trial_end as number),
-            seats: audience.seats,
-            billingUrl: billingUrl(audience.organizationId),
-          })
+      await queueTrialEndingEmail(
+        customerIdOf(subscription),
+        subscription.trial_end,
+        planFromPriceId(subscription.items.data[0]?.price?.id)?.label,
+        event.created
       );
       return;
     }
