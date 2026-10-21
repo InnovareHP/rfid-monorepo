@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   createDashboard,
   updateDashboard,
@@ -60,10 +61,14 @@ export function CustomAnalyticDashboardFormDialog({
 
   const saveMutation = useMutation({
     mutationFn: (values: DashboardFormValues) =>
-      dashboard ? updateDashboard(dashboard.id, values) : createDashboard(values),
+      dashboard
+        ? updateDashboard(dashboard.id, values)
+        : createDashboard(values),
     onSuccess: (saved) => {
       toast.success(dashboard ? "Dashboard renamed" : "Dashboard created");
-      queryClient.invalidateQueries({ queryKey: ["custom-analytic-dashboards"] });
+      queryClient.invalidateQueries({
+        queryKey: ["custom-analytic-dashboards"],
+      });
       if (dashboard) {
         queryClient.invalidateQueries({
           queryKey: ["custom-analytic-dashboard", dashboard.id],
@@ -86,9 +91,7 @@ export function CustomAnalyticDashboardFormDialog({
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to save dashboard";
+      const message = getApiErrorMessage(error, "Failed to save dashboard");
       toast.error(message);
     },
   });

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -77,9 +78,7 @@ export const MarketingSendersPage = () => {
     },
     onError: (error: unknown, _sender, context) => {
       queryClient.setQueryData(SENDERS_KEY, context?.previous);
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to remove sender";
+      const message = getApiErrorMessage(error, "Failed to remove sender");
       toast.error(message);
     },
   });
