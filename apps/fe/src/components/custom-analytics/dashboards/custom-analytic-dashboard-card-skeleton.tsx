@@ -1,8 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@dashboard/ui/components/card";
+import { Card, CardContent, CardHeader } from "@dashboard/ui/components/card";
 import { Skeleton } from "@dashboard/ui/components/skeleton";
 
 export function CustomAnalyticDashboardCardSkeleton() {

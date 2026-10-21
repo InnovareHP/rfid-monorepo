@@ -82,13 +82,15 @@ export function CustomAnalyticDashboardFormDialog({
         queryClient.invalidateQueries({
           queryKey: ["custom-analytic-dashboard-preview", dashboard.id],
         });
-      } else {
-        // `values` never changes for a create, so RHF would keep the last
-        // input on the next open without an explicit reset.
-        form.reset(emptyValues);
-        onCreated?.(saved.id);
+        onOpenChange(false);
+        return;
       }
-      onOpenChange(false);
+      // `values` never changes for a create, so RHF would keep the last
+      // input on the next open without an explicit reset.
+      form.reset(emptyValues);
+      // Closing would navigate back to the list over the new dashboard.
+      if (onCreated) onCreated(saved.id);
+      else onOpenChange(false);
     },
     onError: (error: unknown) => {
       const message = getApiErrorMessage(error, "Failed to save dashboard");
