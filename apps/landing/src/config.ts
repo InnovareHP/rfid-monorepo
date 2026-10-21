@@ -25,7 +25,7 @@ export const LEGAL_ADDRESS_URL =
 
 export const GOVERNING_STATE = "Michigan";
 
-export const EFFECTIVE_DATE = "August 11, 2026";
+export const EFFECTIVE_DATE = "October 22, 2026";
 
 export const LEGAL_LINKS = [
   { href: "/privacy-policy", label: "Privacy Policy" },

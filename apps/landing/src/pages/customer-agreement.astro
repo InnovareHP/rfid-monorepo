@@ -35,7 +35,7 @@ const SECTIONS = [
   {
     heading: "Subscription plans and billing",
     items: [
-      "Trials are free and require no card. At the end of a trial, the workspace is read-limited until a subscription starts. Trial data is retained through the deletion window described in the Privacy Policy.",
+      "Trials are free and require no card. At the end of a trial, the workspace is read-limited until a subscription starts. Trial data is retained and deleted as described in the Privacy Policy.",
       "Subscriptions renew automatically for the term you selected until cancelled. Payment is processed by Stripe; Refidly does not store card numbers.",
       "Fees are charged per the plan and seat count in effect at renewal. Adding seats mid-term is prorated. Fees are exclusive of taxes.",
       "Cancel at any time from billing settings. Cancellation stops the next renewal; it does not refund the current term unless the law requires otherwise.",
@@ -53,8 +53,8 @@ const SECTIONS = [
   {
     heading: "Protected health information",
     body: [
-      "Where you are a covered entity or a business associate under HIPAA and Refidly handles protected health information on your behalf, we act as your business associate and will execute a Business Associate Agreement. That BAA governs our handling of PHI and prevails over any conflicting term here.",
-      "Until a BAA is executed, you should not place protected health information in the workspace. Configure your custom fields accordingly.",
+      "Where you are a covered entity or a business associate under HIPAA and Refidly handles protected health information on your behalf, we act as your business associate and will execute a Business Associate Agreement on plans for which we offer one. A workspace owner signs it inside the application. That BAA governs our handling of PHI and prevails over any conflicting term here.",
+      "Until a BAA is executed, you shall not place protected health information in the workspace. Configure your custom fields accordingly.",
     ],
   },
   {
@@ -104,7 +104,7 @@ const SECTIONS = [
     heading: "Limitation of liability",
     body: [
       "Neither side is liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits, revenue, or goodwill. Our total liability arising out of this agreement is capped at the fees you paid in the 12 months before the event giving rise to the claim.",
-      "These limits do not apply to your payment obligations, to either side's indemnity obligations, or to liability that cannot be limited by law. Obligations under an executed BAA are governed by that BAA.",
+      "These limits do not apply to your payment obligations, to your indemnity obligations, or to liability that cannot be limited by law. Our liability arising from an executed BAA, including indemnity, is governed by the limit in that BAA.",
     ],
   },
   {
@@ -117,7 +117,7 @@ const SECTIONS = [
     heading: "Termination and export",
     body: [
       "This agreement runs while your workspace is open. Either side may terminate for material breach not cured within 30 days of notice. We may suspend immediately for a security risk, non-payment after notice, or acceptable-use violations.",
-      "You can export your records to CSV at any time while the workspace is active. After termination you have 30 days to export, after which data is deleted on the schedule in the Privacy Policy or in your BAA.",
+      "You can export your records to CSV at any time, including after a subscription ends while the workspace is read-only. Workspace content is destroyed when your owner purges it or at your written request, as described in the Privacy Policy, and PHI held under a BAA is returned or destroyed as that BAA provides.",
     ],
   },
   {

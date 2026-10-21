@@ -3,7 +3,7 @@
 // release action rather than an edit. The clause list is an on-screen summary;
 // BAA_SECTIONS is the agreement the signer actually executes.
 
-export const BAA_VERSION = "2026-08-11";
+export const BAA_VERSION = "2026-10-22";
 
 export const BAA_KIND = "BAA" as const;
 
@@ -55,12 +55,13 @@ export const BAA_CLAUSES = [
   "Security incidents and breaches of unsecured PHI are reported without unreasonable delay and within 60 days of discovery.",
   "Access, amendment, and accounting requests from individuals are supported within the timeframes HIPAA sets.",
   "Books and records relating to PHI are made available to the Secretary of Health and Human Services on request.",
-  "PHI is retained only for the retention period the organization configures, then destroyed.",
-  "The addendum is valid only while the organization holds a plan for which Refidly offers a BAA, and lapses if that plan does.",
+  "PHI is kept until the organization purges it or this addendum ends, then returned or destroyed.",
+  "The addendum takes effect only on a plan for which Refidly offers a BAA; if that plan lapses, no new PHI may be added, but every protection continues for PHI already held.",
   "On termination, PHI is returned or destroyed where feasible, and protections survive for anything retained.",
   "Either party may terminate for a material breach left uncured for 30 days.",
   "The organization is responsible for the lawfulness of the PHI it puts into the service and for its own users' access.",
-  "This addendum controls over conflicting terms in the Customer Agreement with respect to PHI.",
+  "Refidly's liability under this addendum is capped at three times the fees paid in the prior 12 months, except for gross negligence, wilful misconduct, or liability that cannot be limited by law.",
+  "This addendum is governed by Michigan law and controls over conflicting terms in the Customer Agreement with respect to PHI.",
 ] as const;
 
 export type BaaSection = {
@@ -111,7 +112,7 @@ export const BAA_SECTIONS: readonly BaaSection[] = [
     items: [
       "not use or disclose PHI other than as permitted or required by this Addendum or as required by law;",
       "use appropriate administrative, physical, and technical safeguards, and comply with the Security Rule with respect to Electronic PHI, to prevent use or disclosure other than as provided for by this Addendum;",
-      "maintain those safeguards as described in the Agreement, including encryption of PHI in transit and at rest, access control scoped to Customer's own organization, unique user identification, a second authentication factor for access to PHI, optional network allowlisting under Customer's control, and audit logging of record changes;",
+      "maintain safeguards that include encryption of PHI in transit and at rest, access control scoped to Customer's own organization, unique user identification, a second authentication factor for access to PHI, optional network allowlisting under Customer's control, and audit logging of record changes;",
       "report to Customer, without unreasonable delay and in no event later than 60 calendar days after discovery, any use or disclosure of PHI not permitted by this Addendum, any Security Incident of which it becomes aware, and any Breach of Unsecured PHI, in accordance with the Breach Notification Rule, including to the extent known the individuals affected, the nature of the incident, the PHI involved, and the mitigation and corrective steps taken;",
       "report unsuccessful attempts at unauthorized access that do not result in unauthorized access to PHI on an aggregate basis on request;",
       "ensure that any Subcontractor that creates, receives, maintains, or transmits PHI on Refidly's behalf, including hosting, storage, fax delivery, and AI processing providers, agrees in writing to restrictions and conditions at least as protective as those in this Addendum, and remain responsible for their handling of PHI;",
@@ -170,8 +171,9 @@ export const BAA_SECTIONS: readonly BaaSection[] = [
       "if (a) Customer's plan is changed to one for which Refidly does not offer a BAA, (b) the Agreement " +
       "is cancelled or terminated, or (c) payment for the then-current billing cycle is not made and the " +
       "Service is suspended for non-payment after notice. A lapse does not itself terminate the " +
-      "Agreement, but Customer may not place or process PHI in the Service while this Addendum has " +
-      "lapsed.\n" +
+      "Agreement. While this Addendum has lapsed, Customer shall not place new PHI in the Service, and " +
+      "Refidly's obligations under Sections 2, 3, and 6 continue to apply to all PHI Refidly then " +
+      "maintains until that PHI is returned or destroyed.\n" +
       "5.4 Overall term and breach. Subject to Sections 5.1 through 5.3, this Addendum takes effect on " +
       "the Effective Date and terminates automatically when the Agreement terminates, or when all PHI " +
       "held by Refidly has been returned or destroyed under Section 6, whichever is later. If either " +
@@ -187,9 +189,9 @@ export const BAA_SECTIONS: readonly BaaSection[] = [
       "it maintains and retain no copies, except that (a) where return or destruction is not feasible, " +
       "Refidly will extend the protections of this Addendum to the PHI retained and limit further uses " +
       "and disclosures to those purposes that make return or destruction infeasible, for as long as " +
-      "Refidly maintains the PHI; and (b) Refidly may retain PHI within backups and audit records as " +
-      "described in the Agreement, which remain subject to this Addendum until they expire under the " +
-      "applicable retention schedule. Destruction is carried out in a manner that renders the PHI " +
+      "Refidly maintains the PHI; and (b) Refidly may retain PHI within backups and audit records, which " +
+      "remain subject to this Addendum until they expire under Refidly's backup and audit retention " +
+      "schedules. Destruction is carried out in a manner that renders the PHI " +
       "unreadable and unreconstructable.",
   },
   {
@@ -198,8 +200,11 @@ export const BAA_SECTIONS: readonly BaaSection[] = [
       "Refidly will defend and indemnify Customer against third-party claims, fines, or penalties arising " +
       "from Refidly's failure to perform its obligations as Business Associate under this Addendum, " +
       "including a Breach caused by Refidly's failure to implement the safeguards described in Section 2. " +
-      "This indemnification obligation is not subject to the general liability cap in the Agreement to " +
-      "the extent such a limitation would be unenforceable under applicable law. Customer will indemnify " +
+      "Refidly's total liability arising out of this Addendum, including this indemnification " +
+      "obligation, is limited to three times the fees Customer paid under the Agreement in the 12 " +
+      "months before the event giving rise to the claim, except for liability arising from Refidly's " +
+      "gross negligence or wilful misconduct, or that cannot be limited under applicable law. " +
+      "Customer will indemnify " +
       "Refidly as provided in the Agreement for PHI placed in the Service outside the scope of this " +
       "Addendum, including on a plan for which no BAA has been executed.",
   },
@@ -213,7 +218,7 @@ export const BAA_SECTIONS: readonly BaaSection[] = [
       "No third-party beneficiaries: nothing in this Addendum confers any rights on any person other than the parties.",
       "Survival: obligations relating to the return, destruction, or continued protection of PHI, and indemnification for acts occurring before termination, survive termination of this Addendum.",
       "Order of precedence: in the event of a conflict between this Addendum and the Agreement, this Addendum controls with respect to PHI.",
-      "Governing law: this Addendum is governed by the law of the jurisdiction of Customer's formation, without regard to its conflict of laws rules.",
+      "Governing law: this Addendum is governed by the laws of the State of Michigan, without regard to its conflict of laws rules, and by HIPAA and the HIPAA Regulations where they apply.",
     ],
   },
   {

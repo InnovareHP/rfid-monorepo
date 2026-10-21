@@ -1,4 +1,8 @@
-import { isBaaCurrent } from "@dashboard/shared";
+import {
+  entitlementHasFeature,
+  isBaaCurrent,
+  type ResolvedEntitlement,
+} from "@dashboard/shared";
 import {
   CanActivate,
   ExecutionContext,
@@ -106,6 +110,8 @@ const matchesEntry = (address: string, entry: string) => {
   return (target & mask) === (base & mask);
 };
 
+const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 const twoFactorKey = (userId: string) => `hipaa:2fa:${userId}`;
 
 // A passkey satisfies the requirement on its own: the authenticator proves
@@ -156,6 +162,18 @@ export class HipaaGuard implements CanActivate {
     }
 
     if (!settings.hipaaEnabled) return true;
+
+    // A plan without HIPAA lapses the BAA: held PHI stays readable for export, new PHI is refused.
+    const entitlement = request.entitlement as ResolvedEntitlement | undefined;
+    if (
+      entitlement &&
+      !entitlementHasFeature(entitlement, "hipaa") &&
+      !READ_METHODS.has(request.method)
+    ) {
+      throw new ForbiddenException(
+        "Your plan no longer covers the Business Associate Agreement, so new data cannot be added"
+      );
+    }
 
     const address = clientIp(request);
     if (settings.ipAllowlist.length) {

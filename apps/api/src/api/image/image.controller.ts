@@ -20,6 +20,7 @@ import {
   UploadImageQueryDto,
   ViewImageQueryDto,
 } from "./dto/image-schema";
+import { HipaaGuard } from "../../guard/hipaa/hipaa.guard";
 import { SupportService } from "../support/support.service";
 import { ImageService } from "./image.service";
 
@@ -30,7 +31,7 @@ const scopeOf = (session: AuthenticatedSession) =>
 // No SubscriptionGuard: the organization logo is uploaded during onboarding,
 // before any subscription row exists, and support agents carry no org at all.
 @Controller("image")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, HipaaGuard)
 export class ImageController {
   constructor(
     private readonly imageService: ImageService,
