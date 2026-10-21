@@ -13,14 +13,6 @@ vi.mock("@/services/custom-analytics/custom-analytics-service", () => ({
 
 afterEach(cleanup);
 
-// jsdom has no layout APIs, which the cmdk list inside MultiSelect calls on mount.
-globalThis.ResizeObserver = class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-Element.prototype.scrollIntoView = () => {};
-
 const client = new QueryClient();
 
 const dialog = (open: boolean) => (
