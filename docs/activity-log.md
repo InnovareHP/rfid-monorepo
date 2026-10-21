@@ -2268,3 +2268,15 @@ reuse question that only Stripe can answer.
 
 Verified: `pnpm build:api` clean, full `pnpm --filter api test` green at 602
 tests across 46 suites. The audit SQL has not been run against any database.
+
+## 2026-10-14 — Final-day trial reminder
+
+Retention plan step 1. Stripe's `trial_will_end` already emailed owners 3 days
+out; added an hourly sweep (`lib/trial-reminder/`) that emails owners again when
+`trialEnd` falls within the next 24h. Dedupe is a Redis `NX` key per
+subscription (3-day TTL), released if queueing fails. Skips trials set to
+cancel. Webhook and sweep share `queueTrialEndingEmail` in `stripe-events.ts`.
+Fixed "ends in 1 days" pluralization.
+
+Verified: `pnpm build:api` clean, eslint clean on touched files, trial-reminder
+and stripe specs green. Not run against Stripe or a real Redis.
