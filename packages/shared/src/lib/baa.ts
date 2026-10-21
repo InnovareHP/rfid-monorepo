@@ -154,7 +154,7 @@ export const BAA_SECTIONS: readonly BaaSection[] = [
       "Customer configures its own custom fields and is responsible for what those fields are used to hold. Customer shall not place PHI in the Service before this Addendum is in effect.",
       "Customer is responsible for provisioning and deprovisioning its own users, for the roles and permissions it assigns them, and for the lawfulness of the PHI it submits.",
       "Customer is responsible for the content, recipients, and consent basis of the outreach and fax communications it sends through the Service, and for its own compliance with the Privacy Rule when doing so.",
-      "Customer selects the retention period applied to its records and is responsible for choosing one consistent with its own legal and professional obligations.",
+      "Customer decides how long its records are kept and when they are purged, and is responsible for doing so consistently with its own legal and professional obligations.",
     ],
   },
   {

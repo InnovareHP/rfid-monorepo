@@ -2,6 +2,7 @@ import { NOTIFICATION_ENTITY, NOTIFICATION_TYPE } from "@dashboard/shared";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma, TaskStatusCategory } from "@prisma/client";
 import { appConfig } from "../../config/app-config";
+import { getHipaaSettings } from "../../guard/hipaa/hipaa.guard";
 import { renderEmailHtml } from "../../lib/aws/ses";
 import { prisma } from "../../lib/prisma/prisma";
 import { emailQueue } from "../../lib/queue/email-queue";
@@ -112,15 +113,21 @@ export class TaskService {
     const priority =
       task.priority.charAt(0) + task.priority.slice(1).toLowerCase();
 
+    // A task title is free text that can name a patient, so HIPAA orgs keep it out of the inbox.
+    const hideTitle =
+      (await getHipaaSettings(input.organizationId))?.hipaaEnabled ?? true;
+
     for (const recipient of recipients) {
       await emailQueue.add("send", {
         to: recipient.user.email,
-        subject: `You've been assigned: ${task.name}`,
+        subject: hideTitle
+          ? "You've been assigned a task"
+          : `You've been assigned: ${task.name}`,
         html: await renderEmailHtml(
           TaskAssignedEmail({
             recipientName: recipient.user.name,
             assignerName: actor?.name ?? "A teammate",
-            taskTitle: task.name,
+            taskTitle: hideTitle ? "Open Refidly to view this task" : task.name,
             dueDate,
             priority,
             taskUrl: `${appConfig.WEBSITE_URL}/${input.organizationId}/tasks/${input.taskId}`,
