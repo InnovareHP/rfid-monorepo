@@ -75,6 +75,10 @@ export const MarketingFormsListPage = () => {
 
   const { data: modules = [] } = useModules();
 
+  const moduleLabels = Object.fromEntries(
+    modules.map((module) => [module.key, module.label])
+  );
+
   const form = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
     defaultValues: { name: "", moduleType: "LEAD", fieldIds: [] },
@@ -216,6 +220,7 @@ export const MarketingFormsListPage = () => {
 
       <FormListTable
         forms={filtered.slice((page - 1) * pageSize, page * pageSize)}
+        moduleLabels={moduleLabels}
         isLoading={isLoading}
         currentPage={page}
         pageSize={pageSize}

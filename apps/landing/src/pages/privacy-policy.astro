@@ -59,7 +59,7 @@ const SECTIONS = [
       "We do not sell personal information, referral records, or facility lists, and we do not share them for cross-context behavioral advertising. We disclose information only in these circumstances:",
     ],
     items: [
-      "Service providers who process data on our behalf under contract: cloud hosting and object storage, our database and cache infrastructure, Stripe for payments, Resend for transactional email, and Google for AI processing.",
+      "Service providers who process data on our behalf under contract: Amazon Web Services for cloud hosting, object storage, AI processing, and transactional email, our database and cache infrastructure, Stripe for payments, and EldonFax for fax delivery.",
       "Other members of your organization, according to the role and permissions assigned to each user by a workspace owner.",
       "Integration providers you connect, limited to what the integration needs to function.",
       "Legal and safety disclosures where required by law, valid legal process, or to protect rights and safety. Where we may lawfully do so, we notify the affected organization first.",
@@ -69,8 +69,8 @@ const SECTIONS = [
   {
     heading: "Data retention",
     body: [
-      "Workspace content is retained for as long as the organization keeps its account open. Records deleted inside the application are recoverable from history for a limited period so an accidental deletion can be restored, then purged. Audit log entries are retained longer because their purpose is to show what happened.",
-      "On account closure, we delete or de-identify workspace content within 90 days, except where a Business Associate Agreement, a legal hold, or a records-retention obligation requires otherwise. Backups age out on their own schedule.",
+      "Workspace content is retained for as long as the organization keeps its account open. Records deleted inside the application stay in the trash, so an accidental deletion can be restored, until a workspace owner purges the organization's data. Audit log entries are retained longer because their purpose is to show what happened.",
+      "After a subscription ends, workspace content stays available read-only so the organization can export it. It is destroyed when a workspace owner purges it from the application, or within 30 days of a written deletion request from the organization, except where a Business Associate Agreement, a legal hold, or a records-retention obligation requires otherwise. Backups age out on their own schedule.",
     ],
   },
   {

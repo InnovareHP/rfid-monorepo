@@ -16,11 +16,13 @@ import { toast } from "sonner";
 type FormSettingsPanelProps = {
   form: UseFormReturn<FormBuilderValues>;
   publicUrl: string;
+  boardLabel: string;
 };
 
 export const FormSettingsPanel = ({
   form,
   publicUrl,
+  boardLabel,
 }: FormSettingsPanelProps) => {
   const copyPublicUrl = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -47,6 +49,21 @@ export const FormSettingsPanel = ({
           </FormItem>
         )}
       />
+
+      <div className="space-y-1.5">
+        <Label htmlFor="form-board" className="flex items-center gap-1.5">
+          Board
+          <span className="text-xs font-normal text-muted-foreground">
+            Chosen on creation
+          </span>
+        </Label>
+        <Input
+          id="form-board"
+          value={boardLabel}
+          readOnly
+          className="text-muted-foreground"
+        />
+      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="public-url" className="flex items-center gap-1.5">

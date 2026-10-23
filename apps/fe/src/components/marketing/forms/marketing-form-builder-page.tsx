@@ -23,6 +23,7 @@ import {
   TabsTrigger,
 } from "@dashboard/ui/components/tabs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useModules } from "@/hooks/use-modules";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, PencilLine, Send } from "lucide-react";
@@ -49,6 +50,8 @@ export const MarketingFormBuilderPage = () => {
     queryKey: ["marketing-form-fields", formId],
     queryFn: () => getFormFields(formId),
   });
+
+  const { data: modules = [] } = useModules();
 
   const form = useForm<FormBuilderValues>({
     resolver: zodResolver(formBuilderSchema),
@@ -109,6 +112,10 @@ export const MarketingFormBuilderPage = () => {
   }
 
   const publicUrl = `${window.location.origin}/f/${marketingForm.orgSlug}/${marketingForm.slug}`;
+
+  const boardLabel =
+    modules.find((module) => module.key === marketingForm.moduleType)?.label ??
+    marketingForm.moduleType;
 
   const previewForm: PublicForm = {
     id: marketingForm.id,
@@ -216,7 +223,11 @@ export const MarketingFormBuilderPage = () => {
                 <FormFieldsPanel form={form} fields={boardFields} />
               </TabsContent>
               <TabsContent value="settings" className="pt-4">
-                <FormSettingsPanel form={form} publicUrl={publicUrl} />
+                <FormSettingsPanel
+                  form={form}
+                  publicUrl={publicUrl}
+                  boardLabel={boardLabel}
+                />
               </TabsContent>
             </Tabs>
           </aside>

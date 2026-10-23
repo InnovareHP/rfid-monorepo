@@ -108,22 +108,40 @@ export const blastBlockSchema = z.discriminatedUnion("type", [
 
 export const blastBlocksSchema = z.array(blastBlockSchema).max(30);
 
+// Raw fields carry no .default(): a default still resolves when the key is
+// omitted, even under .partial(), so an update built that way would blank the
+// body and delete every recipient group on a name-only save.
+const nameField = z.string().min(1);
+const subjectField = z.string().min(1);
+const bodyHtmlField = z.string();
+const editorTypeField = z.enum(["DRAG_DROP", "CLASSIC"]);
+const groupIdsField = z.array(z.string());
+
 export const CreateBlastSchema = z.object({
-  name: z.string().min(1),
+  name: nameField,
   campaignId: z.string().nullable().optional(),
-  subject: z.string().min(1),
+  subject: subjectField,
   // Classic blasts author this directly; drag and drop blasts have it rendered
   // from blocks, so it is optional on the wire.
-  bodyHtml: z.string().default(""),
-  editorType: z.enum(["DRAG_DROP", "CLASSIC"]).default("DRAG_DROP"),
+  bodyHtml: bodyHtmlField.default(""),
+  editorType: editorTypeField.default("DRAG_DROP"),
   blocks: blastBlocksSchema.optional(),
   // A draft may have none yet; send is what requires at least one. Groups may
   // target different modules; the send unions them and dedupes on record.
-  groupIds: z.array(z.string()).default([]),
+  groupIds: groupIdsField.default([]),
   scheduledAt: z.string().optional(),
 });
 
-export const UpdateBlastSchema = CreateBlastSchema.partial();
+export const UpdateBlastSchema = z.object({
+  name: nameField.optional(),
+  campaignId: z.string().nullable().optional(),
+  subject: subjectField.optional(),
+  bodyHtml: bodyHtmlField.optional(),
+  editorType: editorTypeField.optional(),
+  blocks: blastBlocksSchema.optional(),
+  groupIds: groupIdsField.optional(),
+  scheduledAt: z.string().optional(),
+});
 
 export const SendBlastSchema = z.object({
   sendVia: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),

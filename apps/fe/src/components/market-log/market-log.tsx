@@ -1,12 +1,12 @@
 import { WriteGate } from "@/components/write-gate";
+import ColumnFilter from "@/components/master-list/column-filter";
+import { useLogDelete, useLogTable } from "@/hooks/use-log-table";
 import {
+  bulkDeleteMarketLogs,
   createMarketLog,
-  deleteMarketLog,
   getFacilityOptions,
   getMarketLogs,
 } from "@/services/market/market-service";
-import { formatDateTime } from "@dashboard/shared";
-import { Badge } from "@dashboard/ui/components/badge";
 import { LogDateFilter } from "@/components/log-shared/log-date-filter";
 import { logDateFilter } from "@/lib/helper/log-date-filter";
 import { PageHeader } from "@/components/page-header";
@@ -48,17 +48,13 @@ import {
   MessagesSquare,
   Plus,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
-import {
-  LogEmptyState,
-  LogRowDelete,
-  LogStatCard,
-  LogTableSkeleton,
-} from "../log-shared/log-page-shell";
-import { ReusableTable } from "../reusable-table/generic-table";
+import { LogEmptyState, LogStatCard } from "../log-shared/log-page-shell";
+import { LogTable } from "../log-shared/log-table";
+import { marketLogColumns, TOUCHPOINT_LABELS } from "./market-log-columns";
 
 export const CreateMarketSchema = z.object({
   facility: z.string().min(1, "Select a facility"),
@@ -82,16 +78,6 @@ export const CreateMarketSchema = z.object({
 
 export type CreateMarketFormValues = z.infer<typeof CreateMarketSchema>;
 
-const TOUCHPOINT_LABELS: Record<string, string> = {
-  IN_PERSON_MEETING: "In Person",
-  LINKED_IN: "LinkedIn",
-  FACEBOOK: "Facebook",
-  TEXT: "Text",
-  EMAIL: "Email",
-  PHONE: "Phone",
-  OTHER: "Other",
-};
-
 const MarketLogPage = () => {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -105,7 +91,7 @@ const MarketLogPage = () => {
     page: number;
     limit: number;
     filter?: Record<string, string>;
-  }>({ page: 1, limit: 20 });
+  }>({ page: 1, limit: 25 });
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -144,39 +130,25 @@ const MarketLogPage = () => {
     },
   });
 
-  const deleteMarketMutation = useMutation({
-    mutationFn: async (id: string) => await deleteMarketLog(id),
-    onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: ["market-logs"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["market-logs"] });
+  const deleteMarketMutation = useLogDelete(
+    "market-logs",
+    bulkDeleteMarketLogs
+  );
 
-      // Every page cached under the prefix is patched, since the key carries
-      // the filter and the row can sit in any of them.
-      queryClient.setQueriesData({ queryKey: ["market-logs"] }, (old: any) => {
-        if (!Array.isArray(old?.data)) return old;
+  const { mutate: deleteRow, isPending: isDeleting } = deleteMarketMutation;
 
-        return {
-          ...old,
-          data: old.data.filter((row: { id: string }) => row.id !== id),
-          total: Math.max(0, (old.total ?? 0) - 1),
-        };
-      });
-
-      return { previous };
-    },
-    onError: (error, _id, context) => {
-      for (const [key, data] of context?.previous ?? []) {
-        queryClient.setQueryData(key, data);
-      }
-      toast.error(error.message);
-    },
-    onSuccess: () => {
-      toast.success("Marketing log deleted successfully!");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["market-logs"] });
-    },
-  });
+  const columns = useMemo(
+    () =>
+      marketLogColumns(
+        (id) =>
+          deleteRow([id], {
+            onSuccess: () => toast.success("Marketing log deleted successfully!"),
+            onError: (error) => toast.error(error.message),
+          }),
+        isDeleting
+      ),
+    [deleteRow, isDeleting]
+  );
 
   const form = useForm<CreateMarketFormValues>({
     resolver: zodResolver(CreateMarketSchema),
@@ -193,15 +165,19 @@ const MarketLogPage = () => {
     createMarketMutation.mutate(values);
   };
 
-  const rows: any[] = Array.isArray(marketLogsQuery.data?.data)
-    ? marketLogsQuery.data.data
-    : [];
+  const rows = marketLogsQuery.data?.data ?? [];
   const totalEntries = marketLogsQuery.data?.total ?? 0;
+
+  const { table, hideableColumns, onColumnOrderChange } = useLogTable(
+    "market-log",
+    rows,
+    columns
+  );
 
   const uniqueFacilities = new Set(rows.map((r) => r.facility)).size;
   const touchpointCounts = new Map<string, number>();
   for (const row of rows) {
-    for (const tp of row.touchpoints ?? []) {
+    for (const tp of row.touchpoints) {
       touchpointCounts.set(tp, (touchpointCounts.get(tp) ?? 0) + 1);
     }
   }
@@ -218,6 +194,7 @@ const MarketLogPage = () => {
           description="Track facility visits, touchpoints, and outreach activity"
         >
           <LogDateFilter value={dateRange} onChange={handleDateChange} />
+          <ColumnFilter tableColumns={hideableColumns} />
           <WriteGate>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" />
@@ -370,108 +347,30 @@ const MarketLogPage = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="overflow-hidden border border-border">
-          <div className="overflow-x-auto p-4">
-            {isLoading ? (
-              <LogTableSkeleton />
-            ) : rows.length > 0 ? (
-              <ReusableTable
-                data={rows}
-                columns={[
-                  {
-                    key: "facility",
-                    header: "Facility",
-                    render: (row: any) => (
-                      <span className="font-medium text-foreground">
-                        {row.facility}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "touchpoint",
-                    header: "Touchpoints",
-                    render: (row: any) => (
-                      <div className="flex flex-wrap gap-1">
-                        {(row.touchpoints ?? []).map((tp: string) => (
-                          <Badge
-                            key={tp}
-                            variant="secondary"
-                            className="text-xs font-medium"
-                          >
-                            {TOUCHPOINT_LABELS[tp] ?? tp}
-                          </Badge>
-                        ))}
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "talkedTo",
-                    header: "Talked To",
-                    render: (row: any) => row.talkedTo,
-                  },
-                  {
-                    key: "reasonForVisit",
-                    header: "Reason for Visit",
-                    render: (row: any) => (
-                      <span
-                        className="block max-w-56 truncate text-muted-foreground"
-                        title={row.reasonForVisit ?? ""}
-                      >
-                        {row.reasonForVisit || "—"}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "createdAt",
-                    header: "Logged",
-                    render: (row: any) => (
-                      <span className="text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(row.createdAt)}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "notes",
-                    header: "Notes",
-                    render: (row: any) => (
-                      <span
-                        className="block max-w-48 truncate text-muted-foreground"
-                        title={row.notes ?? ""}
-                      >
-                        {row.notes || "—"}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "action",
-                    header: "",
-                    render: (row: any) => (
-                      <LogRowDelete
-                        entityLabel="marketing activity"
-                        disabled={deleteMarketMutation.isPending}
-                        onDelete={() => deleteMarketMutation.mutate(row.id)}
-                      />
-                    ),
-                  },
-                ]}
-                currentPage={filterMeta.page}
-                itemsPerPage={filterMeta.limit}
-                onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-                totalCount={totalEntries}
-                emptyMessage="No marketing logs found"
-                isLoading={marketLogsQuery.isLoading}
-              />
-            ) : (
-              <LogEmptyState
-                icon={Megaphone}
-                title="No marketing activity yet"
-                description="Log your first facility visit or outreach touchpoint to start building your activity history."
-                actionLabel="Log Activity"
-                onAction={() => setOpen(true)}
-              />
-            )}
-          </div>
-        </Card>
+        {!isLoading && rows.length === 0 ? (
+          <Card className="overflow-hidden border border-border">
+            <LogEmptyState
+              icon={Megaphone}
+              title="No marketing activity yet"
+              description="Log your first facility visit or outreach touchpoint to start building your activity history."
+              actionLabel="Log Activity"
+              onAction={() => setOpen(true)}
+            />
+          </Card>
+        ) : (
+          <LogTable
+            table={table}
+            isLoading={isLoading}
+            totalCount={totalEntries}
+            meta={filterMeta}
+            onMetaChange={(meta) =>
+              setFilterMeta((prev) => ({ ...prev, ...meta }))
+            }
+            onDelete={deleteMarketMutation.mutateAsync}
+            onColumnOrderChange={onColumnOrderChange}
+            emptyMessage="No marketing logs found"
+          />
+        )}
       </div>
     </div>
   );

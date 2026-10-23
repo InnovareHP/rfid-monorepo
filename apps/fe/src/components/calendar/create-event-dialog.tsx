@@ -59,7 +59,7 @@ interface CreateEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   connectionStatus: CalendarConnectionStatus;
-  defaultDate?: Date;
+  defaultDate: Date;
 }
 
 export function CreateEventDialog({
@@ -74,13 +74,14 @@ export function CreateEventDialog({
   if (connectionStatus.google.connected) connectedProviders.push("google");
   if (connectionStatus.outlook.connected) connectedProviders.push("outlook");
 
-  const start = defaultDate ?? new Date();
+  const start = defaultDate;
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
 
+  // `values`, not defaultValues: the page stays mounted and swaps defaultDate per click.
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
-    defaultValues: {
+    values: {
       provider: connectedProviders[0] ?? "google",
       title: "",
       description: "",
@@ -245,7 +246,9 @@ export function CreateEventDialog({
                         <Input
                           type={allDay ? "date" : "datetime-local"}
                           {...field}
-                          value={allDay ? field.value.slice(0, 10) : field.value}
+                          value={
+                            allDay ? field.value.slice(0, 10) : field.value
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -262,7 +265,9 @@ export function CreateEventDialog({
                         <Input
                           type={allDay ? "date" : "datetime-local"}
                           {...field}
-                          value={allDay ? field.value.slice(0, 10) : field.value}
+                          value={
+                            allDay ? field.value.slice(0, 10) : field.value
+                          }
                         />
                       </FormControl>
                       <FormMessage />

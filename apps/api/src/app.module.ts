@@ -11,6 +11,7 @@ import { MonthlyReportModule } from "./lib/monthly-report/monthly-report.module"
 import { auth } from "./lib/auth/auth";
 import { BullBoardSetupModule } from "./lib/queue/bull-board.module";
 import { QueueModule } from "./lib/queue/queue.module";
+import { TrialReminderModule } from "./lib/trial-reminder/trial-reminder.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { QueueModule } from "./lib/queue/queue.module";
     AuthModule.forRoot({ auth }),
     AuditModule,
     MonthlyReportModule,
+    TrialReminderModule,
     ApiModule,
   ],
   controllers: [],

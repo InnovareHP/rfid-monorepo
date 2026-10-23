@@ -62,31 +62,42 @@ export type LandingSection = z.infer<typeof LandingSectionSchema>;
 const atMostOneFormEmbed = (sections: LandingSection[]) =>
   sections.filter((section) => section.type === "FORM_EMBED").length <= 1;
 
+// Raw fields carry no .default(): a default still resolves when the key is
+// omitted, even under .partial(), so an update built that way would blank the
+// page's sections on a name-only save.
+const nameField = z.string().min(1);
+const sectionsField = z
+  .array(LandingSectionSchema)
+  .max(20)
+  .refine(atMostOneFormEmbed, {
+    message: "A landing page can only embed one form",
+  });
+const seoTitleField = z.string().max(70);
+const seoDescriptionField = z.string().max(160);
+const slugField = z
+  .string()
+  .min(1)
+  .max(80)
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "Slug may only contain lowercase letters, numbers and single hyphens"
+  );
+
 export const CreateLandingPageSchema = z.object({
-  name: z.string().min(1),
+  name: nameField,
   campaignId: z.string().optional(),
-  sections: z
-    .array(LandingSectionSchema)
-    .max(20)
-    .default([])
-    .refine(atMostOneFormEmbed, {
-      message: "A landing page can only embed one form",
-    }),
+  sections: sectionsField.default([]),
   formId: z.string().optional(),
-  seoTitle: z.string().max(70).optional(),
-  seoDescription: z.string().max(160).optional(),
+  seoTitle: seoTitleField.optional(),
+  seoDescription: seoDescriptionField.optional(),
 });
 
-export const UpdateLandingPageSchema = CreateLandingPageSchema.partial().extend(
-  {
-    slug: z
-      .string()
-      .min(1)
-      .max(80)
-      .regex(
-        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-        "Slug may only contain lowercase letters, numbers and single hyphens"
-      )
-      .optional(),
-  }
-);
+export const UpdateLandingPageSchema = z.object({
+  name: nameField.optional(),
+  campaignId: z.string().optional(),
+  sections: sectionsField.optional(),
+  formId: z.string().optional(),
+  seoTitle: seoTitleField.optional(),
+  seoDescription: seoDescriptionField.optional(),
+  slug: slugField.optional(),
+});

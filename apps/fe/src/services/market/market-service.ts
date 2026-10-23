@@ -50,8 +50,11 @@ export const updateMarketLog = async (id: string, data: any) => {
   return response.data;
 };
 
-export const deleteMarketLog = async (id: string) => {
-  const response = await axiosClient.delete(`/api/liaison/marketing/${id}`);
+export const bulkDeleteMarketLogs = async (ids: string[]) => {
+  const response = await axiosClient.post(
+    "/api/liaison/marketing/bulk-delete",
+    { ids }
+  );
 
   return response.data;
 };

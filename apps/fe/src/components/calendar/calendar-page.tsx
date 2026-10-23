@@ -66,7 +66,7 @@ export function CalendarPage() {
     null
   );
   const [showEventDetail, setShowEventDetail] = useState(false);
-  const [defaultEventDate, setDefaultEventDate] = useState<Date | undefined>();
+  const [defaultEventDate, setDefaultEventDate] = useState(() => new Date());
   const [dateRange, setDateRange] = useState(() => ({
     start: subMonths(startOfMonth(new Date()), 1).toISOString(),
     end: addMonths(startOfMonth(new Date()), 2).toISOString(),
@@ -223,7 +223,9 @@ export function CalendarPage() {
             view={toolbar.view}
             onPrev={() => calendarRef.current?.getApi().prev()}
             onNext={() => calendarRef.current?.getApi().next()}
-            onViewChange={(view) => calendarRef.current?.getApi().changeView(view)}
+            onViewChange={(view) =>
+              calendarRef.current?.getApi().changeView(view)
+            }
           />
 
           {eventsLoading && (

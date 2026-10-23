@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   createDashboard,
   updateDashboard,
@@ -60,10 +61,14 @@ export function CustomAnalyticDashboardFormDialog({
 
   const saveMutation = useMutation({
     mutationFn: (values: DashboardFormValues) =>
-      dashboard ? updateDashboard(dashboard.id, values) : createDashboard(values),
+      dashboard
+        ? updateDashboard(dashboard.id, values)
+        : createDashboard(values),
     onSuccess: (saved) => {
       toast.success(dashboard ? "Dashboard renamed" : "Dashboard created");
-      queryClient.invalidateQueries({ queryKey: ["custom-analytic-dashboards"] });
+      queryClient.invalidateQueries({
+        queryKey: ["custom-analytic-dashboards"],
+      });
       if (dashboard) {
         queryClient.invalidateQueries({
           queryKey: ["custom-analytic-dashboard", dashboard.id],
@@ -77,18 +82,18 @@ export function CustomAnalyticDashboardFormDialog({
         queryClient.invalidateQueries({
           queryKey: ["custom-analytic-dashboard-preview", dashboard.id],
         });
-      } else {
-        // `values` never changes for a create, so RHF would keep the last
-        // input on the next open without an explicit reset.
-        form.reset(emptyValues);
-        onCreated?.(saved.id);
+        onOpenChange(false);
+        return;
       }
-      onOpenChange(false);
+      // `values` never changes for a create, so RHF would keep the last
+      // input on the next open without an explicit reset.
+      form.reset(emptyValues);
+      // Closing would navigate back to the list over the new dashboard.
+      if (onCreated) onCreated(saved.id);
+      else onOpenChange(false);
     },
     onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to save dashboard";
+      const message = getApiErrorMessage(error, "Failed to save dashboard");
       toast.error(message);
     },
   });
