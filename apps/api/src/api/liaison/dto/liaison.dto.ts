@@ -54,3 +54,7 @@ export const UpdateExpenseSchema = z.object({
   description: z.string().optional(),
   notes: z.string().optional(),
 });
+
+export const BulkDeleteLogSchema = z.object({
+  ids: z.array(z.string()).min(1).max(100),
+});
