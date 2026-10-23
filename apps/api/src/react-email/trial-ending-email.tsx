@@ -13,6 +13,9 @@ type TrialEndingEmailProps = {
   billingUrl: string;
 };
 
+export const dayCount = (days: number) =>
+  `${days} ${days === 1 ? "day" : "days"}`;
+
 export const TrialEndingEmail = ({
   recipientName,
   organizationName,
@@ -23,11 +26,11 @@ export const TrialEndingEmail = ({
   billingUrl,
 }: TrialEndingEmailProps) => (
   <EmailLayout
-    preview={`Your Refidly trial ends in ${daysRemaining} days`}
+    preview={`Your Refidly trial ends in ${dayCount(daysRemaining)}`}
     badge="Trial Ending"
   >
     <Heading style={emailStyles.heading}>
-      Your trial ends in {daysRemaining} days
+      Your trial ends in {dayCount(daysRemaining)}
     </Heading>
 
     <Text style={emailStyles.paragraph}>

@@ -31,10 +31,15 @@ import { HipaaGuard } from "./hipaa.guard";
 
 const ORG = "org_a";
 
-const contextFor = (ip = "10.0.0.5", organizationId: string | null = ORG) =>
+const contextFor = (
+  ip = "10.0.0.5",
+  organizationId: string | null = ORG,
+  extra: Record<string, unknown> = {}
+) =>
   ({
     switchToHttp: () => ({
       getRequest: () => ({
+        ...extra,
         session: {
           session: { activeOrganizationId: organizationId },
           user: { id: "user_a" },
@@ -154,6 +159,23 @@ describe("HipaaGuard", () => {
     await expect(new HipaaGuard().canActivate(contextFor())).rejects.toThrow(
       /passkey/
     );
+  });
+
+  // A downgrade lapses the BAA: held PHI stays readable, new PHI is refused.
+  it("refuses writes but allows reads once the plan drops HIPAA", async () => {
+    const lapsed = { features: [] };
+
+    await expect(
+      new HipaaGuard().canActivate(
+        contextFor("10.0.0.5", ORG, { method: "POST", entitlement: lapsed })
+      )
+    ).rejects.toThrow(/plan no longer covers/);
+
+    await expect(
+      new HipaaGuard().canActivate(
+        contextFor("10.0.0.5", ORG, { method: "GET", entitlement: lapsed })
+      )
+    ).resolves.toBe(true);
   });
 
   // Every guard on the chain reads the org from the session, so a request

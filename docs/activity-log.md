@@ -2268,3 +2268,11 @@ reuse question that only Stripe can answer.
 
 Verified: `pnpm build:api` clean, full `pnpm --filter api test` green at 602
 tests across 46 suites. The audit SQL has not been run against any database.
+
+## 2026-10-22 Node.js Oct 2026 security release + dependency audit
+
+- Followed vault guide `Projects/fax-app/Security-Patch-and-Site-Recheck.md`, adapted to this repo.
+- Dockerfiles pinned to `node:22.23.4-slim` / `node:22.23.4-alpine` (commit c88f469).
+- In-range dep bumps, xlsx to SheetJS CDN 0.20.3, scoped `overrides` in `pnpm-workspace.yaml` (commit 774caaf).
+- Prod audit 184 -> 53 (critical 9 -> 4, high 84 -> 16).
+- Open: sharp 0.35.5 (api, landing), maplibre-gl 6 (fe, critical XSS), astro 7 (landing, critical AVIF RCE), tinypool via better-auth>vitest, local Node 24.12.0 -> 24.22.1, ECS redeploy and site recheck.

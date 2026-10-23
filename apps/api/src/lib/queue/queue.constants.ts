@@ -8,4 +8,5 @@ export const QUEUE_NAMES = {
   RETENTION: "retention",
   MONTHLY_REPORT: "monthly-report",
   BOOKING_REMINDER: "booking-reminder",
+  TRIAL_REMINDER: "trial-reminder",
 } as const;
