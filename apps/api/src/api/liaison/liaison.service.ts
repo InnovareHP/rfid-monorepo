@@ -208,6 +208,27 @@ export class LiaisonService {
     });
   }
 
+  // A count short of the request means a foreign or missing id, so the whole batch rolls back.
+  async bulkDeleteMillage(
+    ids: string[],
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const unique = [...new Set(ids)];
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.mileage.updateMany({
+        where: {
+          id: { in: unique },
+          organizationId,
+          ...(memberId ? { memberId } : {}),
+        },
+        data: { isDeleted: true },
+      });
+      if (count !== unique.length)
+        throw new NotFoundException("Mileage not found");
+    });
+  }
+
   // recordName is encrypted at rest with a random IV, so equality lookups must
   // compare decrypted values in memory.
   private async findFacilityRecord(facility: string, organizationId: string) {
@@ -582,6 +603,25 @@ export class LiaisonService {
       where: {
         id,
       },
+    });
+  }
+
+  async bulkDeleteMarketing(
+    ids: string[],
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const unique = [...new Set(ids)];
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.marketing.deleteMany({
+        where: {
+          id: { in: unique },
+          organizationId,
+          ...(memberId ? { memberId } : {}),
+        },
+      });
+      if (count !== unique.length)
+        throw new NotFoundException("Marketing not found");
     });
   }
 
@@ -989,6 +1029,26 @@ export class LiaisonService {
       data: {
         isDeleted: true,
       },
+    });
+  }
+
+  async bulkDeleteExpense(
+    ids: string[],
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const unique = [...new Set(ids)];
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.expense.updateMany({
+        where: {
+          id: { in: unique },
+          organizationId,
+          ...(memberId ? { memberId } : {}),
+        },
+        data: { isDeleted: true },
+      });
+      if (count !== unique.length)
+        throw new NotFoundException("Expense not found");
     });
   }
 }

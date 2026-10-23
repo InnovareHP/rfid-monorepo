@@ -30,6 +30,7 @@ import { AuditService } from "../../lib/audit/audit.service";
 import { clientIp } from "../../lib/http/client-ip";
 import { LiaisonExportService } from "./liaison-export.service";
 import {
+  BulkDeleteLogDto,
   CreateExpenseDto,
   CreateMarketingDto,
   CreateMillageDto,
@@ -73,6 +74,23 @@ export class LiaisonController {
         : session.session.memberId,
       ip: clientIp(req),
     };
+  }
+
+  private recordBulkDelete(
+    session: MemberSession,
+    resource: "Mileage" | "Marketing" | "Expense",
+    ids: string[]
+  ) {
+    return this.audit.record({
+      actorUserId: session.session.userId ?? null,
+      actorOrgId: session.session.activeOrganizationId,
+      actorRole: session.session.memberRole ?? null,
+      action: `${resource.toLowerCase()}.bulk_delete`,
+      resourceType: resource,
+      method: "POST",
+      path: `/api/liaison/${resource.toLowerCase()}/bulk-delete`,
+      metadata: { ids },
+    });
   }
 
   // The csv exports sit ahead of the ":id" routes, which would otherwise match
@@ -246,6 +264,25 @@ export class LiaisonController {
     }
   }
 
+  @RequirePermission({ log: ["delete"] })
+  @Post("mileage/bulk-delete")
+  async bulkDeleteMillage(
+    @Body() { ids }: BulkDeleteLogDto,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      await this.liaisonService.bulkDeleteMillage(
+        ids,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
+      await this.recordBulkDelete(session, "Mileage", ids);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @RequirePermission({ log: ["create"] })
   @Post("marketing")
   async createMarketing(
@@ -345,6 +382,25 @@ export class LiaisonController {
         session.session.activeOrganizationId,
         isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
       );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ log: ["delete"] })
+  @Post("marketing/bulk-delete")
+  async bulkDeleteMarketing(
+    @Body() { ids }: BulkDeleteLogDto,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      await this.liaisonService.bulkDeleteMarketing(
+        ids,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
+      await this.recordBulkDelete(session, "Marketing", ids);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -480,6 +536,25 @@ export class LiaisonController {
         session.session.activeOrganizationId,
         isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
       );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequirePermission({ log: ["delete"] })
+  @Post("expense/bulk-delete")
+  async bulkDeleteExpense(
+    @Body() { ids }: BulkDeleteLogDto,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      await this.liaisonService.bulkDeleteExpense(
+        ids,
+        session.session.activeOrganizationId,
+        isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
+      );
+      await this.recordBulkDelete(session, "Expense", ids);
     } catch (error) {
       throw new BadRequestException(error.message);
     }

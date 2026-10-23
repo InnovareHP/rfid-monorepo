@@ -1,12 +1,12 @@
+import ColumnFilter from "@/components/master-list/column-filter";
+import { useLogDelete, useLogTable } from "@/hooks/use-log-table";
 import { formatCurrency } from "@/lib/helper/helper";
 import {
+  bulkDeleteMileageLogs,
   createMileageLog,
-  deleteMileageLog,
   getMileageLogs,
 } from "@/services/mileage/mileage-service";
 import type { MileageLogRow } from "@dashboard/shared";
-import { formatCapitalize } from "@dashboard/shared";
-import { Badge } from "@dashboard/ui/components/badge";
 import { LogDateFilter } from "@/components/log-shared/log-date-filter";
 import { logDateFilter } from "@/lib/helper/log-date-filter";
 import { PageHeader } from "@/components/page-header";
@@ -41,17 +41,13 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, Gauge, Loader2, Plus, Route } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
-import {
-  LogEmptyState,
-  LogRowDelete,
-  LogStatCard,
-  LogTableSkeleton,
-} from "../log-shared/log-page-shell";
-import { ReusableTable } from "../reusable-table/generic-table";
+import { LogEmptyState, LogStatCard } from "../log-shared/log-page-shell";
+import { LogTable } from "../log-shared/log-table";
+import { mileageLogColumns } from "./mileage-log-columns";
 
 const FEDERAL_RATE = 0.67;
 const STATE_RATE = 0.5;
@@ -81,7 +77,7 @@ const MileageLogPage = () => {
     page: number;
     limit: number;
     filter?: Record<string, string>;
-  }>({ page: 1, limit: 20 });
+  }>({ page: 1, limit: 25 });
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -112,16 +108,25 @@ const MileageLogPage = () => {
     },
   });
 
-  const deleteMileageMutation = useMutation({
-    mutationFn: deleteMileageLog,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
-      toast.success("Mileage log deleted successfully!");
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const deleteMileageMutation = useLogDelete(
+    "mileage-logs",
+    bulkDeleteMileageLogs
+  );
+
+  const { mutate: deleteRow, isPending: isDeleting } = deleteMileageMutation;
+
+  const columns = useMemo(
+    () =>
+      mileageLogColumns(
+        (id) =>
+          deleteRow([id], {
+            onSuccess: () => toast.success("Mileage log deleted successfully!"),
+            onError: (error) => toast.error(error.message),
+          }),
+        isDeleting
+      ),
+    [deleteRow, isDeleting]
+  );
 
   const form = useForm<CreateMileageFormValues>({
     resolver: zodResolver(CreateMillageSchema),
@@ -161,10 +166,14 @@ const MileageLogPage = () => {
     });
   };
 
-  const rows: MileageLogRow[] = Array.isArray(mileageLogsData?.data)
-    ? mileageLogsData.data
-    : [];
+  const rows: MileageLogRow[] = mileageLogsData?.data ?? [];
   const totalEntries = mileageLogsData?.total ?? 0;
+
+  const { table, hideableColumns, onColumnOrderChange } = useLogTable(
+    "mileage-log",
+    rows,
+    columns
+  );
 
   const pageMiles = rows.reduce((sum, row) => sum + (row.totalMiles ?? 0), 0);
   const pageReimbursement = rows.reduce(
@@ -180,6 +189,7 @@ const MileageLogPage = () => {
           description="Track trips, miles driven, and reimbursements"
         >
           <LogDateFilter value={dateRange} onChange={handleDateChange} />
+          <ColumnFilter tableColumns={hideableColumns} />
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" />
             Log Trip
@@ -353,101 +363,30 @@ const MileageLogPage = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="overflow-hidden border border-border">
-          <div className="overflow-x-auto p-4">
-            {isLoading ? (
-              <LogTableSkeleton />
-            ) : rows.length > 0 ? (
-              <ReusableTable<MileageLogRow>
-                data={rows}
-                columns={[
-                  {
-                    key: "destination",
-                    header: "Destination",
-                    render: (row) => (
-                      <span className="font-medium text-foreground">
-                        {row.destination}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "countiesMarketed",
-                    header: "Counties Marketed",
-                    render: (row) => (
-                      <span
-                        className="block max-w-48 truncate text-muted-foreground"
-                        title={row.countiesMarketed ?? ""}
-                      >
-                        {row.countiesMarketed}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "totalMiles",
-                    header: "Miles",
-                    render: (row) => (
-                      <span className="tabular-nums">
-                        {row.totalMiles?.toLocaleString() ?? "—"}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "rateType",
-                    header: "Rate Type",
-                    render: (row) => (
-                      <Badge variant="outline" className="font-medium">
-                        {formatCapitalize(row.rateType)}
-                      </Badge>
-                    ),
-                  },
-                  {
-                    key: "ratePerMile",
-                    header: "Rate / Mile",
-                    render: (row) => (
-                      <span className="tabular-nums text-muted-foreground">
-                        {formatCurrency(row.ratePerMile)}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "reimbursementAmount",
-                    header: "Reimbursement",
-                    render: (row) => (
-                      <span className="font-semibold text-foreground tabular-nums">
-                        {formatCurrency(row.reimbursementAmount)}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "action",
-                    header: "",
-                    render: (row) => (
-                      <LogRowDelete
-                        entityLabel="mileage entry"
-                        disabled={deleteMileageMutation.isPending}
-                        onDelete={() => deleteMileageMutation.mutate(row.id)}
-                      />
-                    ),
-                  },
-                ]}
-                currentPage={filterMeta.page}
-                itemsPerPage={filterMeta.limit}
-                onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-                totalCount={totalEntries}
-                emptyMessage="No mileage logs found"
-                isLoading={isLoading}
-              />
-            ) : (
-              <LogEmptyState
-                icon={Route}
-                title="No trips logged yet"
-                description="Log your first trip to start tracking miles and reimbursements."
-                actionLabel="Log Trip"
-                onAction={() => setOpen(true)}
-              />
-            )}
-          </div>
-        </Card>
+        {!isLoading && rows.length === 0 ? (
+          <Card className="overflow-hidden border border-border">
+            <LogEmptyState
+              icon={Route}
+              title="No trips logged yet"
+              description="Log your first trip to start tracking miles and reimbursements."
+              actionLabel="Log Trip"
+              onAction={() => setOpen(true)}
+            />
+          </Card>
+        ) : (
+          <LogTable
+            table={table}
+            isLoading={isLoading}
+            totalCount={totalEntries}
+            meta={filterMeta}
+            onMetaChange={(meta) =>
+              setFilterMeta((prev) => ({ ...prev, ...meta }))
+            }
+            onDelete={deleteMileageMutation.mutateAsync}
+            onColumnOrderChange={onColumnOrderChange}
+            emptyMessage="No mileage logs found"
+          />
+        )}
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { getGmailStatus, getOutlookStatus } from "@/services/lead/lead-service";
 import {
   createSender,
@@ -155,9 +156,7 @@ export function SenderSetupDialog({
       toast.success("Domain added. Publish the records below.");
     },
     onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to create sender";
+      const message = getApiErrorMessage(error, "Failed to create sender");
       toast.error(message);
     },
   });
@@ -230,7 +229,9 @@ export function SenderSetupDialog({
                             <Icon
                               className={cn(
                                 "size-5",
-                                selected ? "text-brand" : "text-muted-foreground"
+                                selected
+                                  ? "text-brand"
+                                  : "text-muted-foreground"
                               )}
                             />
                             <span className="mt-2 block text-sm font-semibold text-foreground">
@@ -373,7 +374,6 @@ export function SenderSetupDialog({
           </Button>
           {!created && (
             <Button
-             
               disabled={
                 createMutation.isPending ||
                 (kind === "PERSONAL" && !mailbox?.email)
