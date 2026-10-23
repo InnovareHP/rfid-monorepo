@@ -6,7 +6,7 @@ static file: it is generated at request time from `BAA_SECTIONS` in
 mirror. Structure follows `docs/baa-document-text.md` (Eldon), with Refidly's own service
 description, safeguards, and plan conditions.
 
-`BAA_VERSION = "2026-08-11"`. Blank render is 4 pages; an executed copy adds an execution page.
+`BAA_VERSION = "2026-10-22"`. Blank render is 4 pages; an executed copy adds an execution page.
 
 ---
 
@@ -89,7 +89,7 @@ requests that would be impermissible if done by the customer directly.
 Product-specific: the customer configures its own custom fields and is responsible for what they
 hold; PHI must not be placed in the Service before the Addendum is in effect; the customer
 provisions its own users and assigns their roles; the customer owns the content, recipients, and
-consent basis of outreach and fax it sends; the customer selects its own retention period.
+consent basis of outreach and fax it sends; the customer decides how long its records are kept and when they are purged.
 
 ### 5. Term and Termination
 
@@ -100,8 +100,8 @@ which Refidly offers a BAA. Signed-in-anticipation does not take effect until bo
 automatically on timely renewal payment, without a new signature.
 
 **5.3 Automatic lapse** — plan changed to a non-BAA plan, Agreement cancelled, or suspension for
-non-payment after notice. A lapse does not terminate the Agreement, but PHI may not be placed or
-processed while lapsed.
+non-payment after notice. A lapse does not terminate the Agreement; no new PHI may be placed while
+lapsed, but Sections 2, 3 and 6 keep applying to PHI already held until it is returned or destroyed.
 
 **5.4 Overall term and breach** — effective from the Effective Date until the Agreement terminates
 or all PHI is returned or destroyed, whichever is later. Material breach carries a 30-day cure
@@ -111,14 +111,15 @@ period before termination for cause.
 
 Return or destroy at the customer's election, with the standard infeasibility carve-out extending
 the Addendum's protections to anything retained, plus retention within backups and audit records
-until they expire under the applicable schedule. Destruction renders PHI unreadable and
+until they expire under Refidly's backup and audit retention schedules. Destruction renders PHI unreadable and
 unreconstructable.
 
 ### 7. Indemnification and Liability
 
 Refidly indemnifies for its own failure to perform as Business Associate, including a Breach caused
-by failure to implement Section 2 safeguards, and that obligation is not subject to the Agreement's
-general liability cap where such a limit would be unenforceable. The customer indemnifies for PHI
+by failure to implement Section 2 safeguards. Refidly's total liability under the Addendum, including
+that indemnity, is capped at three times the fees paid in the prior 12 months, except for gross
+negligence, wilful misconduct, or liability that cannot be limited by law. The customer indemnifies for PHI
 placed in the Service outside the Addendum's scope, including on a plan with no executed BAA.
 
 ### 8. Miscellaneous
@@ -126,8 +127,8 @@ placed in the Service outside the Addendum's scope, including on a plan with no 
 Amendment for continued HIPAA compliance; interpretation resolved toward compliance, with a
 reference to a section of HIPAA meaning that section as in effect or as amended; no third-party
 beneficiaries; survival of return, destruction, protection, and pre-termination indemnity; this
-Addendum controls over the Agreement as to PHI; governed by the law of the customer's jurisdiction
-of formation.
+Addendum controls over the Agreement as to PHI; governed by Michigan law, and by HIPAA where it
+applies.
 
 ### Signatures
 
@@ -148,10 +149,10 @@ authoritative record of acceptance.
 | `apps/api/src/guard/hipaa/hipaa.guard.ts` | Gates PHI routes on a current BAA version, allowlist, and second factor. |
 | `apps/fe/src/components/compliance/baa-sign-modal.tsx` | In-product signing flow. |
 
-`docs/Refidly_HIPAA_Business_Associate_Addendum_2026-08-11_InnovareHP.docx` is a third artifact:
+`docs/Refidly_HIPAA_Business_Associate_Addendum_2026-10-22_InnovareHP.docx` is a third artifact:
 the same addendum as a Word file, carrying the version stamp in its title block and an added
 execution block for offline signing (customer party details, both signers, and the electronic
-signing record). It was reconciled against `BAA_SECTIONS` on 11 August 2026. It is hand-maintained,
+signing record). It was reconciled against `BAA_SECTIONS` on 22 October 2026. It is hand-maintained,
 so any edit to `baa.ts` has to be mirrored there or the two will disagree about what was signed.
 
 Differences from Eldon's setup worth knowing: Refidly generates the PDF rather than stamping a

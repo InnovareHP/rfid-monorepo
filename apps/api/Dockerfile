@@ -2,6 +2,8 @@ FROM node:22.23.4-slim AS base
 RUN corepack enable
 WORKDIR /app
 
+# //updated
+
 FROM base AS deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ openssl \
