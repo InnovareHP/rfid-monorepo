@@ -40,7 +40,7 @@ type MarketingActivityInput = {
 
 // The mirrored activity is typed from the first touchpoint, so the rest are named
 // in the description instead of being dropped.
-const toActivityFields = (log: MarketingActivityInput) => ({
+export const toActivityFields = (log: MarketingActivityInput) => ({
   title: log.reasonForVisit
     ? `Marketing touchpoint: ${log.reasonForVisit}`
     : "Marketing touchpoint",
