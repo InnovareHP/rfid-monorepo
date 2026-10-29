@@ -30,7 +30,8 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, FileDown, Info, Upload } from "lucide-react";
+import { Link, useParams } from "@tanstack/react-router";
+import { AlertCircle, FileDown, Info, Megaphone, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ import { SheetPicker } from "./sheet-picker";
 export default function MasterListImportPage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const queryClient = useQueryClient();
+  const { team } = useParams({ strict: false }) as { team: string };
 
   const [file, setFile] = useState<File | null>(null);
   const [workbook, setWorkbook] = useState<ParsedWorkbook | null>(null);
@@ -114,8 +116,7 @@ export default function MasterListImportPage() {
       if (mapOverrides[header] !== CREATE_COLUMN) continue;
 
       types[header] =
-        newFieldTypes[header] ??
-        inferFieldType(rows.map((row) => row[header]));
+        newFieldTypes[header] ?? inferFieldType(rows.map((row) => row[header]));
     }
 
     return types;
@@ -175,7 +176,9 @@ export default function MasterListImportPage() {
       });
     },
     onError: (mutationError: Error) => {
-      setError(mutationError.message ?? "Something went wrong while uploading.");
+      setError(
+        mutationError.message ?? "Something went wrong while uploading."
+      );
     },
   });
 
@@ -276,10 +279,18 @@ export default function MasterListImportPage() {
           </p>
         </div>
 
-        <Button onClick={handleDownloadTemplate}>
-          <FileDown className="h-4 w-4" />
-          Download Template
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" asChild>
+            <Link to="/$team/import/marketing" params={{ team }}>
+              <Megaphone className="h-4 w-4" />
+              Import Marketing Data
+            </Link>
+          </Button>
+          <Button onClick={handleDownloadTemplate}>
+            <FileDown className="h-4 w-4" />
+            Download Template
+          </Button>
+        </div>
       </div>
 
       <Card className="shadow-sm">
