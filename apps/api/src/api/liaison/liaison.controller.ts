@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -12,8 +13,10 @@ import {
   Req,
   Res,
   UseGuards,
+  UsePipes,
 } from "@nestjs/common";
 import { AuthGuard, Session } from "@thallesp/nestjs-better-auth";
+import { ZodValidationPipe } from "nestjs-zod";
 import {
   EntitlementGuard,
   RequireFeature,
@@ -34,11 +37,15 @@ import {
   CreateExpenseDto,
   CreateMarketingDto,
   CreateMillageDto,
+  ImportAccountManagersDto,
+  ImportMarketingDto,
+  UndoMarketingImportDto,
   UpdateExpenseDto,
   UpdateMarketingDto,
   UpdateMillageDto,
 } from "./dto/liaison.schema";
 import { LiaisonService } from "./liaison.service";
+import { MarketingImportService } from "./marketing-import.service";
 
 @Controller("liaison")
 @UseGuards(
@@ -49,9 +56,12 @@ import { LiaisonService } from "./liaison.service";
   HipaaGuard
 )
 export class LiaisonController {
+  private readonly logger = new Logger(LiaisonController.name);
+
   constructor(
     private readonly liaisonService: LiaisonService,
     private readonly exportService: LiaisonExportService,
+    private readonly importService: MarketingImportService,
     private readonly audit: AuditService
   ) {}
 
@@ -401,6 +411,119 @@ export class LiaisonController {
         isOrgAdmin(session.session.memberRole) ? null : session.session.memberId
       );
       await this.recordBulkDelete(session, "Marketing", ids);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  private importActor(session: MemberSession) {
+    return {
+      memberId: session.session.memberId,
+      userId: session.session.userId,
+      organizationId: session.session.activeOrganizationId,
+    };
+  }
+
+  // The data is already committed here, so a failed audit write is logged
+  // rather than turned into an error that would hide the undo ids.
+  private async recordImport(
+    session: MemberSession,
+    action: string,
+    path: string,
+    metadata: Record<string, unknown>
+  ) {
+    try {
+      await this.audit.record({
+        actorUserId: session.session.userId ?? null,
+        actorOrgId: session.session.activeOrganizationId,
+        actorRole: session.session.memberRole ?? null,
+        action,
+        resourceType: "Marketing",
+        method: "POST",
+        path: `/api/liaison/marketing/import${path}`,
+        metadata,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Audit write failed for ${action}`,
+        error instanceof Error ? error.stack : undefined
+      );
+    }
+  }
+
+  @RequireFeature("export")
+  @RequirePermission({ record: ["import"] })
+  @Post("marketing/import")
+  @UsePipes(ZodValidationPipe)
+  async importMarketing(
+    @Body() dto: ImportMarketingDto,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      const result = await this.importService.importMarketing(
+        dto,
+        this.importActor(session)
+      );
+      if (result.ids.length) {
+        await this.recordImport(session, "marketing.import", "", {
+          ids: result.ids,
+        });
+      }
+      return result;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequireFeature("export")
+  @RequirePermission({ record: ["import"] })
+  @Post("marketing/import/undo")
+  @UsePipes(ZodValidationPipe)
+  async undoMarketingImport(
+    @Body() { ids }: UndoMarketingImportDto,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      const result = await this.importService.undoMarketingImport(
+        ids,
+        session.session.activeOrganizationId
+      );
+      if (result.removed) {
+        await this.recordImport(session, "marketing.import_undo", "/undo", {
+          ids,
+        });
+      }
+      return result;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @RequireFeature("export")
+  @RequirePermission({ record: ["import"] })
+  @Post("marketing/import/account-managers")
+  @UsePipes(ZodValidationPipe)
+  async importAccountManagers(
+    @Body() dto: ImportAccountManagersDto,
+    @Session()
+    session: MemberSession
+  ) {
+    try {
+      const result = await this.importService.importAccountManagers(
+        dto,
+        this.importActor(session)
+      );
+      if (!dto.dryRun && result.assigned) {
+        await this.recordImport(
+          session,
+          "marketing.import_account_managers",
+          "/account-managers",
+          { assigned: result.assigned }
+        );
+      }
+      return result;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
