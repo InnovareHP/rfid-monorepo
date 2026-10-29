@@ -199,11 +199,16 @@ export default function ReferralListPage() {
       );
       toast.error("Failed to delete referral.");
     },
+    // The optimistic filter only drops rows; refetching pulls the remaining
+    // referrals up into the page instead of leaving it short until a reload.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: boardQueryKey("REFERRAL") });
+      queryClient.invalidateQueries({ queryKey: ["board-stats"] });
+    },
   });
 
-  const handleDeleteReferrals = (columnIds: string[]) => {
-    deleteReferralMutation.mutate(columnIds);
-  };
+  const handleDeleteReferrals = (columnIds: string[]) =>
+    deleteReferralMutation.mutateAsync(columnIds);
 
   const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {

@@ -17,7 +17,7 @@ type DeleteRecordsDialogProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
   recordIds: string[];
-  onDelete: (ids: string[]) => void;
+  onDelete: (ids: string[]) => Promise<unknown> | void;
   onDeleted: () => void;
   checkLinks?: boolean;
 };
