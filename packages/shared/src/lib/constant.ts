@@ -20,6 +20,9 @@ export const ACCOUNT_MANAGER_ROLES = [
   ROLES.LIAISON,
 ] as const;
 
+// Rows per marketing import call; the page loops batches of this size and the API rejects larger ones.
+export const MARKETING_IMPORT_BATCH_SIZE = 500;
+
 // Referral analytics is org-wide for a liaison too; lower roles read only the
 // referrals assigned to them.
 export const readsOrgWideReferrals = (role?: string | null) =>

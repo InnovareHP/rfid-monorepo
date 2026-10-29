@@ -53,6 +53,9 @@ async function bootstrap() {
   // CSV import ships up to 20_000 parsed rows as a JSON body, well past the 100kb default.
   app.use("/api/boards/csv-import", json({ limit: "25mb" }));
 
+  // A marketing import batch carries up to 500 rows with free-text notes.
+  app.use("/api/liaison/marketing/import", json({ limit: "2mb" }));
+
   app.useGlobalFilters(new AllExceptionsFilter());
 
   app.use(new LoggerMiddleware().use);
