@@ -58,7 +58,7 @@ type Props<T> = {
   onLoadMore: () => void;
   hasMore: boolean;
   setActivePage: () => void;
-  onDelete: (ids: string[]) => void;
+  onDelete: (ids: string[]) => Promise<unknown> | void;
   onRowOpen?: (id: string) => void;
   totalCount?: number;
   isReferral?: boolean;
@@ -152,6 +152,14 @@ const ReusableTable = <T extends { id: string }>({
     } finally {
       setIsLoadingMore(false);
     }
+  };
+
+  // Measured before the delete: once rows leave the page, a page emptied past
+  // the first would otherwise sit blank until the user pages back by hand.
+  const handleDelete = async (ids: string[]) => {
+    const emptiesPage = ids.length >= totalRows && currentPage > 1;
+    await onDelete(ids);
+    if (emptiesPage) setCurrentPage(currentPage - 1);
   };
 
   const handleClearSelection = () => {
@@ -403,7 +411,7 @@ const ReusableTable = <T extends { id: string }>({
             open={deleteDialogOpen}
             setOpen={setDeleteDialogOpen}
             recordIds={selectedIds}
-            onDelete={onDelete}
+            onDelete={handleDelete}
             onDeleted={() => table.resetRowSelection()}
             checkLinks={enableBulkEmail}
           />
