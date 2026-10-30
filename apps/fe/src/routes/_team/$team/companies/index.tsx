@@ -16,6 +16,7 @@ function RouteComponent() {
       nameLabel="Company Name"
       addLabel="Add Company"
       createPath="/$team/companies/create"
+      totalLabel="Total Companies"
     />
   );
 }
