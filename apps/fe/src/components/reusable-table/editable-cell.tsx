@@ -1304,14 +1304,15 @@ export const EditableCell = memo(function EditableCell({
   ) : (
     <div
       className={cn(
-        "flex w-full items-center gap-2",
+        "flex w-full min-w-0 items-center gap-2",
         fieldName !== "Facility" && "cursor-pointer"
       )}
       onClick={() => fieldName !== "Facility" && setEditing(true)}
     >
       <span
+        title={val || undefined}
         className={cn(
-          "text-sm flex items-center gap-1 w-auto",
+          "min-w-0 truncate text-sm",
           fieldName !== "Facility" && "hover:underline"
         )}
       >
