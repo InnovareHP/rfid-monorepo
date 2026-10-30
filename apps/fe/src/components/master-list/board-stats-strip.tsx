@@ -15,11 +15,14 @@ const DEFAULT_LABELS: Record<StatKey, string> = {
 type BoardStatsStripProps = {
   moduleType?: string;
   labels?: Partial<Record<StatKey, string>>;
+  // Boards without counties or partner activity show only the cards that apply.
+  stats?: StatKey[];
 };
 
 export function BoardStatsStrip({
   moduleType = "LEAD",
   labels,
+  stats = Object.keys(DEFAULT_LABELS) as StatKey[],
 }: BoardStatsStripProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["board-stats", moduleType],
@@ -28,7 +31,7 @@ export function BoardStatsStrip({
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {(Object.keys(DEFAULT_LABELS) as StatKey[]).map((key) => {
+      {stats.map((key) => {
         const metric = data?.[key];
 
         return (
