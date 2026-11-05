@@ -81,6 +81,7 @@ module "redis" {
   node_type               = var.redis_node_type
   num_node_groups         = var.redis_num_node_groups
   replicas_per_node_group = var.redis_replicas_per_node_group
+  snapshot_name           = var.redis_restore_snapshot
 }
 
 module "dns" {
@@ -162,9 +163,9 @@ module "ecs" {
   )
   enable_https = local.https_enabled
 
-  app_hostname     = local.fqdn_app
-  api_hostname     = local.fqdn_api
-  support_hostname = local.fqdn_support
+  app_hostname      = local.fqdn_app
+  api_hostname      = local.fqdn_api
+  support_hostname  = local.fqdn_support
   landing_hostnames = var.domain_name != "" ? [var.domain_name, local.fqdn_www] : []
 
   app_email               = var.app_email

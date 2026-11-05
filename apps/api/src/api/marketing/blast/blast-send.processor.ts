@@ -4,7 +4,10 @@ import { Job } from "bullmq";
 import { prisma } from "../../../lib/prisma/prisma";
 import { runWithTenant } from "../../../lib/prisma/tenant-context";
 import { BoardGateway } from "../../board/board.gateway";
-import { EmailDispatchService } from "../../board/email-dispatch.service";
+import {
+  blastAttachments,
+  EmailDispatchService,
+} from "../../board/email-dispatch.service";
 import { SenderService } from "../sender/sender.service";
 import { SubscriberService } from "../subscriber/subscriber.service";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
@@ -65,6 +68,12 @@ export class BlastSendProcessor extends WorkerHost {
         ? wrapClassicHtml(blast.bodyHtml, organization.name)
         : blast.bodyHtml;
 
+    // Loaded once; every recipient gets the same buffers.
+    const attachments = await this.emailDispatchService.loadAttachments(
+      blastAttachments(blast.attachments),
+      organizationId
+    );
+
     const pending = await prisma.blastRecipient.findMany({
       where: { blastId, status: "PENDING" },
       include: {
@@ -99,6 +108,7 @@ export class BlastSendProcessor extends WorkerHost {
           userId,
           to: recipient.email,
           subject: blast.subject,
+          attachments,
           recipientName,
           body,
           layout: "NONE",

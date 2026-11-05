@@ -75,14 +75,14 @@ export class SupportService {
     user: User & { role: string },
     take: number,
     page: number = 1,
-    priority?: Priority,
+    priority?: Priority | "ALL",
     status?: TicketStatus | "ALL",
     category?: TicketCategory
   ) {
     const offset = (page - 1) * take;
     const where: Prisma.SupportTicketWhereInput = this.ticketScope(user);
 
-    if (priority) {
+    if (priority && priority !== "ALL") {
       where.priority = priority;
     }
 

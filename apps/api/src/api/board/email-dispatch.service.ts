@@ -1,9 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { render } from "@react-email/render";
 import { applyMergeVariables, sanitizeRichText } from "@dashboard/shared";
 import { appConfig } from "../../config/app-config";
-import { sendEmail } from "../../lib/aws/ses";
+import { SesAttachment, sendEmail } from "../../lib/aws/ses";
 import { prisma } from "../../lib/prisma/prisma";
+import { s3 } from "../../lib/s3/s3";
 import { ActivityEmail } from "../../react-email/activity-email";
 import { EmailBranding } from "../../react-email/email-layout";
 import { EmailTrackingService } from "../email/email-tracking.service";
@@ -19,7 +21,25 @@ interface DispatchBase {
   senderName: string;
   sendVia?: string;
   sender?: DispatchSender;
+  attachments?: SesAttachment[];
 }
+
+// A file the composer uploaded; the key must sit under the org's private prefix.
+export interface AttachmentRef {
+  key: string;
+  name: string;
+}
+
+// Reads the encrypted-at-rest column back into refs; null means no files.
+export const parseAttachments = (stored: string | null): AttachmentRef[] =>
+  stored ? (JSON.parse(stored) as AttachmentRef[]) : [];
+
+// Blast attachments are a plain JSON column rather than encrypted text.
+export const blastAttachments = (stored: unknown): AttachmentRef[] =>
+  (stored as AttachmentRef[] | null) ?? [];
+
+// Gmail caps a message at 25MB and base64 inflates by a third.
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
 
 // Required, not defaulted: a blast body is already a complete email document
 // and must ship as-is, so every caller states which one it is.
@@ -68,6 +88,47 @@ export class EmailDispatchService {
     return { senderEmail, trackingId };
   }
 
+  // Rejects keys outside this org so a caller cannot mail another tenant's files.
+  assertOwnedAttachments(refs: AttachmentRef[], organizationId: string) {
+    const prefix = `private/${organizationId}/`;
+    if (refs.some((ref) => !ref.key.startsWith(prefix))) {
+      throw new BadRequestException(
+        "Attachment does not belong to this organization"
+      );
+    }
+  }
+
+  // Loaded once per send batch; bulk callers reuse the buffers for every recipient.
+  async loadAttachments(
+    refs: AttachmentRef[],
+    organizationId: string
+  ): Promise<SesAttachment[]> {
+    this.assertOwnedAttachments(refs, organizationId);
+
+    const files = await Promise.all(
+      refs.map(async (ref) => {
+        const object = await s3.send(
+          new GetObjectCommand({
+            Bucket: appConfig.S3_UPLOADS_BUCKET,
+            Key: ref.key,
+          })
+        );
+        return {
+          filename: ref.name,
+          content: Buffer.from(await object.Body!.transformToByteArray()),
+          contentType: object.ContentType,
+        };
+      })
+    );
+
+    const total = files.reduce((sum, file) => sum + file.content.length, 0);
+    if (total > MAX_ATTACHMENT_BYTES) {
+      throw new BadRequestException("Attachments exceed 15MB in total");
+    }
+
+    return files;
+  }
+
   private async renderActivity(input: DispatchBase, organizationId: string) {
     const branding = await this.loadBranding(organizationId);
     const body = applyMergeVariables(sanitizeRichText(input.body), {
@@ -76,15 +137,7 @@ export class EmailDispatchService {
       organizationName: branding.name,
     });
 
-    return render(
-      ActivityEmail({
-        preview: input.subject,
-        recipientName: input.recipientName,
-        body,
-        senderName: input.senderName,
-        branding,
-      })
-    );
+    return render(ActivityEmail({ preview: input.subject, body, branding }));
   }
 
   // Metadata is free-form JSON the org edits, so only a valid hex survives.
@@ -136,6 +189,7 @@ export class EmailDispatchService {
           : sender.fromEmail,
         replyTo: sender.replyTo ?? undefined,
         references,
+        attachments: input.attachments,
       });
 
       return sender.fromEmail;
@@ -148,7 +202,8 @@ export class EmailDispatchService {
         subject,
         html,
         senderName,
-        references
+        references,
+        input.attachments
       );
       if (!sent) return null;
       const status = await this.gmailService.getConnectionStatus(userId);
@@ -161,7 +216,8 @@ export class EmailDispatchService {
         to,
         subject,
         html,
-        references
+        references,
+        input.attachments
       );
       if (!sent) return null;
       const status = await this.outlookService.getConnectionStatus(userId);
@@ -188,6 +244,7 @@ export class EmailDispatchService {
       html,
       from: appConfig.APP_EMAIL,
       references,
+      attachments: input.attachments,
     });
 
     return appConfig.APP_EMAIL;

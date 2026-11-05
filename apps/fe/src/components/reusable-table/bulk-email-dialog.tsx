@@ -37,10 +37,15 @@ import {
   sendBulkEmail,
 } from "../../services/lead/lead-service";
 import { BulkEmailProgress, isJobDone } from "./bulk-email-progress";
+import {
+  EmailAttachmentsField,
+  emailAttachmentsSchema,
+} from "./email-attachments-field";
 
 const emailSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   body: z.string().min(1, "Body is required"),
+  attachments: emailAttachmentsSchema,
   sendVia: z.enum(["AUTO", "GMAIL", "OUTLOOK"]),
 });
 
@@ -63,7 +68,7 @@ export function BulkEmailDialog({
 }: BulkEmailDialogProps) {
   const form = useForm<EmailValues>({
     resolver: zodResolver(emailSchema),
-    defaultValues: { subject: "", body: "", sendVia: "AUTO" },
+    defaultValues: { subject: "", body: "", attachments: [], sendVia: "AUTO" },
   });
 
   const { data: gmailStatus } = useQuery({
@@ -85,6 +90,7 @@ export function BulkEmailDialog({
         recordIds,
         emailSubject: values.subject,
         emailBody: values.body,
+        attachments: values.attachments,
         moduleType,
         send_via: values.sendVia,
       }),
@@ -165,6 +171,24 @@ export function BulkEmailDialog({
                           onChange={field.onChange}
                           variant="full"
                           allowImages
+                          disabled={send.isPending}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="attachments"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Attachments</FormLabel>
+                      <FormControl>
+                        <EmailAttachmentsField
+                          value={field.value}
+                          onChange={field.onChange}
                           disabled={send.isPending}
                         />
                       </FormControl>

@@ -642,7 +642,8 @@ export class BoardController {
         session.session.activeOrganizationId,
         session.user.id,
         moduleType || "LEAD",
-        dto.send_via
+        dto.send_via,
+        dto.attachments ?? []
       );
     } catch (error) {
       throw toSafeError(error, "boards.sendBulkEmail");

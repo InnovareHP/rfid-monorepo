@@ -1,3 +1,4 @@
+import { EmailAttachmentsField } from "@/components/reusable-table/email-attachments-field";
 import type { MarketingCampaign } from "@/services/marketing/campaign-service";
 import {
   FormControl,
@@ -64,6 +65,24 @@ export const BlastSettingsPanel = ({
           </FormLabel>
           <FormControl>
             <Input placeholder="Email Subject" disabled={disabled} {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+
+    <FormField
+      control={form.control}
+      name="attachments"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Attachments</FormLabel>
+          <FormControl>
+            <EmailAttachmentsField
+              value={field.value}
+              onChange={field.onChange}
+              disabled={disabled}
+            />
           </FormControl>
           <FormMessage />
         </FormItem>

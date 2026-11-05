@@ -1,3 +1,4 @@
+import { FilterOperator } from "@dashboard/shared";
 import {
   BadRequestException,
   Injectable,
@@ -19,6 +20,7 @@ import { CreateGroupDto, UpdateGroupDto } from "./dto/group.dto";
 
 export type AudienceFilter = {
   filter: Record<string, string>;
+  operators?: Record<string, FilterOperator>;
   search?: string;
   boardDateFrom?: string;
   boardDateTo?: string;
@@ -141,7 +143,8 @@ export class GroupService {
     moduleType: string,
     audienceFilter: AudienceFilter
   ) {
-    const { filter, search, boardDateFrom, boardDateTo } = audienceFilter;
+    const { filter, operators, search, boardDateFrom, boardDateTo } =
+      audienceFilter;
 
     const moduleId = await resolveModuleId(moduleType, organizationId);
 
@@ -181,7 +184,11 @@ export class GroupService {
       organizationId
     );
 
-    return applyAudienceFilter(resolved, fields, { search, filter });
+    return applyAudienceFilter(resolved, fields, {
+      search,
+      filter,
+      operators,
+    });
   }
 
   // Members without an email are kept and marked, so the group page shows who
