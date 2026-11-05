@@ -1,11 +1,12 @@
-import { FilterComponent } from "@/components/master-list/filter-component";
 import { getBoardFieldsByModule } from "@/services/marketing/blast-service";
 import type { AudienceFilter } from "@/services/marketing/group-service";
+import type { FilterOperator } from "@dashboard/shared";
 import { DatePicker } from "@dashboard/ui/components/date-picker";
 import { Input } from "@dashboard/ui/components/input";
 import { Label } from "@dashboard/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
+import { GroupFieldCondition } from "./group-field-condition";
 
 type GroupAudienceFilterProps = {
   moduleType: string;
@@ -42,8 +43,15 @@ export const GroupAudienceFilter = ({
     onChange({ ...audienceFilter, filter: nextFilter });
   };
 
+  const updateOperator = (fieldId: string, operator: FilterOperator) =>
+    onChange({
+      ...audienceFilter,
+      operators: { ...audienceFilter.operators, [fieldId]: operator },
+    });
+
   const hasFilters =
     Object.keys(audienceFilter.filter).length > 0 ||
+    Object.keys(audienceFilter.operators ?? {}).length > 0 ||
     Boolean(audienceFilter.search) ||
     Boolean(audienceFilter.boardDateFrom) ||
     Boolean(audienceFilter.boardDateTo);
@@ -97,14 +105,14 @@ export const GroupAudienceFilter = ({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {fields.map((col) => (
-              <div key={col.id} className="space-y-2">
-                <Label>{col.name}</Label>
-                <FilterComponent
-                  col={col}
-                  filterMeta={{ filter: audienceFilter.filter }}
-                  updateFilter={updateFilter}
-                />
-              </div>
+              <GroupFieldCondition
+                key={col.id}
+                col={col}
+                filter={audienceFilter.filter}
+                operator={audienceFilter.operators?.[col.id]}
+                onValueChange={updateFilter}
+                onOperatorChange={updateOperator}
+              />
             ))}
           </div>
         </section>

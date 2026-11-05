@@ -1,3 +1,4 @@
+import { useModules } from "@/hooks/use-modules";
 import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   createGroup,
@@ -5,6 +6,7 @@ import {
   updateGroup,
   type RecipientGroup,
 } from "@/services/marketing/group-service";
+import { FILTER_OPERATORS } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -30,18 +32,17 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { Textarea } from "@dashboard/ui/components/textarea";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useModules } from "@/hooks/use-modules";
 import { GroupAudienceFilter } from "./group-audience-filter";
 import { GroupMembersTable } from "./group-members-table";
 
@@ -57,6 +58,7 @@ const groupFormSchema = z.object({
   audienceType: z.enum(["BOARD", "SUBSCRIBER"]),
   filter: z.object({
     filter: z.record(z.string(), z.string()),
+    operators: z.record(z.string(), z.enum(FILTER_OPERATORS)).optional(),
     search: z.string().optional(),
     boardDateFrom: z.string().optional(),
     boardDateTo: z.string().optional(),

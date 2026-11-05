@@ -1,8 +1,11 @@
+import { FILTER_OPERATORS } from "@dashboard/shared";
 import { AudienceType } from "@prisma/client";
 import { z } from "zod";
 
 export const AudienceFilterSchema = z.object({
   filter: z.record(z.string(), z.string()).default({}),
+  // Per-field condition; a field without one keeps the type's default match.
+  operators: z.record(z.string(), z.enum(FILTER_OPERATORS)).optional(),
   search: z.string().optional(),
   boardDateFrom: z.string().optional(),
   boardDateTo: z.string().optional(),

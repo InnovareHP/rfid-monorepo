@@ -1,7 +1,9 @@
+import type { FilterOperator } from "@dashboard/shared";
 import { axiosClient } from "@/lib/axios-client";
 
 export type AudienceFilter = {
   filter: Record<string, string>;
+  operators?: Record<string, FilterOperator>;
   search?: string;
   boardDateFrom?: string;
   boardDateTo?: string;

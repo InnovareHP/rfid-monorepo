@@ -152,6 +152,9 @@ model Blast {
   scheduledAt    DateTime?   @db.Timestamptz(3)
   sentAt         DateTime?   @db.Timestamptz(3)
 
+  // [{ key, name }] of files under the org's private upload prefix.
+  attachments Json?
+
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 

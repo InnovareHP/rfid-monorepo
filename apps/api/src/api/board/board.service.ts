@@ -64,7 +64,11 @@ import { BoardNotifyService } from "./board-notify.service";
 import { BoardGateway } from "./board.gateway";
 import { CsvNewColumnsSchema } from "./dto/board.dto";
 import { UpdateContactDto } from "./dto/board.schema";
-import { EmailDispatchService } from "./email-dispatch.service";
+import {
+  AttachmentRef,
+  EmailDispatchService,
+  parseAttachments,
+} from "./email-dispatch.service";
 
 // Trailing window that marks a record as an active partner
 const ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -4572,8 +4576,14 @@ export class BoardService {
     organizationId: string,
     userId: string,
     moduleType: string,
-    sendVia?: string
+    sendVia: string | undefined,
+    attachments: AttachmentRef[]
   ) {
+    this.emailDispatchService.assertOwnedAttachments(
+      attachments,
+      organizationId
+    );
+
     const job = await this.bulkEmailQueue.add("bulk-send", {
       recordIds,
       emailSubject,
@@ -4582,6 +4592,7 @@ export class BoardService {
       userId,
       moduleType,
       sendVia,
+      attachments,
     });
 
     return { jobId: job.id, message: "Bulk email queued" };
@@ -4630,6 +4641,9 @@ export class BoardService {
         recipientEmail: a.recipientEmail,
         emailSubject: a.emailSubject,
         emailBody: a.emailBody,
+        attachments: parseAttachments(a.emailAttachments).map(({ name }) => ({
+          name,
+        })),
         emailSentAt: a.emailSentAt,
         senderEmail: a.senderEmail,
         faxNumber: a.faxNumber,
@@ -4707,12 +4721,18 @@ export class BoardService {
       recipientEmail?: string;
       emailSubject?: string;
       emailBody?: string;
+      emailAttachments?: AttachmentRef[];
       send_via?: string;
     },
     organizationId: string,
     userId: string
   ) {
     const recordId = data.recordId!;
+    const attachments = data.emailAttachments ?? [];
+    this.emailDispatchService.assertOwnedAttachments(
+      attachments,
+      organizationId
+    );
     const title = data.title!;
     const activityType = data.activityType!;
 
@@ -4730,6 +4750,9 @@ export class BoardService {
         recipientEmail: data.recipientEmail,
         emailSubject: data.emailSubject,
         emailBody: data.emailBody,
+        emailAttachments: attachments.length
+          ? JSON.stringify(attachments)
+          : null,
         recordId: recordId,
         createdBy: userId,
         organizationId: organizationId,
@@ -4935,6 +4958,10 @@ export class BoardService {
         organizationId,
         senderName: activity.creator.name,
         sendVia: emailOverrides?.send_via,
+        attachments: await this.emailDispatchService.loadAttachments(
+          parseAttachments(activity.emailAttachments),
+          organizationId
+        ),
       });
 
       updateData.emailSentAt = new Date();

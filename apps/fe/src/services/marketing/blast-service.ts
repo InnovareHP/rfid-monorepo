@@ -11,6 +11,7 @@ export type MarketingBlast = {
   subject: string;
   bodyHtml: string;
   bodyJson: BlastBlock[] | null;
+  attachments: { key: string; name: string }[] | null;
   editorType: BlastEditorType;
   status: "DRAFT" | "SCHEDULED" | "SENDING" | "SENT" | "FAILED";
   groups: { group: { id: string; name: string; moduleType: string } }[];
@@ -79,6 +80,7 @@ export const updateBlast = async (
     bodyHtml: string;
     blocks: BlastBlock[];
     groupIds: string[];
+    attachments: { key: string; name: string }[];
     scheduledAt: string;
   }>
 ): Promise<MarketingBlast> => {

@@ -9,7 +9,7 @@ import { QUEUE_NAMES } from "../../lib/queue/queue.constants";
 import { LiaisonActivityService } from "../liaison/liaison-activity.service";
 import { BoardNotifyService } from "./board-notify.service";
 import { BoardGateway } from "./board.gateway";
-import { EmailDispatchService } from "./email-dispatch.service";
+import { AttachmentRef, EmailDispatchService } from "./email-dispatch.service";
 
 export interface BulkEmailJobData {
   recordIds: string[];
@@ -19,6 +19,7 @@ export interface BulkEmailJobData {
   userId: string;
   moduleType: string;
   sendVia?: string;
+  attachments: AttachmentRef[];
 }
 
 @Processor(QUEUE_NAMES.BULK_EMAIL)
@@ -48,7 +49,13 @@ export class BulkEmailProcessor extends WorkerHost {
       userId,
       moduleType,
       sendVia,
+      attachments: attachmentRefs = [],
     } = job.data;
+
+    const attachments = await this.emailDispatchService.loadAttachments(
+      attachmentRefs,
+      organizationId
+    );
 
     this.logger.log(
       `Processing bulk email job ${job.id} — ${recordIds.length} records`
@@ -115,6 +122,7 @@ export class BulkEmailProcessor extends WorkerHost {
             organizationId,
             senderName: creator.name,
             sendVia,
+            attachments,
           });
 
         await prisma.activity.create({
@@ -127,6 +135,9 @@ export class BulkEmailProcessor extends WorkerHost {
             recipientEmail: recipientEmail,
             emailSubject: emailSubject,
             emailBody: emailBody,
+            emailAttachments: attachmentRefs.length
+              ? JSON.stringify(attachmentRefs)
+              : null,
             emailSentAt: new Date(),
             senderEmail: senderEmail,
             trackingId: trackingId,
