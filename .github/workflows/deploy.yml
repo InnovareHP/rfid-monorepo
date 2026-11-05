@@ -1,176 +1,176 @@
-name: Build and Deploy
+# name: Build and Deploy
 
-on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/api/**"
-      - "apps/fe/**"
-      - "apps/fe-support/**"
-      - "apps/landing/**"
-      - "packages/shared/**"
-      - "packages/ui/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/deploy.yml"
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - "apps/api/**"
+#       - "apps/fe/**"
+#       - "apps/fe-support/**"
+#       - "apps/landing/**"
+#       - "packages/shared/**"
+#       - "packages/ui/**"
+#       - "pnpm-lock.yaml"
+#       - ".github/workflows/deploy.yml"
 
-permissions:
-  id-token: write
-  contents: read
+# permissions:
+#   id-token: write
+#   contents: read
 
-env:
-  AWS_REGION: us-east-2
-  ECS_CLUSTER: dashboard-prod-cluster
+# env:
+#   AWS_REGION: us-east-2
+#   ECS_CLUSTER: dashboard-prod-cluster
 
-jobs:
-  changes:
-    name: Detect changed services
-    runs-on: ubuntu-latest
-    outputs:
-      services: ${{ steps.list.outputs.services }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            shared: &shared
-              - "packages/shared/**"
-              - "packages/ui/**"
-              - "pnpm-lock.yaml"
-            api:
-              - *shared
-              - "apps/api/**"
-            fe:
-              - *shared
-              - "apps/fe/**"
-            fe-support:
-              - *shared
-              - "apps/fe-support/**"
-            landing:
-              - *shared
-              - "apps/landing/**"
+# jobs:
+#   changes:
+#     name: Detect changed services
+#     runs-on: ubuntu-latest
+#     outputs:
+#       services: ${{ steps.list.outputs.services }}
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: dorny/paths-filter@v3
+#         id: filter
+#         with:
+#           filters: |
+#             shared: &shared
+#               - "packages/shared/**"
+#               - "packages/ui/**"
+#               - "pnpm-lock.yaml"
+#             api:
+#               - *shared
+#               - "apps/api/**"
+#             fe:
+#               - *shared
+#               - "apps/fe/**"
+#             fe-support:
+#               - *shared
+#               - "apps/fe-support/**"
+#             landing:
+#               - *shared
+#               - "apps/landing/**"
 
-      - name: List changed ECS services
-        id: list
-        run: |
-          services=()
-          [ "${{ steps.filter.outputs.api }}" = "true" ] && services+=("api")
-          [ "${{ steps.filter.outputs.fe }}" = "true" ] && services+=("fe")
-          [ "${{ steps.filter.outputs['fe-support'] }}" = "true" ] && services+=("fe-support")
-          [ "${{ steps.filter.outputs.landing }}" = "true" ] && services+=("landing")
+#       - name: List changed ECS services
+#         id: list
+#         run: |
+#           services=()
+#           [ "${{ steps.filter.outputs.api }}" = "true" ] && services+=("api")
+#           [ "${{ steps.filter.outputs.fe }}" = "true" ] && services+=("fe")
+#           [ "${{ steps.filter.outputs['fe-support'] }}" = "true" ] && services+=("fe-support")
+#           [ "${{ steps.filter.outputs.landing }}" = "true" ] && services+=("landing")
 
-          if [ ${#services[@]} -eq 0 ]; then
-            json='[]'
-          else
-            json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)
-          fi
-          echo "services=$json" >> "$GITHUB_OUTPUT"
+#           if [ ${#services[@]} -eq 0 ]; then
+#             json='[]'
+#           else
+#             json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)
+#           fi
+#           echo "services=$json" >> "$GITHUB_OUTPUT"
 
-  deploy:
-    name: Deploy ${{ matrix.service }}
-    needs: changes
-    if: needs.changes.outputs.services != '[]'
-    strategy:
-      matrix:
-        service: ${{ fromJson(needs.changes.outputs.services) }}
-      fail-fast: false
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+#   deploy:
+#     name: Deploy ${{ matrix.service }}
+#     needs: changes
+#     if: needs.changes.outputs.services != '[]'
+#     strategy:
+#       matrix:
+#         service: ${{ fromJson(needs.changes.outputs.services) }}
+#       fail-fast: false
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::986584956039:role/gha-ecs-deploy
-          aws-region: ${{ env.AWS_REGION }}
+#       - uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: arn:aws:iam::986584956039:role/gha-ecs-deploy
+#           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: aws-actions/amazon-ecr-login@v2
-        id: ecr
+#       - uses: aws-actions/amazon-ecr-login@v2
+#         id: ecr
 
-      - name: Build and push image
-        id: build
-        env:
-          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
-          ECR_REPOSITORY: dashboard-prod-${{ matrix.service }}
-          IMAGE_TAG: ${{ github.sha }}
-          VITE_APP_URL: ${{ vars.VITE_APP_URL }}
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
-          VITE_AWS_REGION: ${{ vars.VITE_AWS_REGION }}
-          VITE_DASHBOARD_URL: ${{ vars.VITE_DASHBOARD_URL }}
-          VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
+#       - name: Build and push image
+#         id: build
+#         env:
+#           ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+#           ECR_REPOSITORY: dashboard-prod-${{ matrix.service }}
+#           IMAGE_TAG: ${{ github.sha }}
+#           VITE_APP_URL: ${{ vars.VITE_APP_URL }}
+#           VITE_API_URL: ${{ vars.VITE_API_URL }}
+#           VITE_AWS_REGION: ${{ vars.VITE_AWS_REGION }}
+#           VITE_DASHBOARD_URL: ${{ vars.VITE_DASHBOARD_URL }}
+#           VITE_AWS_LOCATION_API_KEY: ${{ secrets.VITE_AWS_LOCATION_API_KEY }}
 
-          # Every variable this job can actually see, so an empty name says
-          # whether it is missing, blank, or invisible from this scope.
-          VISIBLE_VARS: ${{ toJSON(vars) }}
-        run: |
-          # Vite inlines these into the bundle at build time, so an unset name
-          # renders as "" and ships a broken image with a green build. An
-          # undefined vars./secrets. reference is empty, never an error, so the
-          # only place this can be caught is here.
-          echo "Variables visible to this job: $VISIBLE_VARS"
+#           # Every variable this job can actually see, so an empty name says
+#           # whether it is missing, blank, or invisible from this scope.
+#           VISIBLE_VARS: ${{ toJSON(vars) }}
+#         run: |
+#           # Vite inlines these into the bundle at build time, so an unset name
+#           # renders as "" and ships a broken image with a green build. An
+#           # undefined vars./secrets. reference is empty, never an error, so the
+#           # only place this can be caught is here.
+#           echo "Variables visible to this job: $VISIBLE_VARS"
 
-          require() {
-            for name in "$@"; do
-              if [ -z "${!name}" ]; then
-                echo "::error::$name resolved empty. Check Settings > Secrets and variables > Actions - 'Secrets' and 'Variables' are separate tabs. If it is scoped to an Environment, this job needs a matching 'environment:' key to see it."
-                exit 1
-              fi
-            done
-          }
+#           require() {
+#             for name in "$@"; do
+#               if [ -z "${!name}" ]; then
+#                 echo "::error::$name resolved empty. Check Settings > Secrets and variables > Actions - 'Secrets' and 'Variables' are separate tabs. If it is scoped to an Environment, this job needs a matching 'environment:' key to see it."
+#                 exit 1
+#               fi
+#             done
+#           }
 
-          BUILD_ARGS=()
-          case "${{ matrix.service }}" in
-            fe)
-              require VITE_APP_URL VITE_API_URL VITE_AWS_REGION VITE_AWS_LOCATION_API_KEY
-              BUILD_ARGS=(
-                --build-arg "VITE_APP_URL=$VITE_APP_URL"
-                --build-arg "VITE_API_URL=$VITE_API_URL"
-                --build-arg "VITE_AWS_REGION=$VITE_AWS_REGION"
-                --build-arg "VITE_AWS_LOCATION_API_KEY=$VITE_AWS_LOCATION_API_KEY"
-              )
-              ;;
-            fe-support)
-              require VITE_API_URL VITE_DASHBOARD_URL
-              BUILD_ARGS=(
-                --build-arg "VITE_API_URL=$VITE_API_URL"
-                --build-arg "VITE_DASHBOARD_URL=$VITE_DASHBOARD_URL"
-              )
-              ;;
-            landing)
-              BUILD_ARGS=()
-              ;;
-          esac
+#           BUILD_ARGS=()
+#           case "${{ matrix.service }}" in
+#             fe)
+#               require VITE_APP_URL VITE_API_URL VITE_AWS_REGION VITE_AWS_LOCATION_API_KEY
+#               BUILD_ARGS=(
+#                 --build-arg "VITE_APP_URL=$VITE_APP_URL"
+#                 --build-arg "VITE_API_URL=$VITE_API_URL"
+#                 --build-arg "VITE_AWS_REGION=$VITE_AWS_REGION"
+#                 --build-arg "VITE_AWS_LOCATION_API_KEY=$VITE_AWS_LOCATION_API_KEY"
+#               )
+#               ;;
+#             fe-support)
+#               require VITE_API_URL VITE_DASHBOARD_URL
+#               BUILD_ARGS=(
+#                 --build-arg "VITE_API_URL=$VITE_API_URL"
+#                 --build-arg "VITE_DASHBOARD_URL=$VITE_DASHBOARD_URL"
+#               )
+#               ;;
+#             landing)
+#               BUILD_ARGS=()
+#               ;;
+#           esac
 
-          docker build \
-            -f apps/${{ matrix.service }}/Dockerfile \
-            "${BUILD_ARGS[@]}" \
-            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
-            .
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+#           docker build \
+#             -f apps/${{ matrix.service }}/Dockerfile \
+#             "${BUILD_ARGS[@]}" \
+#             -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+#             -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+#             .
+#           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+#           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+#           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch current task definition
-        env:
-          FAMILY: dashboard-prod-${{ matrix.service }}
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition "$FAMILY" \
-            --query 'taskDefinition' \
-            > task-def.json
+#       - name: Fetch current task definition
+#         env:
+#           FAMILY: dashboard-prod-${{ matrix.service }}
+#         run: |
+#           aws ecs describe-task-definition \
+#             --task-definition "$FAMILY" \
+#             --query 'taskDefinition' \
+#             > task-def.json
 
-      - name: Render new task definition
-        id: render
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-def.json
-          container-name: ${{ matrix.service }}
-          image: ${{ steps.build.outputs.image }}
+#       - name: Render new task definition
+#         id: render
+#         uses: aws-actions/amazon-ecs-render-task-definition@v1
+#         with:
+#           task-definition: task-def.json
+#           container-name: ${{ matrix.service }}
+#           image: ${{ steps.build.outputs.image }}
 
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render.outputs.task-definition }}
-          service: dashboard-prod-${{ matrix.service }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+#       - name: Deploy to ECS
+#         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+#         with:
+#           task-definition: ${{ steps.render.outputs.task-definition }}
+#           service: dashboard-prod-${{ matrix.service }}
+#           cluster: ${{ env.ECS_CLUSTER }}
+#           wait-for-service-stability: true
