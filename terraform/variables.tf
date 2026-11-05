@@ -134,6 +134,12 @@ variable "redis_node_type" {
   default = "cache.t4g.micro"
 }
 
+# Set only by scripts/pause-stack.sh resume; leave empty in tfvars.
+variable "redis_restore_snapshot" {
+  type    = string
+  default = ""
+}
+
 variable "redis_num_node_groups" {
   type    = number
   default = 1

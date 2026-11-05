@@ -58,7 +58,14 @@ resource "aws_elasticache_replication_group" "this" {
 
   apply_immediately = false
 
+  snapshot_name = var.snapshot_name != "" ? var.snapshot_name : null
+
   tags = { Name = "${var.name_prefix}-redis" }
+
+  # The snapshot only matters at creation; a live group must never be replaced over it.
+  lifecycle {
+    ignore_changes = [snapshot_name]
+  }
 }
 
 # The app reads a single REDIS_URL, so assemble it here rather than making the

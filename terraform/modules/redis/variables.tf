@@ -6,3 +6,9 @@ variable "redis_version" { type = string }
 variable "node_type" { type = string }
 variable "num_node_groups" { type = number }
 variable "replicas_per_node_group" { type = number }
+
+# Seeds a newly created group from a snapshot; set only by scripts/pause-stack.sh on resume.
+variable "snapshot_name" {
+  type    = string
+  default = ""
+}
