@@ -38,7 +38,7 @@ export class SupportController {
     @Session() session: AuthenticatedSession,
     @Query("page") page: number = 1,
     @Query("take") take: number = 10,
-    @Query("priority") priority: Priority = Priority.MEDIUM,
+    @Query("priority") priority: Priority | "ALL" = Priority.MEDIUM,
     @Query("status") status?: TicketStatus,
     @Query("category") category?: TicketCategory
   ) {
