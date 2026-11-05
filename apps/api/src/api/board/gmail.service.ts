@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { google } from "googleapis";
 import { appConfig } from "src/config/app-config";
+import { buildRawMime, SesAttachment } from "src/lib/aws/ses";
 import { prisma } from "src/lib/prisma/prisma";
 
 @Injectable()
@@ -108,7 +109,8 @@ export class GmailService {
     subject: string,
     html: string,
     senderName: string,
-    references?: string | null
+    references?: string | null,
+    attachments?: SesAttachment[]
   ): Promise<boolean> {
     const token = await prisma.gmailToken.findUnique({
       where: { userId: userId },
@@ -145,13 +147,14 @@ export class GmailService {
         })();
       });
 
-      const rawMessage = this.buildRawEmail(
-        `${senderName} <${token.gmailAddress}>`,
-        to,
+      const rawMessage = buildRawMime({
+        from: `${senderName} <${token.gmailAddress}>`,
+        to: [to],
         subject,
         html,
-        references
-      );
+        references,
+        attachments,
+      }).toString("base64url");
 
       const gmail = google.gmail({ version: "v1", auth: oauth2Client });
       await gmail.users.messages.send({
@@ -176,32 +179,5 @@ export class GmailService {
 
       return false;
     }
-  }
-
-  private buildRawEmail(
-    from: string,
-    to: string,
-    subject: string,
-    htmlBody: string,
-    references?: string | null
-  ): string {
-    const messageParts = [
-      `From: ${from}`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      ...(references ? [`References: ${references}`] : []),
-      "MIME-Version: 1.0",
-      'Content-Type: text/html; charset="UTF-8"',
-      "",
-      htmlBody,
-    ];
-
-    const message = messageParts.join("\r\n");
-
-    return Buffer.from(message)
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { appConfig } from "src/config/app-config";
 import { prisma } from "src/lib/prisma/prisma";
+import { SesAttachment } from "src/lib/aws/ses";
 
 // /organizations, not /common: common admits personal Microsoft accounts, and a
 // consumer mailbox is outside any BAA. Work and school accounts only.
@@ -137,7 +138,8 @@ export class OutlookService {
     to: string,
     subject: string,
     html: string,
-    references?: string | null
+    references?: string | null,
+    attachments?: SesAttachment[]
   ): Promise<boolean> {
     const token = await prisma.outlookToken.findUnique({
       where: { userId: userId },
@@ -172,6 +174,15 @@ export class OutlookService {
                 },
               },
             ],
+            // shortcut: Graph caps sendMail near 4MB; bigger sends fail here and fall back to SES.
+            ...(attachments?.length && {
+              attachments: attachments.map((file) => ({
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                name: file.filename,
+                contentType: file.contentType,
+                contentBytes: file.content.toString("base64"),
+              })),
+            }),
             // Graph rejects standard headers here, so no References — Outlook
             // replies thread by sender address instead of by activity.
             ...(references && {

@@ -1,3 +1,7 @@
+import {
+  EmailAttachmentsField,
+  emailAttachmentsSchema,
+} from "@/components/reusable-table/email-attachments-field";
 import { RichTextEditor } from "@/components/marketing/blasts/rich-text-editor";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { resolveFaxAutofill } from "@/lib/helper/fax-autofill";
@@ -73,6 +77,7 @@ import {
   Trash2,
   Users,
   X,
+  Paperclip,
 } from "lucide-react";
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -173,6 +178,7 @@ const activitySchema = z
     recipientEmail: z.string().optional(),
     emailSubject: z.string().optional(),
     emailBody: z.string().optional(),
+    emailAttachments: emailAttachmentsSchema,
     sendVia: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
     meetingEndDate: z.date().optional(),
     calendarProvider: z.enum(["google", "outlook"]).optional(),
@@ -356,6 +362,7 @@ export function ActivityTab({
       recipientEmail: "",
       emailSubject: "",
       emailBody: "",
+      emailAttachments: [],
       sendVia: "AUTO",
       faxNumber: "",
       faxFile: undefined,
@@ -436,6 +443,8 @@ export function ActivityTab({
           : undefined,
       emailBody:
         data.activityType === "EMAIL" ? data.emailBody || undefined : undefined,
+      emailAttachments:
+        data.activityType === "EMAIL" ? data.emailAttachments : undefined,
       send_via: data.activityType === "EMAIL" ? data.sendVia : undefined,
     });
   };
@@ -644,6 +653,22 @@ export function ActivityTab({
                             onChange={field.onChange}
                             variant="full"
                             allowImages
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={control}
+                    name="emailAttachments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <EmailAttachmentsField
+                            value={field.value}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1128,6 +1153,16 @@ function ActivityCard({
               Sent{activity.senderEmail ? ` via ${activity.senderEmail}` : ""}
             </span>
           )}
+
+          {activity.attachments?.map((file) => (
+            <span
+              key={file.name}
+              className="flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+            >
+              <Paperclip className="h-3 w-3" />
+              {file.name}
+            </span>
+          ))}
 
           {activity.openCount > 0 && (
             <span className="text-xs text-info bg-info/10 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">

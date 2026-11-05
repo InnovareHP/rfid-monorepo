@@ -403,6 +403,7 @@ export const sendBulkEmail = async (data: {
   emailSubject: string;
   emailBody: string;
   moduleType?: string;
+  attachments?: { key: string; name: string }[];
   send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
 }) => {
   const response = await axiosClient.post("/api/boards/bulk-email", data, {
@@ -430,6 +431,7 @@ export type CreatableActivityKind = Exclude<ActivityKind, "FAX">;
 
 export interface Activity {
   id: string;
+  attachments?: { name: string }[];
   title: string;
   description: string | null;
   activityType: ActivityKind;
@@ -476,6 +478,7 @@ export const createActivity = async (data: {
   recipientEmail?: string;
   emailSubject?: string;
   emailBody?: string;
+  emailAttachments?: { key: string; name: string }[];
   send_via?: "AUTO" | "GMAIL" | "OUTLOOK";
 }) => {
   const response = await axiosClient.post("/api/boards/activities", data);

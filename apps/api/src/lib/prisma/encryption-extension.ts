@@ -19,6 +19,7 @@ export const ENCRYPTED_FIELDS: FieldMap = {
     "emailSubject",
     "recipientEmail",
     "senderEmail",
+    "emailAttachments",
     "faxNumber",
   ],
   History: ["oldValue", "newValue"],

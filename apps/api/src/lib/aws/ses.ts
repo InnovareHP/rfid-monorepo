@@ -67,7 +67,8 @@ function base64Lines(data: Buffer | string): string {
   return b64.replace(/(.{76})/g, "$1\r\n");
 }
 
-function buildRawMime(params: {
+// Shared with the Gmail path so both send the same multipart message.
+export function buildRawMime(params: {
   from: string;
   to: string[];
   subject: string;

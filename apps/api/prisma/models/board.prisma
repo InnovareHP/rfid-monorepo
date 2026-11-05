@@ -322,6 +322,9 @@ model Activity {
   faxId          String?
   faxSentAt      DateTime?      @db.Timestamptz(3)
 
+  // Encrypted JSON [{ key, name }]; filenames can name a patient.
+  emailAttachments String?
+
   direction     EmailDirection @default(OUTBOUND)
   trackingId    String?        @unique
   threadToken   String?

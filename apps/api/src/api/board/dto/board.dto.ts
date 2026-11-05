@@ -115,6 +115,11 @@ export const RecordLinkCountsSchema = z.object({
   recordIds: z.array(z.string()).min(1),
 });
 
+// Files uploaded through /image/upload as private; the service checks the org prefix.
+const EmailAttachmentsSchema = z
+  .array(z.object({ key: z.string().min(1), name: z.string().min(1).max(200) }))
+  .max(5);
+
 export const CreateActivitySchema = z.object({
   recordId: z.string(),
   title: z.string().min(1),
@@ -135,6 +140,7 @@ export const CreateActivitySchema = z.object({
   recipientEmail: z.string().email().optional(),
   emailSubject: z.string().optional(),
   emailBody: z.string().optional(),
+  emailAttachments: EmailAttachmentsSchema.optional(),
   send_via: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
 });
 
@@ -168,6 +174,7 @@ export const BulkEmailSchema = z.object({
   recordIds: z.array(z.string()).min(1).max(50),
   emailSubject: z.string().min(1),
   emailBody: z.string().min(1),
+  attachments: EmailAttachmentsSchema.optional(),
   send_via: z.enum(["AUTO", "GMAIL", "OUTLOOK"]).optional(),
 });
 
