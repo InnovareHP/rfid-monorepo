@@ -1,4 +1,3 @@
-import { EmailAttachmentsSchema } from "../../../board/dto/board.dto";
 import { z } from "zod";
 
 const hexColor = z
@@ -130,7 +129,6 @@ export const CreateBlastSchema = z.object({
   // A draft may have none yet; send is what requires at least one. Groups may
   // target different modules; the send unions them and dedupes on record.
   groupIds: groupIdsField.default([]),
-  attachments: EmailAttachmentsSchema.default([]),
   scheduledAt: z.string().optional(),
 });
 
@@ -142,7 +140,6 @@ export const UpdateBlastSchema = z.object({
   editorType: editorTypeField.optional(),
   blocks: blastBlocksSchema.optional(),
   groupIds: groupIdsField.optional(),
-  attachments: EmailAttachmentsSchema.optional(),
   scheduledAt: z.string().optional(),
 });
 

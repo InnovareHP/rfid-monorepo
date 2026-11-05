@@ -8,10 +8,7 @@ import { BlastEditorType, BlastStatus, Prisma } from "@prisma/client";
 import { Queue } from "bullmq";
 import { prisma } from "../../../lib/prisma/prisma";
 import { QUEUE_NAMES } from "../../../lib/queue/queue.constants";
-import {
-  blastAttachments,
-  EmailDispatchService,
-} from "../../board/email-dispatch.service";
+import { EmailDispatchService } from "../../board/email-dispatch.service";
 import { GroupService } from "../group/group.service";
 import { SenderService } from "../sender/sender.service";
 import { SubscriberService } from "../subscriber/subscriber.service";
@@ -78,10 +75,6 @@ export class BlastService {
 
     const groupIds = dto.groupIds ?? [];
     await this.assertGroupsInOrg(groupIds, organizationId);
-    this.emailDispatchService.assertOwnedAttachments(
-      dto.attachments ?? [],
-      organizationId
-    );
 
     const editorType = dto.editorType ?? BlastEditorType.DRAG_DROP;
     const blocks = dto.blocks ?? [];
@@ -97,7 +90,6 @@ export class BlastService {
           blocks,
         }),
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
-        attachments: dto.attachments ?? [],
         organizationId,
         createdBy: userId,
         groups: { create: groupIds.map((groupId) => ({ groupId })) },
@@ -121,13 +113,6 @@ export class BlastService {
       await this.assertGroupsInOrg(dto.groupIds, organizationId);
     }
 
-    if (dto.attachments !== undefined) {
-      this.emailDispatchService.assertOwnedAttachments(
-        dto.attachments,
-        organizationId
-      );
-    }
-
     // The editor a blast was created with is fixed, so the body always resolves
     // against the stored type rather than whatever the client sends.
     const bodyChanged = dto.bodyHtml !== undefined || dto.blocks !== undefined;
@@ -138,9 +123,6 @@ export class BlastService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.campaignId !== undefined && { campaignId: dto.campaignId }),
         ...(dto.subject !== undefined && { subject: dto.subject }),
-        ...(dto.attachments !== undefined && {
-          attachments: dto.attachments,
-        }),
         ...(bodyChanged &&
           this.resolveBody(blast.editorType, {
             bodyHtml: dto.bodyHtml ?? blast.bodyHtml,
@@ -277,10 +259,6 @@ export class BlastService {
     await this.emailDispatchService.send({
       userId,
       to,
-      attachments: await this.emailDispatchService.loadAttachments(
-        blastAttachments(blast.attachments),
-        organizationId
-      ),
       subject: `[Test] ${blast.subject}`,
       recipientName: creator.name,
       body: applyMergeVariables(documentHtml, {

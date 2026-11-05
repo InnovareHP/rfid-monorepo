@@ -75,7 +75,6 @@ export const BlastEditorPage = () => {
           subject: blast.subject,
           campaignId: blast.campaignId ?? NO_CAMPAIGN,
           groupIds: blast.groups.map((link) => link.group.id),
-          attachments: blast.attachments ?? [],
           bodyHtml: blast.bodyHtml,
           blocks: blast.bodyJson ?? [],
         }
@@ -90,7 +89,6 @@ export const BlastEditorPage = () => {
         campaignId:
           values.campaignId === NO_CAMPAIGN ? null : values.campaignId,
         groupIds: values.groupIds,
-        attachments: values.attachments,
         // The server keeps whichever half matches the blast's editor type.
         bodyHtml: values.bodyHtml,
         blocks: values.blocks,
