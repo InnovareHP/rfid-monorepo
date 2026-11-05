@@ -641,10 +641,7 @@ export class BoardService {
 
   // Four dates per record, each already stored somewhere: the last completed
   // activity, the linked referral, the next open follow-up, and the assignee.
-  private async buildFollowUpRows(
-    recordIds: string[],
-    organizationId: string
-  ) {
+  private async buildFollowUpRows(recordIds: string[], organizationId: string) {
     if (recordIds.length === 0) return [];
 
     const [records, lastContacted, pending, relations] = await Promise.all([
@@ -4646,6 +4643,55 @@ export class BoardService {
         createdAt: a.createdAt,
         createdBy: a.creator.name,
         creator_email: a.creator.email,
+      })),
+      total,
+    };
+  }
+
+  // Org-wide sent-mail log; subjects and recipients are encrypted, so no DB search.
+  async getSentEmails(organizationId: string, page: number, limit: number) {
+    const where: Prisma.ActivityWhereInput = {
+      organizationId,
+      activityType: "EMAIL",
+      emailSentAt: { not: null },
+      record: { isDeleted: false },
+    };
+
+    const [emails, total] = await Promise.all([
+      prisma.activity.findMany({
+        where,
+        select: {
+          id: true,
+          recipientEmail: true,
+          emailSubject: true,
+          emailSentAt: true,
+          senderEmail: true,
+          openCount: true,
+          lastOpenedAt: true,
+          creator: { select: { name: true } },
+          record: {
+            select: {
+              id: true,
+              recordName: true,
+              moduleType: true,
+              module: { select: { key: true } },
+            },
+          },
+        },
+        orderBy: { emailSentAt: "desc" },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      prisma.activity.count({ where }),
+    ]);
+
+    return {
+      data: emails.map(({ creator, record, ...email }) => ({
+        ...email,
+        sentBy: creator.name,
+        recordId: record.id,
+        recordName: record.recordName,
+        moduleType: record.module?.key ?? record.moduleType,
       })),
       total,
     };

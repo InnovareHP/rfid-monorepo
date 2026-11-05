@@ -3,6 +3,7 @@ import type { CrmModuleType } from "@/services/board/board-module-service";
 import { createSelectColumn } from "../reusable-table/select-column";
 import { type ColumnDef } from "@tanstack/react-table";
 import { ColumnHeader } from "../reusable-table/column-header";
+import { RecordActivityDialog } from "./record-activity-dialog";
 import { RelatedRecords } from "./related-records";
 
 type ColumnType = {
@@ -97,7 +98,12 @@ export function generateCrmColumns(
             type="TEXT"
           />
         </div>
-        <div className="hover-reveal shrink-0">
+        <div className="hover-reveal flex shrink-0 items-center">
+          <RecordActivityDialog
+            recordId={row.original.id}
+            recordName={row.original.recordName}
+            moduleType={moduleType}
+          />
           <RelatedRecords recordId={row.original.id} />
         </div>
       </div>

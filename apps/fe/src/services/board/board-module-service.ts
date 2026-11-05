@@ -176,3 +176,24 @@ export const createModuleColumn = async (
 
   return response.data;
 };
+
+export type BulkEmailProgress = {
+  sent: number;
+  skipped: number;
+  errors: number;
+  total: number;
+};
+
+export type BoardJobStatus = {
+  jobId: string;
+  status: string;
+  progress: BulkEmailProgress | number;
+  failedReason: string | null;
+};
+
+export const getBulkEmailJobStatus = async (jobId: string) => {
+  const response = await axiosClient.get(`/api/boards/jobs/${jobId}/status`, {
+    params: { queue: "bulk-email" },
+  });
+  return response.data as BoardJobStatus;
+};

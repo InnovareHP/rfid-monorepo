@@ -19,8 +19,10 @@ import {
   getSpecificLead,
   type Activity,
 } from "@/services/lead/lead-service";
-import { getSpecificReferral } from "@/services/referral/referral-service";
-import { updateModuleRecord } from "@/services/board/board-module-service";
+import {
+  type CrmModuleType,
+  updateModuleRecord,
+} from "@/services/board/board-module-service";
 import { formatDateTime, sanitizeRichText } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
@@ -205,7 +207,7 @@ export function ActivityTab({
 }: {
   recordId: string;
   enabled: boolean;
-  moduleType: "LEAD" | "REFERRAL";
+  moduleType: CrmModuleType;
 }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = React.useState(false);
@@ -236,13 +238,11 @@ export function ActivityTab({
     queryFn: getFaxIntegrationStatus,
   });
 
-  const isReferral = moduleType === "REFERRAL";
+  // Record keys follow the module name: ["lead", id], ["referral", id], ["contact", id].
+  const recordKey = moduleType.toLowerCase();
   const { data: recordData } = useQuery({
-    queryKey: [isReferral ? "referral" : "lead", recordId],
-    queryFn: () =>
-      isReferral
-        ? getSpecificReferral(recordId, "REFERRAL")
-        : getSpecificLead(recordId, "LEAD"),
+    queryKey: [recordKey, recordId],
+    queryFn: () => getSpecificLead(recordId, moduleType),
     enabled: enabled && !!recordId,
   });
   const { faxFieldId, existingFax } = resolveFaxAutofill(
@@ -288,21 +288,12 @@ export function ActivityTab({
 
   const faxWriteBackMutation = useMutation({
     mutationFn: ({ fieldId, value }: { fieldId: string; value: string }) =>
-      updateModuleRecord(
-        isReferral ? "REFERRAL" : "LEAD",
-        recordId,
-        fieldId,
-        value
-      ),
+      updateModuleRecord(moduleType, recordId, fieldId, value),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [recordKey, recordId] });
+      queryClient.invalidateQueries({ queryKey: boardQueryKey(moduleType) });
       queryClient.invalidateQueries({
-        queryKey: [isReferral ? "referral" : "lead", recordId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: boardQueryKey(isReferral ? "REFERRAL" : "LEAD"),
-      });
-      queryClient.invalidateQueries({
-        queryKey: [isReferral ? "referral-history" : "lead-history", recordId],
+        queryKey: [`${recordKey}-history`, recordId],
       });
     },
     onError: () =>
