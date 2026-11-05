@@ -118,15 +118,25 @@ const ProductFooter = () => (
   </>
 );
 
-// A logo when the org uploaded one, otherwise its name set in the header.
-const BrandedMark = ({ branding }: { branding: EmailBranding }) =>
-  branding.logoUrl ? (
-    <Img src={branding.logoUrl} alt={branding.name} style={brandedLogo} />
-  ) : (
+// Logo beside the org name; the name alone when no logo was uploaded.
+const BrandedMark = ({ branding }: { branding: EmailBranding }) => {
+  const name = (
     <Text style={{ ...brandedName, color: nameColor(branding.color) }}>
       {branding.name}
     </Text>
   );
+
+  if (!branding.logoUrl) return name;
+
+  return (
+    <Row>
+      <Column style={brandedLogoCell}>
+        <Img src={branding.logoUrl} alt="" style={brandedLogo} />
+      </Column>
+      <Column style={brandedNameCell}>{name}</Column>
+    </Row>
+  );
+};
 
 export default EmailLayout;
 
@@ -281,9 +291,19 @@ const nameColor = (color: string | null) => {
   return 0.299 * r + 0.587 * g + 0.114 * b > 160 ? brand.navy : color;
 };
 
+const brandedLogoCell: React.CSSProperties = {
+  width: "1%",
+  paddingRight: "14px",
+  verticalAlign: "middle",
+};
+
+const brandedNameCell: React.CSSProperties = {
+  verticalAlign: "middle",
+};
+
 const brandedLogo: React.CSSProperties = {
-  maxWidth: "180px",
-  maxHeight: "56px",
+  maxWidth: "120px",
+  maxHeight: "48px",
   width: "auto",
   height: "auto",
   display: "block",
