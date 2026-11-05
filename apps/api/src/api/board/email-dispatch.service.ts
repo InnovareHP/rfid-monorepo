@@ -34,6 +34,10 @@ export interface AttachmentRef {
 export const parseAttachments = (stored: string | null): AttachmentRef[] =>
   stored ? (JSON.parse(stored) as AttachmentRef[]) : [];
 
+// Blast attachments are a plain JSON column rather than encrypted text.
+export const blastAttachments = (stored: unknown): AttachmentRef[] =>
+  (stored as AttachmentRef[] | null) ?? [];
+
 // Gmail caps a message at 25MB and base64 inflates by a third.
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
 

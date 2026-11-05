@@ -1,3 +1,4 @@
+import { emailAttachmentsSchema } from "@/components/reusable-table/email-attachments-field";
 import { z } from "zod";
 
 // Local FE mirror of the backend blast block schemas — never import the API's
@@ -108,6 +109,7 @@ export const blastFormSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   campaignId: z.string().optional(),
   groupIds: z.array(z.string()).min(1, "Pick at least one group"),
+  attachments: emailAttachmentsSchema,
   bodyHtml: z.string(),
   blocks: z.array(blastBlockSchema).max(30),
 });

@@ -116,7 +116,7 @@ export const RecordLinkCountsSchema = z.object({
 });
 
 // Files uploaded through /image/upload as private; the service checks the org prefix.
-const EmailAttachmentsSchema = z
+export const EmailAttachmentsSchema = z
   .array(z.object({ key: z.string().min(1), name: z.string().min(1).max(200) }))
   .max(5);
 
