@@ -1,3 +1,4 @@
+import { FILTER_OPERATORS } from "@dashboard/shared";
 import {
   createGroup,
   previewGroupMembers,
@@ -51,6 +52,7 @@ const groupFormSchema = z.object({
   audienceType: z.enum(["BOARD", "SUBSCRIBER"]),
   filter: z.object({
     filter: z.record(z.string(), z.string()),
+    operators: z.record(z.string(), z.enum(FILTER_OPERATORS)).optional(),
     search: z.string().optional(),
     boardDateFrom: z.string().optional(),
     boardDateTo: z.string().optional(),

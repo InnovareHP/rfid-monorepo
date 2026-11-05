@@ -1,6 +1,12 @@
 // Duplicates board.service.ts's getAllBoards link-resolution (~line 145-175) and
 // search/filter logic (~line 179-210), plus the private isLinkFieldType (~line 1174).
 // Keep both in sync if either changes.
+import {
+  defaultFilterOperator,
+  FilterOperator,
+  matchesFilter,
+  operatorNeedsValue,
+} from "@dashboard/shared";
 import { Board, BoardFieldType, Field } from "@prisma/client";
 import { prisma } from "../../../lib/prisma/prisma";
 
@@ -58,7 +64,15 @@ export async function resolveLinkFieldValues<T extends BoardWithValues>(
 export function applyAudienceFilter<T extends BoardWithValues>(
   boards: T[],
   fields: Pick<Field, "id" | "fieldType">[],
-  { search, filter }: { search?: string; filter?: Record<string, string> }
+  {
+    search,
+    filter,
+    operators,
+  }: {
+    search?: string;
+    filter?: Record<string, string>;
+    operators?: Record<string, FilterOperator>;
+  }
 ): T[] {
   let result = boards;
 
@@ -71,28 +85,25 @@ export function applyAudienceFilter<T extends BoardWithValues>(
     );
   }
 
-  if (filter && Object.keys(filter).length > 0) {
-    const fieldTypeMap = new Map(fields.map((f) => [f.id, f.fieldType]));
+  const fieldTypeMap = new Map(fields.map((f) => [f.id, f.fieldType]));
+  const fieldIds = new Set([
+    ...Object.keys(filter ?? {}),
+    ...Object.keys(operators ?? {}),
+  ]);
 
-    for (const [id, val] of Object.entries(filter)) {
-      if (val === undefined || val === "") continue;
+  for (const id of fieldIds) {
+    const operator =
+      operators?.[id] ?? defaultFilterOperator(fieldTypeMap.get(id));
+    const needle = filter?.[id] ?? "";
+    if (operatorNeedsValue(operator) && needle === "") continue;
 
-      const fieldType = fieldTypeMap.get(id);
-      const useExactMatch =
-        fieldType &&
-        (fieldType === "DROPDOWN" ||
-          fieldType === "STATUS" ||
-          fieldType === "CHECKBOX");
-      const needle = String(val).toLowerCase();
-
-      result = result.filter((b) =>
-        b.values.some((v) => {
-          if (v.field.id !== id || v.value == null) return false;
-          const hay = v.value.toLowerCase();
-          return useExactMatch ? hay === needle : hay.includes(needle);
-        })
-      );
-    }
+    result = result.filter((b) =>
+      matchesFilter(
+        operator,
+        b.values.find((v) => v.field.id === id)?.value,
+        needle
+      )
+    );
   }
 
   return result;
