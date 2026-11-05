@@ -6,7 +6,6 @@ import {
   operatorNeedsValue,
   type FilterOperator,
 } from "@dashboard/shared";
-import { Label } from "@dashboard/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -35,39 +34,42 @@ export const GroupFieldCondition = memo(function GroupFieldCondition({
   const current = operator ?? defaultFilterOperator(col.type);
 
   return (
-    <div className="space-y-2">
-      <Label>{col.name}</Label>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Select
-          value={current}
-          onValueChange={(next) =>
-            onOperatorChange(col.id, next as FilterOperator)
-          }
+    <div className="grid grid-cols-1 items-center gap-2 px-3 py-2.5 sm:grid-cols-[7rem_9rem_minmax(0,1fr)]">
+      <span
+        className="truncate text-sm font-medium text-foreground"
+        title={col.name}
+      >
+        {col.name}
+      </span>
+      <Select
+        value={current}
+        onValueChange={(next) =>
+          onOperatorChange(col.id, next as FilterOperator)
+        }
+      >
+        <SelectTrigger
+          className="h-9 w-full text-sm"
+          aria-label={`${col.name} condition`}
         >
-          <SelectTrigger
-            className="w-full sm:w-44"
-            aria-label={`${col.name} condition`}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPERATORS.map((op) => (
-              <SelectItem key={op} value={op}>
-                {FILTER_OPERATOR_LABELS[op]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {operatorNeedsValue(current) && (
-          <div className="min-w-0 flex-1">
-            <FilterComponent
-              col={col}
-              filterMeta={{ filter }}
-              updateFilter={onValueChange}
-            />
-          </div>
-        )}
-      </div>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {FILTER_OPERATORS.map((op) => (
+            <SelectItem key={op} value={op}>
+              {FILTER_OPERATOR_LABELS[op]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {operatorNeedsValue(current) ? (
+        <FilterComponent
+          col={col}
+          filterMeta={{ filter }}
+          updateFilter={onValueChange}
+        />
+      ) : (
+        <span className="text-sm text-muted-foreground">No value needed</span>
+      )}
     </div>
   );
 });

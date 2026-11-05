@@ -1,3 +1,4 @@
+import { Button } from "@dashboard/ui/components/button";
 import { getBoardFieldsByModule } from "@/services/marketing/blast-service";
 import type { AudienceFilter } from "@/services/marketing/group-service";
 import type { FilterOperator } from "@dashboard/shared";
@@ -100,10 +101,14 @@ export const GroupAudienceFilter = ({
       </section>
 
       {fields.length > 0 && (
-        <section className="space-y-4">
+        <section className="space-y-3">
           <GroupHeading title="Record Fields" />
+          <p className="text-xs text-muted-foreground">
+            Records must match every condition you fill in. Leave a value blank
+            to ignore that field.
+          </p>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="divide-y divide-border rounded-lg border border-border bg-card">
             {fields.map((col) => (
               <GroupFieldCondition
                 key={col.id}
@@ -119,13 +124,15 @@ export const GroupAudienceFilter = ({
       )}
 
       {hasFilters && (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
+          className="px-0"
           onClick={() => onChange({ filter: {} })}
-          className="text-sm font-medium text-primary hover:underline"
         >
-          Clear All Filters
-        </button>
+          Clear all filters
+        </Button>
       )}
     </div>
   );
