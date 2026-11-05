@@ -1,19 +1,24 @@
-import { Heading, Text } from "@react-email/components";
+import { Text } from "@react-email/components";
 import * as React from "react";
-import { BRAND_NAME, EmailLayout, emailStyles } from "./email-layout";
+import { EmailBranding, EmailLayout, emailStyles } from "./email-layout";
 
 type ActivityEmailProps = {
+  preview: string;
   recipientName: string;
   body: string;
+  senderName: string;
+  branding: EmailBranding;
 };
 
-export const ActivityEmail = ({ recipientName, body }: ActivityEmailProps) => {
+export const ActivityEmail = ({
+  preview,
+  recipientName,
+  body,
+  senderName,
+  branding,
+}: ActivityEmailProps) => {
   return (
-    <EmailLayout preview="You have new activity">
-      <Text style={emailStyles.eyebrow}>New activity</Text>
-
-      <Heading style={emailStyles.heading}>Here is what changed</Heading>
-
+    <EmailLayout preview={preview} branding={branding}>
       <Text style={emailStyles.paragraph}>Hi {recipientName},</Text>
 
       {/* Composed bodies carry markup, so they render as HTML rather than
@@ -26,7 +31,9 @@ export const ActivityEmail = ({ recipientName, body }: ActivityEmailProps) => {
       <Text style={emailStyles.muted}>
         Best regards,
         <br />
-        The {BRAND_NAME} team
+        {senderName}
+        <br />
+        {branding.name}
       </Text>
     </EmailLayout>
   );

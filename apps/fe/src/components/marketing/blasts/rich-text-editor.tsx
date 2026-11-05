@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { FONT_FAMILIES } from "./blast-block-style";
+import { RichTextImageButton } from "./rich-text-image-button";
 import { RichTextToolbarGroup } from "./rich-text-toolbar-group";
 
 type RichTextEditorProps = {
@@ -30,6 +31,7 @@ type RichTextEditorProps = {
   // Compact is the block panels: inline marks and alignment only, because font,
   // size and color are separate block props there.
   variant?: "compact" | "full";
+  allowImages?: boolean;
   disabled?: boolean;
   className?: string;
 };
@@ -61,6 +63,7 @@ export const RichTextEditor = ({
   value,
   onChange,
   variant = "compact",
+  allowImages = false,
   disabled = false,
   className,
 }: RichTextEditorProps) => {
@@ -140,6 +143,13 @@ export const RichTextEditor = ({
 
             <RichTextToolbarGroup commands={HISTORY} disabled={disabled} onRun={run} />
           </>
+        )}
+
+        {allowImages && (
+          <RichTextImageButton
+            disabled={disabled}
+            onInsert={(url) => run("insertImage", url)}
+          />
         )}
       </div>
 

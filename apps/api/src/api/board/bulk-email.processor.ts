@@ -112,6 +112,7 @@ export class BulkEmailProcessor extends WorkerHost {
             recipientName: record.recordName,
             body: emailBody,
             layout: "ACTIVITY",
+            organizationId,
             senderName: creator.name,
             sendVia,
           });

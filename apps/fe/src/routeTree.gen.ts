@@ -33,6 +33,7 @@ import { Route as EmbedBookSlugRouteImport } from './routes/embed.book.$slug'
 import { Route as TeamTeamTeamRouteImport } from './routes/_team/$team/team'
 import { Route as TeamTeamSuccessRouteImport } from './routes/_team/$team/success'
 import { Route as TeamTeamSettingsRouteImport } from './routes/_team/$team/settings'
+import { Route as TeamTeamSentEmailsRouteImport } from './routes/_team/$team/sent-emails'
 import { Route as TeamTeamReferralAnalyticsRouteImport } from './routes/_team/$team/referral-analytics'
 import { Route as TeamTeamProfileRouteImport } from './routes/_team/$team/profile'
 import { Route as TeamTeamPlansRouteImport } from './routes/_team/$team/plans'
@@ -211,6 +212,11 @@ const TeamTeamSuccessRoute = TeamTeamSuccessRouteImport.update({
 const TeamTeamSettingsRoute = TeamTeamSettingsRouteImport.update({
   id: '/$team/settings',
   path: '/$team/settings',
+  getParentRoute: () => TeamRoute,
+} as any)
+const TeamTeamSentEmailsRoute = TeamTeamSentEmailsRouteImport.update({
+  id: '/$team/sent-emails',
+  path: '/$team/sent-emails',
   getParentRoute: () => TeamRoute,
 } as any)
 const TeamTeamReferralAnalyticsRoute =
@@ -581,6 +587,7 @@ export interface FileRoutesByFullPath {
   '/$team/plans': typeof TeamTeamPlansRoute
   '/$team/profile': typeof TeamTeamProfileRoute
   '/$team/referral-analytics': typeof TeamTeamReferralAnalyticsRoute
+  '/$team/sent-emails': typeof TeamTeamSentEmailsRoute
   '/$team/settings': typeof TeamTeamSettingsRouteWithChildren
   '/$team/success': typeof TeamTeamSuccessRoute
   '/$team/team': typeof TeamTeamTeamRoute
@@ -666,6 +673,7 @@ export interface FileRoutesByTo {
   '/$team/plans': typeof TeamTeamPlansRoute
   '/$team/profile': typeof TeamTeamProfileRoute
   '/$team/referral-analytics': typeof TeamTeamReferralAnalyticsRoute
+  '/$team/sent-emails': typeof TeamTeamSentEmailsRoute
   '/$team/settings': typeof TeamTeamSettingsRouteWithChildren
   '/$team/success': typeof TeamTeamSuccessRoute
   '/$team/team': typeof TeamTeamTeamRoute
@@ -754,6 +762,7 @@ export interface FileRoutesById {
   '/_team/$team/plans': typeof TeamTeamPlansRoute
   '/_team/$team/profile': typeof TeamTeamProfileRoute
   '/_team/$team/referral-analytics': typeof TeamTeamReferralAnalyticsRoute
+  '/_team/$team/sent-emails': typeof TeamTeamSentEmailsRoute
   '/_team/$team/settings': typeof TeamTeamSettingsRouteWithChildren
   '/_team/$team/success': typeof TeamTeamSuccessRoute
   '/_team/$team/team': typeof TeamTeamTeamRoute
@@ -841,6 +850,7 @@ export interface FileRouteTypes {
     | '/$team/plans'
     | '/$team/profile'
     | '/$team/referral-analytics'
+    | '/$team/sent-emails'
     | '/$team/settings'
     | '/$team/success'
     | '/$team/team'
@@ -926,6 +936,7 @@ export interface FileRouteTypes {
     | '/$team/plans'
     | '/$team/profile'
     | '/$team/referral-analytics'
+    | '/$team/sent-emails'
     | '/$team/settings'
     | '/$team/success'
     | '/$team/team'
@@ -1013,6 +1024,7 @@ export interface FileRouteTypes {
     | '/_team/$team/plans'
     | '/_team/$team/profile'
     | '/_team/$team/referral-analytics'
+    | '/_team/$team/sent-emails'
     | '/_team/$team/settings'
     | '/_team/$team/success'
     | '/_team/$team/team'
@@ -1258,6 +1270,13 @@ declare module '@tanstack/react-router' {
       path: '/$team/settings'
       fullPath: '/$team/settings'
       preLoaderRoute: typeof TeamTeamSettingsRouteImport
+      parentRoute: typeof TeamRoute
+    }
+    '/_team/$team/sent-emails': {
+      id: '/_team/$team/sent-emails'
+      path: '/$team/sent-emails'
+      fullPath: '/$team/sent-emails'
+      preLoaderRoute: typeof TeamTeamSentEmailsRouteImport
       parentRoute: typeof TeamRoute
     }
     '/_team/$team/referral-analytics': {
@@ -1741,6 +1760,7 @@ interface TeamRouteChildren {
   TeamTeamPlansRoute: typeof TeamTeamPlansRoute
   TeamTeamProfileRoute: typeof TeamTeamProfileRoute
   TeamTeamReferralAnalyticsRoute: typeof TeamTeamReferralAnalyticsRoute
+  TeamTeamSentEmailsRoute: typeof TeamTeamSentEmailsRoute
   TeamTeamSettingsRoute: typeof TeamTeamSettingsRouteWithChildren
   TeamTeamSuccessRoute: typeof TeamTeamSuccessRoute
   TeamTeamTeamRoute: typeof TeamTeamTeamRoute
@@ -1803,6 +1823,7 @@ const TeamRouteChildren: TeamRouteChildren = {
   TeamTeamPlansRoute: TeamTeamPlansRoute,
   TeamTeamProfileRoute: TeamTeamProfileRoute,
   TeamTeamReferralAnalyticsRoute: TeamTeamReferralAnalyticsRoute,
+  TeamTeamSentEmailsRoute: TeamTeamSentEmailsRoute,
   TeamTeamSettingsRoute: TeamTeamSettingsRouteWithChildren,
   TeamTeamSuccessRoute: TeamTeamSuccessRoute,
   TeamTeamTeamRoute: TeamTeamTeamRoute,

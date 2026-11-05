@@ -388,6 +388,24 @@ export class BoardController {
     }
   }
 
+  @RequirePermission({ log: ["read"] })
+  @Get("/emails")
+  async getSentEmails(
+    @Session() session: AuthenticatedSession,
+    @Query("page") page = 1,
+    @Query("limit") limit = 25
+  ) {
+    try {
+      return await this.boardService.getSentEmails(
+        session.session.activeOrganizationId,
+        Math.max(1, Number(page)),
+        Math.min(100, Math.max(1, Number(limit)))
+      );
+    } catch (error) {
+      throw toSafeError(error, "boards.getSentEmails");
+    }
+  }
+
   @RequirePermission({ record: ["read"] })
   @Get("/jobs/:jobId/status")
   async getJobStatus(

@@ -2276,3 +2276,14 @@ tests across 46 suites. The audit SQL has not been run against any database.
 - In-range dep bumps, xlsx to SheetJS CDN 0.20.3, scoped `overrides` in `pnpm-workspace.yaml` (commit 774caaf).
 - Prod audit 184 -> 53 (critical 9 -> 4, high 84 -> 16).
 - Open: sharp 0.35.5 (api, landing), maplibre-gl 6 (fe, critical XSS), astro 7 (landing, critical AVIF RCE), tinypool via better-auth>vitest, local Node 24.12.0 -> 24.22.1, ECS redeploy and site recheck.
+
+## 2026-11-05 CRM email branding and rich editor
+
+- `ActivityEmail` is white-labeled: org logo (or name), `metadata.brandColor` accent bar, sender + org sign-off, org copyright. Removed "New activity / Here is what changed" and all product footer links.
+- `EmailDispatchService` loads org branding per `ACTIVITY` send (`DispatchInput` now requires `organizationId` for that layout) and applies `{{recordName}}`, `{{email}}`, `{{organizationName}}` merge tokens.
+- `sanitizeRichText` allows `<img>` with https `src` only, forced to `max-width:100%`.
+- Activity and bulk email composers use the blast `RichTextEditor` (`variant="full"`, new `allowImages` prop uploading public images).
+- Phonebook rows get an Activity button (`crm-list/record-activity-dialog.tsx`); `ActivityTab` takes any module key.
+- `GET /boards/emails` + Sent Emails page (nav, `log:read`). Excludes soft-deleted records. No search: subject/recipient are encrypted.
+- Bulk email dialog polls `/boards/jobs/:id/status` for live progress; fixed empty toast (response is `{ jobId }`, not counts).
+- Open: Sent Emails filters (module, sender, date) and an index on `(organizationId, activityType, emailSentAt)` if volume grows.

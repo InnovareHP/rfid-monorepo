@@ -410,7 +410,7 @@ export const sendBulkEmail = async (data: {
       moduleType: data.moduleType,
     },
   });
-  return response.data as { sent: number; skipped: number; errors: number };
+  return response.data as { jobId: string; message: string };
 };
 
 // Mirrors the ActivityType enum. FAX is displayable but not creatable here: a

@@ -25,6 +25,7 @@ import {
   Megaphone,
   Plus,
   Route,
+  Send,
   SquareTerminal,
   Target,
   Upload,
@@ -202,6 +203,11 @@ export function useNavItems(
                 title: "Follow-ups",
                 url: `/${activeOrganizationId}/follow-ups`,
                 icon: CalendarClock,
+              },
+              {
+                title: "Sent Emails",
+                url: `/${activeOrganizationId}/sent-emails`,
+                icon: Send,
               },
             ]
           : []),

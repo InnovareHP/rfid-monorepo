@@ -14,6 +14,7 @@ const ALLOWED_TAGS = new Set([
   "ul",
   "ol",
   "li",
+  "img",
 ]);
 
 const ALLOWED_STYLE_PROPS = new Set([
@@ -45,14 +46,26 @@ const sanitizeStyle = (value: string) =>
     })
     .join("; ");
 
+// Images scale to the email column instead of carrying their own dimensions.
+const IMG_STYLE = 'style="max-width:100%;height:auto"';
+
 const sanitizeAttributes = (tag: string, raw: string) => {
   const attributes: string[] = [];
+  const isImg = tag === "img";
 
   for (const match of raw.matchAll(
     /([a-z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi
   )) {
     const name = match[1].toLowerCase();
     const value = match[2] ?? match[3] ?? "";
+
+    if (isImg) {
+      if (name === "src" && /^https:\/\//i.test(value)) {
+        attributes.push(`src="${escapeHtml(value)}"`);
+      }
+      if (name === "alt") attributes.push(`alt="${escapeHtml(value)}"`);
+      continue;
+    }
 
     if (name === "style") {
       const style = sanitizeStyle(value);
@@ -63,6 +76,13 @@ const sanitizeAttributes = (tag: string, raw: string) => {
     if (name === "href" && tag === "a" && /^(https?:|mailto:)/i.test(value)) {
       attributes.push(`href="${escapeHtml(value)}"`);
     }
+  }
+
+  if (isImg) {
+    if (!attributes.some((attribute) => attribute.startsWith("src="))) {
+      return null;
+    }
+    attributes.push(IMG_STYLE);
   }
 
   return attributes.length ? ` ${attributes.join(" ")}` : "";
@@ -78,8 +98,9 @@ export const sanitizeRichText = (html: string): string =>
       (_full, slash: string, tagName: string, rest: string) => {
         const tag = tagName.toLowerCase();
         if (!ALLOWED_TAGS.has(tag)) return "";
-        if (slash) return `</${tag}>`;
-        return `<${tag}${sanitizeAttributes(tag, rest)}>`;
+        if (slash) return tag === "img" ? "" : `</${tag}>`;
+        const attributes = sanitizeAttributes(tag, rest);
+        return attributes === null ? "" : `<${tag}${attributes}>`;
       }
     )
     .replace(/<(?![a-z/])/gi, "&lt;");
