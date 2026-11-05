@@ -1,0 +1,14 @@
+import MarketingImportPage from "@/components/import/marketing-import-page";
+import { EntitledRoute } from "@/lib/helper/helper";
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/_team/$team/import/marketing")({
+  beforeLoad: async (context) => {
+    return EntitledRoute(context, "export");
+  },
+  component: RouteComponent,
+});
+
+function RouteComponent() {
+  return <MarketingImportPage />;
+}

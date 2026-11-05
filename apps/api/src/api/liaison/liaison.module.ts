@@ -3,10 +3,16 @@ import { LiaisonActivityService } from "./liaison-activity.service";
 import { LiaisonExportService } from "./liaison-export.service";
 import { LiaisonController } from "./liaison.controller";
 import { LiaisonService } from "./liaison.service";
+import { MarketingImportService } from "./marketing-import.service";
 
 @Module({
   controllers: [LiaisonController],
-  providers: [LiaisonService, LiaisonActivityService, LiaisonExportService],
+  providers: [
+    LiaisonService,
+    LiaisonActivityService,
+    LiaisonExportService,
+    MarketingImportService,
+  ],
   exports: [LiaisonActivityService],
 })
 export class LiaisonModule {}

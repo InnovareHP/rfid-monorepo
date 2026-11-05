@@ -41,6 +41,7 @@ export function ModuleListRoute() {
       nameLabel={`${module.labelSingular} Name`}
       addLabel={`Add ${module.labelSingular}`}
       createPath={`/$team/records/${module.key}/create`}
+      totalLabel={`Total ${module.label}`}
     />
   );
 }

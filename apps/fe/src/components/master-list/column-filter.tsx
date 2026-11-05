@@ -5,21 +5,19 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@dashboard/ui/components/dropdown-menu";
-import type { ColumnDef } from "@tanstack/react-table";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 const ColumnFilter = ({
   tableColumns,
 }: {
-  tableColumns: ColumnDef<unknown> &
-    {
-      getCanHide: () => boolean;
-      getIsVisible: () => boolean;
-      toggleVisibility: (value: boolean) => void;
-      label: string;
-      accessorFn: string;
-    }[];
+  tableColumns: {
+    getCanHide: () => boolean;
+    getIsVisible: () => boolean;
+    toggleVisibility: (value: boolean) => void;
+    label: string;
+    accessorFn: string;
+  }[];
 }) => {
   const [handleDropdownChange, setHandleDropdownChange] =
     useState<boolean>(false);

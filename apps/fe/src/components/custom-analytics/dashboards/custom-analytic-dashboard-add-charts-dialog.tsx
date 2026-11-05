@@ -30,6 +30,9 @@ export function CustomAnalyticDashboardAddChartsDialog({
 }: CustomAnalyticDashboardAddChartsDialogProps) {
   const [selected, setSelected] = useState<string[]>([]);
 
+  // The parent also closes this on a successful add, so the reset keys off `open`.
+  if (!open && selected.length > 0) setSelected([]);
+
   const { data: analytics = [] } = useQuery({
     queryKey: ["custom-analytics"],
     queryFn: () => getCustomAnalytics(),
@@ -40,13 +43,10 @@ export function CustomAnalyticDashboardAddChartsDialog({
     .filter((analytic) => !memberIds.includes(analytic.id))
     .map((analytic) => ({ label: analytic.name, value: analytic.id }));
 
-  const close = () => {
-    setSelected([]);
-    onOpenChange(false);
-  };
+  const close = () => onOpenChange(false);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => (next ? null : close())}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent variant="shell" className="sm:max-w-lg">
         <DialogFormHeader
           icon={<ChartSpline />}

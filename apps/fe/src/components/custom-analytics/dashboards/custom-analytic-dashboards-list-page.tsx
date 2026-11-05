@@ -119,6 +119,7 @@ export default function CustomAnalyticDashboardsListPage() {
           navigate({
             to: "/$team/analytics/custom/dashboards/$dashboardId",
             params: { team, dashboardId },
+            replace: true,
           })
         }
         onOpenChange={(open) => {

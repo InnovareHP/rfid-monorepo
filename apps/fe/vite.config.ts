@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
@@ -16,6 +17,10 @@ export default defineConfig(({ mode }) => {
       viteReact(),
       tailwindcss(),
     ],
+
+    test: {
+      setupFiles: ["./vitest.setup.ts"],
+    },
 
     server: {
       host: true,
@@ -47,7 +52,8 @@ export default defineConfig(({ mode }) => {
             if (!id.includes("/node_modules/")) return;
             if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id))
               return "react-vendor";
-            if (id.includes("/node_modules/@tanstack/")) return "tanstack-vendor";
+            if (id.includes("/node_modules/@tanstack/"))
+              return "tanstack-vendor";
           },
         },
       },

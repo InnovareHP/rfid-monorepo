@@ -64,8 +64,10 @@ export const updateExpenseLog = async (id: string, data: any) => {
   return response.data;
 };
 
-export const deleteExpenseLog = async (id: string) => {
-  const response = await axiosClient.delete(`/api/liaison/expense/${id}`);
+export const bulkDeleteExpenseLogs = async (ids: string[]) => {
+  const response = await axiosClient.post("/api/liaison/expense/bulk-delete", {
+    ids,
+  });
 
   return response.data;
 };

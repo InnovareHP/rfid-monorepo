@@ -16,6 +16,7 @@ function RouteComponent() {
       nameLabel="Contact Name"
       addLabel="Add to Phonebook"
       createPath="/$team/contacts/create"
+      totalLabel="Total Contacts"
     />
   );
 }

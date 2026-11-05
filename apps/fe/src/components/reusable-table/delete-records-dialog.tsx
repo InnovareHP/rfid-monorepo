@@ -17,8 +17,9 @@ type DeleteRecordsDialogProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
   recordIds: string[];
-  onDelete: (ids: string[]) => void;
+  onDelete: (ids: string[]) => Promise<unknown> | void;
   onDeleted: () => void;
+  checkLinks?: boolean;
 };
 
 export function DeleteRecordsDialog({
@@ -27,6 +28,7 @@ export function DeleteRecordsDialog({
   recordIds,
   onDelete,
   onDeleted,
+  checkLinks = true,
 }: DeleteRecordsDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const itemLabel = recordIds.length === 1 ? "item" : "items";
@@ -35,7 +37,7 @@ export function DeleteRecordsDialog({
   const { data: linkCounts } = useQuery({
     queryKey: ["record-link-counts", recordIds],
     queryFn: () => getRecordLinkCounts(recordIds),
-    enabled: open && recordIds.length > 0,
+    enabled: open && checkLinks && recordIds.length > 0,
     staleTime: 1000 * 60,
   });
 

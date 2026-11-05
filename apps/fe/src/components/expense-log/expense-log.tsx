@@ -1,8 +1,10 @@
+import ColumnFilter from "@/components/master-list/column-filter";
 import { WriteGate } from "@/components/write-gate";
+import { useLogDelete, useLogTable } from "@/hooks/use-log-table";
 import { formatCurrency } from "@/lib/helper/helper";
 import {
+  bulkDeleteExpenseLogs,
   createExpenseLog,
-  deleteExpenseLog,
   getExpenseLogs,
 } from "@/services/expense/expense-service";
 import { deleteImage, uploadImage } from "@/services/image/image-service";
@@ -31,7 +33,6 @@ import {
 } from "@dashboard/ui/components/form";
 import { ReceiptImagePicker } from "@dashboard/ui/components/ImageUpload";
 import { Input } from "@dashboard/ui/components/input";
-import { ReceiptViewer } from "@dashboard/ui/components/receipt-viewer";
 import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,17 +43,13 @@ import {
   Plus,
   Receipt,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v3";
-import {
-  LogEmptyState,
-  LogRowDelete,
-  LogStatCard,
-  LogTableSkeleton,
-} from "../log-shared/log-page-shell";
-import { ReusableTable } from "../reusable-table/generic-table";
+import { LogEmptyState, LogStatCard } from "../log-shared/log-page-shell";
+import { LogTable } from "../log-shared/log-table";
+import { expenseLogColumns, type ExpenseLogRow } from "./expense-log-columns";
 
 export const CreateExpenseSchema = z.object({
   amount: z.coerce.number().min(1, "Enter an amount"),
@@ -71,7 +68,7 @@ const ExpenseLogPage = () => {
     page: number;
     limit: number;
     filter?: Record<string, string>;
-  }>({ page: 1, limit: 20 });
+  }>({ page: 1, limit: 25 });
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -112,39 +109,25 @@ const ExpenseLogPage = () => {
     },
   });
 
-  const deleteExpenseMutation = useMutation({
-    mutationFn: async (id: string) => await deleteExpenseLog(id),
-    onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: ["expense-logs"] });
-      const previous = queryClient.getQueriesData({ queryKey: ["expense-logs"] });
+  const deleteExpenseMutation = useLogDelete(
+    "expense-logs",
+    bulkDeleteExpenseLogs
+  );
 
-      // Every page cached under the prefix is patched, since the key carries
-      // the filter and the row can sit in any of them.
-      queryClient.setQueriesData({ queryKey: ["expense-logs"] }, (old: any) => {
-        if (!Array.isArray(old?.data)) return old;
+  const { mutate: deleteRow, isPending: isDeleting } = deleteExpenseMutation;
 
-        return {
-          ...old,
-          data: old.data.filter((row: { id: string }) => row.id !== id),
-          total: Math.max(0, (old.total ?? 0) - 1),
-        };
-      });
-
-      return { previous };
-    },
-    onError: (error, _id, context) => {
-      for (const [key, data] of context?.previous ?? []) {
-        queryClient.setQueryData(key, data);
-      }
-      toast.error(error.message);
-    },
-    onSuccess: () => {
-      toast.success("Expense log deleted successfully!");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["expense-logs"] });
-    },
-  });
+  const columns = useMemo(
+    () =>
+      expenseLogColumns(
+        (id) =>
+          deleteRow([id], {
+            onSuccess: () => toast.success("Expense log deleted successfully!"),
+            onError: (error) => toast.error(error.message),
+          }),
+        isDeleting
+      ),
+    [deleteRow, isDeleting]
+  );
 
   const form = useForm<CreateExpenseFormValues>({
     resolver: zodResolver(CreateExpenseSchema),
@@ -160,10 +143,14 @@ const ExpenseLogPage = () => {
     createExpenseMutation.mutate(values);
   };
 
-  const rows: any[] = Array.isArray(expenseLogsQuery.data?.data)
-    ? expenseLogsQuery.data.data
-    : [];
+  const rows: ExpenseLogRow[] = expenseLogsQuery.data?.data ?? [];
   const totalEntries = expenseLogsQuery.data?.total ?? 0;
+
+  const { table, hideableColumns, onColumnOrderChange } = useLogTable(
+    "expense-log",
+    rows,
+    columns
+  );
 
   const pageAmount = rows.reduce((sum, row) => sum + (row.amount ?? 0), 0);
   const lastEntry = rows[0]?.createdAt
@@ -178,6 +165,7 @@ const ExpenseLogPage = () => {
           description="Track expenses and receipts for reimbursement"
         >
           <LogDateFilter value={dateRange} onChange={handleDateChange} />
+          <ColumnFilter tableColumns={hideableColumns} />
           <WriteGate>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" />
@@ -294,93 +282,30 @@ const ExpenseLogPage = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="overflow-hidden border border-border">
-          <div className="overflow-x-auto p-4">
-            {expenseLogsQuery.isLoading ? (
-              <LogTableSkeleton />
-            ) : rows.length > 0 ? (
-              <ReusableTable
-                data={rows}
-                columns={[
-                  {
-                    key: "amount",
-                    header: "Amount",
-                    render: (row: any) => (
-                      <span className="font-semibold text-foreground tabular-nums">
-                        {formatCurrency(row.amount ?? 0)}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "description",
-                    header: "Description",
-                    render: (row: any) => (
-                      <span
-                        className="block max-w-64 truncate"
-                        title={row.description ?? ""}
-                      >
-                        {row.description}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "notes",
-                    header: "Notes",
-                    render: (row: any) => (
-                      <span
-                        className="block max-w-48 truncate text-muted-foreground"
-                        title={row.notes ?? ""}
-                      >
-                        {row.notes || "—"}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "createdAt",
-                    header: "Logged",
-                    render: (row: any) => (
-                      <span className="text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(row.createdAt)}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "receipt",
-                    header: "Receipt",
-                    render: (row: any) => (
-                      <ReceiptViewer url={row.imageUrl} label="View Receipt" />
-                    ),
-                  },
-                  {
-                    key: "action",
-                    header: "",
-                    render: (row: any) => (
-                      <LogRowDelete
-                        entityLabel="expense"
-                        disabled={deleteExpenseMutation.isPending}
-                        onDelete={() => deleteExpenseMutation.mutate(row.id)}
-                      />
-                    ),
-                  },
-                ]}
-                currentPage={filterMeta.page}
-                itemsPerPage={filterMeta.limit}
-                onPageChange={(page) => setFilterMeta({ ...filterMeta, page })}
-                totalCount={totalEntries}
-                emptyMessage="No expense logs found"
-                isLoading={expenseLogsQuery.isLoading}
-              />
-            ) : (
-              <LogEmptyState
-                icon={Receipt}
-                title="No expenses yet"
-                description="Log your first expense with a receipt to start tracking reimbursements."
-                actionLabel="Log Expense"
-                onAction={() => setOpen(true)}
-              />
-            )}
-          </div>
-        </Card>
+        {!expenseLogsQuery.isLoading && rows.length === 0 ? (
+          <Card className="overflow-hidden border border-border">
+            <LogEmptyState
+              icon={Receipt}
+              title="No expenses yet"
+              description="Log your first expense with a receipt to start tracking reimbursements."
+              actionLabel="Log Expense"
+              onAction={() => setOpen(true)}
+            />
+          </Card>
+        ) : (
+          <LogTable
+            table={table}
+            isLoading={expenseLogsQuery.isLoading}
+            totalCount={totalEntries}
+            meta={filterMeta}
+            onMetaChange={(meta) =>
+              setFilterMeta((prev) => ({ ...prev, ...meta }))
+            }
+            onDelete={deleteExpenseMutation.mutateAsync}
+            onColumnOrderChange={onColumnOrderChange}
+            emptyMessage="No expense logs found"
+          />
+        )}
       </div>
     </div>
   );

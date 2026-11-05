@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { MODULE_GROUPS_KEY } from "@/hooks/use-module-groups";
 import { MODULES_KEY } from "@/hooks/use-modules";
 import { NAV_KEY } from "@/hooks/use-nav-data";
@@ -66,10 +67,7 @@ export function ModuleGroupDialog({
     // A duplicate name is the server's call to make, so its message is shown
     // rather than a generic one.
     onError: (error: unknown) =>
-      toast.error(
-        (error as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? "Could not create that group."
-      ),
+      toast.error(getApiErrorMessage(error, "Could not create that group.")),
   });
 
   return (

@@ -40,7 +40,7 @@ type MarketingActivityInput = {
 
 // The mirrored activity is typed from the first touchpoint, so the rest are named
 // in the description instead of being dropped.
-const toActivityFields = (log: MarketingActivityInput) => ({
+export const toActivityFields = (log: MarketingActivityInput) => ({
   title: log.reasonForVisit
     ? `Marketing touchpoint: ${log.reasonForVisit}`
     : "Marketing touchpoint",
@@ -205,6 +205,27 @@ export class LiaisonService {
       data: {
         isDeleted: true,
       },
+    });
+  }
+
+  // A count short of the request means a foreign or missing id, so the whole batch rolls back.
+  async bulkDeleteMillage(
+    ids: string[],
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const unique = [...new Set(ids)];
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.mileage.updateMany({
+        where: {
+          id: { in: unique },
+          organizationId,
+          ...(memberId ? { memberId } : {}),
+        },
+        data: { isDeleted: true },
+      });
+      if (count !== unique.length)
+        throw new NotFoundException("Mileage not found");
     });
   }
 
@@ -582,6 +603,25 @@ export class LiaisonService {
       where: {
         id,
       },
+    });
+  }
+
+  async bulkDeleteMarketing(
+    ids: string[],
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const unique = [...new Set(ids)];
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.marketing.deleteMany({
+        where: {
+          id: { in: unique },
+          organizationId,
+          ...(memberId ? { memberId } : {}),
+        },
+      });
+      if (count !== unique.length)
+        throw new NotFoundException("Marketing not found");
     });
   }
 
@@ -989,6 +1029,26 @@ export class LiaisonService {
       data: {
         isDeleted: true,
       },
+    });
+  }
+
+  async bulkDeleteExpense(
+    ids: string[],
+    organizationId: string,
+    memberId: string | null
+  ) {
+    const unique = [...new Set(ids)];
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.expense.updateMany({
+        where: {
+          id: { in: unique },
+          organizationId,
+          ...(memberId ? { memberId } : {}),
+        },
+        data: { isDeleted: true },
+      });
+      if (count !== unique.length)
+        throw new NotFoundException("Expense not found");
     });
   }
 }

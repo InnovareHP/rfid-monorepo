@@ -38,21 +38,10 @@ export const updateMileageLog = async (id: string, data: any) => {
   return response.data;
 };
 
-export const deleteMileageLog = async (id: string | string[]) => {
-  // If it's an array, delete multiple logs
-  if (Array.isArray(id)) {
-    // Delete each log sequentially (or you could implement a bulk delete endpoint)
-    const results = await Promise.all(
-      id.map((singleId) =>
-        axiosClient.delete(`/api/liaison/mileage/${singleId}`)
-      )
-    );
-
-    return results.map((r) => r.data);
-  }
-
-  // Single delete
-  const response = await axiosClient.delete(`/api/liaison/mileage/${id}`);
+export const bulkDeleteMileageLogs = async (ids: string[]) => {
+  const response = await axiosClient.post("/api/liaison/mileage/bulk-delete", {
+    ids,
+  });
 
   return response.data;
 };

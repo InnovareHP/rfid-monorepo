@@ -213,14 +213,16 @@ export default function MasterListPage() {
       );
       toast.error("Failed to delete facilities.");
     },
+    // The optimistic filter only drops rows; refetching pulls the remaining
+    // facilities up into the page instead of leaving it short until a reload.
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: boardQueryKey("LEAD") });
       queryClient.invalidateQueries({ queryKey: ["board-stats"] });
     },
   });
 
-  const handleDeleteLeads = (columnIds: string[]) => {
-    deleteLeadMutation.mutate(columnIds);
-  };
+  const handleDeleteLeads = (columnIds: string[]) =>
+    deleteLeadMutation.mutateAsync(columnIds);
 
   const handleExportCSV = async (range: ExportRange) => {
     if (rows.length === 0) {

@@ -8,15 +8,17 @@ jest.mock("../../lib/prisma/prisma", () => {
     findUniqueOrThrow: jest.fn().mockResolvedValue({}),
     update: jest.fn().mockResolvedValue({}),
     delete: jest.fn().mockResolvedValue({}),
+    updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
   });
 
-  return {
-    prisma: {
-      mileage: delegate(),
-      marketing: delegate(),
-      expense: delegate(),
-    },
+  const prisma = {
+    mileage: delegate(),
+    marketing: delegate(),
+    expense: delegate(),
+    $transaction: jest.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
   };
+  return { prisma };
 });
 
 import { prisma } from "../../lib/prisma/prisma";
@@ -30,6 +32,8 @@ type MockedDelegate = {
   findUniqueOrThrow: jest.Mock;
   update: jest.Mock;
   delete: jest.Mock;
+  updateMany: jest.Mock;
+  deleteMany: jest.Mock;
 };
 
 const delegates = prisma as unknown as {
@@ -50,17 +54,35 @@ describe("LiaisonService tenant isolation", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    for (const d of Object.values(delegates)) {
+    for (const d of [
+      delegates.mileage,
+      delegates.marketing,
+      delegates.expense,
+    ]) {
       d.findFirst.mockResolvedValue(null);
+      d.updateMany.mockResolvedValue({ count: 0 });
+      d.deleteMany.mockResolvedValue({ count: 0 });
     }
     service = new LiaisonService();
   });
 
   describe.each([
-    ["mileage", "getMillageById", "updateMillage", "deleteMillage"],
-    ["marketing", "getMarketingById", "updateMarketing", "deleteMarketing"],
-    ["expense", null, "updateExpense", "deleteExpense"],
-  ] as const)("%s", (model, getter, updater, deleter) => {
+    [
+      "mileage",
+      "getMillageById",
+      "updateMillage",
+      "deleteMillage",
+      "bulkDeleteMillage",
+    ],
+    [
+      "marketing",
+      "getMarketingById",
+      "updateMarketing",
+      "deleteMarketing",
+      "bulkDeleteMarketing",
+    ],
+    ["expense", null, "updateExpense", "deleteExpense", "bulkDeleteExpense"],
+  ] as const)("%s", (model, getter, updater, deleter, bulkDeleter) => {
     const delegate = () => delegates[model];
 
     if (getter) {
@@ -126,6 +148,31 @@ describe("LiaisonService tenant isolation", () => {
       expect(
         delegate().findFirst.mock.calls[0][0].where.memberId
       ).toBeUndefined();
+    });
+
+    const bulkMutation = () =>
+      model === "marketing" ? delegate().deleteMany : delegate().updateMany;
+
+    it(`${bulkDeleter} rejects a batch holding a row from another organization`, async () => {
+      bulkMutation().mockResolvedValue({ count: 1 });
+
+      await expect(
+        (service as any)[bulkDeleter](["own-row", OTHER_ORG_ROW], ORG, null)
+      ).rejects.toThrow(NotFoundException);
+
+      expectsOrgScope(bulkMutation().mock.calls[0][0].where);
+    });
+
+    it(`${bulkDeleter} narrows to the acting member and dedupes ids`, async () => {
+      bulkMutation().mockResolvedValue({ count: 1 });
+
+      await (service as any)[bulkDeleter](["row-1", "row-1"], ORG, "member-1");
+
+      expect(bulkMutation().mock.calls[0][0].where).toMatchObject({
+        id: { in: ["row-1"] },
+        organizationId: ORG,
+        memberId: "member-1",
+      });
     });
   });
 });

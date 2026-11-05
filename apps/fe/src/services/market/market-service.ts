@@ -1,5 +1,9 @@
 import { axiosClient } from "@/lib/axios-client";
 import { requestCsv } from "@/lib/helper/csv-download";
+import type {
+  AccountManagerRow,
+  MarketingLogRow,
+} from "@/lib/helper/marketing-import";
 import type { MarketingReportResponse } from "@dashboard/shared";
 
 type MarketLogsResponse = MarketingReportResponse & {
@@ -50,10 +54,60 @@ export const updateMarketLog = async (id: string, data: any) => {
   return response.data;
 };
 
-export const deleteMarketLog = async (id: string) => {
-  const response = await axiosClient.delete(`/api/liaison/marketing/${id}`);
+export const bulkDeleteMarketLogs = async (ids: string[]) => {
+  const response = await axiosClient.post(
+    "/api/liaison/marketing/bulk-delete",
+    { ids }
+  );
 
   return response.data;
+};
+
+type ImportBatch<T> = { dryRun: boolean; firstRow: number; rows: T[] };
+
+type RowIssue = { row: number; value: string };
+
+export type MarketingImportResult = {
+  created: number;
+  duplicates: number;
+  missing: RowIssue[];
+  ids: string[];
+};
+
+export type AccountManagerImportResult = {
+  assigned: number;
+  alreadySet: number;
+  missing: RowIssue[];
+  unknownManagers: RowIssue[];
+};
+
+export const importMarketLogs = async (batch: ImportBatch<MarketingLogRow>) => {
+  const response = await axiosClient.post(
+    "/api/liaison/marketing/import",
+    batch
+  );
+
+  return response.data as MarketingImportResult;
+};
+
+export const importAccountManagers = async (
+  batch: ImportBatch<AccountManagerRow>
+) => {
+  const response = await axiosClient.post(
+    "/api/liaison/marketing/import/account-managers",
+    batch
+  );
+
+  return response.data as AccountManagerImportResult;
+};
+
+export const undoMarketLogImport = async (ids: string[]) => {
+  const response = await axiosClient.post(
+    "/api/liaison/marketing/import/undo",
+    { ids }
+  );
+
+  return response.data as { removed: number };
 };
 
 export const getFacilityOptions = async () => {

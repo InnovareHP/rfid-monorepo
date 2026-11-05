@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -53,9 +54,7 @@ export const MarketingGroupsListPage = () => {
         GROUPS_KEY,
         (context as { previous?: RecipientGroup[] } | undefined)?.previous
       );
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to delete group";
+      const message = getApiErrorMessage(error, "Failed to delete group");
       toast.error(message);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: GROUPS_KEY }),

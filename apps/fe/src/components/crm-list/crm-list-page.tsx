@@ -22,6 +22,7 @@ import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { BoardStatsStrip } from "../master-list/board-stats-strip";
 import ColumnFilter from "../master-list/column-filter";
 import { MasterListFilters } from "../master-list/master-list-filter";
 import { generateCrmColumns, type CrmRow } from "./crm-list-column";
@@ -37,6 +38,7 @@ type CrmListPageProps = {
   nameLabel: string;
   addLabel: string;
   createPath: string;
+  totalLabel: string;
 };
 
 export default function CrmListPage({
@@ -46,6 +48,7 @@ export default function CrmListPage({
   nameLabel,
   addLabel,
   createPath,
+  totalLabel,
 }: CrmListPageProps) {
   const ctx = useRouteContext({ from: "__root__" }) as RouteContext;
   const activeOrganizationId = ctx?.activeOrganizationId ?? "";
@@ -197,6 +200,7 @@ export default function CrmListPage({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["board-stats", moduleType] });
     },
   });
 
@@ -272,6 +276,12 @@ export default function CrmListPage({
             </Link>
           </WriteGate>
         </PageHeader>
+
+        <BoardStatsStrip
+          moduleType={moduleType}
+          labels={{ totalFacilities: totalLabel }}
+          stats={["totalFacilities"]}
+        />
 
         <MasterListFilters
           columns={data?.columns ?? []}

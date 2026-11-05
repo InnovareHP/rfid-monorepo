@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { WriteGate } from "@/components/write-gate";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -206,9 +207,7 @@ export const MarketingCampaignsListPage = () => {
         CAMPAIGNS_KEY,
         (context as { previous?: MarketingCampaign[] } | undefined)?.previous
       );
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to delete campaign";
+      const message = getApiErrorMessage(error, "Failed to delete campaign");
       toast.error(message);
     },
   });
@@ -246,9 +245,9 @@ export const MarketingCampaignsListPage = () => {
     <div className="page-style">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
-        title="Campaigns"
-        description="Group forms, blasts, and landing pages together."
-      />
+          title="Campaigns"
+          description="Group forms, blasts, and landing pages together."
+        />
 
         <WriteGate>
           <Button

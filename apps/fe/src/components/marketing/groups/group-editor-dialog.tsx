@@ -1,10 +1,12 @@
-import { FILTER_OPERATORS } from "@dashboard/shared";
+import { useModules } from "@/hooks/use-modules";
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import {
   createGroup,
   previewGroupMembers,
   updateGroup,
   type RecipientGroup,
 } from "@/services/marketing/group-service";
+import { FILTER_OPERATORS } from "@dashboard/shared";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -30,13 +32,17 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { Textarea } from "@dashboard/ui/components/textarea";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Loader2, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useModules } from "@/hooks/use-modules";
 import { GroupAudienceFilter } from "./group-audience-filter";
 import { GroupMembersTable } from "./group-members-table";
 
@@ -137,9 +143,7 @@ export function GroupEditorDialog({
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Failed to save group";
+      const message = getApiErrorMessage(error, "Failed to save group");
       toast.error(message);
     },
   });
@@ -218,51 +222,51 @@ export function GroupEditorDialog({
                 </p>
               ) : (
                 <>
-              <FormField
-                control={form.control}
-                name="moduleType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Module</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        // Field ids belong to a module, so the filter cannot carry over.
-                        form.setValue("filter", { filter: {} });
-                        field.onChange(value);
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {modules.map((module) => (
-                          <SelectItem key={module.id} value={module.key}>
-                            {module.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="moduleType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Module</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            // Field ids belong to a module, so the filter cannot carry over.
+                            form.setValue("filter", { filter: {} });
+                            field.onChange(value);
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {modules.map((module) => (
+                              <SelectItem key={module.id} value={module.key}>
+                                {module.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="filter"
-                render={({ field }) => (
-                  <FormItem>
-                    <GroupAudienceFilter
-                      moduleType={moduleType}
-                      audienceFilter={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="filter"
+                    render={({ field }) => (
+                      <FormItem>
+                        <GroupAudienceFilter
+                          moduleType={moduleType}
+                          audienceFilter={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormItem>
+                    )}
+                  />
                 </>
               )}
             </div>
@@ -290,7 +294,6 @@ export function GroupEditorDialog({
             Cancel
           </Button>
           <Button
-           
             disabled={saveMutation.isPending}
             onClick={form.handleSubmit((values) => saveMutation.mutate(values))}
           >

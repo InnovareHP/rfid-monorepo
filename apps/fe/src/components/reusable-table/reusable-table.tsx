@@ -30,7 +30,6 @@ import {
 import { useIsMobile } from "@dashboard/ui/hooks/use-mobile";
 import { cn } from "@dashboard/ui/lib/utils";
 import {
-  type ColumnDef,
   flexRender,
   type Table as ReactTable,
 } from "@tanstack/react-table";
@@ -54,12 +53,12 @@ import { TablePagination } from "./table-pagination";
 
 type Props<T> = {
   table: ReactTable<T>;
-  columns: ColumnDef<{ id: string; name: string; type: string }>[];
+  columns: readonly unknown[];
   isFetchingList: boolean;
   onLoadMore: () => void;
   hasMore: boolean;
   setActivePage: () => void;
-  onDelete: (ids: string[]) => void;
+  onDelete: (ids: string[]) => Promise<unknown> | void;
   onRowOpen?: (id: string) => void;
   totalCount?: number;
   isReferral?: boolean;
@@ -74,6 +73,7 @@ type Props<T> = {
   onPageSizeChange?: (size: number) => void;
   enableColumnReorder?: boolean;
   onColumnOrderChange?: (columnIds: string[]) => void;
+  enableBulkEmail?: boolean;
 };
 
 // The first two columns are sticky and the create-column header is an action,
@@ -102,6 +102,7 @@ const ReusableTable = <T extends { id: string }>({
   onPageSizeChange,
   enableColumnReorder = false,
   onColumnOrderChange,
+  enableBulkEmail = true,
 }: Props<T>) => {
   const isMobile = useIsMobile();
   const sensors = useSensors(
@@ -153,6 +154,14 @@ const ReusableTable = <T extends { id: string }>({
     }
   };
 
+  // Measured before the delete: once rows leave the page, a page emptied past
+  // the first would otherwise sit blank until the user pages back by hand.
+  const handleDelete = async (ids: string[]) => {
+    const emptiesPage = ids.length >= totalRows && currentPage > 1;
+    await onDelete(ids);
+    if (emptiesPage) setCurrentPage(currentPage - 1);
+  };
+
   const handleClearSelection = () => {
     table.resetRowSelection();
     toast.info("Selection cleared.");
@@ -194,10 +203,12 @@ const ReusableTable = <T extends { id: string }>({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => setEmailDialogOpen(true)}>
-                    <MailIcon className="h-4 w-4 mr-2" />
-                    Send Email
-                  </DropdownMenuItem>
+                  {enableBulkEmail && (
+                    <DropdownMenuItem onClick={() => setEmailDialogOpen(true)}>
+                      <MailIcon className="h-4 w-4 mr-2" />
+                      Send Email
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => setDeleteDialogOpen(true)}
@@ -220,20 +231,21 @@ const ReusableTable = <T extends { id: string }>({
               nested scroll containers is what made the table look merely
               clipped. */}
           <div className="relative w-full max-h-[calc(100dvh-260px)] min-h-[14rem] overflow-auto overscroll-x-contain">
+            {/* DndContext sits outside the table because it renders a hidden a11y div, which a table cannot contain. */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleColumnDragEnd}
+            >
+            <SortableContext
+              items={reorderableIds}
+              strategy={horizontalListSortingStrategy}
+            >
             <Table
               containerClassName="overflow-visible"
               className="table-fixed w-full"
               style={{ minWidth: table.getCenterTotalSize() }}
             >
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleColumnDragEnd}
-              >
-              <SortableContext
-                items={reorderableIds}
-                strategy={horizontalListSortingStrategy}
-              >
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow
@@ -259,8 +271,6 @@ const ReusableTable = <T extends { id: string }>({
                   </TableRow>
                 ))}
               </TableHeader>
-              </SortableContext>
-              </DndContext>
 
               <TableBody>
                 {isFetchingList && totalRows === 0 ? (
@@ -360,6 +370,8 @@ const ReusableTable = <T extends { id: string }>({
                 )}
               </TableBody>
             </Table>
+            </SortableContext>
+            </DndContext>
           </div>
 
           {hasMore && !isError && (
@@ -399,17 +411,20 @@ const ReusableTable = <T extends { id: string }>({
             open={deleteDialogOpen}
             setOpen={setDeleteDialogOpen}
             recordIds={selectedIds}
-            onDelete={onDelete}
+            onDelete={handleDelete}
             onDeleted={() => table.resetRowSelection()}
+            checkLinks={enableBulkEmail}
           />
 
-          <BulkEmailDialog
-            open={emailDialogOpen}
-            setOpen={setEmailDialogOpen}
-            recordIds={selectedIds}
-            moduleType={moduleType ?? (isReferral ? "REFERRAL" : "LEAD")}
-            onSent={() => table.resetRowSelection()}
-          />
+          {enableBulkEmail && (
+            <BulkEmailDialog
+              open={emailDialogOpen}
+              setOpen={setEmailDialogOpen}
+              recordIds={selectedIds}
+              moduleType={moduleType ?? (isReferral ? "REFERRAL" : "LEAD")}
+              onSent={() => table.resetRowSelection()}
+            />
+          )}
         </CardContent>
       </Card>
     </>

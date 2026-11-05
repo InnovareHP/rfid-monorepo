@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/helper/helper";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { ModuleGroupDialog } from "@/components/module-manage/module-group-dialog";
 import {
@@ -119,16 +120,12 @@ export function ModuleManagePage() {
     onSuccess: refresh,
   });
 
-  const errorMessage = (error: unknown, fallback: string) =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data
-      ?.message ?? fallback;
-
   const renameGroupMutation = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       renameModuleGroup(id, name),
     onSuccess: refresh,
     onError: (error: unknown) =>
-      toast.error(errorMessage(error, "Could not rename that group.")),
+      toast.error(getApiErrorMessage(error, "Could not rename that group.")),
   });
 
   const deleteGroupMutation = useMutation({
