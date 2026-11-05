@@ -1,14 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { render } from "@react-email/render";
-import { sanitizeRichText } from "@dashboard/shared";
+import { applyMergeVariables, sanitizeRichText } from "@dashboard/shared";
 import { appConfig } from "../../config/app-config";
 import { sendEmail } from "../../lib/aws/ses";
+import { prisma } from "../../lib/prisma/prisma";
 import { ActivityEmail } from "../../react-email/activity-email";
+import { EmailBranding } from "../../react-email/email-layout";
 import { EmailTrackingService } from "../email/email-tracking.service";
 import { GmailService } from "./gmail.service";
 import { OutlookService } from "./outlook.service";
 
-export interface DispatchInput {
+interface DispatchBase {
   userId: string;
   to: string;
   subject: string;
@@ -17,10 +19,14 @@ export interface DispatchInput {
   senderName: string;
   sendVia?: string;
   sender?: DispatchSender;
-  // Required, not defaulted: a blast body is already a complete email document
-  // and must ship as-is, so every caller states which one it is.
-  layout: "ACTIVITY" | "NONE";
 }
+
+// Required, not defaulted: a blast body is already a complete email document
+// and must ship as-is, so every caller states which one it is.
+export type DispatchInput = DispatchBase &
+  ({ layout: "NONE" } | { layout: "ACTIVITY"; organizationId: string });
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 // A campaign's chosen identity. A verified domain sends through SES as that
 // domain; a personal one pins the mailbox chain to whoever connected it.
@@ -53,18 +59,59 @@ export class EmailDispatchService {
     const document =
       input.layout === "NONE"
         ? input.body
-        : await render(
-            ActivityEmail({
-              recipientName: input.recipientName,
-              body: sanitizeRichText(input.body),
-            })
-          );
+        : await this.renderActivity(input, input.organizationId);
 
     const html = this.trackingService.injectPixel(document, trackingId);
 
     const senderEmail = await this.deliver(input, html, references);
 
     return { senderEmail, trackingId };
+  }
+
+  private async renderActivity(input: DispatchBase, organizationId: string) {
+    const branding = await this.loadBranding(organizationId);
+    const body = applyMergeVariables(sanitizeRichText(input.body), {
+      recordName: input.recipientName,
+      email: input.to,
+      organizationName: branding.name,
+    });
+
+    return render(
+      ActivityEmail({
+        preview: input.subject,
+        recipientName: input.recipientName,
+        body,
+        senderName: input.senderName,
+        branding,
+      })
+    );
+  }
+
+  // Metadata is free-form JSON the org edits, so only a valid hex survives.
+  private async loadBranding(organizationId: string): Promise<EmailBranding> {
+    const organization = await prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { name: true, logo: true, metadata: true },
+    });
+
+    const color = this.parseBrandColor(organization.metadata);
+    const logoUrl = organization.logo?.startsWith("https://")
+      ? organization.logo
+      : null;
+
+    return { name: organization.name, logoUrl, color };
+  }
+
+  private parseBrandColor(metadata: string | null): string | null {
+    if (!metadata) return null;
+    try {
+      const { brandColor } = JSON.parse(metadata) as { brandColor?: unknown };
+      return typeof brandColor === "string" && HEX_COLOR.test(brandColor)
+        ? brandColor
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   private async deliver(

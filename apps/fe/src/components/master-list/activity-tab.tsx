@@ -1,3 +1,4 @@
+import { RichTextEditor } from "@/components/marketing/blasts/rich-text-editor";
 import { boardQueryKey } from "@/lib/helper/board-query-key";
 import { resolveFaxAutofill } from "@/lib/helper/fax-autofill";
 import {
@@ -20,7 +21,7 @@ import {
 } from "@/services/lead/lead-service";
 import { getSpecificReferral } from "@/services/referral/referral-service";
 import { updateModuleRecord } from "@/services/board/board-module-service";
-import { formatDateTime } from "@dashboard/shared";
+import { formatDateTime, sanitizeRichText } from "@dashboard/shared";
 import { Badge } from "@dashboard/ui/components/badge";
 import { Button } from "@dashboard/ui/components/button";
 import { Calendar } from "@dashboard/ui/components/calendar";
@@ -647,10 +648,11 @@ export function ActivityTab({
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder="Email body"
-                            rows={3}
+                          <RichTextEditor
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                            variant="full"
+                            allowImages
                           />
                         </FormControl>
                         <FormMessage />
@@ -1031,9 +1033,12 @@ function ActivityCard({
             </div>
 
             {activity.description && (
-              <p className="text-sm text-muted-foreground mt-1.5">
-                {activity.description}
-              </p>
+              <div
+                className="mt-1.5 line-clamp-3 whitespace-pre-line text-sm text-muted-foreground [&_img]:hidden"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeRichText(activity.description),
+                }}
+              />
             )}
           </div>
 

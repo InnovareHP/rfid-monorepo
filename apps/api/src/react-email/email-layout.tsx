@@ -27,13 +27,26 @@ const responsiveCss = `
   }
 `;
 
+// An organization's identity, replacing the product brand on CRM mail.
+export type EmailBranding = {
+  name: string;
+  logoUrl: string | null;
+  color: string | null;
+};
+
 type EmailLayoutProps = {
   preview: string;
   badge?: string;
+  branding?: EmailBranding;
   children: React.ReactNode;
 };
 
-export const EmailLayout = ({ preview, badge, children }: EmailLayoutProps) => {
+export const EmailLayout = ({
+  preview,
+  badge,
+  branding,
+  children,
+}: EmailLayoutProps) => {
   return (
     <Html lang="en">
       <Head>
@@ -44,10 +57,17 @@ export const EmailLayout = ({ preview, badge, children }: EmailLayoutProps) => {
       <Body style={main}>
         <Container style={outer}>
           <Section style={card}>
-            <Section style={header} className="gutter">
+            <Section
+              style={branding ? brandedHeader(branding.color) : header}
+              className="gutter"
+            >
               <Row>
                 <Column>
-                  <Img src={logoUrl} alt={BRAND_NAME} style={logo} />
+                  {branding ? (
+                    <BrandedMark branding={branding} />
+                  ) : (
+                    <Img src={logoUrl} alt={BRAND_NAME} style={logo} />
+                  )}
                 </Column>
                 {badge ? (
                   <Column style={badgeCell}>
@@ -64,21 +84,13 @@ export const EmailLayout = ({ preview, badge, children }: EmailLayoutProps) => {
             <Hr style={divider} />
 
             <Section style={footer} className="gutter">
-              <Text style={footerText}>Sent by {BRAND_NAME}.</Text>
-              <Text style={footerText}>
-                <Link href={appConfig.SUPPORT_URL} style={footerLink}>
-                  Visit support
-                </Link>
-              </Text>
-              <Text style={footerText}>
-                <Link href="mailto:info@innovarehp.com" style={footerLink}>
-                  Report suspicious activity
-                </Link>
-              </Text>
-              <Text style={copyright}>
-                &copy; {new Date().getFullYear()} {BRAND_NAME}. All rights
-                reserved.
-              </Text>
+              {branding ? (
+                <Text style={copyright}>
+                  &copy; {new Date().getFullYear()} {branding.name}
+                </Text>
+              ) : (
+                <ProductFooter />
+              )}
             </Section>
           </Section>
         </Container>
@@ -86,6 +98,35 @@ export const EmailLayout = ({ preview, badge, children }: EmailLayoutProps) => {
     </Html>
   );
 };
+
+const ProductFooter = () => (
+  <>
+    <Text style={footerText}>Sent by {BRAND_NAME}.</Text>
+    <Text style={footerText}>
+      <Link href={appConfig.SUPPORT_URL} style={footerLink}>
+        Visit support
+      </Link>
+    </Text>
+    <Text style={footerText}>
+      <Link href="mailto:info@innovarehp.com" style={footerLink}>
+        Report suspicious activity
+      </Link>
+    </Text>
+    <Text style={copyright}>
+      &copy; {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
+    </Text>
+  </>
+);
+
+// A logo when the org uploaded one, otherwise its name set in the header.
+const BrandedMark = ({ branding }: { branding: EmailBranding }) =>
+  branding.logoUrl ? (
+    <Img src={branding.logoUrl} alt={branding.name} style={brandedLogo} />
+  ) : (
+    <Text style={{ ...brandedName, color: nameColor(branding.color) }}>
+      {branding.name}
+    </Text>
+  );
 
 export default EmailLayout;
 
@@ -223,6 +264,36 @@ const header: React.CSSProperties = {
   padding: "28px 40px",
   backgroundColor: brand.deep,
   backgroundImage: `linear-gradient(100deg, ${brand.navy} 0%, ${brand.blue} 60%, ${brand.sky} 100%)`,
+};
+
+// Logos are drawn for white, so the org color sits in an accent bar instead.
+const brandedHeader = (color: string | null): React.CSSProperties => ({
+  padding: "24px 40px",
+  backgroundColor: brand.white,
+  borderTop: `6px solid ${color ?? brand.blue}`,
+  borderBottom: `1px solid ${brand.border}`,
+});
+
+// Falls back to navy when the org color is too light to read on white.
+const nameColor = (color: string | null) => {
+  if (!color) return brand.navy;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 160 ? brand.navy : color;
+};
+
+const brandedLogo: React.CSSProperties = {
+  maxWidth: "180px",
+  maxHeight: "56px",
+  width: "auto",
+  height: "auto",
+  display: "block",
+};
+
+const brandedName: React.CSSProperties = {
+  fontSize: "20px",
+  lineHeight: "28px",
+  fontWeight: 700,
+  margin: "0",
 };
 
 const logo: React.CSSProperties = {

@@ -4886,6 +4886,7 @@ export class BoardService {
         recipientName: activity.record.recordName,
         body,
         layout: "ACTIVITY",
+        organizationId,
         senderName: activity.creator.name,
         sendVia: emailOverrides?.send_via,
       });

@@ -1,3 +1,4 @@
+import { RichTextEditor } from "@/components/marketing/blasts/rich-text-editor";
 import { Button } from "@dashboard/ui/components/button";
 import {
   Dialog,
@@ -23,7 +24,6 @@ import {
   SelectValue,
 } from "@dashboard/ui/components/select";
 import { Spinner } from "@dashboard/ui/components/spinner";
-import { Textarea } from "@dashboard/ui/components/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { MailIcon, SendIcon } from "lucide-react";
@@ -108,7 +108,7 @@ export function BulkEmailDialog({
         if (!next) form.reset();
       }}
     >
-      <DialogContent variant="shell" className="sm:max-w-lg">
+      <DialogContent variant="shell" className="sm:max-w-2xl">
         <DialogFormHeader
           icon={<MailIcon />}
           title="Send Email"
@@ -142,11 +142,12 @@ export function BulkEmailDialog({
                 <FormItem>
                   <FormLabel>Body</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter email body..."
+                    <RichTextEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      variant="full"
+                      allowImages
                       disabled={form.formState.isSubmitting}
-                      rows={6}
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
