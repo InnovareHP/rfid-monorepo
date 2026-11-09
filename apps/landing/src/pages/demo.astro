@@ -1,8 +1,10 @@
 ---
-import { DemoScheduler } from "../components/demo/DemoScheduler";
 import Footer from "../components/layout/Footer.astro";
 import Nav from "../components/layout/Nav.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const BOOKING_URL =
+  "https://bookings.cloud.microsoft/book/SalesTeam@NETORGFT13663591.onmicrosoft.com/s/GV-Uc2oCk0-5seNJRBSHIw2?ismsaljsauthenabled";
 
 const POINTS = [
   "A walkthrough of the referral board with your own territory as the example.",
@@ -48,9 +50,23 @@ const POINTS = [
       </div>
 
       <div class="lg:col-span-3">
-        {/* client:only: the calendar reads the visitor's clock and zone, which
-            the server does not share, so nothing is prerendered. */}
-        <DemoScheduler client:only="react" />
+        <iframe
+          src={BOOKING_URL}
+          title="Book a Refidly demo"
+          class="h-[760px] w-full rounded-xl border border-border bg-background"
+          loading="lazy"
+        />
+        <p class="mt-3 text-sm text-muted-foreground">
+          Calendar not loading?{" "}
+          <a
+            href={BOOKING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-medium text-brand underline"
+          >
+            Open the booking page
+          </a>
+        </p>
       </div>
     </div>
   </main>
